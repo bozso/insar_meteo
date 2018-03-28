@@ -265,7 +265,7 @@ FUNCTION_KEYWORDS(azi_inc)
     if (read_orbit_fit(fit_file, &orb))
         return PyErr_NoMemory();
     
-    println("%lf %lf %lf", orb.coeffs[0], orb.coeffs[1], orb.coeffs[2]);
+    //println("%lf %lf %lf", orb.coeffs[0], orb.coeffs[1], orb.coeffs[2]);
     
     closest_appr(&orb, &gnss, max_iter, &sat);
         
@@ -311,8 +311,6 @@ FUNCTION_KEYWORDS(azi_inc)
 
 static PyMethodDef InsarMethods[] = {
     METHOD_KEYWORDS(azi_inc),
-    //{"azi_inc", (PyCFunction) refl_azi_inc,
-    // METH_VARARGS | METH_KEYWORDS, azi_inc__doc__},
     {NULL, NULL, 0, NULL}
 };
 

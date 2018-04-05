@@ -8,9 +8,9 @@ class Gnuplot:
         self.is_multi = False
         
         if out:
-            self.commands.append("set out '{}'".format(out))
+            self.commands.append("set out '{}'".format(out).encode())
         
-        self.commands.append("set term {}".format(term))
+        self.commands.append("set term {}".format(term).encode())
         
     def __call__(self, command):
         
@@ -19,15 +19,13 @@ class Gnuplot:
         if t_cmd == list:
             temp = [" ".join(str(elem) for elem in elems)
                     for elems in zip(*command)]
-            temp.append("e")
-            self.commands.append("\n".join(temp))
-
+            self.commands.extend([temp.encode(), "e".encode()])
+            del temp
         elif t_cmd == np.ndarray:
-            temp = [" ".join(item) for item in command.astype(str)]
-            temp.append("e")
-            self.commands.append("\n".join(temp))
+            # temp = [" ".join(item) for item in command.astype(str)]
+            self.commands.append(command.tobytes())
         else:
-            self.commands.append("{}".format(command))
+            self.commands.append("{}".format(command).encode())
     
     def list2str(self, command):
         """
@@ -47,9 +45,9 @@ class Gnuplot:
     
         temp = [" ".join(str(elem) for elem in elems)
         for elems in zip(*command)]
-        temp.append("e")
+        temp.append("e".encode())
         
-        return "\n".join(temp)
+        return b"\n".join(temp.encode())
     
     def np2str(self, command):
         """
@@ -67,9 +65,9 @@ class Gnuplot:
         """
         
         temp = [" ".join(item) for item in command.astype(str)]
-        temp.append("e")
+        temp.append("e".encode())
         
-        return "\n".join(temp)
+        return b"\n".join(temp.encode())
 
     # SETTERS
 
@@ -82,90 +80,92 @@ class Gnuplot:
             first = "colsfirst"
         
         self.commands.append("set multiplot layout {},{} {} title '{}'"
-                             .format(layout[0], layout[1], first, title))
+                             .format(layout[0], layout[1], first, title)
+                             .encode())
         
     def xtics(self, command):
-        self.commands.append("set xtics {}".format(command))
+        self.commands.append("set xtics {}".format(command).encode())
 
     def ytics(self, command):
-        self.commands.append("set ytics {}".format(command))
+        self.commands.append("set ytics {}".format(command).encode())
 
     def ztics(self, command):
-        self.commands.append("set ztics {}".format(command))
+        self.commands.append("set ztics {}".format(command).encode())
     
     def style(self, stylenum, styledef):
         self.commands.append("set style line {} {}"
-                             .format(stylenum, styledef))
+                             .format(stylenum, styledef).encode())
     
     def axis_format(self, axis, _format):
-        self.commands.append("set format {} '{}'".format(axis, _format))
+        self.commands.append("set format {} '{}'".format(axis, _format)
+                             .encode())
     
     def axis_time(self, axis):
-        self.commands.append("set {}data time".format(axis))
+        self.commands.append("set {}data time".format(axis).encode())
     
     def timefmt(self, timeformat):
-        self.commands.append("set timefmt '{}'".format(timeformat))
+        self.commands.append("set timefmt '{}'".format(timeformat).encode())
     
     def output(self, outfile, term="pngcairo"):
-        self.commands.append("set out '{}'".format(outfile))
-        self.commands.append("set term {}".format(term))
+        self.commands.append("set out '{}'".format(outfile).encode())
+        self.commands.append("set term {}".format(term).encode())
 
     def title(self, title):
-        self.commands.append("set title '{}'".format(title))
+        self.commands.append("set title '{}'".format(title).encode())
 
     def term(self, term="wxt"):
-        self.commands.append("set term '{}'".format(term))
+        self.commands.append("set term '{}'".format(term).encode())
 
     def out(self, out_path):
-        self.commands.append("set out '{}'".format(out_path))
+        self.commands.append("set out '{}'".format(out_path).encode())
 
     def set(self, var):
-        self.commands.append("set {}".format(var))
+        self.commands.append("set {}".format(var).encode())
 
     # LABELS
 
     def labels(self, x="x", y="y", z=None):
-        self.commands.append("set xlabel '{}'".format(x))
-        self.commands.append("set ylabel '{}'".format(y))
+        self.commands.append("set xlabel '{}'".format(x).encode())
+        self.commands.append("set ylabel '{}'".format(y).encode())
         
         if z:
-            self.commands.append("set zlabel '{}'".format(z))
+            self.commands.append("set zlabel '{}'".format(z).encode())
 
     def xlabel(self, xlabel="x"):
-        self.commands.append("set xlabel '{}'".format(xlabel))
+        self.commands.append("set xlabel '{}'".format(xlabel).encode())
 
     def ylabel(self, ylabel="y"):
-        self.commands.append("set ylabel '{}'".format(ylabel))
+        self.commands.append("set ylabel '{}'".format(ylabel).encode())
 
     def zlabel(self, zlabel="z"):
-        self.commands.append("set zlabel '{}'".format(zlabel))
+        self.commands.append("set zlabel '{}'".format(zlabel).encode())
 
     # RANGES
 
     def ranges(self, _xrange=None, _yrange=None, _zrange=None):
         if _xrange and len(_xrange) == 2:
             self.commands.append("set xrange [{}:{}]"
-                                  .format(_xrange[0], _xrange[1]))
+                                  .format(_xrange[0], _xrange[1]).encode())
 
         if _yrange and len(_yrange) == 2:
             self.commands.append("set yrange [{}:{}]"
-                                  .format(_yrange[0], _yrange[1]))
+                                  .format(_yrange[0], _yrange[1]).encode())
 
         if _zrange and len(_zrange) == 2:
             self.commands.append("set zrange [{}:{}]"
-                                  .format(_zrange[0], _zrange[1]))
+                                  .format(_zrange[0], _zrange[1]).encode())
 
     def xrange(self, xmin, xmax):
-        self.commands.append("set xrange [{}:{}]".format(xmin, xmax))
+        self.commands.append("set xrange [{}:{}]".format(xmin, xmax).encode())
 
     def yrange(self, ymin, ymax):
-        self.commands.append("set yrange [{}:{}]".format(ymin, ymax))
+        self.commands.append("set yrange [{}:{}]".format(ymin, ymax).encode())
 
     def zrange(self, zmin, zmax):
-        self.commands.append("set zrange [{}:{}]".format(zmin, zmax))
+        self.commands.append("set zrange [{}:{}]".format(zmin, zmax).encode())
 
     def replot(self):
-        self.commands.append("replot")
+        self.commands.append("replot".encode())
 
     def __del__(self):
         if self.persist:
@@ -173,12 +173,24 @@ class Gnuplot:
         else:
             g_cmd = "gnuplot"
         
-        #print("\n".join(self.commands))
         if self.is_multi:
-            self.commands.append("unset multiplot")
+            self.commands.append("unset multiplot".encode())
         
-        sub.run(g_cmd, stderr=sub.STDOUT, input="\n".join(self.commands),
-                encoding="ascii", check=True)
+        # print(self.commands)
         
+        sub.run(g_cmd, stderr=sub.STDOUT, input=b"\n".join(self.commands),
+                check=True)
+        
+        del self.is_multi
         del self.persist
         del self.commands
+
+def npstr(array, image=False):
+    
+    fmt_dict = {
+        np.dtype("float64"): "%float64",
+    }
+
+    fmt = array.shape[1] * fmt_dict[array.dtype]
+    
+    return "binary record={} format='{}'".format(array.shape[0], fmt)

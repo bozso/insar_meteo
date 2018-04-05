@@ -313,31 +313,64 @@ PyFun_Doc(asc_dsc_select,
 
 PyFun_Keywords(asc_dsc_select)
 {
-    PyObject *in_asc = NULL, *in_dsc = NULL;
-    NPY_AO *asc = NULL, *dsc = NULL;
-    double max_sep = 100.0;
+    PyObject *in_arr1 = NULL, *in_arr2 = NULL;
+    NPY_AO *arr1 = NULL, *arr2 = NULL;
+    npy_double max_sep = 100.0;
+    
+    npy_intp n_arr1, n_arr2;
+    uint n_found = 0;
+    npy_double lon1, lat1, lon2, lat2, dlon, dlat;
     
     char * keywords[] = {"asc", "dsc", "max_sep", NULL};
     
-    PyFun_Parse_Keywords(keywords, "OO|d:asc_dsc_select", &in_asc, &in_dsc,
+    PyFun_Parse_Keywords(keywords, "OO|d:asc_dsc_select", &in_arr1, &in_arr2,
                                                           &max_sep);
     
-    asc = (NPY_AO *) PyArray_FROM_OTF(in_asc, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if(!asc) goto fail;
+    print("Maximum separation: %6.3lf meters => ", max_sep);
     
-    dsc = (NPY_AO *) PyArray_FROM_OTF(in_dsc, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if(!dsc) goto fail;
+    max_sep /= R_earth;
+    max_sep = max_sep * max_sep * RAD2DEG * RAD2DEG;
     
+    println("approx. %E degrees", max_sep);
     
-    println("%lf %lf", NPY_Delem(asc, 0, 0), NPY_Delem(asc, 0, 1));
+    arr1 = (NPY_AO *) PyArray_FROM_OTF(in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(!arr1) goto fail;
+    
+    arr2 = (NPY_AO *) PyArray_FROM_OTF(in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(!arr2) goto fail;
+    
+    n_arr1 = NPY_Dim(arr1, 0);
+    n_arr2 = NPY_Dim(arr2, 0);
+    
+    NPY_AO * idx = (NPY_AO *) PyArray_ZEROS(1, &n_arr1, NPY_BOOL, 0);
+    
+    FOR(ii, 0, n_arr1) {
+        lon1 = NPY_Delem(arr1, ii, 0);
+        lat1 = NPY_Delem(arr1, ii, 1);
 
-    Py_DECREF(asc);
-    Py_DECREF(dsc);
-    Py_RETURN_NONE;
+        FOR(jj, 0, n_arr2) {
+            lon2 = NPY_Delem(arr2, jj, 0);
+            lat2 = NPY_Delem(arr2, jj, 1);
+            
+            dlon = lon1 - lon2;
+            dlat = lat1 - lat2;
+            
+            if ( dlon * dlon + dlat * dlat < max_sep) {
+                *( (npy_bool *) NPY_Ptr1(idx, ii) ) = 1;
+                n_found++;
+                break;
+            }
+        }
+    }
+    
+    
+    Py_DECREF(arr1);
+    Py_DECREF(arr2);
+    return Py_BuildValue("OI", idx, n_found);
 
 fail:
-    Py_XDECREF(asc);
-    Py_XDECREF(dsc);
+    Py_XDECREF(arr1);
+    Py_XDECREF(arr2);
     return NULL;
 }
 
@@ -357,5 +390,6 @@ static struct PyModuleDef insarmodule = {
 PyMODINIT_FUNC
 PyInit_insar_aux(void)
 {
+    import_array();
     return PyModule_Create(&insarmodule);
 }

@@ -90,10 +90,11 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
 //----------------------------------------------------------------------
 
 #define NPY_AO PyArrayObject 
-#define NPY_Ptr(obj, i, j) PyArray_GETPTR2(obj, i, j)
+#define NPY_Ptr1(obj, i) PyArray_GETPTR1(obj, ii)
+#define NPY_Ptr(obj, ii, jj) PyArray_GETPTR2(obj, ii, jj)
 #define NPY_Dim(obj, idx) PyArray_DIM(obj, idx)
-#define NPY_Delem(obj, i, j) *((double *) PyArray_GETPTR2(obj, i, j))
-#define NPY_Ielem(obj, i, j) *((int *) PyArray_GETPTR2(obj, i, j))
+#define NPY_Ndim(obj, idx) PyArray_NDIM(obj, idx)
+#define NPY_Delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2(obj, ii, jj))
 
 //----------------------------------------------------------------------
 // ERROR CODES

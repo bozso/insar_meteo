@@ -1,6 +1,8 @@
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
+#define QUOTE(s) # s   /* turn s into string "s" */
+
 //----------------------------------------------------------------------
 // WGS-84 ELLIPSOID PARAMETERS
 //----------------------------------------------------------------------
@@ -79,11 +81,17 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
 #define PyFun_Doc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
 
 #define PyFun_Parse_Keywords(keywords, format, ...) \
-({ \
+do{ \
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords, \
                                      __VA_ARGS__))\
         return NULL; \
-})
+}while(0)
+
+#define PyFun_Parse_Varargs(format, ...) \
+do{ \
+    if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\
+        return NULL; \
+}while(0)
 
 //----------------------------------------------------------------------
 // NUMPY CONVENIENCE MACROS
@@ -95,6 +103,56 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
 #define NPY_Dim(obj, idx) PyArray_DIM(obj, idx)
 #define NPY_Ndim(obj, idx) PyArray_NDIM(obj, idx)
 #define NPY_Delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2(obj, ii, jj))
+
+#define NPY_Data(obj) PyArray_DATA(obj)
+
+/* taken from
+ * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples/src/C/NumPy_macros.h
+ */
+
+#define NPY_Ndim_Check(a, expected_ndim) \
+do{ \
+  if (PyArray_NDIM(a) != (expected_ndim)) { \
+    PyErr_Format(PyExc_ValueError, \
+    "%s array is %d-dimensional, but expected to be %d-dimensional",\
+		 QUOTE(a), PyArray_NDIM(a), (expected_ndim)); \
+    goto fail; \
+  } \
+}while(0)
+
+#define NPY_Dim_Check(a, dim, expected_length) \
+do{ \
+  if ((dim) > PyArray_NDIM(a)) { \
+    PyErr_Format(PyExc_ValueError, \
+    "%s array has no %d dimension (max dim. is %d)", \
+		 QUOTE(a), (dim), PyArray_NDIM(a)); \
+    goto fail; \
+  } \
+  if (PyArray_DIM(a, (dim)) != (expected_length)) { \
+    PyErr_Format(PyExc_ValueError, \
+    "%s array has wrong %d-dimension=%d (expected %d)", \
+		 QUOTE(a), (dim), PyArray_DIM(a, (dim)), (expected_length)); \
+    goto fail; \
+  } \
+}while(0)
+
+#define NPY_Type_Check(a, tp) \
+do{ \
+  if (PyArray_TYPE(a) != (tp)) { \
+    PyErr_Format(PyExc_TypeError, \
+    "%s array is not of correct type (%d)", QUOTE(a), (tp)); \
+    goto fail; \
+  } \
+}while(0)
+
+#define NPY_Callable_Check(func) \
+do{ \
+  if (!PyCallable_Check(func)) { \
+    PyErr_Format(PyExc_TypeError, \
+    "%s is not a callable function", QUOTE(func)); \
+    goto fail; \
+  } \
+}while(0)
 
 //----------------------------------------------------------------------
 // ERROR CODES

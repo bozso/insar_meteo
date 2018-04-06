@@ -12,7 +12,8 @@
 typedef unsigned int uint;
 
 typedef struct {
-    double mean_t, mean_coords[3];
+    double mean_t;
+    double mean_coords[3];
     double start_t, stop_t;
     double * coeffs;
     uint is_centered, deg;
@@ -41,43 +42,6 @@ static FILE * sfopen(const char * path, const char * mode)
         return NULL;
     }
     return(file);
-}
-
-static int read_orbit_fit(const char * infile, orbit_fit * orb)
-{
-    FILE * input = sfopen(infile, "r");
-    uint deg, is_centered;
-    
-    fscanf(input, "%d\n", &is_centered);
-    
-    if (is_centered) {
-        fscanf(input, "%lf %lf %lf %lf\n", &(orb->mean_t),
-                                    &(orb->mean_coords[0]),
-                                    &(orb->mean_coords[1]),
-                                    &(orb->mean_coords[2]));
-    }
-    else {
-        orb->mean_t = 0.0;
-        orb->mean_coords[0] = 0.0; orb->mean_coords[1] = 0.0;
-        orb->mean_coords[2] = 0.0;
-    }
-    
-    orb->is_centered = is_centered;
-    
-    fscanf(input, "%lf %lf\n", &(orb->start_t), &(orb->stop_t));
-    fscanf(input, "%d\n", &deg);
-    
-    orb->deg = deg;
-    
-    orb->coeffs = PyMem_New(double, 3 * (deg + 1));
-    
-    if (!(orb->coeffs))
-        return 1;
-    
-    FOR(ii, 0, 3 * (deg + 1))
-        fscanf(input, "%lf\n", &(orb->coeffs[ii]));
-    
-    return 0;
 }
 
 static void calc_pos(const orbit_fit * orb, double time, cart * pos)
@@ -120,8 +84,8 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
     pos->x = x; pos->y = y; pos->z = z;
 } // calc_pos
 
-static double dot_product(const orbit_fit * orb, const cart * gnss,
-                          double time)
+static double dot_product(const orbit_fit * orb, const double X, const double Y,
+                          const double Z, double time)
 {
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
@@ -175,9 +139,9 @@ static double dot_product(const orbit_fit * orb, const cart * gnss,
     }
     
     // satellite coordinates - GNSS coordinates
-    dx = sat_x - gnss->x;
-    dy = sat_y - gnss->y;
-    dz = sat_z - gnss->z;
+    dx = sat_x - X;
+    dy = sat_y - Y;
+    dz = sat_z - Z;
     
     // product of inverse norms
     inorm = (1.0 / norm(dx, dy, dz)) * (1.0 / norm(vel_x, vel_y, vel_z));
@@ -185,8 +149,8 @@ static double dot_product(const orbit_fit * orb, const cart * gnss,
     return(vel_x * dx * inorm + vel_y * dy * inorm + vel_z * dz * inorm);
 }
 
-static void closest_appr(const orbit_fit * orb, const cart * gnss,
-                         const uint max_iter, cart * sat_pos)
+static void closest_appr(const orbit_fit * orb, const double X, const double Y,
+                         const double Z, const uint max_iter, cart * sat_pos)
 {
     // compute the sat position using closest approche
     
@@ -203,12 +167,12 @@ static void closest_appr(const orbit_fit * orb, const cart * gnss,
     // iteration counter
     uint itr = 0;
     
-    dot_start = dot_product(orb, gnss, t_start);
+    dot_start = dot_product(orb, X, Y, Z, t_start);
     
     while( fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
         t_middle = (t_start + t_stop) / 2.0;
 
-        dot_middle = dot_product(orb, gnss, t_middle);
+        dot_middle = dot_product(orb, X, Y, Z, t_middle);
         
         // change start for middle
         if ((dot_start * dot_middle) > 0.0) {
@@ -231,81 +195,137 @@ static void closest_appr(const orbit_fit * orb, const cart * gnss,
 
 PyFun_Doc(azi_inc, "azim_elev");
 
-PyFun_Keywords(azi_inc)
+PyFun_Varargs(azi_inc)
 {
-    const char * fit_file;
-    PyObject * list_of_coords;
+    double start_t, stop_t, mean_t;
+    PyObject *coeffs, *coords, *lonlats, *mean_coords;
+    NPY_AO *a_coeffs, *a_coords, *a_lonlats, *a_meancoords;
+    uint is_centered, deg, max_iter;
+
+    cart sat;
     orbit_fit orb;
-    cart gnss, sat;
-    uint max_iter = 1000;
+    npy_intp n_coords, n_lonlats, row_coeffs, azi_inc_shape[2];
 
     // topocentric parameters in PS local system
-    double xf, yf, zf, xl, yl, zl, t0, gnss_lon, gnss_lat, azi, inc;
-    
-    static char * keywords[] = {"fit_file", "gnss_coords", "station_lon",
-                                "station_lat", "max_iter", NULL };
-    
-    PyFun_Parse_Keywords(keywords, "sO!dd|I:azi_inc", &fit_file, &PyList_Type,
-                         &list_of_coords, &gnss_lon, &gnss_lat, &max_iter);
+    double xf, yf, zf, xl, yl, zl, X, Y, Z, t0, lon, lat, azi, inc;
     
     /*
-    static char * keywords[] = {"fit_file", "gnss_coords", "station_lon",
-                                "station_lat", "max_iter", NULL};
-    
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO!dd|I:azi_inc", keywords,
-                                     &fit_file, &PyList_Type, &list_of_coords,
-                                     &gnss_lon, &gnss_lat, &max_iter))
-        return NULL;
+    static char * keywords[] = {"coeffs", "start_t", "stop_t", "mean_t",
+                                "mean_coords", "is_centered", "deg" "coords","lonlat", 
+                                "max_iter", NULL };
     */
     
-    gnss.x = GET_LIST_ITEM(list_of_coords, 0);
-    gnss.y = GET_LIST_ITEM(list_of_coords, 1);
-    gnss.z = GET_LIST_ITEM(list_of_coords, 2);
+    PyFun_Parse_Varargs("OdddOIIOOI:azi_inc", &coeffs, &start_t, &stop_t,
+                        &mean_t, &mean_coords, &is_centered, &deg, &coords,
+                        &lonlats, &max_iter);
     
-    if (read_orbit_fit(fit_file, &orb))
-        return PyErr_NoMemory();
+    a_coeffs = (NPY_AO *) PyArray_FROM_OTF(coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(!a_coeffs) goto fail;
+
+    NPY_Ndim_Check(a_coeffs, 2); NPY_Dim_Check(a_coeffs, 0, 3);
+    NPY_Dim_Check(a_coeffs, 1, deg + 1);
+    
+    a_coords = (NPY_AO *) PyArray_FROM_OTF(coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(!a_coords) goto fail;
+
+    a_lonlats = (NPY_AO *) PyArray_FROM_OTF(lonlats, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(!a_lonlats) goto fail;
+    
+    NPY_Ndim_Check(a_coords, 2); NPY_Ndim_Check(a_lonlats, 2);
+    
+    n_coords = NPY_Dim(a_coords, 0);
+    n_lonlats = NPY_Dim(a_lonlats, 0);
+    
+    if (n_coords != n_lonlats) {
+        PyErr_Format(PyExc_TypeError, "coords (rows: %d) and lonlats (rows: %d)"
+                     " do not have the same number of rows\n", n_coords,
+                     n_lonlats);
+        goto fail;
+    }
+
+    
+    a_meancoords = (NPY_AO *) PyArray_FROM_OTF(mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(!a_meancoords) goto fail;
+    
+    NPY_Ndim_Check(a_meancoords, 1);
+    NPY_Dim_Check(a_meancoords, 0, 3);
+    
+    azi_inc_shape[0] = n_coords;
+    azi_inc_shape[1] = 2;
+    
+    NPY_AO * azi_inc = (NPY_AO *) PyArray_EMPTY(2, azi_inc_shape, NPY_DOUBLE, 0);
+    if (!azi_inc) goto fail;
+    
+    orb.coeffs = (double *) NPY_Data(a_coeffs);
+    orb.deg = deg;
+    orb.is_centered = is_centered;
+    
+    orb.start_t = start_t;
+    orb.stop_t = stop_t;
+    orb.mean_t = mean_t;
+    
+    orb.mean_coords = (double *) NPY_Data(a_meancoords);
     
     //println("%lf %lf %lf", orb.coeffs[0], orb.coeffs[1], orb.coeffs[2]);
     
-    closest_appr(&orb, &gnss, max_iter, &sat);
+    FOR(ii, 0, n_coords) {
+        X = NPY_Delem(a_coords, ii, 0);
+        Y = NPY_Delem(a_coords, ii, 1);
+        Z = NPY_Delem(a_coords, ii, 2);
         
-    xf = sat.x - gnss.x;
-    yf = sat.y - gnss.y;
-    zf = sat.z - gnss.z;
+        closest_appr(&orb, X, Y, Z, max_iter, &sat);
+            
+        xf = sat.x - X;
+        yf = sat.y - Y;
+        zf = sat.z - Z;
+        
+        lon = NPY_Delem(a_lonlats, ii, 0) * DEG2RAD;
+        lat = NPY_Delem(a_lonlats, ii, 1) * DEG2RAD;
+        
+        xl = - sin(lat) * cos(lon) * xf
+             - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
     
-    gnss_lon *= DEG2RAD;
-    gnss_lat *= DEG2RAD;
+        yl = - sin(lon) * xf + cos(lon) * yf;
     
-    xl = - sin(gnss_lat) * cos(gnss_lon) * xf
-         - sin(gnss_lat) * sin(gnss_lon) * yf + cos(gnss_lat) * zf ;
-
-    yl = - sin(gnss_lon) * xf + cos(gnss_lon) * yf;
-
-    zl = + cos(gnss_lat) * cos(gnss_lon) * xf
-         + cos(gnss_lat) * sin(gnss_lon) * yf + sin(gnss_lat) * zf ;
-
-    t0 = norm(xl, yl, zl);
-
-    inc = acos(zl / t0) * RAD2DEG;
-
-    if(xl == 0.0) xl = 0.000000001;
-
-    azi = atan(abs(yl / xl));
-
-    if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
-    if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
-    if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
-
-    azi *= RAD2DEG;
-
-    if(azi > 180.0)
-        azi -= 180.0;
-    else
-        azi +=180.0;
+        zl = + cos(lat) * cos(lon) * xf
+             + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
     
-    PyMem_Del(orb.coeffs);
+        t0 = norm(xl, yl, zl);
     
-    return Py_BuildValue("dd", azi, inc);
+        inc = acos(zl / t0) * RAD2DEG;
+    
+        if(xl == 0.0) xl = 0.000000001;
+    
+        azi = atan(abs(yl / xl));
+    
+        if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
+        if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
+        if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
+    
+        azi *= RAD2DEG;
+    
+        if(azi > 180.0)
+            azi -= 180.0;
+        else
+            azi +=180.0;
+        
+        NPY_Delem(azi_inc, ii, 0) = azi;
+        NPY_Delem(azi_inc, ii, 1) = inc;
+        
+    }
+
+    Py_DECREF(a_coeffs);
+    Py_DECREF(a_coords);
+    Py_DECREF(a_lonlats);
+    return Py_BuildValue("O", azi_inc);
+
+fail:
+    Py_XDECREF(a_coeffs);
+    Py_XDECREF(a_coords);
+    Py_XDECREF(a_lonlats);
+    Py_XDECREF(azi_inc);
+    return NULL;
+
 } // azim_elev
 
 PyFun_Doc(asc_dsc_select,
@@ -375,7 +395,7 @@ fail:
 }
 
 static PyMethodDef InsarMethods[] = {
-    PyFun_Method_Keywords(azi_inc),
+    PyFun_Method_Varargs(azi_inc),
     PyFun_Method_Keywords(asc_dsc_select),
     {NULL, NULL, 0, NULL}
 };

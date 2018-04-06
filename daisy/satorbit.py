@@ -28,6 +28,8 @@ class SatOrbit:
         else:
             to_fit = self.coords
             time = self.time
+            self.mean_t = 0.0;
+            self.mean_coords = [0.0, 0.0, 0.0]
             self.is_centered = False
         
         self.coeffs = np.asarray([np.polyfit(time, to_fit[:,ii], deg)
@@ -83,6 +85,11 @@ class SatOrbit:
         gpt(fit)
     
         del gpt
+    
+    def azi_inc(self, coords, lonlats, max_iter=1000):
+        return ina.azi_inc(self.coeffs, self.start_t, self.stop_t, self.mean_t,
+                           self.mean_coords, self.is_centered, self.deg,
+                           coords, lonlats, max_iter);
     
     def __del__(self):
         del self.time

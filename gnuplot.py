@@ -196,3 +196,25 @@ def npstr(array, image=False):
     fmt = array.shape[1] * fmt_dict[array.dtype]
     
     return "binary record={} format='{}'".format(array.shape[0], fmt)
+
+"""
+def plot(array, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
+         rgb=None, using=None):
+    
+    pt_type_dict = {
+        "circ": 7
+    }
+    
+    if using not None:
+        using = " u {},{} ".format(using[0], using[1])
+    else:
+        using = ""
+    
+    if line_type:
+        lt = "lt "
+    
+    text = "'-'  "
+"""    
+    
+    
+    

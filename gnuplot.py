@@ -1,7 +1,7 @@
 import subprocess as sub
 import numpy as np
 
-class Gnuplot:
+class Gnuplot(object):
     def __init__(self, out=None, term="wxt", persist=False):
         self.commands = []
         self.persist = persist
@@ -22,7 +22,6 @@ class Gnuplot:
             self.commands.extend([temp.encode(), "e".encode()])
             del temp
         elif t_cmd == np.ndarray:
-            # temp = [" ".join(item) for item in command.astype(str)]
             self.commands.append(command.tobytes())
         else:
             self.commands.append("{}".format(command).encode())
@@ -82,6 +81,10 @@ class Gnuplot:
         self.commands.append("set multiplot layout {},{} {} title '{}'"
                              .format(layout[0], layout[1], first, title)
                              .encode())
+
+    def unset_multi(self):
+        self.commands.append("unset multiplot".encode())
+        self.is_multi = False
         
     def xtics(self, command):
         self.commands.append("set xtics {}".format(command).encode())
@@ -96,9 +99,8 @@ class Gnuplot:
         self.commands.append("set style line {} {}"
                              .format(stylenum, styledef).encode())
     
-    def axis_format(self, axis, _format):
-        self.commands.append("set format {} '{}'".format(axis, _format)
-                             .encode())
+    def axis_format(self, axis, fmt):
+        self.commands.append("set format {} '{}'".format(axis, fmt).encode())
     
     def axis_time(self, axis):
         self.commands.append("set {}data time".format(axis).encode())
@@ -142,18 +144,18 @@ class Gnuplot:
 
     # RANGES
 
-    def ranges(self, _xrange=None, _yrange=None, _zrange=None):
-        if _xrange and len(_xrange) == 2:
+    def ranges(self, x=None, y=None, z=None):
+        if x is not None and len(x) == 2:
             self.commands.append("set xrange [{}:{}]"
-                                  .format(_xrange[0], _xrange[1]).encode())
+                                  .format(x[0], x[1]).encode())
 
-        if _yrange and len(_yrange) == 2:
+        if y is not None and len(y) == 2:
             self.commands.append("set yrange [{}:{}]"
-                                  .format(_yrange[0], _yrange[1]).encode())
+                                  .format(y[0], y[1]).encode())
 
-        if _zrange and len(_zrange) == 2:
+        if z is not None and len(z) == 2:
             self.commands.append("set zrange [{}:{}]"
-                                  .format(_zrange[0], _zrange[1]).encode())
+                                  .format(z[0], z[1]).encode())
 
     def xrange(self, xmin, xmax):
         self.commands.append("set xrange [{}:{}]".format(xmin, xmax).encode())

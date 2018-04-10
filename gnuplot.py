@@ -2,10 +2,11 @@ import subprocess as sub
 import numpy as np
 
 class Gnuplot(object):
-    def __init__(self, out=None, term="wxt", persist=False):
+    def __init__(self, out=None, term="xterm", persist=False):
         self.commands = []
-        self.persist = persist
+        self.is_persist = persist
         self.is_multi = False
+        self.is_exec = False
         
         if out:
             self.commands.append("set out '{}'".format(out).encode())
@@ -69,7 +70,15 @@ class Gnuplot(object):
         return b"\n".join(temp.encode())
 
     # SETTERS
-
+    
+    def plot(self, *args):
+        plot_cmd = ",".join([text for _, text in args])
+        
+        self.commands.append("plot {}".format(plot_cmd).encode())
+        self.commands.extend([array.tobytes() for array, _ in args])
+        
+        print(self.commands)
+        
     def multiplot(self, layout, title="", rowsfirst=True):
         self.is_multi = True
         
@@ -85,7 +94,10 @@ class Gnuplot(object):
     def unset_multi(self):
         self.commands.append("unset multiplot".encode())
         self.is_multi = False
-        
+    
+    def reset(self):
+        self.commands.append("reset".encode())
+    
     def xtics(self, command):
         self.commands.append("set xtics {}".format(command).encode())
 
@@ -98,6 +110,9 @@ class Gnuplot(object):
     def style(self, stylenum, styledef):
         self.commands.append("set style line {} {}"
                              .format(stylenum, styledef).encode())
+    
+    def autoscale(self):
+        self.commands.append("set autoscale".encode())
     
     def axis_format(self, axis, fmt):
         self.commands.append("set format {} '{}'".format(axis, fmt).encode())
@@ -169,7 +184,9 @@ class Gnuplot(object):
     def replot(self):
         self.commands.append("replot".encode())
 
-    def __del__(self):
+    def execute(self):
+        self.is_exec = True
+        
         if self.persist:
             g_cmd = ["gnuplot", "--persist"]
         else:
@@ -178,16 +195,35 @@ class Gnuplot(object):
         if self.is_multi:
             self.commands.append("unset multiplot".encode())
         
-        # print(self.commands)
-        
         sub.run(g_cmd, stderr=sub.STDOUT, input=b"\n".join(self.commands),
                 check=True)
         
+    def __del__(self):
+        # print(self.commands)
+        if not self.is_exec:
+            if self.is_persist:
+                g_cmd = ["gnuplot", "--persist"]
+            else:
+                g_cmd = "gnuplot"
+            
+            if self.is_multi:
+                self.commands.append("unset multiplot".encode())
+            
+            sub.run(g_cmd, stderr=sub.STDOUT, input=b"\n".join(self.commands),
+                    check=True)
+        
         del self.is_multi
-        del self.persist
+        del self.is_persist
         del self.commands
+        del self.is_exec
 
-def npstr(array, image=False):
+#-------------------------------------------------------------------
+# Convenience functions
+#-------------------------------------------------------------------
+
+def arr_bin(array, image=False):
+    
+    array = np.array(array)
     
     fmt_dict = {
         np.dtype("float64"): "%float64",
@@ -197,24 +233,51 @@ def npstr(array, image=False):
     
     return "binary record={} format='{}'".format(array.shape[0], fmt)
 
-"""
-def plot(array, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
-         rgb=None, using=None):
-    
+def plotter(array, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
+            linestyle=None, rgb=None, matrix=None, title=None, **kwargs):
+
+    array = np.array(array)
+    keys = kwargs.keys()
+
+    fmt_dict = {
+        np.dtype("float64"): "%float64",
+    }
+
     pt_type_dict = {
         "circ": 7
     }
-    
-    if using not None:
-        using = " u {},{} ".format(using[0], using[1])
+
+    line_type_dict = {
+        "circ": 7
+    }
+        
+    text = "'-' "
+
+    if matrix is not None:
+        binary = "binary matrix"
     else:
-        using = ""
+        binary = "binary record={} format='{}'".format(array.shape[0],
+                  array.shape[1] * fmt_dict[array.dtype])
     
-    if line_type:
-        lt = "lt "
+    text += binary
     
-    text = "'-'  "
-"""    
+    for key in ["index", "every", "using", "smooth", "axes"]:
+        if key in keys:
+            text += " {} {}".format(key, kwargs[key])
     
+    if linestyle is not None:
+        text += " with linestyle {}".format(linestyle)
+    else:
+        if pt_type is not None:
+            text += " with points pt {} ps {}".format(pt_type_dict[pt_type],
+                                                      pt_size)
+        elif line_type is not None:
+            text += "with lines lt {} lw {}".format(line_type_dict[line_type],
+                                                    line_width)
     
+    if title is not None:
+        text += " title '{}'".format(title)
+    else:
+        text += " notitle"
     
+    return array, text

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import aux.insar_aux as ina
-from gnuplot import Gnuplot, npstr
+from gnuplot import Gnuplot, arr_bin, plotter
 
 import numpy as np
 import argparse
@@ -48,26 +48,20 @@ def plot_select(out="asc_dsc_selected.png", point_size=1.0):
     asc = np.load("asc_select.npy")
     dsc = np.load("dsc_select.npy")
     
-    #print(npstr(asc)); return
-    #print("plot '-' {} u 1:2 with points pt 7 ps {} notitle"
-    #  .format(npstr(asc), point_size))
-    #return 
     g = Gnuplot(out=out, term="pngcairo font 'Verdena,9'")
-    
-    # asc = np.asarray([1, 2, 3, 4], dtype=np.float64)
     
     g.multiplot((1,2), title="Selected ascending and descending PSs")
     
     g.title("Ascending PSs")
     g.labels(x="Longitude [deg]", y="Latitude [deg]")
     g("plot '-' {} u 1:2 with points pt 7 ps {} notitle"
-      .format(npstr(asc), point_size))
+      .format(arr_bin(asc), point_size))
     g(asc)
     
     g.title("Descending PSs")
     g.labels(x="Longitude [deg]", y="Latitude [deg]")
     g("plot '-' {} u 1:2 with points pt 7 ps {} notitle"
-      .format(npstr(dsc), point_size))
+      .format(arr_bin(dsc), point_size))
     g(dsc)
     
     del g
@@ -101,6 +95,18 @@ def parse_args():
 
 def main():
 
+    asc = np.load("asc_select.npy")
+    dsc = np.load("dsc_select.npy")
+    
+    print(plotter(asc, using="1:2", axes="x1y1"))
+    
+    #g = Gnuplot()
+    #g.plot(plotter(asc[:10,:2]), plotter(dsc[:10,:2]))
+    return
+    # del g
+    
+    return
+    
     # args = parse_args()
     # data_select("daisy/test_data/asc_data.xy", "daisy/test_data/dsc_data.xy", height_err=True)
     

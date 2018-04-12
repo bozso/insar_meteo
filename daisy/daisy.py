@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import aux.insar_aux as ina
-from gnuplot import Gnuplot, arr_bin, plotter
+from gnuplot import Gnuplot, arr_plot
 
 import numpy as np
 import argparse
@@ -98,7 +98,7 @@ def main():
     asc = np.load("asc_select.npy")
     dsc = np.load("dsc_select.npy")
     
-    print(plotter(asc, using="1:2", axes="x1y1"))
+    print(arr_plot(asc, using="1:2", axes="x1y1")[1])
     
     #g = Gnuplot()
     #g.plot(plotter(asc[:10,:2]), plotter(dsc[:10,:2]))

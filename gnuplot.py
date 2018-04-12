@@ -108,6 +108,10 @@ class Gnuplot(object):
         self.commands.append("set ztics {}".format(command).encode())
     
     def style(self, stylenum, styledef):
+        """
+        Parameters
+        ----------
+        """
         self.commands.append("set style line {} {}"
                              .format(stylenum, styledef).encode())
     
@@ -233,10 +237,55 @@ def arr_bin(array, image=False):
     
     return "binary record={} format='{}'".format(array.shape[0], fmt)
 
-def plotter(array, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
-            linestyle=None, rgb=None, matrix=None, title=None, **kwargs):
-
-    array = np.array(array)
+def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
+             line_width=1.0, linestyle=None, rgb=None, matrix=None, title=None,
+             **kwargs):
+    """
+    Sets the text to be used for the 'plot' command of gnuplot for
+    plotting (x,y) data pairs of a numpy array.
+    
+    Parameters
+    ----------
+    inarray : array_like
+        Input data pairs of the plot.
+    pt_type : str, optional
+        The symbol used to plot (x,y) data pairs. Default is "circ" (filled
+        circles). Selectable values:
+            - "circ": filled circles
+    pt_size : float, optional
+        Size of the plotted symbols. Default value 1.0 .
+    line_type : str, optional
+        The line type used to plot (x,y) data pairs. Default is "circ" (filled
+        circles). Selectable values:
+            - "circ": filled circles
+    line_width : float, optional
+        Width of the plotted lines. Default value 1.0 .
+    line_style : int, optional
+        Selects a previously defined linestyle for plotting the (x,y) data
+        pairs. You can define linestyle with gnuplot.style . Default is None.
+    title : str, optional
+        Title of the plotted datapoints. None (= no title given) by default.
+    **kwargs
+        Additional arguments: index, every, using, smooth, axes. See Gnuplot
+        docuemntation for the descritpion of these parameters.
+    
+    
+    Returns
+    -------
+    
+    Examples
+    --------
+    
+    >>> from gnuplot import Gnuplot, arr_plot
+    >>> import numpy as np
+    >>> g = Gnuplot(is_persist=True)
+    >>> array1 = np.array([1, 2], [3, 4]])
+    >>> array2 = array1 + 5
+    >>> g.plot(arr_plot(array1, title="Example plot 1"),
+               arr_plot(array2, title="Example plot 2", ))
+    
+    """
+    add_keys = ["index", "every", "using", "smooth", "axes"]
     keys = kwargs.keys()
 
     fmt_dict = {
@@ -252,18 +301,28 @@ def plotter(array, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
     }
         
     text = "'-' "
-
-    if matrix is not None:
-        binary = "binary matrix"
+    
+    if type(inarray) == list:
+        temp = [" ".join(str(elem) for elem in elems) for elems in zip(*inarray)]
+        temp.append("e".encode())
+        
+        array = temp
+        del temp
     else:
-        binary = "binary record={} format='{}'".format(array.shape[0],
-                  array.shape[1] * fmt_dict[array.dtype])
+        array = np.array(inarray)
     
-    text += binary
+        if matrix is not None:
+            binary = "binary matrix"
+        else:
+            binary = "binary record={} format='{}'".format(array.shape[0],
+                      array.shape[1] * fmt_dict[array.dtype])
     
-    for key in ["index", "every", "using", "smooth", "axes"]:
-        if key in keys:
-            text += " {} {}".format(key, kwargs[key])
+        text += binary
+    
+    add_kwargs = " ".join(["{} {}".format(key, kwargs[key])
+                           for key in add_keys if key in keys])
+    
+    text += " {}".format(add_kwargs)
     
     if linestyle is not None:
         text += " with linestyle {}".format(linestyle)
@@ -274,7 +333,11 @@ def plotter(array, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
         elif line_type is not None:
             text += "with lines lt {} lw {}".format(line_type_dict[line_type],
                                                     line_width)
-    
+        elif rgb is not None:
+            text += "with lines lt {} lw {}".format(rgb, line_width)
+        else:
+            raise Exception("Options line_type and rgb are mutually exclusive.")
+        
     if title is not None:
         text += " title '{}'".format(title)
     else:

@@ -13,7 +13,7 @@ typedef unsigned int uint;
 
 typedef struct {
     double mean_t;
-    double mean_coords[3];
+    double * mean_coords;
     double start_t, stop_t;
     double * coeffs;
     uint is_centered, deg;
@@ -199,38 +199,28 @@ PyFun_Varargs(azi_inc)
 {
     double start_t, stop_t, mean_t;
     PyObject *coeffs, *coords, *lonlats, *mean_coords;
-    NPY_AO *a_coeffs, *a_coords, *a_lonlats, *a_meancoords;
+    NPY_AO *a_coeffs, *a_coords, *a_lonlats, *a_meancoords, *azi_inc;
     uint is_centered, deg, max_iter;
 
     cart sat;
     orbit_fit orb;
-    npy_intp n_coords, n_lonlats, row_coeffs, azi_inc_shape[2];
+    npy_intp n_coords, n_lonlats, azi_inc_shape[2];
 
     // topocentric parameters in PS local system
     double xf, yf, zf, xl, yl, zl, X, Y, Z, t0, lon, lat, azi, inc;
     
-    /*
-    static char * keywords[] = {"coeffs", "start_t", "stop_t", "mean_t",
-                                "mean_coords", "is_centered", "deg" "coords","lonlat", 
-                                "max_iter", NULL };
-    */
-    
     PyFun_Parse_Varargs("OdddOIIOOI:azi_inc", &coeffs, &start_t, &stop_t,
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
                         &lonlats, &max_iter);
-    
-    a_coeffs = (NPY_AO *) PyArray_FROM_OTF(coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if(!a_coeffs) goto fail;
+
+    NPY_Import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
     NPY_Ndim_Check(a_coeffs, 2); NPY_Dim_Check(a_coeffs, 0, 3);
     NPY_Dim_Check(a_coeffs, 1, deg + 1);
-    
-    a_coords = (NPY_AO *) PyArray_FROM_OTF(coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if(!a_coords) goto fail;
 
-    a_lonlats = (NPY_AO *) PyArray_FROM_OTF(lonlats, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if(!a_lonlats) goto fail;
-    
+    NPY_Import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    NPY_Import(a_lonlats, lonlats, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+
     NPY_Ndim_Check(a_coords, 2); NPY_Ndim_Check(a_lonlats, 2);
     
     n_coords = NPY_Dim(a_coords, 0);
@@ -243,9 +233,7 @@ PyFun_Varargs(azi_inc)
         goto fail;
     }
 
-    
-    a_meancoords = (NPY_AO *) PyArray_FROM_OTF(mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if(!a_meancoords) goto fail;
+    NPY_Import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     
     NPY_Ndim_Check(a_meancoords, 1);
     NPY_Dim_Check(a_meancoords, 0, 3);
@@ -253,8 +241,8 @@ PyFun_Varargs(azi_inc)
     azi_inc_shape[0] = n_coords;
     azi_inc_shape[1] = 2;
     
-    NPY_AO * azi_inc = (NPY_AO *) PyArray_EMPTY(2, azi_inc_shape, NPY_DOUBLE, 0);
-    if (!azi_inc) goto fail;
+    azi_inc = (NPY_AO *) PyArray_EMPTY(2, azi_inc_shape, NPY_DOUBLE, 0);
+    if (azi_inc == NULL) goto fail;
     
     orb.coeffs = (double *) NPY_Data(a_coeffs);
     orb.deg = deg;
@@ -266,7 +254,8 @@ PyFun_Varargs(azi_inc)
     
     orb.mean_coords = (double *) NPY_Data(a_meancoords);
     
-    //println("%lf %lf %lf", orb.coeffs[0], orb.coeffs[1], orb.coeffs[2]);
+    println("%lf %lf %lf", orb.mean_coords[0], orb.mean_coords[1], orb.mean_coords[2]);
+    goto end;
     
     FOR(ii, 0, n_coords) {
         X = NPY_Delem(a_coords, ii, 0);
@@ -314,10 +303,12 @@ PyFun_Varargs(azi_inc)
         
     }
 
+end:
     Py_DECREF(a_coeffs);
     Py_DECREF(a_coords);
     Py_DECREF(a_lonlats);
-    return Py_BuildValue("O", azi_inc);
+    Py_RETURN_NONE;
+    //return Py_BuildValue("O", azi_inc);
 
 fail:
     Py_XDECREF(a_coeffs);

@@ -106,11 +106,19 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
 
 #define NPY_Data(obj) PyArray_DATA(obj)
 
-/* taken from
- * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples/src/C/NumPy_macros.h
+/* based on
+ * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples
+ * /src/C/NumPy_macros.h
  */
 
-#define NPY_Ndim_Check(a, expected_ndim) \
+#define NPY_Import(array_out, array_to_convert, typenum, requirements)\
+({\
+    (array_out) = (NPY_AO *) PyArray_FROM_OTF((array_to_convert), (typenum),\
+                                              (requirements));\
+    if ((array_out) == NULL) goto fail;\
+})
+
+#define NPY_Ndim_Check(a, expected_ndim)\
 ({\
   if (PyArray_NDIM(a) != (expected_ndim)) {\
     PyErr_Format(PyExc_ValueError,\
@@ -120,7 +128,7 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
   }\
 })
 
-#define NPY_Dim_Check(a, dim, expected_length) \
+#define NPY_Dim_Check(a, dim, expected_length)\
 ({\
   if ((dim) > PyArray_NDIM(a)) {\
     PyErr_Format(PyExc_ValueError,\
@@ -136,7 +144,7 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
   }\
 })
 
-#define NPY_Type_Check(a, tp) \
+#define NPY_Type_Check(a, tp)\
 ({\
   if (PyArray_TYPE(a) != (tp)) {\
     PyErr_Format(PyExc_TypeError,\
@@ -145,7 +153,7 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
   }\
 })
 
-#define NPY_Callable_Check(func) \
+#define NPY_Callable_Check(func)\
 ({\
   if (!PyCallable_Check(func)) {\
     PyErr_Format(PyExc_TypeError,\

@@ -246,8 +246,9 @@ def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
     
     Parameters
     ----------
-    inarray : array_like
-        Input data pairs of the plot.
+    inarray : array_like or list or string
+        Input data pairs of the plot. If it is a list, the list elements should
+        contain the same number of elements.
     pt_type : str, optional
         The symbol used to plot (x,y) data pairs. Default is "circ" (filled
         circles). Selectable values:
@@ -280,7 +281,7 @@ def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
     >>> import numpy as np
     >>> g = Gnuplot(is_persist=True)
     >>> array1 = np.array([1, 2], [3, 4]])
-    >>> array2 = array1 + 5
+    >>> array2 = [[4, 5, 6], [8, 11, 13]]
     >>> g.plot(arr_plot(array1, title="Example plot 1"),
                arr_plot(array2, title="Example plot 2", ))
     
@@ -300,15 +301,18 @@ def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
         "circ": 7
     }
         
+    arr_type = type(array)
     text = "'-' "
     
-    if type(inarray) == list:
+    if isinstance(arr_type, list):
+        # convert list to string
         temp = [" ".join(str(elem) for elem in elems) for elems in zip(*inarray)]
         temp.append("e".encode())
         
         array = temp
         del temp
     else:
+        # try to convert it into a numpy array
         array = np.array(inarray)
     
         if matrix is not None:

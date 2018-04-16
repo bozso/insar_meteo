@@ -6,6 +6,7 @@ from gnuplot import Gnuplot, arr_plot
 import numpy as np
 import argparse
 import faulthandler
+import logging as log
 
 faulthandler.enable()
 
@@ -91,9 +92,21 @@ def parse_args():
                         nargs="?", type=float,
                         default=100.0)
 
+    parser.add_argument("--logile", help="logfile name " nargs="?",
+                        type=str, default="daisy.log")
+    parser.add_argument("--loglevel", help="level of logging " nargs="?",
+                        type=str, default="DEBUG")
+
     return parser.parse_args()
 
 def main():
+
+    # args = parse_args()
+    # numeric_level = getattr(log, args.loglevel.upper(), None)
+    # if not isinstance(numeric_level, int):
+    #    raise ValueError('Invalid log level: %s' % loglevel)
+    # log.basicConfig(filename=args.logfile, level=args.log,
+    #                  level=numeric_level)
 
     asc = np.load("asc_select.npy")
     dsc = np.load("dsc_select.npy")
@@ -107,7 +120,6 @@ def main():
     
     return
     
-    # args = parse_args()
     # data_select("daisy/test_data/asc_data.xy", "daisy/test_data/dsc_data.xy", height_err=True)
     
     plot_select(point_size=0.5)

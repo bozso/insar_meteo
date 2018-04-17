@@ -199,7 +199,8 @@ PyFun_Varargs(azi_inc)
 {
     double start_t, stop_t, mean_t;
     PyObject *coeffs, *coords, *lonlats, *mean_coords;
-    NPY_AO *a_coeffs, *a_coords, *a_lonlats, *a_meancoords, *azi_inc;
+    NPY_AO *a_coeffs = NULL, *a_coords = NULL, *a_lonlats = NULL,
+           *a_meancoords = NULL, *azi_inc = NULL;
     uint is_centered, deg, max_iter;
 
     cart sat;
@@ -215,13 +216,17 @@ PyFun_Varargs(azi_inc)
 
     NPY_Import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
-    NPY_Ndim_Check(a_coeffs, 2); NPY_Dim_Check(a_coeffs, 0, 3);
-    NPY_Dim_Check(a_coeffs, 1, deg + 1);
+    /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
+     * every row contains the coefficients for the fitted x,y,z polynoms.
+     */
+    NPY_Check_Ndim(a_coeffs, 2);
+    NPY_Check_Dim(a_coeffs, 0, 3);
+    NPY_Check_Dim(a_coeffs, 1, deg + 1);
 
     NPY_Import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     NPY_Import(a_lonlats, lonlats, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
-    NPY_Ndim_Check(a_coords, 2); NPY_Ndim_Check(a_lonlats, 2);
+    NPY_Check_Ndim(a_coords, 2); NPY_Check_Ndim(a_lonlats, 2);
     
     n_coords = NPY_Dim(a_coords, 0);
     n_lonlats = NPY_Dim(a_lonlats, 0);
@@ -235,14 +240,15 @@ PyFun_Varargs(azi_inc)
 
     NPY_Import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     
-    NPY_Ndim_Check(a_meancoords, 1);
-    NPY_Dim_Check(a_meancoords, 0, 3);
+    NPY_Check_Ndim(a_meancoords, 1);
+    NPY_Check_Dim(a_meancoords, 0, 3);
     
     azi_inc_shape[0] = n_coords;
     azi_inc_shape[1] = 2;
     
-    azi_inc = (NPY_AO *) PyArray_EMPTY(2, azi_inc_shape, NPY_DOUBLE, 0);
-    if (azi_inc == NULL) goto fail;
+    NPY_Empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
+    //azi_inc = (NPY_AO *) PyArray_EMPTY(2, azi_inc_shape, NPY_DOUBLE, 0);
+    //if (azi_inc == NULL) goto fail;
     
     orb.coeffs = (double *) NPY_Data(a_coeffs);
     orb.deg = deg;

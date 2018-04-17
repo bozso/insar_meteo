@@ -92,9 +92,9 @@ def parse_args():
                         nargs="?", type=float,
                         default=100.0)
 
-    parser.add_argument("--logile", help="logfile name " nargs="?",
+    parser.add_argument("--logile", help="logfile name ", nargs="?",
                         type=str, default="daisy.log")
-    parser.add_argument("--loglevel", help="level of logging " nargs="?",
+    parser.add_argument("--loglevel", help="level of logging ", nargs="?",
                         type=str, default="DEBUG")
 
     return parser.parse_args()

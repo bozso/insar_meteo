@@ -118,9 +118,15 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
     if ((array_out) == NULL) goto fail;\
 })
 
-#define NPY_Ndim_Check(a, expected_ndim)\
+#define NPY_Empty(array_out, ndim, shape, typenum, is_fortran)\
 ({\
-  if (PyArray_NDIM(a) != (expected_ndim)) {\
+    (array_out) = (NPY_AO *) PyArray_EMPTY((ndim), (shape), (typenum),\
+                                           (is_fortran));\
+    if ((array_out) == NULL) goto fail;\
+})
+#define NPY_Check_Ndim(a, expected_ndim)\
+({\
+  if (PyArray_NDIM((a)) != (expected_ndim)) {\
     PyErr_Format(PyExc_ValueError,\
     "%s array is %d-dimensional, but expected to be %d-dimensional",\
 		 QUOTE(a), PyArray_NDIM(a), (expected_ndim));\
@@ -128,23 +134,23 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
   }\
 })
 
-#define NPY_Dim_Check(a, dim, expected_length)\
+#define NPY_Check_Dim(a, dim, expected_length)\
 ({\
-  if ((dim) > PyArray_NDIM(a)) {\
+  if ((dim) > PyArray_NDIM((a))) {\
     PyErr_Format(PyExc_ValueError,\
-    "%s array has no %d dimension (max dim. is %d)",\
-		 QUOTE(a), (dim), PyArray_NDIM(a));\
+    "%s array has no %d dimension (max dim. is %d)", QUOTE(a), (dim),\
+    PyArray_NDIM(a));\
     goto fail;\
   } \
-  if (PyArray_DIM(a, (dim)) != (expected_length)) {\
+  if (PyArray_DIM((a), (dim)) != (expected_length)) {\
     PyErr_Format(PyExc_ValueError,\
-    "%s array has wrong %d-dimension=%d (expected %d)",\
-		 QUOTE(a), (dim), PyArray_DIM(a, (dim)), (expected_length));\
+    "%s array has wrong %d-dimension=%d (expected %d)", QUOTE(a), (dim),\
+    PyArray_DIM(a, (dim)), (expected_length));\
     goto fail;\
   }\
 })
 
-#define NPY_Type_Check(a, tp)\
+#define NPY_Check_Type(a, tp)\
 ({\
   if (PyArray_TYPE(a) != (tp)) {\
     PyErr_Format(PyExc_TypeError,\
@@ -153,7 +159,7 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
   }\
 })
 
-#define NPY_Callable_Check(func)\
+#define NPY_Check_Callable(func)\
 ({\
   if (!PyCallable_Check(func)) {\
     PyErr_Format(PyExc_TypeError,\

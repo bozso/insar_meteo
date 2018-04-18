@@ -6,7 +6,6 @@ import numpy as np
 # python 2/3 compatibility
 from six import string_types
 from shlex import split
-from io import BytesIO
 
 # plotting functions that will use the common output filename and the -K
 # and -O flags
@@ -43,30 +42,22 @@ class GMT(object):
     def __del__(self):
         commands = self.commands
         
-        # append common flags
-        if self.common is not None:
-            commands = [(cmd[0] + " {}".format(self.common), cmd[1], cmd[2])
-                        if cmd[0].split()[0] in _plotters else cmd
-                        for cmd in commands]
-        
         # add -K and -O flags
         if len(self.commands) > 1:
-            commands[:-1] = [(cmd[0] + " -K", cmd[1], cmd[2])
-                             if cmd[0].split()[0] in _plotters else cmd
+            commands[:-1] = [(cmd[0], cmd[1] + " -K", *cmd[2:])
+                             if cmd[0] in _plotters else cmd
                              for cmd in commands[:-1]]
-            commands[1:] = [(cmd[0] + " -O", cmd[1], cmd[2])
-                             if cmd[0].split()[0] in _plotters else cmd
+            commands[1:] = [(cmd[0], cmd[1] + " -O", *cmd[2:])
+                             if cmd[0] in _plotters else cmd
                              for cmd in commands[1:]]
-        
-        # add "gmt " to every command if GMT version is >= 5
         if self.is_gmt5:
-            commands = [("gmt " + cmd[0], cmd[1], cmd[2]) for cmd in commands]
-
-        print("\n".join(cmd[0] for cmd in commands))
+            commands = [("gmt " + cmd[0], *cmd[1:]) for cmd in commands]
+        
+        print("\n".join(" ".join(elem for elem in cmd[0:2]) for cmd in commands))
         
         # gather all the outputfiles and remove the ones that already exist
-        outfiles = set(cmd[2] for cmd in commands
-                       if cmd[2] is not None and pth.isfile(cmd[2]))
+        outfiles = set(cmd[3] for cmd in commands
+                       if cmd[3] is not None and pth.isfile(cmd[3]))
         for out in outfiles:
             os.remove(out)
         
@@ -79,72 +70,93 @@ class GMT(object):
         del self.is_gmt5
         del self.out
     
-    def __call__(self, gmt_exec, data=None, palette=None, outfile=None,
-                 **flags):
+    def _gmtcmd(self, gmt_exec, data=None, palette=None, outfile=None,
+                **flags):
         
         keys = flags.keys()
         
-        cmd = gmt_exec
+        gmt_flags = ""
         
         if data is not None:
             # data is a path to a file
             if isinstance(data, string_types) and pth.isfile(data):
-                cmd += " {}".format(data)
+                gmt_flags += " {}".format(data)
                 data = None
             # data is a numpy array
             elif isinstance(data, np.ndarray):
-                cmd += " -bi{}dw".format(data.shape[1])
+                gmt_flags += " -bi{}dw".format(data.shape[1])
                 data = data.tobytes()
                 
         # if we have flags
         if len(keys) > 0:
-            gmt_flags = ["-{}{}".format(key, proc_flag(flags[key]))
-                         for key in keys]
-            cmd += " {}".format(" ".join(gmt_flags))
+            gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flags[key]))
+                               for key in keys])
         
         if palette:
-            cmd += " -C{}".format(palette)
+            gmt_flags += " -C{}".format(palette)
+        
+        if self.common is not None:
+            gmt_flags += " " + self.common
         
         if outfile is not None:
-            self.commands.append((cmd, data, outfile))
+            self.commands.append((gmt_exec, gmt_flags, data, outfile))
         else:
-            self.commands.append((cmd, data, self.out))
-            
-    def makecpt(self, outfile, **flags):
-        cmd = "makecpt"
+            self.commands.append((gmt_exec, gmt_flags, data, self.out))
+    
+    def __getattr__(self, command, *args, **kwargs):
+        def f(*args, **kwargs):
+            self._gmtcmd(command, *args, **kwargs)
+        return f
+    
+    def reform(self, portrait=False, **common_flags):
+        keys = common_flags.keys()
         
+        # if we have common flags parse them
+        if len(keys) > 0:
+            tmp = ["-{}{}".format(key, proc_flag(common_flags[key]))
+                   for key in keys if key not in ["portrait"]]
+            self.common = " ".join(tmp)
+            
+            if portrait:
+                self.common += " -P"
+        else:
+            self.common = None
+    
+    def makecpt(self, outfile, **flags):
         keys = flags.keys()
         
         if len(keys) > 0:
             gmt_flags = ["-{}{}".format(key, proc_flag(flags[key]))
                          for key in keys]
-            cmd += " {}".format(" ".join(gmt_flags))
         
-        self.commands.append((cmd, None, outfile))
+        self.commands.append(("makecpt", " ".join(gmt_flags), None, outfile))
     
     def Set(self, parameter, value):
-        self.commands.append(("set {}={}".format(parameter, value), None, None))
+        self.commands.append(("set {}={}".format(parameter, value),
+                              None, None, None))
 
 # parse GMT flags        
 def proc_flag(flag):
-    if isinstance(flag, list):
+    if isinstance(flag, bool) and flag:
+        return ""
+    elif hasattr(flag, "__iter__") and not isinstance(flag, string_types):
         return "/".join([str(elem) for elem in flag])
     elif isinstance(flag, string_types):
         return flag
 
-# add -K or/and -O flags if the GMT command is a plotter "command"
-
 def execute_cmd(cmd, ret_out=False):
+    gmt_cmd = cmd[0] + " " + cmd[1]
+    
     try:
-        cmd_out = sub.check_output(split(cmd[0]), input=cmd[1],
+        cmd_out = sub.check_output(split(gmt_cmd), input=cmd[2],
                                    stderr=sub.STDOUT)
     except sub.CalledProcessError as e:
-        print("ERROR: Non zero returncode from command: '{}'".format(cmd[0]))
+        print("ERROR: Non zero returncode from command: '{}'".format(gmt_cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
-    if cmd[2] is not None:
-        with open(cmd[2], "ab") as f:
+    if cmd[3] is not None:
+        with open(cmd[3], "ab") as f:
             f.write(cmd_out)
     
     if ret_out:

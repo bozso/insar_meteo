@@ -2,11 +2,13 @@
 
 import aux.insar_aux as ina
 from gnuplot import Gnuplot, arr_plot
+from shlex import split
 
 import numpy as np
 import argparse
 import faulthandler
 import logging as log
+import subprocess as sub
 
 faulthandler.enable()
 
@@ -100,7 +102,10 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-
+    
+    with open("testfile", "wb") as f:
+        sub.check_output(split("src/daisy"), input=b"1 2", stdout=f, stderr=sub.STDOUT)
+    return
     # args = parse_args()
     # numeric_level = getattr(log, args.loglevel.upper(), None)
     # if not isinstance(numeric_level, int):

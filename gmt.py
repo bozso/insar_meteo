@@ -13,12 +13,14 @@ from io import BytesIO
 _plotters = ["grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
              "psclip", "pscoast", "pscontour", "pshistogram", "psimage",
              "pslegend", "psmask", "psrose", "psscale", "pstext", "pswiggle",
-             "psxy", "psxyz"]
+             "psxy", "psxyz", "gmtlogo"]
 
 class GMT(object):
-    def __init__(self, out, gmt5=True, **common_flags):
+    def __init__(self, out, gmt5=True, portrait=False, **common_flags):
+        
         # common output Postscript filename
         self.out = out
+        
         # list of sets that contain the gmt commands and its argumants
         # and the filename where the gmt commands output will be written
         self.commands = []
@@ -31,6 +33,10 @@ class GMT(object):
             tmp = ["-{}{}".format(key, proc_flag(common_flags[key]))
                    for key in keys if key not in ["portrait"]]
             self.common = " ".join(tmp)
+            
+            if portrait:
+                self.common += " -P"
+            
         else:
             self.common = None
 
@@ -73,8 +79,8 @@ class GMT(object):
         del self.is_gmt5
         del self.out
     
-    def __call__(self, gmt_exec, data=None, portrait=False, palette=None,
-                 outfile=None, **flags):
+    def __call__(self, gmt_exec, data=None, palette=None, outfile=None,
+                 **flags):
         
         keys = flags.keys()
         
@@ -95,9 +101,6 @@ class GMT(object):
             gmt_flags = ["-{}{}".format(key, proc_flag(flags[key]))
                          for key in keys]
             cmd += " {}".format(" ".join(gmt_flags))
-        
-        if portrait:
-            cmd += " -P"
         
         if palette:
             cmd += " -C{}".format(palette)
@@ -130,18 +133,6 @@ def proc_flag(flag):
         return flag
 
 # add -K or/and -O flags if the GMT command is a plotter "command"
-
-def add_K(cmd):
-    if cmd[0].split()[0] in _plotters:
-        return (cmd[0] + " -K", cmd[1], cmd[2])
-    else:
-        return cmd
-
-def add_O(cmd):
-    if cmd[0].split()[0] in _plotters:
-        return (cmd[0] + " -O", cmd[1], cmd[2])
-    else:
-        return cmd
 
 def execute_cmd(cmd, ret_out=False):
     try:

@@ -7,8 +7,8 @@ import numpy as np
 from six import string_types
 from shlex import split
 
-# plotting functions that will use the common output filename and the -K
-# and -O flags
+# plotting functions that will use the common output filename, flags and
+# the -K and -O flags
 _plotters = ["grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
              "psclip", "pscoast", "pscontour", "pshistogram", "psimage",
              "pslegend", "psmask", "psrose", "psscale", "pstext", "pswiggle",
@@ -43,7 +43,7 @@ class GMT(object):
         commands = self.commands
         
         # add -K and -O flags
-        if len(self.commands) > 1:
+        if len(commands) > 1:
             commands[:-1] = [(cmd[0], cmd[1] + " -K", *cmd[2:])
                              if cmd[0] in _plotters else cmd
                              for cmd in commands[:-1]]
@@ -63,7 +63,7 @@ class GMT(object):
         
         # execute gmt commands and write their output to the specified files
         for cmd in commands:
-            execute_cmd(cmd)
+            execute_gmt_cmd(cmd)
         
         del self.commands
         del self.common
@@ -72,7 +72,6 @@ class GMT(object):
     
     def _gmtcmd(self, gmt_exec, data=None, palette=None, outfile=None,
                 **flags):
-        
         keys = flags.keys()
         
         gmt_flags = ""
@@ -80,13 +79,16 @@ class GMT(object):
         if data is not None:
             # data is a path to a file
             if isinstance(data, string_types) and pth.isfile(data):
-                gmt_flags += " {}".format(data)
+                gmt_flags += "{} ".format(data)
                 data = None
             # data is a numpy array
             elif isinstance(data, np.ndarray):
-                gmt_flags += " -bi{}dw".format(data.shape[1])
+                gmt_flags += "-bi{}dw ".format(data.shape[1])
                 data = data.tobytes()
-                
+            else:
+                raise ValueError("`data` is not a path to an existing file "
+                                 "nor is a numpy array.")
+        
         # if we have flags
         if len(keys) > 0:
             gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flags[key]))
@@ -144,7 +146,7 @@ def proc_flag(flag):
     elif isinstance(flag, string_types):
         return flag
 
-def execute_cmd(cmd, ret_out=False):
+def execute_gmt_cmd(cmd, ret_out=False):
     gmt_cmd = cmd[0] + " " + cmd[1]
     
     try:
@@ -161,3 +163,98 @@ def execute_cmd(cmd, ret_out=False):
     
     if ret_out:
         return cmd_out
+
+def execute_cmd(cmd, ret_out=False):
+    
+    try:
+        cmd_out = sub.check_output(split(cmd), stderr=sub.STDOUT)
+    except sub.CalledProcessError as e:
+        print("ERROR: Non zero returncode from command: '{}'".format(cmd))
+        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
+        print("RETURNCODE was: {}".format(e.returncode))
+    
+    if ret_out:
+        return cmd_out
+
+dtypes = {
+    "r4":"f"
+}
+
+def get_par(parameter, search):
+    search_type = type(search)
+    
+    if search_type == list:
+        searchfile = search
+    elif os.path.isfile(search):
+        with open(search, "r") as f:
+            searchfile = f.readlines()
+    else:
+        raise ValueError("search should be either a list or a string that "
+                         "describes a path to the parameter file.")
+    
+    parameter_value = None
+    
+    for line in searchfile:
+        if parameter in line and not line.startswith("//"):
+            parameter_value = " ".join(line.split()[1:]).split("//")[0].strip()
+            break
+
+    return parameter_value
+
+class DEM(object):
+    def __init__(self, header_path, endian="small", gmt5=True):
+        self.fmt = get_par("SAM_IN_FORMAT", header_path)
+        self.dempath = get_par("SAM_IN_DEM", header_path)
+        self.nodata = get_par("SAM_IN_NODATA", header_path)
+        
+        self.is_gmt5 = gmt5
+        
+        rows, cols = get_par("SAM_IN_SIZE", header_path).split()
+        delta_lat, delta_lon = get_par("SAM_IN_DELTA", header_path).split()
+        origin_lat, origin_lon = get_par("SAM_IN_UL", header_path).split()
+        
+        self.nrow, self.ncol, self.delta_lon, self.delta_lat =\
+        int(rows), int(cols), float(delta_lon), float(delta_lat)
+        
+        self.origin_lon, self.origin_lat = float(origin_lon), float(origin_lat)
+        
+        
+    def __del__(self):
+        del self.fmt
+        del self.dempath
+        del self.nodata
+        del self.is_gmt5
+        del self.nrow
+        del self.ncol
+        del self.delta_lon
+        del self.delta_lat
+        del self.origin_lon
+        del self.origin_lat
+    
+    def make_ncfile(self, ncfile):
+        xmin = self.origin_lon
+        xmax = self.origin_lon + self.ncol * self.delta_lon
+
+        ymin = self.origin_lat - self.nrow * self.delta_lat
+        ymax = self.origin_lat
+        
+        lonlat_range = "{}/{}/{}/{}".format(xmin ,xmax, ymin, ymax)
+        
+        increments = "{}/{}".format(self.delta_lon, self.delta_lat)
+        
+        cmd = "xyz2grd {infile} -ZTL{dtype} -R{ll_range} -I{inc} -r -G{nc}"\
+              .format(infile=self.dempath, dtype=dtypes[self.fmt],
+                      ll_range=lonlat_range, inc=increments, nc=ncfile)
+        
+        if self.is_gmt5:
+            cmd = "gmt " + cmd
+        
+        execute_cmd(cmd)
+    
+    def plot(self, ncfile, psfile, **common_flags):
+        
+        gmt = GMT(psfile, gmt5=self.is_gmt5, **common_flags)
+        
+        gmt.grdimage(data=ncfile, B="a2.5")
+
+        del gmt

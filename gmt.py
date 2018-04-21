@@ -2,10 +2,10 @@ import os
 import os.path as pth
 import subprocess as sub
 import numpy as np
+from shlex import split
 
 # python 2/3 compatibility
 from six import string_types
-from shlex import split
 
 # plotting functions that will use the common output filename, flags and
 # the -K and -O flags
@@ -15,7 +15,8 @@ _plotters = ["grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
              "psxy", "psxyz", "gmtlogo"]
 
 class GMT(object):
-    def __init__(self, out, gmt5=True, portrait=False, **common_flags):
+    def __init__(self, out, gmt5=True, portrait=False, debug=False,
+                 **common_flags):
         
         # common output Postscript filename
         self.out = out
@@ -24,25 +25,19 @@ class GMT(object):
         # and the filename where the gmt commands output will be written
         self.commands = []
         self.is_gmt5 = gmt5
-        
-        keys = common_flags.keys()
+        self.debug = debug
         
         # if we have common flags parse them
-        if len(keys) > 0:
-            tmp = ["-{}{}".format(key, proc_flag(common_flags[key]))
-                   for key in keys if key not in ["portrait"]]
-            self.common = " ".join(tmp)
-            
-            if portrait:
-                self.common += " -P"
-            
+        if len(common_flags) > 0:
+            self.common = " ".join(["-{}{}".format(key, proc_flag(flag))
+                                    for key, flag in common_flags.items()])
         else:
             self.common = None
 
     def __del__(self):
         commands = self.commands
         
-        # add -K and -O flags
+        # add -K and -O flags to plotter functions
         if len(commands) > 1:
             commands[:-1] = [(cmd[0], cmd[1] + " -K", *cmd[2:])
                              if cmd[0] in _plotters else cmd
@@ -53,7 +48,9 @@ class GMT(object):
         if self.is_gmt5:
             commands = [("gmt " + cmd[0], *cmd[1:]) for cmd in commands]
         
-        print("\n".join(" ".join(elem for elem in cmd[0:2]) for cmd in commands))
+        if self.debug:
+            print("\n".join(" ".join(elem for elem in cmd[0:2])
+                  for cmd in commands))
         
         # gather all the outputfiles and remove the ones that already exist
         outfiles = set(cmd[3] for cmd in commands
@@ -68,12 +65,10 @@ class GMT(object):
         del self.commands
         del self.common
         del self.is_gmt5
+        del self.debug
         del self.out
     
-    def _gmtcmd(self, gmt_exec, data=None, palette=None, outfile=None,
-                **flags):
-        keys = flags.keys()
-        
+    def _gmtcmd(self, gmt_exec, data=None, palette=None, outfile=None, **flags):
         gmt_flags = ""
         
         if data is not None:
@@ -88,15 +83,13 @@ class GMT(object):
             else:
                 raise ValueError("`data` is not a path to an existing file "
                                  "nor is a numpy array.")
+
+        # if we have flags parse them
+        if len(flags) > 0:
+            gmt_flags = " ".join(["-{}{}".format(key, proc_flag(flag))
+                                  for key, flag in flags.items()])
         
-        # if we have flags
-        if len(keys) > 0:
-            gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flags[key]))
-                               for key in keys])
-        
-        if palette:
-            gmt_flags += " -C{}".format(palette)
-        
+        # if we have common flags add them
         if self.common is not None:
             gmt_flags += " " + self.common
         
@@ -111,16 +104,10 @@ class GMT(object):
         return f
     
     def reform(self, portrait=False, **common_flags):
-        keys = common_flags.keys()
-        
         # if we have common flags parse them
-        if len(keys) > 0:
-            tmp = ["-{}{}".format(key, proc_flag(common_flags[key]))
-                   for key in keys if key not in ["portrait"]]
-            self.common = " ".join(tmp)
-            
-            if portrait:
-                self.common += " -P"
+        if len(common_flags) > 0:
+            self.common = " ".join(["-{}{}".format(key, proc_flag(flag))
+                                    for key, flag in common_flags.items()])
         else:
             self.common = None
     
@@ -218,7 +205,6 @@ class DEM(object):
         
         self.origin_lon, self.origin_lat = float(origin_lon), float(origin_lat)
         
-        
     def __del__(self):
         del self.fmt
         del self.dempath
@@ -251,10 +237,8 @@ class DEM(object):
         
         execute_cmd(cmd)
     
-    def plot(self, ncfile, psfile, **common_flags):
+    def plot(self, ncfile, psfile, **gmt_flags):
         
-        gmt = GMT(psfile, gmt5=self.is_gmt5, **common_flags)
-        
-        gmt.grdimage(data=ncfile, B="a2.5")
-
+        gmt = GMT(psfile, gmt5=self.is_gmt5, **gmt_flags)
+        gmt.grdimage(data=ncfile)
         del gmt

@@ -1,14 +1,9 @@
 #include <stdio.h>
-
-#include "aux_macros.h"
-#include <stdio.h>
 #include <tgmath.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "Python.h"
-#include "numpy/arrayobject.h"
-#include "capi_macros.h"
+#include "../../aux/aux_module.h"
 
 //-----------------------------------------------------------------------------
 // STRUCTS
@@ -23,23 +18,11 @@ typedef unsigned int uint;
 // satellite orbit record
 typedef struct { double t, x, y, z; } torb;
 
-
 //-----------------------------------------------------------------------------
 // AUXILLIARY FUNCTIONS
 //-----------------------------------------------------------------------------
 
-static FILE * sfopen(const char * path, const char * mode)
-{
-    FILE * file = fopen(path, mode);
-
-    if (!file) {
-        errora("Could not open file \"%s\"   ", path);
-        perror("fopen");
-        return NULL;
-    }
-    return file;
-}
-
+/*
 static inline int plc(const int i, const int j)
 {
     // position of i-th, j-th element  0
@@ -399,7 +382,7 @@ static int cluster(psxys *indata1, const uint n1, psxys *indata2, const uint n2,
 
     return(jj);
 }  // end cluster
-
+*/
 static int selectp(const float dam, FILE *in1, const psxy *in2, const uint ni,
                    FILE *ou1)
 {
@@ -661,95 +644,92 @@ static void movements(const double azi1, const double inc1, const float v1,
 } // end  movement
 
 //-----------------------------------------------------------------------------
-// MAIN FUNCTIONS -- CAN BE CALLED FROM PYTHON
+// MAIN MODULES
 //-----------------------------------------------------------------------------
 
-PyDoc_STRVAR(
-    data_select__doc__,
+Mk_Doc(
+    dy_data_select,
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     "\n +                  ps_data_select                    +"
     "\n + adjacent ascending and descending PSs are selected +"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-    "\n   usage:  ps_data_select asc_data.xy dsc_data.xy 100  \n"
+    "\n   usage:  daisy data_select in_asc in_dsc out_asc out_dsc separation \n"
     "\n           asc_data.xy  - (1st) ascending  data file"
     "\n           dsc_data.xy  - (2nd) descending data file"
     "\n           100          - (3rd) PSs separation (m)\n"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-static PyObject * daisy_data_select(PyObject * self, PyObject * args,
-                                    PyObject * kwargs)
+static int dy_data_select(int argc, char **argv)
 {
-    const char *in_asc, *in_dsc,
-               *out_asc = "asc_select.xy",
-               *out_dsc = "dsc_select.xy";
-    float max_diff = 100.0;
-
-    static char * keywords[] = {"in_asc", "in_dsc", "out_asc", "out_dsc",
-                                "max_diff", NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|ssf:data_select",
-                                     keywords, &in_asc, &in_dsc, &out_asc,
-                                     &out_dsc, &max_diff))
-        return NULL;
-
-   uint n, ni1, ni2;
-   psxy *indata;
-
-   FILE *in1, *in2, *ou1, *ou2;
-
-   float lon, lat, v, he, dhe;
+    Aux_CheckArg(dy_data_select, 7);
+        
+    const char *in_asc  = argv[2],
+               *in_dsc  = argv[3],
+               *out_asc = argv[4],
+               *out_dsc = argv[5];
+    
+    float max_diff = (float) atof(argv[6]);
+    
+    println("%s %s %s %s %f", in_asc, in_dsc, out_asc, out_dsc, max_diff);
+    
+    uint n, ni1, ni2;
+    psxy *indata;
+    
+    FILE *inf_asc, *inf_dsc, *outf_asc, *outf_dsc;
+    
+    float lon, lat, v, he, dhe;
 
     printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
            "\n +                  ps_data_select                    +"
            "\n + adjacent ascending and descending PSs are selected +"
            "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
-    in1 = sfopen(in_asc, "rt");
-    in2 = sfopen(in_dsc, "rt");
+    inf_asc = sfopen(in_asc, "rt");
+    inf_dsc = sfopen(in_dsc, "rt");
 
-    ou1 = sfopen(out_asc, "w+t");
-    ou2 = sfopen(out_dsc, "w+t");
+    outf_asc = sfopen(out_asc, "w+t");
+    outf_dsc = sfopen(out_dsc, "w+t");
 
     println("\n Appr. PSs separation %5.1f (m)", max_diff);
 
     ni1 = 0;
-    while(fscanf(in1,"%e %e %e %e %e", &lon, &lat, &v, &he, &dhe) > 0) ni1++;
-    rewind(in1);
+    while(fscanf(inf_asc, "%e %e %e %e %e", &lon, &lat, &v, &he, &dhe) > 0) ni1++;
+    rewind(inf_asc);
 
     ni2 = 0;
-    while(fscanf(in2,"%e %e %e %e %e", &lon, &lat, &v, &he, &dhe) > 0) ni2++;
-    rewind(in2);
+    while(fscanf(inf_dsc, "%e %e %e %e %e", &lon, &lat, &v, &he, &dhe) > 0) ni2++;
+    rewind(inf_dsc);
 
     //  Copy data to memory
-    indata = PyMem_New(psxy, ni2);
+    Aux_Malloc(indata, ni2);
 
     FOR(ii, 0, ni2)
-        fscanf(in2, "%e %e %e %e %e", &(indata[ii].lon), &(indata[ii].lat),
-                                      &v, &he, &dhe);
+        fscanf(inf_dsc, "%e %e %e %e %e", &(indata[ii].lon), &(indata[ii].lat),
+                                          &v, &he, &dhe);
 
-    println("\n\n %s  PSs %d", in_asc, ni1);
+    println("\n\n %s  PSs %u", in_asc, ni1);
 
     printf("\n Select PSs ...\n");
-    n = selectp(max_diff, in1, indata, ni2, ou1);
+    n = selectp(max_diff, inf_asc, indata, ni2, outf_asc);
 
-    rewind(ou1);
-    rewind(in1);
-    rewind(in2);
+    rewind(outf_asc);
+    rewind(inf_asc);
+    rewind(inf_dsc);
 
-    println("\n\n %s PSs %d", out_dsc, n);
-    println("\n\n %s PSs %d", in_dsc, ni2);
+    println("\n\n %s PSs %u", out_dsc, n);
+    println("\n\n %s PSs %u", in_dsc, ni2);
 
-    PyMem_Del(indata);
+    Aux_Free(indata);
 
     // Copy data to memory
-    indata = PyMem_New(psxy, n);
+    Aux_Malloc(indata, n);
 
     FOR(ii, 0, n)
-        fscanf(ou1, "%e %e %e %e %e", &(indata[ii].lon), &(indata[ii].lat),
-                                      &v, &he, &dhe);
+        fscanf(outf_asc, "%e %e %e %e %e", &(indata[ii].lon), &(indata[ii].lat),
+                                           &v, &he, &dhe);
 
     printf("\n Select PSs ...\n");
-    n = selectp(max_diff, in2, indata, n, ou2);
+    n = selectp(max_diff, inf_dsc, indata, n, outf_dsc);
 
     printf("\n\n %s PSs %d\n" , out_dsc, n);
 
@@ -757,14 +737,15 @@ static PyObject * daisy_data_select(PyObject * self, PyObject * args,
            "\n +                end   ps_data_select                +"
            "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-    PyMem_Del(indata);
+    Aux_Free(indata);
 
-    Py_RETURN_NONE;
+    return(0);
 
 }  // end main
 
 // -------------------------------------------------------------
 
+/*
 PyDoc_STRVAR(
     dominant__doc__,
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
@@ -1225,62 +1206,28 @@ fail:
     Py_XDECREF(array);
     return NULL;
 }
-
-static PyMethodDef DaisyMethods[] = {
-    {"test", (PyCFunction) test, METH_VARARGS, ""},
-    {"data_select", (PyCFunction) daisy_data_select,
-     METH_VARARGS | METH_KEYWORDS,
-     data_select__doc__},
-    {"dominant", (PyCFunction) daisy_dominant,
-     METH_VARARGS | METH_KEYWORDS,
-     dominant__doc__},
-    {"poly_orbit", (PyCFunction) daisy_poly_orbit,
-     METH_VARARGS | METH_KEYWORDS,
-     poly_orbit__doc__},
-    {"integrate", (PyCFunction) daisy_integrate,
-     METH_VARARGS | METH_KEYWORDS,
-     integrate__doc__},
-    {"zero_select", (PyCFunction) daisy_zero_select,
-     METH_VARARGS | METH_KEYWORDS,
-     zero_select__doc__},
-    {NULL, NULL, 0, NULL}
-};
-
-PyDoc_STRVAR(
-    daisy__doc__,
-    "DAISY");
-
-static struct PyModuleDef daisymodule = {
-    PyModuleDef_HEAD_INIT, "daisy", daisy__doc__, -1, DaisyMethods
-};
-
-PyMODINIT_FUNC
-PyInit_daisy(void)
-{
-    import_array();
-    return PyModule_Create(&daisymodule);
-}
+*/
 
 int main(int argc, char **argv)
 {
-    double a[3];
-    //println("J0(%g) = %.18e", 5.0, gsl_sf_bessel_J0(5.0));
+    int ret;
     
-    //return 0;
-    
-    /*for(double ii = 0.0; ii < 1e6; ii++) {
-        a[0] = 0.0;
-        a[1] = ii;
-        a[2] = ii * 2;
-        fwrite(a, 3 * sizeof(double), 1, stdout);
-    }*/
-    
-    while (fread(a, 3 * sizeof(double), 1, stdin) > 0) {
-        //fwrite(a, 3 * sizeof(double), 1, stdout);
-        println("%lf %lf %lf", a[0], a[1], a[2]);
+    if (argc < 2) {
+        exit(Err_Arg);
     }
     
+    if (Str_Select("data_select")) {
+        ret = dy_data_select(argc, argv);
+        return(ret);
+    }
+    else if(Str_Select("dominant")) {
+        ret = dy_data_select(argc, argv);
+        return(ret);
+    }
+    else {
+        errorln("Unrecognized module: %s", argv[1]);
+        exit(Err_Arg);
+    }
     
-    
-    return 0;
+    return(0);
 }

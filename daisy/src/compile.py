@@ -1,34 +1,17 @@
-from subprocess import check_output, CalledProcessError, STDOUT
-from shlex import split
-from os.path import basename
+from os.path import join as pjoin
+import sys
 
-def cmd(command, ret_out=True):
-    try:
-        cmd_out = check_output(split(command), stderr=STDOUT)
-    except CalledProcessError as e:
-        print("Command failed, command: '{}'".format(cmd))
-        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
-        print("RETURNCODE: \n{}".format(e.returncode))
-    
-    if ret_out:
-        return cmd_out.decode()
+sys.path.append(pjoin("..", "..", "compile_all.py"))
 
+from compile_all import compile_c
 
 CC = "gcc"
-flags = "-std=c99 -static " + cmd("gsl-config --cflags --libs")
-inputfile = "daisy.c"
+flags = "-std=c99 -lm"
+c_file = "daisy.c"
+#depend = pjoin("..", "..", "aux", "aux_fun.c")
 
 def main():
-
-    comp_cmd = "{} {} -o {}".format(CC, inputfile,
-                                    basename(inputfile).split('.')[0])
-    comp_cmd += " " + flags
-    
-    try:
-        cmd_out = check_output(split(comp_cmd), stderr=STDOUT)
-    except CalledProcessError as e:
-        print("Compilation failed, compiler command: '{}'".format(comp_cmd))
-        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
+    compile_c(c_file, CC=CC, flags=flags)
 
 if __name__ == "__main__":
     main()

@@ -239,6 +239,6 @@ class DEM(object):
     
     def plot(self, ncfile, psfile, **gmt_flags):
         
-        gmt = GMT(psfile, gmt5=self.is_gmt5, **gmt_flags)
-        gmt.grdimage(data=ncfile)
+        gmt = GMT(psfile, gmt5=self.is_gmt5)
+        gmt.grdimage(data=ncfile, **gmt_flags)
         del gmt

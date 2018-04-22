@@ -2,8 +2,9 @@
 #include <tgmath.h>
 #include <stdlib.h>
 #include <string.h>
+#include <aux_module.h>
 
-#include "../../aux/aux_module.h"
+//#include "../../aux/aux_module.h"
 
 //-----------------------------------------------------------------------------
 // STRUCTS

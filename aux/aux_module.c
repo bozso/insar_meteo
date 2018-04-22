@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <aux_module.h>
 
-static void * malloc_or_exit(size_t nbytes, const char * file, int line)
+void * malloc_or_exit(size_t nbytes, const char * file, int line)
 {	
     void *x;
 	
@@ -14,7 +15,7 @@ static void * malloc_or_exit(size_t nbytes, const char * file, int line)
         return x;
 }
 
-static FILE * sfopen(const char * path, const char * mode)
+FILE * sfopen(const char * path, const char * mode)
 {
     FILE * file = fopen(path, mode);
 

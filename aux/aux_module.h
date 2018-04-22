@@ -1,6 +1,9 @@
 #ifndef AUX_MODULE_H
 #define AUX_MODULE_H
 
+void * malloc_or_exit(size_t nbytes, const char * file, int line);
+FILE * sfopen(const char * path, const char * mode);
+
 #define QUOTE(s) # s   /* turn s into string "s" */
 
 /* minimum number of arguments:
@@ -99,8 +102,5 @@
 #define Err_Alloc -2
 #define Err_Num -3
 #define Err_Arg -4
-
-static void * malloc_or_exit(size_t nbytes, const char * file, int line);
-static FILE * sfopen(const char * path, const char * mode);
 
 #endif

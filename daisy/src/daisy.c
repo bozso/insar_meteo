@@ -4,26 +4,10 @@
 #include <string.h>
 #include <aux_module.h>
 
-//#include "../../aux/aux_module.h"
-
-//-----------------------------------------------------------------------------
-// STRUCTS
-//-----------------------------------------------------------------------------
-
-typedef struct { float lon, lat;  } psxy;
-typedef struct { int ni; float lon, lat, he, ve; } psxys;
-typedef struct { double x, y, z, lat, lon, h; } station; // [m,rad]
-
-typedef unsigned int uint;
-
-// satellite orbit record
-typedef struct { double t, x, y, z; } torb;
-
 //-----------------------------------------------------------------------------
 // AUXILLIARY FUNCTIONS
 //-----------------------------------------------------------------------------
 
-/*
 static inline int plc(const int i, const int j)
 {
     // position of i-th, j-th element  0
@@ -34,7 +18,8 @@ static inline int plc(const int i, const int j)
     k = (i < j) ? i + 1 : j + 1;
     l = (i > j) ? i + 1 : j + 1;
     return((l - 1) * l / 2 + k - 1);
-} // end plc
+}
+// end plc
 
 static void ATA_ATL(const uint m, const uint u, const double *A, const double *L,
                     double *ATA, double *ATL)
@@ -42,7 +27,7 @@ static void ATA_ATL(const uint m, const uint u, const double *A, const double *L
     // m - number of measurements
     // u - number of unknowns
     uint kk;
-    double *buf = PyMem_New(double, m);
+    double *buf = Aux_Malloc(double, m);
     
     // row of ATPA
     FOR(ii, 0, u)  {
@@ -65,8 +50,9 @@ static void ATA_ATL(const uint m, const uint u, const double *A, const double *L
         } //end - column of ATPA
     } // end - row of ATPA
 
-    PyMem_Del(buf);
-} // end ATA_ATL
+    Aux_Free(buf);
+}
+// end ATA_ATL
 
 static int chole(double *q, const uint n)
 {
@@ -117,8 +103,8 @@ end2:
     }
 
     return(0);
-} // end chole
-
+}
+// end chole
 
 static int poly_fit(const uint m, const uint u, const torb *orb,
                     double *X, const char c)
@@ -129,14 +115,14 @@ static int poly_fit(const uint m, const uint u, const torb *orb,
 
     t0 = orb[0].t;
 
-    A   = PyMem_New(double, u);
-    ATA = PyMem_New(double, u * (u + 1) / 2);
-    ATL = PyMem_New(double, u);
+    A   = Aux_Malloc(double, u);
+    ATA = Aux_Malloc(double, u * (u + 1) / 2);
+    ATL = Aux_Malloc(double, u);
 
     if (c != 'x' OR c != 'y' OR c != 'z') {
-        errora("Invalid option for char \"c\" %c\t Valid options "
+        errorln("Invalid option for char \"c\" %c\t Valid options "
                "are: \"x\", \"y\", \"z\"\n", c);
-        return(-1);
+        return(Err_Num);
     }
 
     FOR(ii, 0, m) {
@@ -152,9 +138,9 @@ static int poly_fit(const uint m, const uint u, const torb *orb,
         ATA_ATL(1, u, A, &L, ATA, ATL);
     }
 
-    if( chole(ATA, u) != 0 ) {
-        error("poly_fit: Error - singular normal matrix!");
-        exit(NUM_ERR);
+    if (!chole(ATA, u)) {
+        fprintf(stderr, "poly_fit: Error - singular normal matrix!");
+        exit(Err_Num);
     }
     
     // update of unknowns
@@ -188,64 +174,11 @@ static int poly_fit(const uint m, const uint u, const torb *orb,
         printf("\n%2d %23.15e   %23.15e", jj, X[jj],
                                 mu0 * sqrt( ATA[plc(jj, jj)] ));
     
-    PyMem_Del(A); PyMem_Del(ATA); PyMem_Del(ATL);
+    Aux_Free(A); Aux_Free(ATA); Aux_Free(ATL);
     
     return(0);
-} // end poly_fit
-
-static void change_ext ( char *name, char *ext )
-{
-    // change the extent of name for ext
-
-    int  ii = 0;
-    while( name[ii] != '.' && name[ii] != '\0') ii++;
-    name[ii] ='\0';
-
-    sprintf(name, "%s.%s", name, ext);
- } // end change_ext
-
-static void cart_ell( station *sta )
-{
-    // from cartesian to ellipsoidal
-    // coordinates
-
-    double n, p, o, so, co, x, y, z;
-
-    n = (WA * WA - WB * WB);
-    x = sta->x; y = sta->y; z = sta->z;
-    p = sqrt(x * x + y * y);
-
-    o = atan(WA / p / WB * z);
-    so = sin(o); co = cos(o);
-    o = atan( (z + n / WB * so * so * so) / (p - n / WA * co * co * co) );
-    so = sin(o); co = cos(o);
-    n= WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
-
-    sta->lat = o;
-    o = atan(y/x); if(x < 0.0) o += M_PI;
-    sta->lon = o;
-    sta->h = p / co - n;
-
-}  // end of cart_ell
-
-// --------------------------
-
-static void ell_cart( station *sta )
-{
-    // from ellipsoidal to cartesian
-    // coordinates
-
-    double lat, lon, n;
-
-    lat = sta->lat;
-    lon = sta->lon;
-    n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
-
-    sta->x = (              n + sta->h) * cos(lat) * cos(lon);
-    sta->y = (              n + sta->h) * cos(lat) * sin(lon);
-    sta->z = ( (1.0 - E2) * n + sta->h) * sin(lat);
-
-}  // end of ell_cart
+}
+// end poly_fit
 
 static void estim_dominant(const psxys *buffer, const uint ps1, const uint ps2,
                            FILE *ou)
@@ -329,7 +262,8 @@ static void estim_dominant(const psxys *buffer, const uint ps1, const uint ps2,
         sumwve += buffer[ii].ve / dist / dist;
     }
     fprintf(ou," %8.3lf\n", sumwve / sumw);
-} //end estim_dominant
+}
+//end estim_dominant
 
 static int cluster(psxys *indata1, const uint n1, psxys *indata2, const uint n2,
                    psxys *buffer, uint *nb, const float dam)
@@ -358,7 +292,7 @@ static int cluster(psxys *indata1, const uint n1, psxys *indata2, const uint n2,
             jj++;
             if( jj == *nb) {
                 (*nb)++;
-                PyMem_Resize(buffer, psxys, *nb);
+                Aux_Realloc(buffer, psxys, *nb);
             }
         } // end if
     } // end  1 for
@@ -376,14 +310,15 @@ static int cluster(psxys *indata1, const uint n1, psxys *indata2, const uint n2,
             jj++;
             if(jj == *nb) {
                 (*nb)++;
-                PyMem_Resize(buffer, psxys, *nb);
+                Aux_Realloc(buffer, psxys, *nb);
             }
         } // end if
     } // end for
 
     return(jj);
-}  // end cluster
-*/
+}
+// end cluster
+
 static int selectp(const float dam, FILE *in1, const psxy *in2, const uint ni,
                    FILE *ou1)
 {
@@ -426,144 +361,8 @@ static int selectp(const float dam, FILE *in1, const psxy *in2, const uint ni,
     }
 
     return(n);
-} // end selectp
-
-static void azim_elev(const station ps, const station sat, double *azi,
-                      double *inc)
-{
-    // topocentric parameters in PS local system
-    double xf, yf, zf, xl, yl, zl, t0;
-
-    // cart system
-    xf = sat.x - ps.x;
-    yf = sat.y - ps.y;
-    zf = sat.z - ps.z;
-
-    xl = - sin(ps.lat) * cos(ps.lon) * xf
-         - sin(ps.lat) * sin(ps.lon) * yf + cos(ps.lat) * zf ;
-
-    yl = - sin(ps.lon) * xf + cos(ps.lon) * yf;
-
-    zl = + cos(ps.lat) * cos(ps.lon) * xf
-         + cos(ps.lat) * sin(ps.lon) * yf + sin(ps.lat) * zf ;
-
-    t0 = distance(xl, yl, zl);
-
-    *inc = acos(zl / t0) * RAD2DEG;
-
-    if(xl == 0.0) xl = 0.000000001;
-
-    *azi = atan(abs(yl / xl));
-
-    if( (xl < 0.0) && (yl > 0.0) ) *azi = M_PI - *azi;
-    if( (xl < 0.0) && (yl < 0.0) ) *azi = M_PI + *azi;
-    if( (xl > 0.0) && (yl < 0.0) ) *azi = 2.0 * M_PI - *azi;
-
-    *azi *= RAD2DEG;
-
-    if(*azi > 180.0)
-        *azi -= 180.0;
-    else
-        *azi +=180.0;
-} // azim_elev
-
-static void poly_sat_pos(station *sat, const double time, const double *poli,
-                         const uint deg_poly)
-{
-    sat->x = sat->y = sat->z = 0.0;
-
-    FOR(ii, 0, deg_poly) {
-        sat->x += poli[ii]                * pow(time, (double) ii);
-        sat->y += poli[deg_poly + ii]     * pow(time, (double) ii);
-        sat->z += poli[2 * deg_poly + ii] * pow(time, (double) ii);
-    }
 }
-
-static void poly_sat_vel(double *vx, double *vy, double *vz,
-                         const double time, const double *poli,
-                         const uint deg_poly)
-{
-    *vx = 0.0;
-    *vy = 0.0;
-    *vz = 0.0;
-
-    FOR(ii, 1, deg_poly) {
-        *vx += ii * poli[ii]                * pow(time, (double) ii - 1);
-        *vy += ii * poli[deg_poly + ii]     * pow(time, (double) ii - 1);
-        *vz += ii * poli[2 * deg_poly + ii] * pow(time, (double) ii - 1);
-    }
-}
-
-static double sat_ps_scalar(station * sat, const station * ps,
-                            const double time, const double * poli,
-                            const uint poli_deg)
-{
-    double dx, dy, dz, vx, vy, vz, lv, lps;
-    // satellite position
-    poly_sat_pos(sat, time, poli, poli_deg);
-
-    dx = sat->x - ps->x;
-    dy = sat->y - ps->y;
-    dz = sat->z - ps->z;
-
-    lps = distance(dx, dy, dz);
-
-    // satellite velocity
-    poly_sat_vel(&vx, &vy, &vz, time, poli, poli_deg);
-
-    lv = distance(vx, vy, vz);
-
-    // normed scalar product of satellite position and velocity vector
-    return(  vx / lv * dx / lps
-           + vy / lv * dy / lps
-           + vz / lv * dz / lps);
-}
-
-static void closest_appr(const double *poli, const size_t pd,
-                         const double tfp, const double tlp,
-                         const station * ps, station * sat,
-                         const uint max_iter)
-{
-    // compute the sat position using closest approache
-    double tf, tl, tm; // first, last and middle time
-    double vs, vm = 1.0; // vectorial products
-
-    uint itr = 0;
-
-    tf = 0.0;
-    tl = tlp - tfp;
-
-    vs = sat_ps_scalar(sat, ps, tf, poli, pd);
-
-    while( fabs(vm) > 1.0e-11 && itr < max_iter)
-    {
-        tm = (tf + tl) / 2.0;
-
-        vm = sat_ps_scalar(sat, ps, tm, poli, pd);
-
-        if ((vs * vm) > 0.0)
-        {
-            // change start for middle
-            tf = tm;
-            vs = vm;
-        }
-        else
-            // change  end  for middle
-            tl = tm;
-
-        itr++;
-    }
-} // end closest_appr
-
-static void axd(const double  a1, const double  a2, const double  a3,
-                const double  d1, const double  d2, const double  d3,
-                double *n1, double *n2, double *n3)
-{
-    // vectorial multiplication a x d
-   *n1 = a2 * d3 - a3 * d2;
-   *n2 = a3 * d1 - a1 * d3;
-   *n3 = a1 * d2 - a2 * d1;
-} // end axd
+// end selectp
 
 static void movements(const double azi1, const double inc1, const float v1,
                       const double azi2, const double inc2, const float v2,
@@ -649,7 +448,7 @@ static void movements(const double azi1, const double inc1, const float v1,
 //-----------------------------------------------------------------------------
 
 Mk_Doc(
-    dy_data_select,
+    data_select,
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     "\n +                  ps_data_select                    +"
     "\n + adjacent ascending and descending PSs are selected +"
@@ -660,9 +459,9 @@ Mk_Doc(
     "\n           100          - (3rd) PSs separation (m)\n"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-static int dy_data_select(int argc, char **argv)
+static int data_select(int argc, char **argv)
 {
-    Aux_CheckArg(dy_data_select, 7);
+    Aux_CheckArg(data_select, 7);
         
     const char *in_asc  = argv[2],
                *in_dsc  = argv[3],
@@ -702,7 +501,7 @@ static int dy_data_select(int argc, char **argv)
     rewind(inf_dsc);
 
     //  Copy data to memory
-    Aux_Malloc(indata, ni2);
+    indata = Aux_Malloc(psxy, ni2);
 
     FOR(ii, 0, ni2)
         fscanf(inf_dsc, "%e %e %e %e %e", &(indata[ii].lon), &(indata[ii].lat),
@@ -723,8 +522,8 @@ static int dy_data_select(int argc, char **argv)
     Aux_Free(indata);
 
     // Copy data to memory
-    Aux_Malloc(indata, n);
-
+    indata = Aux_Malloc(psxy, n);
+    
     FOR(ii, 0, n)
         fscanf(outf_asc, "%e %e %e %e %e", &(indata[ii].lon), &(indata[ii].lat),
                                            &v, &he, &dhe);
@@ -742,49 +541,43 @@ static int dy_data_select(int argc, char **argv)
 
     return(0);
 
-}  // end main
+}  // end data_select
 
-// -------------------------------------------------------------
-
-/*
-PyDoc_STRVAR(
-    dominant__doc__,
+Mk_Doc(
+    dominant,
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     "\n +                      ps_dominant                      +"
     "\n + clusters of ascending and descending PSs are selected +"
     "\n +     and the dominant points (DSs) are estimated       +"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
 
-    "\n    usage:  ps_dominant asc_data.xys dsc_data.xys 100\n"
+    "\n    usage:  daisy dominant asc_data.xys dsc_data.xys 100\n"
     "\n            asc_data.xys   - (1st) ascending  data file"
     "\n            dsc_data.xys   - (2nd) descending data file"
     "\n            100            - (3rd) cluster separation (m)\n"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-static PyObject * daisy_dominant(PyObject * self, PyObject * args,
-                                 PyObject * kwargs)
+static int dominant(int argc, char **argv)
 {
-    const char *in_asc, *in_dsc,
-               *out = "dominant.xy";
-    float max_diff = 100.0;
-
-    static char *keywords[] = {"in_asc", "in_dsc", "out_dom",
-                                "max_diff", NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|sf:data_select",
-                                     keywords, &in_asc, &in_dsc, &out,
-                                     &max_diff))
-        return NULL;
-
-    uint n1, n2,        // number of data in input files
-         nb = 2,        // starting number of data in cluster buffer,
-                        // continiusly updated
-         nc,          // number of preselected clusters
-         nsc,         // number of selected clusters
-         nhc,         // number of hermit clusters
-         nps,         // number of selected PSs in actual cluster
-         ps1,         // number of PSs from 1 input file
-         ps2;         // number of PSs from 2 input file
+    const char *in_asc, *in_dsc, *out;
+    float max_diff;
+    
+    Aux_CheckArg(dominant, 4);
+    
+    in_asc = argv[2];
+    in_dsc = argv[3];
+    out = argv[4];
+    
+    max_diff = (float) atof(argv[5]);
+    
+    uint n1, n2,  // number of data in input files
+         nb = 2,  // starting number of data in cluster buffer, continiusly updated
+         nc,      // number of preselected clusters
+         nsc,     // number of selected clusters
+         nhc,     // number of hermit clusters
+         nps,     // number of selected PSs in actual cluster
+         ps1,     // number of PSs from 1 input file
+         ps2;     // number of PSs from 2 input file
 
     psxys *indata1, *indata2, *buffer = NULL;  // names of allocated memories
 
@@ -805,14 +598,14 @@ static PyObject * daisy_dominant(PyObject * self, PyObject * args,
     println("\n  input: %s\n         %s", in_asc, in_dsc);
     printf("\n output: %s\n\n", out);
 
-    println("\n Appr. cluster size %5.1f (m)",max_diff);
+    println("\n Appr. cluster size %5.1f (m)", max_diff);
     printf("\n Copy data to memory ...\n");
 
     n1 = 0;
     while(fscanf(in1, "%e %e %e %e %e", &lon, &lat, &ve, &he, &dhe) > 0) n1++;
     rewind(in1);
 
-    indata1 = PyMem_New(psxys, n1);
+    indata1 = Aux_Malloc(psxys, n1);
 
     FOR(ii, 0, n1) {
          fscanf(in1,"%e %e %e %e %e", &(indata1[ii].lon),
@@ -826,9 +619,10 @@ static PyObject * daisy_dominant(PyObject * self, PyObject * args,
     n2 = 0;
     while(fscanf(in2, "%e %e %e %e %e", &lon, &lat, &ve, &he, &dhe) > 0) n2++;
     rewind(in2);
+    
     printf("%d\n", n2);
     
-    indata2 = PyMem_New(psxys, n2);
+    indata2 = Aux_Malloc(psxys, n2);
 
     FOR(ii, 0, n2) {
         fscanf(in2, "%e %e %e %e %e", &(indata2[ii].lon),
@@ -874,37 +668,34 @@ static PyObject * daisy_dominant(PyObject * self, PyObject * args,
            "\n +                   end    ps_dominant                  +"
            "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-    PyMem_Del(indata1); PyMem_Del(indata2);
+    Aux_Free(indata1); Aux_Free(indata2);
 
-    Py_RETURN_NONE;
-}  // end daisy_dominant
+    return(0);
+} // end dominant
 
-
-PyDoc_STRVAR(
-    poly_orbit__doc__,
+Mk_Doc(
+    poly_orbit,
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     "\n +                     ps_poly_orbit                     +"
     "\n +    tabular orbit data are converted to polynomials    +"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-    "\n          usage:    ps_poly_orbit asc_master.res 4"
+    "\n          usage: daisy poly_orbit asc_master.res 4"
     "\n                 or"
     "\n                    ps_poly_orbit dsc_master.res 4"
     "\n\n          asc_master.res or dsc_master.res - input files"
     "\n          4                                - degree     \n"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-static PyObject * daisy_poly_orbit(PyObject * self, PyObject * args,
-                                   PyObject * kwargs)
+static int poly_orbit(int argc, char **argv)
 {
     const char *in_data;
-    uint deg_poly = 4;
-
-    static char * keywords[] = {"in_data", "deg_poly", NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|I:poly_orbit",
-                                     keywords, &in_data, &deg_poly))
-        return NULL;
-
+    uint deg_poly;
+    
+    Aux_CheckArg(poly_orbit, 2);
+    
+    in_data = argv[2];
+    deg_poly = (uint) atoi(argv[3]);
+    
     // number of orbit records
     uint ndp;
 
@@ -934,9 +725,9 @@ static PyObject * daisy_poly_orbit(PyObject * self, PyObject * args,
     while( fscanf(in, "%s", buf) > 0 && strncmp(buf, head, 21) != 0 );
     fscanf(in, "%d", &ndp);
 
-    orb = PyMem_New(torb, ndp);
+    orb = Aux_Malloc(torb, ndp);
     
-    X = PyMem_New(double, deg_poly + 1);
+    X = Aux_Malloc(double, deg_poly + 1);
 
     FOR(ii, 0, ndp)
         fscanf(in, "%lf %lf %lf %lf", &(orb[ii].t), &(orb[ii].x),
@@ -973,39 +764,27 @@ static PyObject * daisy_poly_orbit(PyObject * self, PyObject * args,
              "\n +             end          ps_poly_orbit                +"
              "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-    PyMem_Del(orb); PyMem_Del(X);
+    Aux_Free(orb); Aux_Free(X);
 
-    Py_RETURN_NONE;
+    return(0);
 }  // end daisy_poly_orbit
 
-PyDoc_STRVAR(
-    integrate__doc__,
+Mk_Doc(
+    integrate,
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     "\n +                       ds_integrate                          +"
     "\n +        compute the east-west and up-down velocities         +"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
     "\n usage:                                                      \n"
-    "\n    ds_integrate dominant.xyd asc_master.porb dsc_master.porb\n"
+    "\n    daisy integrate dominant.xyd asc_master.porb dsc_master.porb\n"
     "\n              dominant.xyd  - (1st) dominant DSs data file   "
     "\n           asc_master.porb  - (2nd) ASC polynomial orbit file"
     "\n           dsc_master.porb  - (3rd) DSC polynomial orbit file\n"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-static PyObject * daisy_integrate(PyObject * self, PyObject * args,
-                                  PyObject * kwargs)
+static int integrate(int argc, char **argv)
 {
-    const char *in_dom  = "dominant.xy",
-               *asc_orb = "asc_master.porb",
-               *dsc_orb = "dsc_master.porb",
-               *out     = "integrate.xy";
-
-    static char * keywords[] = {"in_dom", "asc_orb", "dsc_orb", "out_int",
-                                NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ssss:intergate",
-                                     keywords, &in_dom, &asc_orb,
-                                     &dsc_orb, &out))
-        return NULL;
+    const char *in_dom, *asc_orb, *dsc_orb, *out;
 
     uint nn = 0;
     station ps, sat;
@@ -1020,7 +799,14 @@ static PyObject * daisy_integrate(PyObject * self, PyObject * args,
     float lon, lat, he, v1, v2, up, east;
 
     FILE *ind, *ino1, *ino2, *ou;
-
+    
+    Aux_CheckArg(integrate, 4);
+    
+    in_dom  = argv[2];
+    asc_orb = argv[3];
+    dsc_orb = argv[4];
+    out     = argv[5];
+    
     printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
            "\n +                       ds_integrate                          +"
            "\n +        compute the east-west and up-down velocities         +"
@@ -1031,12 +817,13 @@ static PyObject * daisy_integrate(PyObject * self, PyObject * args,
     println("\n\n outputs:  %s", out);
 
 //-----------------------------------------------------------------------------
+    
     ino1 = sfopen(asc_orb, "rt");
 
     fscanf(ino1, "%d %lf %lf", &dop1, &ft1, &lt1); // read orbit
     dop1++;
 
-    pol1 = PyMem_New(double, dop1 * 3);
+    pol1 = Aux_Malloc(double, dop1 * 3);
 
     ino1 = sfopen(asc_orb, "rt");
 
@@ -1053,7 +840,7 @@ static PyObject * daisy_integrate(PyObject * self, PyObject * args,
     fscanf(ino2, "%d %lf %lf", &dop2, &ft2, &lt2); // read orbit
     dop2++;
     
-    pol2 = PyMem_New(double, dop2 * 3);
+    pol2 = Aux_Malloc(double, dop2 * 3);
 
     FOR(ii, 0, 3)
         FOR(jj, 0, dop2)
@@ -1098,45 +885,44 @@ static PyObject * daisy_integrate(PyObject * self, PyObject * args,
              "\n +                     end    ds_integrate                     +"
              "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-    PyMem_Del(pol1); PyMem_Del(pol2);
+    Aux_Free(pol1); Aux_Free(pol2);
     
-    Py_RETURN_NONE;
+    return(0);
 }  // end daisy_integrate
 
-PyDoc_STRVAR(
-    zero_select__doc__,
+Mk_Doc(
+    zero_select,
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     "\n +                   ds_zero_select                   +"
     "\n +  select integrated DSs with nearly zero velocity   +"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-    "\n     usage:   ds_zero_select integrate.xyi 0.6         \n"
+    "\n     usage: daisy zero_select integrate.xyi 0.6         \n"
     "\n            integrate.xyi  -  integrated data file"
     "\n            0.6 (mm/year)  -  zero data criteria\n"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-static PyObject * daisy_zero_select(PyObject * self, PyObject * args,
-                                  PyObject * kwargs)
+static int zero_select(int argc, char **argv)
 {
     uint n = 0, nz = 0, nt = 0;
 
-    const char *inp = "integrate.xy",   // input file
-               *out1,                   // output file - zero velocity
-               *out2;                   // output file - non-zero velocity
+    const char *inp,   // input file
+               *out1,  // output file - zero velocity
+               *out2;  // output file - non-zero velocity
 
-    float zch = 0.6;
-
-    static char * keywords[] = {"out_zero", "out_nonzero", "integrate",
-                                "zero_thresh", NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ss|sf:zero_select",
-                                     keywords, &out1, &out2, &inp,
-                                     &zch))
-        return NULL;
+    float zch;
 
     FILE *in, *ou1, *ou2;
 
     float lon, lat, he, ve, vu;
-
+    
+    Aux_CheckArg(zero_select, 4);
+    
+    inp  = argv[2];
+    out1 = argv[3];
+    out2 = argv[4];
+    
+    zch = (float) atof(argv[5]);
+    
     printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
            "\n +                   ds_zero_select                   +"
            "\n +  select integrated DSs with nearly zero velocity   +"
@@ -1178,11 +964,13 @@ static PyObject * daisy_zero_select(PyObject * self, PyObject * args,
            "\n +              end    ds_zero_select                 +"
            "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
-    Py_RETURN_NONE;
+    return(0);
 
-}  // end daisy_zero_select
+}
+// end zero_select
 
 
+/*
 // Function for testing stuff
 static PyObject * test(PyObject * self, PyObject * args)
 {
@@ -1217,14 +1005,17 @@ int main(int argc, char **argv)
         exit(Err_Arg);
     }
     
-    if (Str_Select("data_select")) {
-        ret = dy_data_select(argc, argv);
-        return(ret);
-    }
-    else if(Str_Select("dominant")) {
-        ret = dy_data_select(argc, argv);
-        return(ret);
-    }
+    if (Str_Select("data_select"))
+        return data_select(argc, argv);
+    
+    else if(Str_Select("dominant"))
+        return dominant(argc, argv);
+    
+    else if(Str_Select("poly_orbit"))
+        return poly_orbit(argc, argv);
+    
+    else if(Str_Select("integrate"))
+        return integrate(argc, argv);
     else {
         errorln("Unrecognized module: %s", argv[1]);
         exit(Err_Arg);

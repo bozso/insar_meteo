@@ -37,14 +37,27 @@ class GMT(object):
     def __del__(self):
         commands = self.commands
         
+        idx = [ii for ii, cmd in enumerate(commands) if cmd[0] in _plotters]
+        
         # add -K and -O flags to plotter functions
-        if len(commands) > 1:
+        if len(idx) > 1:
+            
+            for ii in idx[:-1]:
+                commands[ii] = (commands[ii][0], commands[ii][1] + " -K",
+                                commands[ii][2], commands[ii][3])
+
+            for ii in idx[1:]:
+                commands[ii] = (commands[ii][0], commands[ii][1] + " -O",
+                                commands[ii][2], commands[ii][3])
+            
+            """
             commands[:-1] = [(cmd[0], cmd[1] + " -K", *cmd[2:])
                              if cmd[0] in _plotters else cmd
                              for cmd in commands[:-1]]
             commands[1:] = [(cmd[0], cmd[1] + " -O", *cmd[2:])
                              if cmd[0] in _plotters else cmd
                              for cmd in commands[1:]]
+            """
         if self.is_gmt5:
             commands = [("gmt " + cmd[0], *cmd[1:]) for cmd in commands]
         
@@ -86,8 +99,8 @@ class GMT(object):
 
         # if we have flags parse them
         if len(flags) > 0:
-            gmt_flags = " ".join(["-{}{}".format(key, proc_flag(flag))
-                                  for key, flag in flags.items()])
+            gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
+                                   for key, flag in flags.items()])
         
         # if we have common flags add them
         if self.common is not None:

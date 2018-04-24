@@ -11,85 +11,6 @@
 // AUXILLIARY FUNCTIONS
 //-----------------------------------------------------------------------------
 
-static int fit_orbit(const torb * orbits, const uint ndata, const uint deg,
-                     const uint is_centered, const char * outfile)
-{
-    double * times,         // vector for times
-             t_mean = 0.0,  // mean value of times
-             t, x, y, z,    // temp storage variables
-             x_mean = 0.0,  // x, y, z mean values
-             y_mean = 0.0,
-             z_mean = 0.0;
-    
-    // vector for orbit coordinates
-    gsl_vector *obs_x = gsl_vector_alloc(ndata),
-               *obs_y = gsl_vector_alloc(ndata),
-               *obs_z = gsl_vector_alloc(ndata);
-    
-    // design matrix
-    gsl_matrix * design = gsl_matrix_alloc(ndata, deg);
-    
-    times = Aux_Malloc(double, ndata);
-    
-    if (is_centered) {
-        FOR(ii, 0, ndata) {
-            t = orbits[ii].t;
-            times[ii] = t;
-            
-            t_mean += t;            
-            
-            x = orbits[ii].x;
-            y = orbits[ii].y;
-            z = orbits[ii].z;
-            
-            Vset(obs_x, ii, x);
-            Vset(obs_y, ii, y);
-            Vset(obs_z, ii, z);
-            
-            x_mean += x;
-            y_mean += y;
-            z_mean += z;
-        }
-        // calculate means
-        t_mean /= (double) ndata;
-
-        x_mean /= (double) ndata;
-        y_mean /= (double) ndata;
-        z_mean /= (double) ndata;
-        
-        // subtract mean value
-        FOR(ii, 0, ndata) {
-            times[ii] -= t_mean;
-
-            *Vptr(obs_x, ii) -= x_mean;
-            *Vptr(obs_y, ii) -= y_mean;
-            *Vptr(obs_z, ii) -= z_mean;
-        }
-    }
-    else {
-        FOR(ii, 0, ndata) {
-            times[ii] = orbits[ii].t;
-            
-            Vset(obs_x, ii, orbits[ii].x);
-            Vset(obs_y, ii, orbits[ii].y);
-            Vset(obs_z, ii, orbits[ii].z);
-        }
-    }
-    
-    FOR(ii, 0, ndata)
-        Mset(design, ii, 0, 1.0);
-    
-    /*
-    FOR(ii, 0, ndata)
-        FOR(jj, 0, deg)
-    */
-    
-    gsl_vector_free(obs_x);
-    gsl_vector_free(obs_y);
-    gsl_vector_free(obs_z);
-    gsl_matrix_free(design);
-}
-
 static inline int plc(const int i, const int j)
 {
     // position of i-th, j-th element  0
@@ -1112,8 +1033,6 @@ int main(int argc, char **argv)
         return zero_select(argc, argv);
     else {
         errorln("Unrecognized module: %s", argv[1]);
-        exit(Err_Arg);
+        return Err_Arg;
     }
-    
-    return(0);
 }

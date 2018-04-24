@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <tgmath.h>
 #include <aux_module.h>
+#include <aux_macros.h>
+
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
 
 /* Extended malloc function */
 void * malloc_or_exit(size_t nbytes, const char * file, int line)
@@ -30,31 +35,32 @@ FILE * sfopen(const char * path, const char * mode)
     return file;
 }
 
-void ell_cart (station *sta)
+void ell_cart (const llh *lonlat, cart * coord)
 {
     // from ellipsoidal to cartesian coordinates
 
     double lat, lon, n;
 
-    lat = sta->lat;
-    lon = sta->lon;
+    lat = lonlat->lat;
+    lon = lonlat->lon;
+    h   = lonlat->h;
     n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
 
-    sta->x = (              n + sta->h) * cos(lat) * cos(lon);
-    sta->y = (              n + sta->h) * cos(lat) * sin(lon);
-    sta->z = ( (1.0 - E2) * n + sta->h) * sin(lat);
+    coord->x = (              n + h) * cos(lat) * cos(lon);
+    coord->y = (              n + h) * cos(lat) * sin(lon);
+    coord->z = ( (1.0 - E2) * n + h) * sin(lat);
 
 }
 // end of ell_cart
 
-void cart_ell (station *sta)
+void cart_ell (const cart * coord, llh * lonlat)
 {
     // from cartesian to ellipsoidal coordinates
 
     double n, p, o, so, co, x, y, z;
 
     n = (WA * WA - WB * WB);
-    x = sta->x; y = sta->y; z = sta->z;
+    x = coord->x; y = coord->y; z = coord->z;
     p = sqrt(x * x + y * y);
 
     o = atan(WA / p / WB * z);
@@ -63,12 +69,11 @@ void cart_ell (station *sta)
     so = sin(o); co = cos(o);
     n= WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
 
-    sta->lat = o;
+    lonlat->lat = o;
     
     o = atan(y/x); if(x < 0.0) o += M_PI;
-    sta->lon = o;
-    sta->h = p / co - n;
-
+    lonlat->lon = o;
+    lonlat->h = p / co - n;
 }
 // end of cart_ell
 
@@ -81,79 +86,223 @@ void change_ext (char *name, char *ext)
     name[ii] ='\0';
 
     sprintf(name, "%s.%s", name, ext);
-} // end change_ext
-
-void azim_elev(const station ps, const station sat, double *azi, double *inc)
-{
-    // topocentric parameters in PS local system
-    double xf, yf, zf, xl, yl, zl, t0;
-
-    // cart system
-    xf = sat.x - ps.x;
-    yf = sat.y - ps.y;
-    zf = sat.z - ps.z;
-
-    xl = - sin(ps.lat) * cos(ps.lon) * xf
-         - sin(ps.lat) * sin(ps.lon) * yf + cos(ps.lat) * zf ;
-
-    yl = - sin(ps.lon) * xf + cos(ps.lon) * yf;
-
-    zl = + cos(ps.lat) * cos(ps.lon) * xf
-         + cos(ps.lat) * sin(ps.lon) * yf + sin(ps.lat) * zf ;
-
-    t0 = distance(xl, yl, zl);
-
-    *inc = acos(zl / t0) * RAD2DEG;
-
-    if(xl == 0.0) xl = 0.000000001;
-
-    *azi = atan(abs(yl / xl));
-
-    if( (xl < 0.0) && (yl > 0.0) ) *azi = M_PI - *azi;
-    if( (xl < 0.0) && (yl < 0.0) ) *azi = M_PI + *azi;
-    if( (xl > 0.0) && (yl < 0.0) ) *azi = 2.0 * M_PI - *azi;
-
-    *azi *= RAD2DEG;
-
-    if(*azi > 180.0)
-        *azi -= 180.0;
-    else
-        *azi +=180.0;
 }
-// azim_elev
+// end change_ext
 
-void poly_sat_pos(station *sat, const double time, const double *poli,
-                  const uint deg_poly)
+double norm(double x, double y, double z)
 {
-    sat->x = sat->y = sat->z = 0.0;
+    return sqrt(x * x + y * y + z * z);
+}
 
-    FOR(ii, 0, deg_poly) {
-        sat->x += poli[ii]                * pow(time, (double) ii);
-        sat->y += poli[deg_poly + ii]     * pow(time, (double) ii);
-        sat->z += poli[2 * deg_poly + ii] * pow(time, (double) ii);
+/* ---------------------------------------------------------------------------
+ * Fitting polynomial to orbit, closest approache and azimuth, incidence angle
+ * calculation.
+ * --------------------------------------------------------------------------*/
+
+void calc_pos(const orbit_fit * orb, double time, cart * pos)
+{
+    uint n_poly = orb->deg + 1, is_centered = orb->is_centered;
+    double x = 0.0, y = 0.0, z = 0.0;
+    
+    const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
+    
+    if (is_centered)
+        time -= orb->mean_t;
+    
+    if(n_poly == 2) {
+        x = coeffs[0] * time + coeffs[1];
+        y = coeffs[2] * time + coeffs[3];
+        z = coeffs[4] * time + coeffs[5];
     }
-}
-/*
-void sat_pos(station *sat, const orbit *orb, double t)
+    else {
+        x = coeffs[0]           * time;
+        y = coeffs[n_poly]      * time;
+        z = coeffs[2 * n_poly]  * time;
+
+        FOR(ii, 1, n_poly - 1) {
+            x = (x + coeffs[             ii]) * time;
+            y = (y + coeffs[    n_poly + ii]) * time;
+            z = (z + coeffs[2 * n_poly + ii]) * time;
+        }
+        
+        x += coeffs[    n_poly - 1];
+        y += coeffs[2 * n_poly - 1];
+        z += coeffs[3 * n_poly - 1];
+    }
+    
+    if (is_centered) {
+        x += mean_coords[0];
+        y += mean_coords[1];
+        z += mean_coords[2];
+    }
+    
+    pos->x = x; pos->y = y; pos->z = z;
+} // calc_pos
+
+double dot_product(const orbit_fit * orb, const cart * coord, double time)
 {
-    double x, y, z, *coeffs = orbit->coeffs;
+    double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
+                       vel_x, vel_y, vel_z, power, inorm;
+    uint n_poly = orb->deg + 1;
+    
+    const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
     
     if (orb->is_centered)
-        t -= orb->t_mean;
+        time -= orb->mean_t;
     
-    x = y = z = 0.0;
+    // linear case 
+    if(n_poly == 2) {
+        sat_x = coeffs[0] * time + coeffs[1];
+        sat_y = coeffs[2] * time + coeffs[3];
+        sat_z = coeffs[4] * time + coeffs[5];
+        vel_x = coeffs[0]; vel_y = coeffs[2]; vel_z = coeffs[4];
+    }
+    // evaluation of polynom with Horner's method
+    else {
+        
+        sat_x = coeffs[0]           * time;
+        sat_y = coeffs[n_poly]      * time;
+        sat_z = coeffs[2 * n_poly]  * time;
+
+        FOR(ii, 1, n_poly - 1) {
+            sat_x = (sat_x + coeffs[             ii]) * time;
+            sat_y = (sat_y + coeffs[    n_poly + ii]) * time;
+            sat_z = (sat_z + coeffs[2 * n_poly + ii]) * time;
+        }
+        
+        sat_x += coeffs[    n_poly - 1];
+        sat_y += coeffs[2 * n_poly - 1];
+        sat_z += coeffs[3 * n_poly - 1];
+        
+        vel_x = coeffs[    n_poly - 2];
+        vel_y = coeffs[2 * n_poly - 2];
+        vel_z = coeffs[3 * n_poly - 2];
+        
+        FOR(ii, 0, n_poly - 3) {
+            power = (double) n_poly - 1.0 - ii;
+            vel_x += ii * coeffs[             ii] * pow(time, power);
+            vel_y += ii * coeffs[    n_poly + ii] * pow(time, power);
+            vel_z += ii * coeffs[2 * n_poly + ii] * pow(time, power);
+        }
+    }
     
-    FOR(ii, 0, orbit->deg) {
-        x = (x + 
+    if (orb->is_centered) {
+        sat_x += mean_coords[0];
+        sat_y += mean_coords[1];
+        sat_z += mean_coords[2];
+    }
+    
+    // satellite coordinates - surface coordinates
+    dx = sat_x - coord->x;
+    dy = sat_y - coord->y;
+    dz = sat_z - coord->z;
+    
+    // product of inverse norms
+    inorm = (1.0 / norm(dx, dy, dz)) * (1.0 / norm(vel_x, vel_y, vel_z));
+    
+    return(vel_x * dx * inorm + vel_y * dy * inorm + vel_z * dz * inorm);
+}
+
+void closest_appr(const orbit_fit * orb, const cart * coord,
+                  const uint max_iter, cart * sat_pos)
+{
+    // compute the sat position using closest approache
+    
+    // first, last and middle time
+    double t_start = orb->start_t - 5.0,
+           t_stop  = orb->stop_t + 5.0,
+           t_middle; 
+    
+    printf("Start time: %lf, Stop time: %lf  ", t_start, t_stop);
+    
+    // dot products
+    double dot_start, dot_middle = 1.0;
+
+    // iteration counter
+    uint itr = 0;
+    
+    dot_start = dot_product(orb, coord, t_start);
+    
+    while( fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
+        t_middle = (t_start + t_stop) / 2.0;
+
+        dot_middle = dot_product(orb, X, Y, Z, t_middle);
         
+        // change start for middle
+        if ((dot_start * dot_middle) > 0.0) {
+            t_start = t_middle;
+            dot_start = dot_middle;
+        }
+        // change  end  for middle
+        else
+            t_stop = t_middle;
+
+        itr++;
+    }
+    
+    calc_pos(orb, t_middle, sat_pos);
+    println("Middle time: %lf [s]", t_middle);
+    println("Middle time satellite WGS-84 coordinates (x,y,z) [km]: "
+           "(%lf, %lf, %lf)", sat_pos->x / 1e3, sat_pos->y / 1e3,
+           sat_pos->z / 1e3);
+} // end closest_appr
+
+void azi_inc(const orbit_fit * orbit, const cart * coords, uint ndata,
+             double *azimuths, double *inclinations)
+{
+    // topocentric parameters in PS local system
+    double xf, yf, zf, xl, yl, zl, t0, lon, lat, azi, inc;
+    
+    cart sat;
+    const cart *coord;
+    llh lonlat;
+    
+    FOR(ii, 0, ndata) {
+        coord = coords + ii;
+        closest_appr(orbit, coord, max_iter, &sat);
+            
+        xf = sat.x - coord->x;
+        yf = sat.y - coord->y;
+        zf = sat.z - coord->z;
         
-    FOR(ii, 0, deg_poly) {
-        sat->x += poli[ii]                * pow(time, (double) ii);
-        sat->y += poli[deg_poly + ii]     * pow(time, (double) ii);
-        sat->z += poli[2 * deg_poly + ii] * pow(time, (double) ii);
+        cart_ell(coord, &lonlat);
+        
+        lon = lonlat->lon;
+        lat = lonlat->lat;
+        
+        xl = - sin(lat) * cos(lon) * xf
+             - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
+    
+        yl = - sin(lon) * xf + cos(lon) * yf;
+    
+        zl = + cos(lat) * cos(lon) * xf
+             + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
+    
+        t0 = norm(xl, yl, zl);
+    
+        inc = acos(zl / t0) * RAD2DEG;
+    
+        if(xl == 0.0) xl = 0.000000001;
+    
+        azi = atan(abs(yl / xl));
+    
+        if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
+        if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
+        if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
+    
+        azi *= RAD2DEG;
+    
+        if(azi > 180.0)
+            azi -= 180.0;
+        else
+            azi +=180.0;
+        
+        azimuths[ii] = azi;
+        inclinations[ii] = inc;
     }
 }
-*/
+
+/*
 void poly_sat_vel(double *vx, double *vy, double *vz, const double time,
                   const double *poli, const uint deg_poly)
 {
@@ -167,64 +316,100 @@ void poly_sat_vel(double *vx, double *vy, double *vz, const double time,
         *vz += ii * poli[2 * deg_poly + ii] * pow(time, (double) ii - 1);
     }
 }
+*/
 
-double sat_ps_scalar(station * sat, const station * ps, const double time,
-                     const double * poli, const uint poli_deg)
+int fit_orbit(const torb * orbits, const uint ndata, const uint deg,
+              const uint is_centered, const char * outfile)
 {
-    double dx, dy, dz, vx, vy, vz, lv, lps;
-    // satellite position
-    poly_sat_pos(sat, time, poli, poli_deg);
-
-    dx = sat->x - ps->x;
-    dy = sat->y - ps->y;
-    dz = sat->z - ps->z;
-
-    lps = distance(dx, dy, dz);
-
-    // satellite velocity
-    poly_sat_vel(&vx, &vy, &vz, time, poli, poli_deg);
-
-    lv = distance(vx, vy, vz);
-
-    // normed scalar product of satellite position and velocity vector
-    return(  vx / lv * dx / lps
-           + vy / lv * dy / lps
-           + vz / lv * dz / lps);
-}
-
-void closest_appr(const double *poli, const size_t pd, const double tfp,
-                  const double tlp, const station * ps, station * sat,
-                  const uint max_iter)
-{
-    // compute the sat position using closest approache
-    double tf, tl, tm; // first, last and middle time
-    double vs, vm = 1.0; // vectorial products
-
-    uint itr = 0;
-
-    tf = 0.0;
-    tl = tlp - tfp;
-
-    vs = sat_ps_scalar(sat, ps, tf, poli, pd);
-
-    while( fabs(vm) > 1.0e-11 && itr < max_iter) {
-        tm = (tf + tl) / 2.0;
-
-        vm = sat_ps_scalar(sat, ps, tm, poli, pd);
-
-        if ((vs * vm) > 0.0) {
-            // change start for middle
-            tf = tm;
-            vs = vm;
+    double * times,         // vector for times
+             t_mean = 0.0,  // mean value of times
+             t, x, y, z,    // temp storage variables
+             x_mean = 0.0,  // x, y, z mean values
+             y_mean = 0.0,
+             z_mean = 0.0;
+    
+    int status;
+    
+    // vector for orbit coordinates
+    gsl_vector *obs_x  = gsl_vector_alloc(ndata),
+               *obs_y  = gsl_vector_alloc(ndata),
+               *obs_z  = gsl_vector_alloc(ndata),
+               *coeffs = gsl_vector_alloc(deg + 1);
+    
+    // design matrix
+    gsl_matrix * design = gsl_matrix_alloc(ndata, deg);
+    
+    times = Aux_Malloc(double, ndata);
+    
+    if (is_centered) {
+        FOR(ii, 0, ndata) {
+            t = orbits[ii].t;
+            times[ii] = t;
+            
+            t_mean += t;            
+            
+            x = orbits[ii].x;
+            y = orbits[ii].y;
+            z = orbits[ii].z;
+            
+            Vset(obs_x, ii, x);
+            Vset(obs_y, ii, y);
+            Vset(obs_z, ii, z);
+            
+            x_mean += x;
+            y_mean += y;
+            z_mean += z;
         }
-        else
-            // change  end  for middle
-            tl = tm;
+        // calculate means
+        t_mean /= (double) ndata;
 
-        itr++;
+        x_mean /= (double) ndata;
+        y_mean /= (double) ndata;
+        z_mean /= (double) ndata;
+        
+        // subtract mean value
+        FOR(ii, 0, ndata) {
+            times[ii] -= t_mean;
+
+            *Vptr(obs_x, ii) -= x_mean;
+            *Vptr(obs_y, ii) -= y_mean;
+            *Vptr(obs_z, ii) -= z_mean;
+        }
     }
+    else {
+        FOR(ii, 0, ndata) {
+            times[ii] = orbits[ii].t;
+            
+            Vset(obs_x, ii, orbits[ii].x);
+            Vset(obs_y, ii, orbits[ii].y);
+            Vset(obs_z, ii, orbits[ii].z);
+        }
+    }
+    
+    FOR(ii, 0, ndata)
+        Mset(design, ii, 0, 1.0);
+    
+    FOR(ii, 0, ndata)
+        FOR(jj, 1, deg)
+            Mset(design, ii, jj, times[ii] * Mget(design, ii, jj - 1));
+    
+    status = gsl_linalg_cholesky_decomp1(design);
+    
+    status = gsl_linalg_cholesky_solve(design, obs_x, coeffs);
+    status = gsl_linalg_cholesky_solve(design, obs_y, coeffs);
+    status = gsl_linalg_cholesky_solve(design, obs_z, coeffs);
+    
+    gsl_vector_free(obs_x);
+    gsl_vector_free(obs_y);
+    gsl_vector_free(obs_z);
+
+    gsl_vector_free(coeffs);
+
+    gsl_matrix_free(design);
+    
+    return status;
 }
-// end closest_appr
+// end fit_orbit
 
 void axd(const double  a1, const double  a2, const double  a3,
          const double  d1, const double  d2, const double  d3,

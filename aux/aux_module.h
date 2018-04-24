@@ -1,6 +1,8 @@
 #ifndef AUX_MODULE_H
 #define AUX_MODULE_H
 
+typedef unsigned int uint;
+
 //-----------------------------------------------------------------------------
 // STRUCTS
 //-----------------------------------------------------------------------------
@@ -9,7 +11,27 @@ typedef struct { float lon, lat;  } psxy;
 typedef struct { int ni; float lon, lat, he, ve; } psxys;
 typedef struct { double x, y, z, lat, lon, h; } station; // [m,rad]
 
-typedef unsigned int uint;
+typedef struct { double x, y, z; } cart; // Cartesian coordinates
+
+typedef struct {
+    uint deg;
+    double * coeffs;
+    double t_start, t_stop;
+} orbit_notcentered;
+
+typedef struct {
+    uint deg;
+    double *coeffs, *mean_coords;
+    double t_start, t_stop, t_mean;
+} orbit_centered;
+
+typedef struct {
+    uint is_centered;
+    union {
+        orbit_notcentered orb_nc;
+        orbit_centered orb_c;
+    } Orbit;
+} orbit;
 
 // satellite orbit record
 typedef struct { double t, x, y, z; } torb;
@@ -87,8 +109,7 @@ void axd(const double  a1, const double  a2, const double  a3,
 
 /*----------------------------------------------------------------------
  * Documentation and argument number checking
- *----------------------------------------------------------------------
- */
+ *---------------------------------------------------------------------- */
 
 #define Mk_Doc(fun_name, doc) char * fun_name ## __doc__ = doc
 #define Print_Doc(fun_name) printf("%s", fun_name ## __doc__)
@@ -123,6 +144,15 @@ void axd(const double  a1, const double  a2, const double  a3,
 #define Aux_Realloc(pointer, type, size) (pointer) = (type *) \
                                      realloc(pointer, (size) * sizeof(type))	
 
+/*----------------------------------------------------------------------
+ * GSL convenience macros
+ *---------------------------------------------------------------------- */
+
+#define Mset(matrix, ii, jj, data) gsl_matrix_set((matrix), (ii), (jj), (data))
+#define Vset(vector, ii, data) gsl_vector_set((vector), (ii), (data))
+
+#define Mptr(matrix, ii, jj) gsl_matrix_ptr((matrix), (ii), (jj))
+#define Vptr(vector, ii) gsl_vector_ptr((vector), (ii))
 
 //----------------------------------------------------------------------
 // IO MACROS

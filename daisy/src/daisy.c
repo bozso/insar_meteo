@@ -2,11 +2,93 @@
 #include <tgmath.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
 #include <aux_module.h>
 
 //-----------------------------------------------------------------------------
 // AUXILLIARY FUNCTIONS
 //-----------------------------------------------------------------------------
+
+static int fit_orbit(const torb * orbits, const uint ndata, const uint deg,
+                     const uint is_centered, const char * outfile)
+{
+    double * times,         // vector for times
+             t_mean = 0.0,  // mean value of times
+             t, x, y, z,    // temp storage variables
+             x_mean = 0.0,  // x, y, z mean values
+             y_mean = 0.0,
+             z_mean = 0.0;
+    
+    // vector for orbit coordinates
+    gsl_vector *obs_x = gsl_vector_alloc(ndata),
+               *obs_y = gsl_vector_alloc(ndata),
+               *obs_z = gsl_vector_alloc(ndata);
+    
+    // design matrix
+    gsl_matrix * design = gsl_matrix_alloc(ndata, deg);
+    
+    times = Aux_Malloc(double, ndata);
+    
+    if (is_centered) {
+        FOR(ii, 0, ndata) {
+            t = orbits[ii].t;
+            times[ii] = t;
+            
+            t_mean += t;            
+            
+            x = orbits[ii].x;
+            y = orbits[ii].y;
+            z = orbits[ii].z;
+            
+            Vset(obs_x, ii, x);
+            Vset(obs_y, ii, y);
+            Vset(obs_z, ii, z);
+            
+            x_mean += x;
+            y_mean += y;
+            z_mean += z;
+        }
+        // calculate means
+        t_mean /= (double) ndata;
+
+        x_mean /= (double) ndata;
+        y_mean /= (double) ndata;
+        z_mean /= (double) ndata;
+        
+        // subtract mean value
+        FOR(ii, 0, ndata) {
+            times[ii] -= t_mean;
+
+            *Vptr(obs_x, ii) -= x_mean;
+            *Vptr(obs_y, ii) -= y_mean;
+            *Vptr(obs_z, ii) -= z_mean;
+        }
+    }
+    else {
+        FOR(ii, 0, ndata) {
+            times[ii] = orbits[ii].t;
+            
+            Vset(obs_x, ii, orbits[ii].x);
+            Vset(obs_y, ii, orbits[ii].y);
+            Vset(obs_z, ii, orbits[ii].z);
+        }
+    }
+    
+    FOR(ii, 0, ndata)
+        Mset(design, ii, 0, 1.0);
+    
+    /*
+    FOR(ii, 0, ndata)
+        FOR(jj, 0, deg)
+    */
+    
+    gsl_vector_free(obs_x);
+    gsl_vector_free(obs_y);
+    gsl_vector_free(obs_z);
+    gsl_matrix_free(design);
+}
 
 static inline int plc(const int i, const int j)
 {
@@ -450,18 +532,22 @@ static void movements(const double azi1, const double inc1, const float v1,
 Mk_Doc(
     data_select,
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    "\n +                  ps_data_select                    +"
-    "\n + adjacent ascending and descending PSs are selected +"
+    "\n +                     DATA_SELECT                    +"
+    "\n + adjacent ASCending and DeSCending PSs are selected +"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-    "\n   usage:  daisy data_select in_asc in_dsc out_asc out_dsc separation \n"
-    "\n           asc_data.xy  - (1st) ascending  data file"
-    "\n           dsc_data.xy  - (2nd) descending data file"
-    "\n           100          - (3rd) PSs separation (m)\n"
+    "\n   usage:  daisy data_select in_asc in_dsc out_asc"
+    "\n           out_dsc separation\n"
+    "\n   in_asc     - ASC data file"
+    "\n   in_dsc     - DSC data file"
+    "\n   out_asc    - ASC selected PSs output data file"
+    "\n   out_dsc    - DSC selected PSs output data file"
+    "\n   separation - maximum allowed separation between"
+    "\n                ASC and DSC PSs in meters\n"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 static int data_select(int argc, char **argv)
 {
-    Aux_CheckArg(data_select, 7);
+    Aux_CheckArg(data_select, 5);
         
     const char *in_asc  = argv[2],
                *in_dsc  = argv[3],
@@ -472,6 +558,8 @@ static int data_select(int argc, char **argv)
     
     println("%s %s %s %s %f", in_asc, in_dsc, out_asc, out_dsc, max_diff);
     
+    return(0);
+    
     uint n, ni1, ni2;
     psxy *indata;
     
@@ -480,7 +568,7 @@ static int data_select(int argc, char **argv)
     float lon, lat, v, he, dhe;
 
     printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +                  ps_data_select                    +"
+           "\n +                    DATA_SELECT                     +"
            "\n + adjacent ascending and descending PSs are selected +"
            "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
@@ -534,7 +622,7 @@ static int data_select(int argc, char **argv)
     printf("\n\n %s PSs %d\n" , out_dsc, n);
 
     printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +                end   ps_data_select                +"
+           "\n +                END  DATA_SELECT                    +"
            "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
     Aux_Free(indata);
@@ -546,15 +634,17 @@ static int data_select(int argc, char **argv)
 Mk_Doc(
     dominant,
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    "\n +                      ps_dominant                      +"
-    "\n + clusters of ascending and descending PSs are selected +"
-    "\n +     and the dominant points (DSs) are estimated       +"
+    "\n +                       DOMINANT                        +"
+    "\n + clusters of ASCending and DeSCending PSs are selected +"
+    "\n +     and the dominant points (DPs) are estimated       +"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
 
-    "\n    usage:  daisy dominant asc_data.xys dsc_data.xys 100\n"
-    "\n            asc_data.xys   - (1st) ascending  data file"
-    "\n            dsc_data.xys   - (2nd) descending data file"
-    "\n            100            - (3rd) cluster separation (m)\n"
+    "\n    usage:  daisy dominant in_asc in_dsc separation out \n"
+    "\n    in_asc     - ASC selected PSs output data file"
+    "\n    in_dsc     - DSC selected PSs input data file"
+    "\n    out        - clustered points output data file"
+    "\n    separation - maximum separtion in betwenn "
+    "\n                 cluster member PSs in meters\n"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 static int dominant(int argc, char **argv)
@@ -586,7 +676,7 @@ static int dominant(int argc, char **argv)
     float lon, lat, he, dhe, ve;
 
     printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +                      ps_dominant                      +"
+           "\n +                      PS_DOMINANT                      +"
            "\n + clusters of ascending and descending PSs are selected +"
            "\n +     and the dominant points (DSs) are estimated       +"
            "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
@@ -665,7 +755,7 @@ static int dominant(int argc, char **argv)
     printf("\n (     degree          m      mm/year )\n");
 
     printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +                   end    ps_dominant                  +"
+           "\n +                     END DOMINANT                      +"
            "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
     Aux_Free(indata1); Aux_Free(indata2);
@@ -676,14 +766,14 @@ static int dominant(int argc, char **argv)
 Mk_Doc(
     poly_orbit,
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    "\n +                     ps_poly_orbit                     +"
-    "\n +    tabular orbit data are converted to polynomials    +"
+    "\n +                     POLY_ORBIT                        +"
+    "\n +    tabular orbit data if fitted with polynomials      +"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-    "\n          usage: daisy poly_orbit asc_master.res 4"
+    "\n          usage: daisy poly_orbit asc_orbit deg"
     "\n                 or"
-    "\n                    ps_poly_orbit dsc_master.res 4"
-    "\n\n          asc_master.res or dsc_master.res - input files"
-    "\n          4                                - degree     \n"
+    "\n                 daisy poly_orbit dsc_orbit deg\n"
+    "\n          asc_orbit, dsc_orbit - input orbit files"
+    "\n          deg                  - degree of polynom     \n"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 static int poly_orbit(int argc, char **argv)
@@ -708,7 +798,7 @@ static int poly_orbit(int argc, char **argv)
     FILE *in, *ou;
 
     printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +                     ps_poly_orbit                     +"
+           "\n +                     POLY_ORBIT                        +"
            "\n +    tabular orbit data are converted to polynomials    +"
            "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
@@ -761,7 +851,7 @@ static int poly_orbit(int argc, char **argv)
     fclose(ou);
 
     printf("\n\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-             "\n +             end          ps_poly_orbit                +"
+             "\n +                     END POLY_ORBIT                    +"
              "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
     Aux_Free(orb); Aux_Free(X);
@@ -772,14 +862,14 @@ static int poly_orbit(int argc, char **argv)
 Mk_Doc(
     integrate,
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    "\n +                       ds_integrate                          +"
+    "\n +                         INTEGRATE                           +"
     "\n +        compute the east-west and up-down velocities         +"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
     "\n usage:                                                      \n"
-    "\n    daisy integrate dominant.xyd asc_master.porb dsc_master.porb\n"
-    "\n              dominant.xyd  - (1st) dominant DSs data file   "
-    "\n           asc_master.porb  - (2nd) ASC polynomial orbit file"
-    "\n           dsc_master.porb  - (3rd) DSC polynomial orbit file\n"
+    "\n    daisy integrate dominant asc_poly dsc_poly\n"
+    "\n    dominant  - dominant data file containing DPs"
+    "\n    asc_poly  - ASC polynomial orbit file"
+    "\n    dsc_poly  - DSC polynomial orbit file"
     "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 static int integrate(int argc, char **argv)
@@ -808,7 +898,7 @@ static int integrate(int argc, char **argv)
     out     = argv[5];
     
     printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +                       ds_integrate                          +"
+           "\n +                        INTEGRATE                            +"
            "\n +        compute the east-west and up-down velocities         +"
            "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
@@ -882,7 +972,7 @@ static int integrate(int argc, char **argv)
 
 
     printf("\n\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-             "\n +                     end    ds_integrate                     +"
+             "\n +                       END DS_INTEGRATE                      +"
              "\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
     Aux_Free(pol1); Aux_Free(pol2);
@@ -893,12 +983,13 @@ static int integrate(int argc, char **argv)
 Mk_Doc(
     zero_select,
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    "\n +                   ds_zero_select                   +"
+    "\n +                    ZERO_SELECT                     +"
     "\n +  select integrated DSs with nearly zero velocity   +"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-    "\n     usage: daisy zero_select integrate.xyi 0.6         \n"
-    "\n            integrate.xyi  -  integrated data file"
-    "\n            0.6 (mm/year)  -  zero data criteria\n"
+    "\n     usage: daisy zero_select integrate zero         \n"
+    "\n     integrate  -  integrated data file"
+    "\n     zero       -  zero data criteria in mm/year,"
+    "\n                   e.g. 0.6\n"
     "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 static int zero_select(int argc, char **argv)
@@ -924,7 +1015,7 @@ static int zero_select(int argc, char **argv)
     zch = (float) atof(argv[5]);
     
     printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +                   ds_zero_select                   +"
+           "\n +                    ZERO_SELECT                     +"
            "\n +  select integrated DSs with nearly zero velocity   +"
            "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
@@ -961,7 +1052,7 @@ static int zero_select(int argc, char **argv)
 //----------------------------------------------------------------------
 
     printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-           "\n +              end    ds_zero_select                 +"
+           "\n +                END ZERO_SELECT                     +"
            "\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
     return(0);
@@ -1016,6 +1107,9 @@ int main(int argc, char **argv)
     
     else if(Str_Select("integrate"))
         return integrate(argc, argv);
+
+    else if(Str_Select("zero_select"))
+        return zero_select(argc, argv);
     else {
         errorln("Unrecognized module: %s", argv[1]);
         exit(Err_Arg);

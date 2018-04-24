@@ -133,7 +133,27 @@ void poly_sat_pos(station *sat, const double time, const double *poli,
         sat->z += poli[2 * deg_poly + ii] * pow(time, (double) ii);
     }
 }
-
+/*
+void sat_pos(station *sat, const orbit *orb, double t)
+{
+    double x, y, z, *coeffs = orbit->coeffs;
+    
+    if (orb->is_centered)
+        t -= orb->t_mean;
+    
+    x = y = z = 0.0;
+    
+    FOR(ii, 0, orbit->deg) {
+        x = (x + 
+        
+        
+    FOR(ii, 0, deg_poly) {
+        sat->x += poli[ii]                * pow(time, (double) ii);
+        sat->y += poli[deg_poly + ii]     * pow(time, (double) ii);
+        sat->z += poli[2 * deg_poly + ii] * pow(time, (double) ii);
+    }
+}
+*/
 void poly_sat_vel(double *vx, double *vy, double *vz, const double time,
                   const double *poli, const uint deg_poly)
 {

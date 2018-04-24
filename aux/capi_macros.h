@@ -60,11 +60,8 @@
 
 #define PyFun_Noargs(fun_name) static PyObject * fun_name (PyObject * self)
 
-#define PyFun_Varargs(fun_name) \
-static PyObject * fun_name (PyObject * self, PyObject * args)
-
-#define PyFun_Keywords(fun_name) \
-static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
+#define PyFun_Varargs PyObject * self, PyObject * args
+#define PyFun_Keywords PyObject * self, PyObject * args, PyObject * kwargs
 
 //----------------------------------------------------------------------
 
@@ -97,7 +94,6 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
 // NUMPY CONVENIENCE MACROS
 //----------------------------------------------------------------------
 
-#define NPY_AO PyArrayObject 
 #define NPY_Ptr1(obj, i) PyArray_GETPTR1(obj, ii)
 #define NPY_Ptr(obj, ii, jj) PyArray_GETPTR2(obj, ii, jj)
 #define NPY_Dim(obj, idx) PyArray_DIM(obj, idx)
@@ -113,15 +109,15 @@ static PyObject * fun_name (PyObject * self, PyObject * args, PyObject * kwargs)
 
 #define NPY_Import(array_out, array_to_convert, typenum, requirements)\
 ({\
-    (array_out) = (NPY_AO *) PyArray_FROM_OTF((array_to_convert), (typenum),\
+    (array_out) = (np_ao) PyArray_FROM_OTF((array_to_convert), (typenum),\
                                               (requirements));\
     if ((array_out) == NULL) goto fail;\
 })
 
 #define NPY_Empty(array_out, ndim, shape, typenum, is_fortran)\
 ({\
-    (array_out) = (NPY_AO *) PyArray_EMPTY((ndim), (shape), (typenum),\
-                                           (is_fortran));\
+    (array_out) = (np_ao) PyArray_EMPTY((ndim), (shape), (typenum), \
+                                          (is_fortran));\
     if ((array_out) == NULL) goto fail;\
 })
 

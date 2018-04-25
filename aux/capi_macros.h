@@ -45,11 +45,11 @@
 // IO MACROS
 //----------------------------------------------------------------------
 
-#define error(text) PySys_FormatStderr(text)
-#define errorln(text, ...) PySys_FormatStderr(text"\n", __VA_ARGS__)
+#define error(text) PySys_WriteStderr(text)
+#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
 
-#define print(string) PySys_FormatStdout(string)
-#define println(format, ...) PySys_FormatStdout(format"\n", __VA_ARGS__)
+#define print(string) PySys_WriteStdout(string)
+#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
 
 #define Log print("%s\t%d", __FILE__, __LINE__)
 

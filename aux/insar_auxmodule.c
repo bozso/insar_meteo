@@ -6,7 +6,7 @@
 #include "numpy/arrayobject.h"
 
 typedef PyArrayObject* np_ptr;
-typedef PyObject* Pyptr;
+typedef PyObject* py_ptr;
 
 //-----------------------------------------------------------------------------
 // STRUCTS
@@ -199,8 +199,6 @@ static void closest_appr(const orbit_fit * orb, const double X, const double Y,
            t_stop  = orb->stop_t + 5.0,
            t_middle; 
     
-    printf("Start time: %lf, Stop time: %lf  ", t_start, t_stop);
-    
     // dot products
     double dot_start, dot_middle = 1.0;
 
@@ -227,10 +225,6 @@ static void closest_appr(const orbit_fit * orb, const double X, const double Y,
     }
     
     calc_pos(orb, t_middle, sat_pos);
-    println("Middle time: %lf [s]", t_middle);
-    println("Middle time satellite WGS-84 coordinates (x,y,z) [km]: "
-           "(%lf, %lf, %lf)", sat_pos->x / 1e3, sat_pos->y / 1e3,
-           sat_pos->z / 1e3);
 }
 // end closest_appr
 
@@ -238,137 +232,15 @@ static void closest_appr(const orbit_fit * orb, const double X, const double Y,
  * Main functions - calleble from Python *
  *****************************************/
 
-PyFun_Doc(azi_inc_ell, "azi_inc_ell");
+PyFun_Doc(azi_inc, "azi_inc");
 
-Pyptr azi_inc_ell (PyFun_Varargs)
+py_ptr azi_inc (PyFun_Varargs)
 {
     double start_t, stop_t, mean_t;
-    Pyptr coeffs, lonlats, mean_coords;
-    np_ptr a_coeffs = NULL, a_lonlats = NULL, a_meancoords = NULL,
-          azi_inc = NULL;
-    uint is_centered, deg, max_iter;
-
-    cart sat;
-    orbit_fit orb;
-    npy_intp n_lonlats, azi_inc_shape[2];
-
-    // topocentric parameters in PS local system
-    double xf, yf, zf,
-           xl, yl, zl,
-           X, Y, Z,
-           t0, lon, lat, h,
-           azi, inc;
-    
-    PyFun_Parse_Varargs("OdddOIIOI:azi_inc", &coeffs, &start_t, &stop_t,
-                        &mean_t, &mean_coords, &is_centered, &deg, &lonlats,
-                        &max_iter);
-
-    Np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    Np_import(a_lonlats, lonlats, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    Np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-
-    /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
-     * every row contains the coefficients for the fitted x,y,z polynoms.
-     */
-
-    Np_check_ndim(a_coeffs, 2);
-    Np_check_dim(a_coeffs, 0, 3);
-    Np_check_dim(a_coeffs, 1, deg + 1);
-    
-    Np_check_ndim(a_lonlats, 2);
-    
-    n_lonlats = Np_dim(a_lonlats, 0);
-    
-    Np_check_ndim(a_meancoords, 1);
-    Np_check_dim(a_meancoords, 0, 3);
-    
-    azi_inc_shape[0] = n_lonlats;
-    azi_inc_shape[1] = 2;
-    
-    Np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
-    
-    orb.coeffs = (double *) Np_data(a_coeffs);
-    orb.deg = deg;
-    orb.is_centered = is_centered;
-    
-    orb.start_t = start_t;
-    orb.stop_t = stop_t;
-    orb.mean_t = mean_t;
-    
-    orb.mean_coords = (double *) Np_data(a_meancoords);
-    
-    println("%lf %lf %lf", orb.mean_coords[0], orb.mean_coords[1], orb.mean_coords[2]);
-    goto end;
-    
-    FOR(ii, 0, n_lonlats) {
-        lon = Np_delem(a_lonlats, ii, 0) * DEG2RAD;
-        lat = Np_delem(a_lonlats, ii, 1) * DEG2RAD;
-        h   = Np_delem(a_lonlats, ii, 2) * DEG2RAD;
-        
-        ell_cart(lon, lat, h, &X, &Y, &Z);
-        
-        closest_appr(&orb, X, Y, Z, max_iter, &sat);
-        
-        xf = sat.x - X;
-        yf = sat.y - Y;
-        zf = sat.z - Z;
-        
-        xl = - sin(lat) * cos(lon) * xf
-             - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
-    
-        yl = - sin(lon) * xf + cos(lon) * yf;
-    
-        zl = + cos(lat) * cos(lon) * xf
-             + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
-    
-        t0 = norm(xl, yl, zl);
-    
-        inc = acos(zl / t0) * RAD2DEG;
-    
-        if(xl == 0.0) xl = 0.000000001;
-    
-        azi = atan(abs(yl / xl));
-    
-        if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
-        if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
-        if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
-    
-        azi *= RAD2DEG;
-    
-        if(azi > 180.0)
-            azi -= 180.0;
-        else
-            azi +=180.0;
-        
-        Np_delem(azi_inc, ii, 0) = azi;
-        Np_delem(azi_inc, ii, 1) = inc;
-    }
-
-end:
-    Py_DECREF(a_coeffs);
-    Py_DECREF(a_lonlats);
-    Py_DECREF(a_meancoords);
-    Py_DECREF(azi_inc);
-    Py_RETURN_NONE;
-    //return Py_BuildValue("O", azi_inc);
-
-fail:
-    Py_XDECREF(a_coeffs);
-    Py_XDECREF(a_lonlats);
-    Py_XDECREF(a_meancoords);
-    Py_XDECREF(azi_inc);
-    return NULL;
-} // end azim_elev
-
-PyFun_Doc(azi_inc_cart, "azi_inc_cart");
-
-Pyptr azi_inc_cart (PyFun_Varargs)
-{
-    double start_t, stop_t, mean_t;
-    Pyptr coeffs, coords, mean_coords;
+    py_ptr coeffs, coords, mean_coords;
     np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL,
-          azi_inc = NULL;
-    uint is_centered, deg, max_iter;
+           azi_inc = NULL;
+    uint is_centered, deg, max_iter, is_lonlat;
 
     cart sat;
     orbit_fit orb;
@@ -381,31 +253,34 @@ Pyptr azi_inc_cart (PyFun_Varargs)
            t0, lon, lat, h,
            azi, inc;
     
-    PyFun_Parse_Varargs("OdddOIIOI:azi_inc", &coeffs, &start_t, &stop_t,
+    PyFun_Parse_Varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
-                        &max_iter);
+                        &max_iter, &is_lonlat);
 
     Np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     Np_import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     Np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
-     * every row contains the coefficients for the fitted x,y,z polynoms.
-     */
-
+     * every row contains the coefficients for the fitted x,y,z polynoms. */
     Np_check_ndim(a_coeffs, 2);
     Np_check_dim(a_coeffs, 0, 3);
     Np_check_dim(a_coeffs, 1, deg + 1);
     
+    // should be nx3 matrix
     Np_check_ndim(a_coords, 2);
+    Np_check_dim(a_coords, 1, 3);
     
     n_coords = Np_dim(a_coords, 0);
+    
+    // should be a 3 element vector
     Np_check_ndim(a_meancoords, 1);
     Np_check_dim(a_meancoords, 0, 3);
     
     azi_inc_shape[0] = n_coords;
     azi_inc_shape[1] = 2;
-
+    
+    // matrix holding azimuth and inclinations values
     Np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
     
     orb.coeffs = (double *) Np_data(a_coeffs);
@@ -418,60 +293,113 @@ Pyptr azi_inc_cart (PyFun_Varargs)
     
     orb.mean_coords = (double *) Np_data(a_meancoords);
     
-    println("%lf %lf %lf", orb.mean_coords[0], orb.mean_coords[1], orb.mean_coords[2]);
-    goto end;
-    
-    FOR(ii, 0, n_coords) {
-        X = Np_delem(a_coords, ii, 0);
-        Y = Np_delem(a_coords, ii, 1);
-        Z = Np_delem(a_coords, ii, 2);
-        
-        closest_appr(&orb, X, Y, Z, max_iter, &sat);
+    // coords contains lon, lat, h    
+    if (is_lonlat) {
+        FOR(ii, 0, n_coords) {
+            lon = Np_delem(a_coords, ii, 0) * DEG2RAD;
+            lat = Np_delem(a_coords, ii, 1) * DEG2RAD;
+            h   = Np_delem(a_coords, ii, 2) * DEG2RAD;
             
-        xf = sat.x - X;
-        yf = sat.y - Y;
-        zf = sat.z - Z;
+            // calulate surface WGS-84 Cartesian coordinates
+            ell_cart(lon, lat, h, &X, &Y, &Z);
+            
+            // satellite closest approache cooridantes
+            closest_appr(&orb, X, Y, Z, max_iter, &sat);
+            
+            xf = sat.x - X;
+            yf = sat.y - Y;
+            zf = sat.z - Z;
+            
+            // estiamtion of azimuth and inclination
+            xl = - sin(lat) * cos(lon) * xf
+                 - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
         
-        cart_ell(X, Y, Z, &lon, &lat, &h);
+            yl = - sin(lon) * xf + cos(lon) * yf;
         
-        xl = - sin(lat) * cos(lon) * xf
-             - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
-    
-        yl = - sin(lon) * xf + cos(lon) * yf;
-    
-        zl = + cos(lat) * cos(lon) * xf
-             + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
-    
-        t0 = norm(xl, yl, zl);
-    
-        inc = acos(zl / t0) * RAD2DEG;
-    
-        if(xl == 0.0) xl = 0.000000001;
-    
-        azi = atan(abs(yl / xl));
-    
-        if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
-        if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
-        if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
-    
-        azi *= RAD2DEG;
-    
-        if(azi > 180.0)
-            azi -= 180.0;
-        else
-            azi +=180.0;
+            zl = + cos(lat) * cos(lon) * xf
+                 + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
         
-        Np_delem(azi_inc, ii, 0) = azi;
-        Np_delem(azi_inc, ii, 1) = inc;
+            t0 = norm(xl, yl, zl);
+        
+            inc = acos(zl / t0) * RAD2DEG;
+        
+            if(xl == 0.0) xl = 0.000000001;
+        
+            azi = atan(abs(yl / xl));
+        
+            if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
+            if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
+            if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
+        
+            azi *= RAD2DEG;
+        
+            if(azi > 180.0)
+                azi -= 180.0;
+            else
+                azi +=180.0;
+            
+            Np_delem(azi_inc, ii, 0) = azi;
+            Np_delem(azi_inc, ii, 1) = inc;
+        }
+        // end for
     }
+    // coords contains X, Y, Z
+    else {
+        FOR(ii, 0, n_coords) {
+            X = Np_delem(a_coords, ii, 0);
+            Y = Np_delem(a_coords, ii, 1);
+            Z = Np_delem(a_coords, ii, 2);
+            
+            // calulate surface WGS-84 geodetic coordinates
+            cart_ell(X, Y, Z, &lon, &lat, &h);
+        
+            // satellite closest approache cooridantes
+            closest_appr(&orb, X, Y, Z, max_iter, &sat);
+            
+            xf = sat.x - X;
+            yf = sat.y - Y;
+            zf = sat.z - Z;
+            
+            // estiamtion of azimuth and inclination
+            
+            xl = - sin(lat) * cos(lon) * xf
+                 - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
+        
+            yl = - sin(lon) * xf + cos(lon) * yf;
+        
+            zl = + cos(lat) * cos(lon) * xf
+                 + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
+        
+            t0 = norm(xl, yl, zl);
+        
+            inc = acos(zl / t0) * RAD2DEG;
+        
+            if(xl == 0.0) xl = 0.000000001;
+        
+            azi = atan(abs(yl / xl));
+        
+            if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
+            if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
+            if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
+        
+            azi *= RAD2DEG;
+        
+            if(azi > 180.0)
+                azi -= 180.0;
+            else
+                azi +=180.0;
+            
+            Np_delem(azi_inc, ii, 0) = azi;
+            Np_delem(azi_inc, ii, 1) = inc;
+        }
+        // end for
+    }
+    // end else
 
-end:
     Py_DECREF(a_coeffs);
     Py_DECREF(a_coords);
     Py_DECREF(a_meancoords);
-    Py_DECREF(azi_inc);
-    Py_RETURN_NONE;
-    //return Py_BuildValue("O", azi_inc);
+    return Py_BuildValue("O", azi_inc);
 
 fail:
     Py_XDECREF(a_coeffs);
@@ -479,14 +407,15 @@ fail:
     Py_XDECREF(a_meancoords);
     Py_XDECREF(azi_inc);
     return NULL;
-} // end azim_elev
+}
+// end azim_inc
 
 PyFun_Doc(asc_dsc_select,
 "asc_dsc_select");
 
-Pyptr asc_dsc_select(PyFun_Keywords)
+py_ptr asc_dsc_select(PyFun_Keywords)
 {
-    Pyptr in_arr1 = NULL, in_arr2 = NULL;
+    py_ptr in_arr1 = NULL, in_arr2 = NULL;
     np_ptr arr1 = NULL, arr2 = NULL;
     npy_double max_sep = 100.0, max_sep_deg;
     
@@ -542,8 +471,7 @@ fail:
  **********************/
 
 static PyMethodDef InsarMethods[] = {
-    PyFun_Method_Varargs(azi_inc_cart),
-    PyFun_Method_Varargs(azi_inc_ell),
+    PyFun_Method_Varargs(azi_inc),
     PyFun_Method_Keywords(asc_dsc_select),
     {NULL, NULL, 0, NULL}
 };

@@ -27,7 +27,7 @@ class Gnuplot(object):
         else:
             self.commands.append("{}".format(command).encode())
     
-    def list2str(self, command):
+    def list2str(self, *command):
         """
         Convert multiple "arrays" stored in separate lists
         to string format, for multiple plotting.
@@ -44,10 +44,10 @@ class Gnuplot(object):
         """
     
         temp = [" ".join(str(elem) for elem in elems)
-        for elems in zip(*command)]
-        temp.append("e".encode())
+                for elems in zip(command)]
+        temp.append("e")
         
-        return b"\n".join(temp.encode())
+        return "\n".join(temp)
     
     def np2str(self, command):
         """
@@ -65,9 +65,9 @@ class Gnuplot(object):
         """
         
         temp = [" ".join(item) for item in command.astype(str)]
-        temp.append("e".encode())
+        temp.append("e")
         
-        return b"\n".join(temp.encode())
+        return "\n".join(temp)
 
     # SETTERS
     

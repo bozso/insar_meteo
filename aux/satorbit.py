@@ -1,5 +1,9 @@
 import numpy as np
+import os.path as pth
+import pickle as pk
+
 from gnuplot import Gnuplot
+import aux.insar_aux as ina
 
 class SatOrbit:
     def __init__(self, filepath, preproc):
@@ -8,11 +12,14 @@ class SatOrbit:
         self.time = time
         self.coords = coords
         self.data_num = data_num
+        self.start_t = time[0]
+        self.stop_t = time[-1]
         
         self.mean_t = None
         self.mean_coords = None
         self.is_centered = False
         self.deg = None
+        self.coeffs = None
         
     def fit_poly(self, deg=3, centered=False):
         
@@ -35,6 +42,11 @@ class SatOrbit:
         self.coeffs = np.asarray([np.polyfit(time, to_fit[:,ii], deg)
                                   for ii in range(3)])
     
+    
+    def save(self, savefile):
+        with open(savefile, "wb") as f:
+            pk.dump(self, f)
+        
     def plot_poly(self, plotfile, nsamp=100):
         time = np.linspace(min(self.time), max(self.time), nsamp)
         
@@ -45,17 +57,19 @@ class SatOrbit:
             time_cent = time - self.mean_t
             mean_coords = self.mean_coords
             
-            poly = np.asarray([  np.polyval(coeffs[ii,:], time_cent)
-                               + mean_coords[ii] for ii in range(ii)])
+            poly = np.asarray([np.polyval(coeffs[ii,:], time_cent)
+                               + mean_coords[ii] for ii in range(3)]).T
             
         else:
             poly = np.asarray([np.polyval(coeffs[ii,:], time)
-                               for ii in range(ii)])
-
+                               for ii in range(3)]).T
+        
         gpt = Gnuplot(out=plotfile, term="pngcairo font ',10'")
     
-        fit = gpt.list2str([time, poly / 1e3])
-        coords = gpt.list2str([self.time, self.coords])
+        fit = gpt.list2str(time, poly / 1e3)
+        coords = gpt.list2str(self.time, self.coords)
+        
+        print(fit)
         
         gpt.axis_format("x", "")
         gpt("set lmargin 10")
@@ -86,10 +100,10 @@ class SatOrbit:
     
         del gpt
     
-    def azi_inc(self, coords, lonlats, max_iter=1000):
+    def azi_inc(self, coords, is_lonlat=False, max_iter=1000):
         return ina.azi_inc(self.coeffs, self.start_t, self.stop_t, self.mean_t,
                            self.mean_coords, self.is_centered, self.deg,
-                           coords, lonlats, max_iter);
+                           coords, max_iter, is_lonlat);
     
     def __del__(self):
         del self.time
@@ -99,6 +113,7 @@ class SatOrbit:
         del self.mean_coords
         del self.is_centered
         del self.deg
+        del self.coeffs
 
 
 def str2orbit(line):
@@ -108,7 +123,7 @@ def str2orbit(line):
 
 def read_orbits(path, preproc="gamma"):
 
-    if not os.path.isfile(path):
+    if not pth.isfile(path):
         raise IOError("{} is not a file.".format(path))
 
     with open(path, "r") as f:
@@ -148,7 +163,7 @@ def read_orbits(path, preproc="gamma"):
         time = np.arange(t_first, t_first + 7 * t_step, t_step)
         
         coords = \
-        np.asarray([str2orbit(clu.get_par(f"state_vector_position_{ii+1}",
+        np.asarray([str2orbit(get_par(f"state_vector_position_{ii+1}",
                     lines)) for ii in range(data_num)])
         
         return time, coords, data_num
@@ -156,3 +171,29 @@ def read_orbits(path, preproc="gamma"):
     else:
         raise ValueError("preproc should be either 'doris' or 'gamma' "
                          "not {}".format(preproc))
+
+def get_par(parameter, search):
+
+    if isinstance(search, list):
+        searchfile = search
+    elif pth.isfile(search):
+        with open(search, "r") as f:
+            searchfile = f.readlines()
+    else:
+        raise ValueError("search should be either a list or a string that "
+                         "describes a path to the parameter file.")
+    
+    parameter_value = None
+    
+    for line in searchfile:
+        if parameter in line:
+            parameter_value = " ".join(line.split(":")[1:]).strip()
+            break
+
+    return parameter_value
+
+def load(savefile):
+    with open(savefile, "rb") as f:
+        orbit = pk.load(f)
+    
+    return orbit

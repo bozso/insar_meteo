@@ -28,7 +28,6 @@
 #define DEG2RAD 1.745329e-02
 #define RAD2DEG 5.729578e+01
 
-
 #define distance(x, y, z) sqrt((y)*(y)+(x)*(x)+(z)*(z))
 
 #define OR ||
@@ -46,13 +45,13 @@
 // IO MACROS
 //----------------------------------------------------------------------
 
-#define error(text) PySys_WriteStderr(text"\n")
-#define errora(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
+#define error(text) PySys_FormatStderr(text)
+#define errorln(text, ...) PySys_FormatStderr(text"\n", __VA_ARGS__)
 
-#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
-#define print(format, ...) PySys_WriteStdout(format, __VA_ARGS__)
+#define print(string) PySys_FormatStdout(string)
+#define println(format, ...) PySys_FormatStdout(format"\n", __VA_ARGS__)
 
-#define _log print("%s\t%d\n", __FILE__, __LINE__)
+#define Log print("%s\t%d", __FILE__, __LINE__)
 
 //----------------------------------------------------------------------
 // FUNCTION DEFINITION MACROS
@@ -94,34 +93,33 @@
 // NUMPY CONVENIENCE MACROS
 //----------------------------------------------------------------------
 
-#define NPY_Ptr1(obj, i) PyArray_GETPTR1(obj, ii)
-#define NPY_Ptr(obj, ii, jj) PyArray_GETPTR2(obj, ii, jj)
-#define NPY_Dim(obj, idx) PyArray_DIM(obj, idx)
-#define NPY_Ndim(obj, idx) PyArray_NDIM(obj, idx)
-#define NPY_Delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2(obj, ii, jj))
+#define Np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
+#define Np_ptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
+#define Np_dim(obj, idx) PyArray_DIM((obj), (idx))
+#define Np_ndim(obj, idx) PyArray_NDIM((obj), (idx))
+#define Np_delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
 
-#define NPY_Data(obj) PyArray_DATA(obj)
+#define Np_data(obj) PyArray_DATA((obj))
 
 /* based on
  * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples
- * /src/C/NumPy_macros.h
- */
+ * /src/C/NumPy_macros.h */
 
-#define NPY_Import(array_out, array_to_convert, typenum, requirements)\
+#define Np_import(array_out, array_to_convert, typenum, requirements)\
 ({\
-    (array_out) = (np_ao) PyArray_FROM_OTF((array_to_convert), (typenum),\
+    (array_out) = (np_ptr) PyArray_FROM_OTF((array_to_convert), (typenum),\
                                               (requirements));\
     if ((array_out) == NULL) goto fail;\
 })
 
-#define NPY_Empty(array_out, ndim, shape, typenum, is_fortran)\
+#define Np_empty(array_out, ndim, shape, typenum, is_fortran)\
 ({\
-    (array_out) = (np_ao) PyArray_EMPTY((ndim), (shape), (typenum), \
+    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum), \
                                           (is_fortran));\
     if ((array_out) == NULL) goto fail;\
 })
 
-#define NPY_Check_Ndim(a, expected_ndim)\
+#define Np_check_ndim(a, expected_ndim)\
 ({\
   if (PyArray_NDIM((a)) != (expected_ndim)) {\
     PyErr_Format(PyExc_ValueError,\
@@ -131,7 +129,7 @@
   }\
 })
 
-#define NPY_Check_Dim(a, dim, expected_length)\
+#define Np_check_dim(a, dim, expected_length)\
 ({\
   if ((dim) > PyArray_NDIM((a))) {\
     PyErr_Format(PyExc_ValueError,\
@@ -147,7 +145,7 @@
   }\
 })
 
-#define NPY_Check_Type(a, tp)\
+#define Np_check_type(a, tp)\
 ({\
   if (PyArray_TYPE(a) != (tp)) {\
     PyErr_Format(PyExc_TypeError,\
@@ -156,7 +154,7 @@
   }\
 })
 
-#define NPY_Check_Callable(func)\
+#define Np_check_callable(func)\
 ({\
   if (!PyCallable_Check(func)) {\
     PyErr_Format(PyExc_TypeError,\

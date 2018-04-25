@@ -6,29 +6,20 @@ sys.path.append(pjoin("..", "..", "compile_all.py"))
 
 from compile_all import cmd
 
-flags = ["-std=c99", "-static"]
-c_file = "daisy.c"
-lib_dirs = ["/home/istvan/progs/gsl/lib"]
-libs = ["m", "gsl", "gslcblas"]
-auxdir = pjoin("..", "..", "aux")
-depend = [auxdir, "/home/istvan/progs/gsl/include"]
-
-macros = [("GSL_C99_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
+c_file = ["daisy.c"]
+libs = ["m"]
+flags = ["-O3"]
 
 def main():
-    c_basename = c_file.split(".")[0]
+    c_basename = c_file[0].split(".")[0]
     
     ccomp = new_compiler()
-    ccomp.compile([c_file, pjoin(auxdir, "aux_module.c")],
-                  include_dirs=depend, extra_postargs=flags,
-                  macros=macros)
+    ccomp.compile(c_file, extra_postargs=flags)
     
-    ccomp.link_executable([c_basename + ".o",
-                           pjoin(auxdir, "aux_module.o")],
-                           c_basename,
-                           extra_postargs=flags,
-                           libraries=libs,
-                           library_dirs=lib_dirs)
+    ccomp.link_executable([c_basename + ".o"],
+                          c_basename,
+                          libraries=libs,
+                          extra_postargs=flags)
                            
 
 if __name__ == "__main__":

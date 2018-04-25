@@ -1,133 +1,143 @@
 #!/usr/bin/env python3
 
-import aux.insar_aux as ina
-from gnuplot import Gnuplot, arr_plot
+import argparse
+from subprocess import call, STDOUT, CalledProcessError
 from shlex import split
 
-import numpy as np
-import argparse
-import faulthandler
-import logging as log
-import subprocess as sub
+_steps = ["data_select", "dominant", "poly_orbit", "integrate", "zero_select"]
 
-faulthandler.enable()
+_steps__doc__ = ", ".join(_steps)
 
-def data_select(asc_file, dsc_file, max_sep=100.0, height_err=False):
+_daisy__doc__=\
+"""
+DAISY
+Steps: [{}]
+""".format(", ".join(_steps))
 
-    asc_tmp = np.loadtxt(asc_file, dtype=np.float32)
-    dsc_tmp = np.loadtxt(dsc_file, dtype=np.float32)
-    
-    asc = np.empty((asc_tmp.shape[0], 4))
-    dsc = np.empty((dsc_tmp.shape[0], 4))
-    
-    if height_err:
-        asc[:,0:3] = asc_tmp[:,0:3]
-        asc[:,3] = asc_tmp[:,3] + asc_tmp[:,4]
 
-        dsc[:,0:3] = dsc_tmp[:,0:3]
-        dsc[:,3] = dsc_tmp[:,3] + dsc_tmp[:,4]
-    else:
-        asc = asc_tmp[:,0:4]
-        dsc = dsc_tmp[:,0:4]
+def cmd(module, *args):
+    """
+    Calls a daisy module. Arbitrary number of arguments can be passed through
+    `*args`. See documentation of modules' for arguments.
+    The passed arguments will be converted to string joined and appended to the
+    command.
     
-    del asc_tmp
-    del dsc_tmp
+    Parameters
+    ----------
+    module : str
+        Name of the daisy module to be called.
     
-    idx, n_found = ina.asc_dsc_select(asc, dsc, max_sep)
+    *args : list
+        Arbitrary number of arguments.
     
-    asc = asc[idx,:]
+    Returns
+    -------
+    ret_code : int
+        Code returned by daisy module.
     
-    print("Found {} ascending PSs.".format(n_found))
+    Raises
+    ------
+    CalledProcessError
+        If something went wrong with the calling of the daisy module.
+    ValueError
+        If return code if not zero.
+    """
+    command = "daisy {} {}".format(module, " ".join(str(arg) for arg in args))
     
-    idx, n_found = ina.asc_dsc_select(dsc, asc, max_sep)
-    
-    print("Found {} descending PSs.".format(n_found))
-    
-    np.save("asc_select.npy", asc)
-    np.save("dsc_select.npy", dsc)
+    try:
+        ret_code = call(split(command), stderr=STDOUT)
+    except CalledProcessError as e:
+        print("Command failed, command: '{}'".format(command))
+        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
 
-def plot_select(out="asc_dsc_selected.png", point_size=1.0):
+        ret_code = e.returncode
+        print("RETURNCODE: \n{}".format(ret_code))
+        
+        exit(ret_code)
     
-    asc = np.load("asc_select.npy")
-    dsc = np.load("dsc_select.npy")
+    if ret_code != 0:
+        raise ValueError("Non zero returncode ({}) from command: {}"
+                         .format(ret_code, command))
     
-    g = Gnuplot(out=out, term="pngcairo font 'Verdena,9'")
+    return ret_code
     
-    g.multiplot((1,2), title="Selected ascending and descending PSs")
-    
-    g.title("Ascending PSs")
-    g.labels(x="Longitude [deg]", y="Latitude [deg]")
-    g("plot '-' {} u 1:2 with points pt 7 ps {} notitle"
-      .format(arr_bin(asc), point_size))
-    g(asc)
-    
-    g.title("Descending PSs")
-    g.labels(x="Longitude [deg]", y="Latitude [deg]")
-    g("plot '-' {} u 1:2 with points pt 7 ps {} notitle"
-      .format(arr_bin(dsc), point_size))
-    g(dsc)
-    
-    del g
-    
+def data_select(in_asc, in_dsc, ps_sep=100.0):
+    cmd("data_select", in_asc, in_dsc, ps_sep)
+
+def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0):
+    cmd("dominant", in_asc, in_dsc, ps_sep)
+
+def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4):
+    cmd("poly_orbit", asc_orbit, deg)
+    cmd("poly_orbit", dsc_orbit, deg)
+
+def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
+              dsc_fit_orbit="dsc_master.porb"):
+    cmd("integrate", dominant, asc_fit_orbit, dsc_fit_orbit)
+
+def zero_select(integrate="integrate.xy", zero_crit=0.6):
+    cmd("zero_select", integrate, zero_crit)
+
 def parse_args():
 
-    parser = argparse.ArgumentParser(description="Descending Ascending "
-                                     "Integrated DAISY")
+    parser = argparse.ArgumentParser(
+            description=_daisy__doc__,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("in_asc", help="text file that contains the "
                         "ASCENDING PS velocities")
     parser.add_argument("in_dsc", help="text file that contains the "
                         "DESCENDING PS velocities")
+    
+    parser.add_argument("--step", help="Carry out the processing step defined by "
+                       "this argument and exit.", choices=_steps, default=None,
+                       nargs="?", type=str)
 
-
-    parser.add_argument("--out_asc", help="text file that will contain the "
-                        "selected ASCENDING PS velocities", nargs='?',
-                        type=str, default='asc_select.xy')
-
-    parser.add_argument("--out_dsc", help="text file that will contain the "
-                        "selected DESCENDING PS velocities", nargs='?',
-                        type=str, default='dsc_select.xy')
-
-
-    parser.add_argument("--ps_sep", help="maximum separation distance "
-                        "between ASC and DSC PS points in meters ",
+    parser.add_argument("--start", help="Starting processing step. Processing "
+                       "steps will be executed until processing step defined "
+                       "by --stop is reached", choices=_steps,
+                       default="data_select", nargs="?", type=str)
+    parser.add_argument("--stop", help="Last processing step to be executed.",
+                       choices=_steps, default="zero_select", nargs="?",
+                       type=str)
+    
+    parser.add_argument("--ps_sep", help="Maximum separation distance "
+                        "between ASC and DSC PS points in meters.",
                         nargs="?", type=float,
                         default=100.0)
-
+    """
     parser.add_argument("--logile", help="logfile name ", nargs="?",
                         type=str, default="daisy.log")
     parser.add_argument("--loglevel", help="level of logging ", nargs="?",
                         type=str, default="DEBUG")
+    """
 
     return parser.parse_args()
 
+def parse_steps(args):
+    
+    step  = args.step
+    start = args.start
+    stop  = args.stop
+    
+    if step is not None:
+        first = _steps.index(step)
+        last = _steps.index(step)
+        return first, last
+    else:
+        first = _steps.index(start)
+        last = _steps.index(stop)
+        return first, last
+        
 def main():
     
-    with open("testfile", "wb") as f:
-        sub.check_output(split("src/daisy"), input=b"1 2", stdout=f, stderr=sub.STDOUT)
-    return
-    # args = parse_args()
-    # numeric_level = getattr(log, args.loglevel.upper(), None)
-    # if not isinstance(numeric_level, int):
-    #    raise ValueError('Invalid log level: %s' % loglevel)
-    # log.basicConfig(filename=args.logfile, level=args.log,
-    #                  level=numeric_level)
-
-    asc = np.load("asc_select.npy")
-    dsc = np.load("dsc_select.npy")
+    args = parse_args()
     
-    print(arr_plot(asc, using="1:2", axes="x1y1")[1])
+    start, stop = parse_steps(args)
+    ps_sep = args.ps_sep
     
-    #g = Gnuplot()
-    #g.plot(plotter(asc[:10,:2]), plotter(dsc[:10,:2]))
-    return
-    # del g
-    
-    return
-    
-    # data_select("daisy/test_data/asc_data.xy", "daisy/test_data/dsc_data.xy", height_err=True)
-    
-    plot_select(point_size=0.5)
+    if start == 0:
+        data_select(args.in_asc, args.in_dsc, ps_sep=ps_sep)
     
     return 0
     

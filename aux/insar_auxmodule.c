@@ -5,7 +5,7 @@
 #include "capi_macros.h"
 #include "numpy/arrayobject.h"
 
-typedef PyArrayObject* np_ao;
+typedef PyArrayObject* np_ptr;
 typedef PyObject* Pyptr;
 
 //-----------------------------------------------------------------------------
@@ -75,7 +75,7 @@ static FILE * sfopen(const char * path, const char * mode)
     FILE * file = fopen(path, mode);
 
     if (!file) {
-        errora("Could not open file \"%s\"   ", path);
+        errorln("Could not open file \"%s\"", path);
         perror("fopen");
         return NULL;
     }
@@ -244,7 +244,7 @@ Pyptr azi_inc_ell (PyFun_Varargs)
 {
     double start_t, stop_t, mean_t;
     Pyptr coeffs, lonlats, mean_coords;
-    np_ao a_coeffs = NULL, a_lonlats = NULL, a_meancoords = NULL,
+    np_ptr a_coeffs = NULL, a_lonlats = NULL, a_meancoords = NULL,
           azi_inc = NULL;
     uint is_centered, deg, max_iter;
 
@@ -263,31 +263,31 @@ Pyptr azi_inc_ell (PyFun_Varargs)
                         &mean_t, &mean_coords, &is_centered, &deg, &lonlats,
                         &max_iter);
 
-    NPY_Import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    NPY_Import(a_lonlats, lonlats, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    NPY_Import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    Np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    Np_import(a_lonlats, lonlats, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    Np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms.
      */
 
-    NPY_Check_Ndim(a_coeffs, 2);
-    NPY_Check_Dim(a_coeffs, 0, 3);
-    NPY_Check_Dim(a_coeffs, 1, deg + 1);
+    Np_check_ndim(a_coeffs, 2);
+    Np_check_dim(a_coeffs, 0, 3);
+    Np_check_dim(a_coeffs, 1, deg + 1);
     
-    NPY_Check_Ndim(a_lonlats, 2);
+    Np_check_ndim(a_lonlats, 2);
     
-    n_lonlats = NPY_Dim(a_lonlats, 0);
+    n_lonlats = Np_dim(a_lonlats, 0);
     
-    NPY_Check_Ndim(a_meancoords, 1);
-    NPY_Check_Dim(a_meancoords, 0, 3);
+    Np_check_ndim(a_meancoords, 1);
+    Np_check_dim(a_meancoords, 0, 3);
     
     azi_inc_shape[0] = n_lonlats;
     azi_inc_shape[1] = 2;
     
-    NPY_Empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
+    Np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
     
-    orb.coeffs = (double *) NPY_Data(a_coeffs);
+    orb.coeffs = (double *) Np_data(a_coeffs);
     orb.deg = deg;
     orb.is_centered = is_centered;
     
@@ -295,15 +295,15 @@ Pyptr azi_inc_ell (PyFun_Varargs)
     orb.stop_t = stop_t;
     orb.mean_t = mean_t;
     
-    orb.mean_coords = (double *) NPY_Data(a_meancoords);
+    orb.mean_coords = (double *) Np_data(a_meancoords);
     
     println("%lf %lf %lf", orb.mean_coords[0], orb.mean_coords[1], orb.mean_coords[2]);
     goto end;
     
     FOR(ii, 0, n_lonlats) {
-        lon = NPY_Delem(a_lonlats, ii, 0) * DEG2RAD;
-        lat = NPY_Delem(a_lonlats, ii, 1) * DEG2RAD;
-        h   = NPY_Delem(a_lonlats, ii, 2) * DEG2RAD;
+        lon = Np_delem(a_lonlats, ii, 0) * DEG2RAD;
+        lat = Np_delem(a_lonlats, ii, 1) * DEG2RAD;
+        h   = Np_delem(a_lonlats, ii, 2) * DEG2RAD;
         
         ell_cart(lon, lat, h, &X, &Y, &Z);
         
@@ -340,8 +340,8 @@ Pyptr azi_inc_ell (PyFun_Varargs)
         else
             azi +=180.0;
         
-        NPY_Delem(azi_inc, ii, 0) = azi;
-        NPY_Delem(azi_inc, ii, 1) = inc;
+        Np_delem(azi_inc, ii, 0) = azi;
+        Np_delem(azi_inc, ii, 1) = inc;
     }
 
 end:
@@ -366,7 +366,7 @@ Pyptr azi_inc_cart (PyFun_Varargs)
 {
     double start_t, stop_t, mean_t;
     Pyptr coeffs, coords, mean_coords;
-    np_ao a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL,
+    np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL,
           azi_inc = NULL;
     uint is_centered, deg, max_iter;
 
@@ -385,30 +385,30 @@ Pyptr azi_inc_cart (PyFun_Varargs)
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
                         &max_iter);
 
-    NPY_Import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    NPY_Import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    NPY_Import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    Np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    Np_import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    Np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms.
      */
 
-    NPY_Check_Ndim(a_coeffs, 2);
-    NPY_Check_Dim(a_coeffs, 0, 3);
-    NPY_Check_Dim(a_coeffs, 1, deg + 1);
+    Np_check_ndim(a_coeffs, 2);
+    Np_check_dim(a_coeffs, 0, 3);
+    Np_check_dim(a_coeffs, 1, deg + 1);
     
-    NPY_Check_Ndim(a_coords, 2);
+    Np_check_ndim(a_coords, 2);
     
-    n_coords = NPY_Dim(a_coords, 0);
-    NPY_Check_Ndim(a_meancoords, 1);
-    NPY_Check_Dim(a_meancoords, 0, 3);
+    n_coords = Np_dim(a_coords, 0);
+    Np_check_ndim(a_meancoords, 1);
+    Np_check_dim(a_meancoords, 0, 3);
     
     azi_inc_shape[0] = n_coords;
     azi_inc_shape[1] = 2;
+
+    Np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
     
-    NPY_Empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
-    
-    orb.coeffs = (double *) NPY_Data(a_coeffs);
+    orb.coeffs = (double *) Np_data(a_coeffs);
     orb.deg = deg;
     orb.is_centered = is_centered;
     
@@ -416,15 +416,15 @@ Pyptr azi_inc_cart (PyFun_Varargs)
     orb.stop_t = stop_t;
     orb.mean_t = mean_t;
     
-    orb.mean_coords = (double *) NPY_Data(a_meancoords);
+    orb.mean_coords = (double *) Np_data(a_meancoords);
     
     println("%lf %lf %lf", orb.mean_coords[0], orb.mean_coords[1], orb.mean_coords[2]);
     goto end;
     
     FOR(ii, 0, n_coords) {
-        X = NPY_Delem(a_coords, ii, 0);
-        Y = NPY_Delem(a_coords, ii, 1);
-        Z = NPY_Delem(a_coords, ii, 2);
+        X = Np_delem(a_coords, ii, 0);
+        Y = Np_delem(a_coords, ii, 1);
+        Z = Np_delem(a_coords, ii, 2);
         
         closest_appr(&orb, X, Y, Z, max_iter, &sat);
             
@@ -461,8 +461,8 @@ Pyptr azi_inc_cart (PyFun_Varargs)
         else
             azi +=180.0;
         
-        NPY_Delem(azi_inc, ii, 0) = azi;
-        NPY_Delem(azi_inc, ii, 1) = inc;
+        Np_delem(azi_inc, ii, 0) = azi;
+        Np_delem(azi_inc, ii, 1) = inc;
     }
 
 end:
@@ -487,8 +487,8 @@ PyFun_Doc(asc_dsc_select,
 Pyptr asc_dsc_select(PyFun_Keywords)
 {
     Pyptr in_arr1 = NULL, in_arr2 = NULL;
-    np_ao arr1 = NULL, arr2 = NULL;
-    npy_double max_sep = 100.0;
+    np_ptr arr1 = NULL, arr2 = NULL;
+    npy_double max_sep = 100.0, max_sep_deg;
     
     npy_intp n_arr1, n_arr2;
     uint n_found = 0;
@@ -499,28 +499,27 @@ Pyptr asc_dsc_select(PyFun_Keywords)
     PyFun_Parse_Keywords(keywords, "OO|d:asc_dsc_select", &in_arr1, &in_arr2,
                                                           &max_sep);
     
-    print("Maximum separation: %6.3lf meters => ", max_sep);
-    
     max_sep /= R_earth;
-    max_sep = max_sep * max_sep * RAD2DEG * RAD2DEG;
+    max_sep_deg = max_sep * max_sep * RAD2DEG * RAD2DEG;
+
+    println("Maximum separation: %6.3lf meters => approx. %E degrees",
+            max_sep, max_sep_deg);
     
-    println("approx. %E degrees", max_sep);
+    Np_import(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    Np_import(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     
-    NPY_Import(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    NPY_Import(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    n_arr1 = Np_dim(arr1, 0);
+    n_arr2 = Np_dim(arr2, 0);
     
-    n_arr1 = NPY_Dim(arr1, 0);
-    n_arr2 = NPY_Dim(arr2, 0);
-    
-    np_ao idx = (np_ao) PyArray_ZEROS(1, &n_arr1, NPY_BOOL, 0);
+    np_ptr idx = (np_ptr) PyArray_ZEROS(1, &n_arr1, NPY_BOOL, 0);
     
     FOR(ii, 0, n_arr1) {
         FOR(jj, 0, n_arr2) {
-            dlon = NPY_Delem(arr1, ii, 0) - NPY_Delem(arr2, jj, 0);
-            dlat = NPY_Delem(arr1, ii, 1) - NPY_Delem(arr2, jj, 1);
+            dlon = Np_delem(arr1, ii, 0) - Np_delem(arr2, jj, 0);
+            dlat = Np_delem(arr1, ii, 1) - Np_delem(arr2, jj, 1);
             
             if ( dlon * dlon + dlat * dlat < max_sep) {
-                *( (npy_bool *) NPY_Ptr1(idx, ii) ) = 1;
+                *( (npy_bool *) Np_ptr1(idx, ii) ) = 1;
                 n_found++;
                 break;
             }

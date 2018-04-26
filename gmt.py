@@ -41,7 +41,6 @@ class GMT(object):
         
         # add -K and -O flags to plotter functions
         if len(idx) > 1:
-            
             for ii in idx[:-1]:
                 commands[ii] = (commands[ii][0], commands[ii][1] + " -K",
                                 commands[ii][2], commands[ii][3])
@@ -50,14 +49,6 @@ class GMT(object):
                 commands[ii] = (commands[ii][0], commands[ii][1] + " -O",
                                 commands[ii][2], commands[ii][3])
             
-            """
-            commands[:-1] = [(cmd[0], cmd[1] + " -K", *cmd[2:])
-                             if cmd[0] in _plotters else cmd
-                             for cmd in commands[:-1]]
-            commands[1:] = [(cmd[0], cmd[1] + " -O", *cmd[2:])
-                             if cmd[0] in _plotters else cmd
-                             for cmd in commands[1:]]
-            """
         if self.is_gmt5:
             commands = [("gmt " + cmd[0], *cmd[1:]) for cmd in commands]
         
@@ -164,7 +155,7 @@ def execute_gmt_cmd(cmd, ret_out=False):
     if ret_out:
         return cmd_out
 
-def execute_cmd(cmd, ret_out=False):
+def cmd(cmd, ret_out=False):
     
     try:
         cmd_out = sub.check_output(split(cmd), stderr=sub.STDOUT)
@@ -241,17 +232,43 @@ class DEM(object):
         
         increments = "{}/{}".format(self.delta_lon, self.delta_lat)
         
-        cmd = "xyz2grd {infile} -ZTL{dtype} -R{ll_range} -I{inc} -r -G{nc}"\
+        Cmd = "xyz2grd {infile} -ZTL{dtype} -R{ll_range} -I{inc} -r -G{nc}"\
               .format(infile=self.dempath, dtype=dtypes[self.fmt],
                       ll_range=lonlat_range, inc=increments, nc=ncfile)
         
         if self.is_gmt5:
-            cmd = "gmt " + cmd
+            Cmd = "gmt " + Cmd
         
-        execute_cmd(cmd)
+        cmd(Cmd)
     
     def plot(self, ncfile, psfile, **gmt_flags):
         
         gmt = GMT(psfile, gmt5=self.is_gmt5)
         gmt.grdimage(data=ncfile, **gmt_flags)
         del gmt
+
+def info(data, is_gmt5=True, **flags):
+    gmt_flags = ""
+    
+    if isinstance(data, string_types) and pth.isfile(data):
+        gmt_flags += "{} ".format(data)
+        data = None
+    # data is a numpy array
+    elif isinstance(data, np.ndarray):
+        gmt_flags += "-bi{}dw ".format(data.shape[1])
+        data = data.tobytes()
+    else:
+        raise ValueError("`data` is not a path to an existing file "
+                         "nor is a numpy array.")
+
+    # if we have flags parse them
+    if len(flags) > 0:
+        gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
+                               for key, flag in flags.items()])
+    
+    if is_gmt5:
+        Cmd = "gmt info"
+    else:
+        Cmd = "gmtinfo"
+    
+    return cmd(Cmd + " " + gmt_flags, ret_out=True).decode()

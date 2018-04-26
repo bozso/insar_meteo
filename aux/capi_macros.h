@@ -98,6 +98,7 @@
 #define Np_dim(obj, idx) PyArray_DIM((obj), (idx))
 #define Np_ndim(obj, idx) PyArray_NDIM((obj), (idx))
 #define Np_delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
+#define Np_belem1(obj, ii) *((npy_bool *) PyArray_GETPTR1((obj), (ii)))
 
 #define Np_data(obj) PyArray_DATA((obj))
 

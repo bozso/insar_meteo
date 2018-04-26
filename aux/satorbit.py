@@ -5,6 +5,65 @@ import pickle as pk
 from gnuplot import Gnuplot
 import aux.insar_aux as ina
 
+def fit_orbit(path, preproc, savefile, is_centered=True, deg=3):
+    
+    time, coords, data_num = read_orbits(filepath, preproc=preproc)
+    
+    t_start = t[0]
+    t_stop  = t[-1]
+    
+    if centered:
+        mean_t = np.mean(time)
+        mean_coords = np.mean(coords, axis=0)
+        cent = "centered:\t1\n"
+
+        time -= mean_t
+        to_fit = coords - mean_coords
+    else:
+        to_fit = coords
+        cent = "centered:\t0\n"
+    
+    coeffs = np.asarray(np.polyfit(time, to_fit[:,ii], deg) for ii in range(3))
+    
+    with open(savefile, "w") as f:
+        f.write(cent)
+        
+        f.write("t_start:\t{}\n".format(t_start))
+        f.write("t_stop:\t{}\n".format(t_stop))
+        
+        if centered:
+            f.write("mean_time:\t{}\n".format(mean_t))
+            f.write("mean_coords:\t{}\n"
+                    .format(" ".join(str(coord) for coord in mean_coords)))
+        
+        f.write("coefficients:\t{}\n"
+                .format(' '.join(str(elem) for elem in coeff
+                                           for coeff in coeffs)))
+
+def azi_inc(fit_file, coords, is_lonlat=True, max_iter=1000):
+    
+    with open(fit_file, "r") as f:
+        poly = {line.split(':')[0]: line.split(':')[1].strip() for line in f}
+    
+    is_centered = int(poly['centered'])
+
+    if is_centered:
+        mean_coords = np.array(poly['mean_coords'])
+        mean_t      = float(poly['mean_time'])
+    else:
+        mean_coords = [0.0, 0.0, 0.0]
+        mean_time   = 0.0
+    
+    t_start = float(poly["t_start"])
+    t_stop  = float(poly["t_stop"])
+    
+    coeffs = np.array([float(num) for num in poly['coefficients'].split()])
+    
+    del poly
+    
+    return ina.azi_inc(coeffs, t_start, t_stop, mean_t, mean_coords,
+                       is_centered, deg, coords, max_iter, is_lonlat)
+
 class SatOrbit:
     def __init__(self, filepath, preproc):
         time, coords, data_num = read_orbits(filepath, preproc=preproc)
@@ -103,7 +162,7 @@ class SatOrbit:
     def azi_inc(self, coords, is_lonlat=False, max_iter=1000):
         return ina.azi_inc(self.coeffs, self.start_t, self.stop_t, self.mean_t,
                            self.mean_coords, self.is_centered, self.deg,
-                           coords, max_iter, is_lonlat);
+                           coords, max_iter, is_lonlat)
     
     def __del__(self):
         del self.time

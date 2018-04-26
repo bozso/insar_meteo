@@ -197,7 +197,7 @@ static void closest_appr(const orbit_fit * orb, const double X, const double Y,
     // first, last and middle time
     double t_start = orb->start_t - 5.0,
            t_stop  = orb->stop_t + 5.0,
-           t_middle; 
+           t_middle;
     
     // dot products
     double dot_start, dot_middle = 1.0;
@@ -448,7 +448,8 @@ py_ptr asc_dsc_select(PyFun_Keywords)
             dlat = Np_delem(arr1, ii, 1) - Np_delem(arr2, jj, 1);
             
             if ( dlon * dlon + dlat * dlat < max_sep) {
-                *( (npy_bool *) Np_ptr1(idx, ii) ) = 1;
+                //*( (npy_bool *) Np_ptr1(idx, ii) ) = 1;
+                Np_belem1(idx, ii) = 1;
                 n_found++;
                 break;
             }

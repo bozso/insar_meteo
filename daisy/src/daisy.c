@@ -57,7 +57,7 @@ static void cart_ell( station *sta )
  o=atan((z+n/WB*so*so*so)/(p-n/WA*co*co*co));
  so=sin(o); co=cos(o);
  n=WA*WA/sqrt(WA*co*co*WA+WB*so*so*WB);
-
+  
  sta->f = o;
  o=atan(y/x); if(x<0.0) o+=M_PI;
  sta->l = o;

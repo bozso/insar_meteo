@@ -13,12 +13,20 @@ axis = "a0.25g0.25f0.125"
 
 def main():
     
-    ll_range, c_range = get_ranges(data=infile, binary=bindef,
-                                   xy_add=extra, z_add=0.125)
+    #ll_range, c_range = get_ranges(data=infile, binary=bindef,
+    #                               xy_add=extra, z_add=0.125)
     
-    gmt = GMT("abs_avg.ps", R=ll_range, J="M7.5i")
+    gmt = GMT("test.ps", R=(30,60,40,50), J="M500p", debug=True)
     
-    print(gmt.get_config("PS_MEDIA"))
+    #x, y = gmt.multiplot(4)
+    
+    #print(x, y); del gmt; return
+    
+    #for ii in range(4):
+    #    gmt.psbasemap(B="WSen", X=x[ii], Y=y[ii])
+    
+    gmt.psbasemap(B="WSEN")
+    #gmt.psbasemap(B="WSen", Y="-10i")
     
     del gmt; return
     

@@ -4,6 +4,7 @@ import subprocess as sub
 import numpy as np
 from shlex import split
 from math import ceil, sqrt
+from itertools import repeat
 
 # python 2/3 compatibility
 from six import string_types
@@ -28,11 +29,10 @@ class GMT(object):
         if config is not None:
             self.config.update(config)
         
-        with open("gmt.conf", "w") as f:
-            f.write(_gmt_defaults_header)
-            f.write("\n".join("{} = {}".format(key.upper(), value)
-                              for key, value in self.config.items()))
-            
+        #with open("gmt.conf", "w") as f:
+        #    f.write(_gmt_defaults_header)
+        #    f.write("\n".join("{} = {}".format(key.upper(), value)
+        #                     for key, value in self.config.items()))
         
         # common output Postscript filename
         self.out = out
@@ -49,25 +49,27 @@ class GMT(object):
                                     for key, flag in common_flags.items()])
         else:
             self.common = None
-
+        
     def __del__(self):
         commands = self.commands
         
         idx = [ii for ii, cmd in enumerate(commands) if cmd[0] in _plotters]
         
-        # add -K and -O flags to plotter functions
+        # add -K, -P and -O flags to plotter functions
         if len(idx) > 1:
             for ii in idx[:-1]:
-                commands[ii] = (commands[ii][0], commands[ii][1] + " -K",
-                                commands[ii][2], commands[ii][3])
+                commands[ii][1] += " -K"
 
             for ii in idx[1:]:
-                commands[ii] = (commands[ii][0], commands[ii][1] + " -O",
-                                commands[ii][2], commands[ii][3])
+                commands[ii][1] += " -O"
             
-        if self.is_gmt5:
-            commands = [("gmt " + cmd[0], *cmd[1:]) for cmd in commands]
+        if self.is_portrait:
+            for ii in idx:
+                commands[ii][1] += " -P"
         
+        if self.is_gmt5:
+            commands = [["gmt " + cmd[0], *cmd[1:]] for cmd in commands]
+            
         if self.debug:
             print("\n".join(" ".join(elem for elem in cmd[0:2])
                   for cmd in commands))
@@ -94,12 +96,46 @@ class GMT(object):
     def get_config(self, param):
         return self.config[param.upper()]
     
-    def multiplot(self, nplots, top_marg, bottom_marg)
-        nrows = ceil(sqrt(nplots) - 1)
-        nrows = max([1, nrows])
-        ncols = ceil(nElems / nrows)
+    def multiplot(self, nplots, nrows=None, top=10, bottom=10,
+                  left=10, right=10):
         
-        return
+        if nrows is None:
+            nrows = ceil(sqrt(nplots) - 1)
+            nrows = max([1, nrows])
+
+        ncols = ceil(nplots / nrows)
+        
+        paper = self.get_config("ps_media")
+        
+        if paper.startswith("a") or paper.startswith("b"):
+            paper = paper.upper()
+        
+        if self.is_portrait:
+            width, height = _gmt_paper_sizes[paper]
+            
+            if ncols > nrows:
+                ncols, nrows = nrows, ncols
+        else:
+            height, width = _gmt_paper_sizes[paper]
+        
+        print(width, height)
+        
+        # width and height available for plotting
+        awidth, aheight = width - (left + right), height - (top + bottom)
+        
+        width  = float(awidth) / ncols
+        height = float(aheight) / nrows
+        
+        x = ("f{}p".format(left + ii * width) for ii in range(ncols)
+                                             for jj in range(nrows))
+        
+        y = ("f{}p".format(aheight + bottom - ii * height)
+                          for jj in range(ncols)
+                          for ii in range(nrows))
+        
+        print(nrows, ncols)
+        
+        return list(x), list(y)
 
     def _gmtcmd(self, gmt_exec, data=None, palette=None, outfile=None, **flags):
         gmt_flags = ""
@@ -127,9 +163,9 @@ class GMT(object):
             gmt_flags += " " + self.common
         
         if outfile is not None:
-            self.commands.append((gmt_exec, gmt_flags, data, outfile))
+            self.commands.append([gmt_exec, gmt_flags, data, outfile])
         else:
-            self.commands.append((gmt_exec, gmt_flags, data, self.out))
+            self.commands.append([gmt_exec, gmt_flags, data, self.out])
     
     def __getattr__(self, command, *args, **kwargs):
         def f(*args, **kwargs):
@@ -163,7 +199,7 @@ def proc_flag(flag):
         return ""
     elif hasattr(flag, "__iter__") and not isinstance(flag, string_types):
         return "/".join([str(elem) for elem in flag])
-    elif isinstance(flag, string_types):
+    else:
         return flag
 
 def execute_gmt_cmd(cmd, ret_out=False):
@@ -221,61 +257,34 @@ def get_par(parameter, search):
 
     return parameter_value
 
-class DEM(object):
-    def __init__(self, header_path, endian="small", gmt5=True):
-        self.fmt = get_par("SAM_IN_FORMAT", header_path)
-        self.dempath = get_par("SAM_IN_DEM", header_path)
-        self.nodata = get_par("SAM_IN_NODATA", header_path)
-        
-        self.is_gmt5 = gmt5
-        
-        rows, cols = get_par("SAM_IN_SIZE", header_path).split()
-        delta_lat, delta_lon = get_par("SAM_IN_DELTA", header_path).split()
-        origin_lat, origin_lon = get_par("SAM_IN_UL", header_path).split()
-        
-        self.nrow, self.ncol, self.delta_lon, self.delta_lat =\
-        int(rows), int(cols), float(delta_lon), float(delta_lat)
-        
-        self.origin_lon, self.origin_lat = float(origin_lon), float(origin_lat)
-        
-    def __del__(self):
-        del self.fmt
-        del self.dempath
-        del self.nodata
-        del self.is_gmt5
-        del self.nrow
-        del self.ncol
-        del self.delta_lon
-        del self.delta_lat
-        del self.origin_lon
-        del self.origin_lat
+def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
+    fmt = get_par("SAM_IN_FORMAT", header_path)
+    dempath = get_par("SAM_IN_DEM", header_path)
+    nodata = get_par("SAM_IN_NODATA", header_path)
     
-    def make_ncfile(self, ncfile):
-        xmin = self.origin_lon
-        xmax = self.origin_lon + self.ncol * self.delta_lon
-
-        ymin = self.origin_lat - self.nrow * self.delta_lat
-        ymax = self.origin_lat
-        
-        lonlat_range = "{}/{}/{}/{}".format(xmin ,xmax, ymin, ymax)
-        
-        increments = "{}/{}".format(self.delta_lon, self.delta_lat)
-        
-        Cmd = "xyz2grd {infile} -ZTL{dtype} -R{ll_range} -I{inc} -r -G{nc}"\
-              .format(infile=self.dempath, dtype=dtypes[self.fmt],
-                      ll_range=lonlat_range, inc=increments, nc=ncfile)
-        
-        if self.is_gmt5:
-            Cmd = "gmt " + Cmd
-        
-        cmd(Cmd)
+    rows, cols = get_par("SAM_IN_SIZE", header_path).split()
+    delta_lat, delta_lon = get_par("SAM_IN_DELTA", header_path).split()
+    origin_lat, origin_lon = get_par("SAM_IN_UL", header_path).split()
     
-    def plot(self, ncfile, psfile, **gmt_flags):
-        
-        gmt = GMT(psfile, gmt5=self.is_gmt5)
-        gmt.grdimage(data=ncfile, **gmt_flags)
-        del gmt
+    xmin = float(origin_lon)
+    xmax = xmin + float(cols) * float(delta_lon)
 
+    ymax = float(origin_lat)
+    ymin = ymax - float(rows) * float(delta_lat)
+    
+    lonlat_range = "{}/{}/{}/{}".format(xmin ,xmax, ymin, ymax)
+    
+    increments = "{}/{}".format(self.delta_lon, self.delta_lat)
+    
+    Cmd = "xyz2grd {infile} -ZTL{dtype} -R{ll_range} -I{inc} -r -G{nc}"\
+          .format(infile=dempath, dtype=dtypes[fmt], ll_range=lonlat_range,
+                  inc=increments, nc=ncfile)
+    
+    if gmt5:
+        Cmd = "gmt " + Cmd
+    
+    cmd(Cmd)
+    
 def info(data, is_gmt5=True, **flags):
     gmt_flags = ""
     
@@ -458,7 +467,8 @@ _gmt_defaults = {
 "TIME_Y2K_OFFSET_YEAR": 1950
 }
 
-_paper_sizes = {
+# paper width and height in points
+_gmt_paper_sizes = {
 "A0":         [2380, 3368],
 "A1":         [1684, 2380],
 "A2":         [1190, 1684],

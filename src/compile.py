@@ -18,7 +18,7 @@ def main():
                           libraries=libs,
                           extra_postargs=flags)
     
-    dest = pjoin("..", "..", "bin", "daisy")
+    dest = pjoin("..", "bin", "daisy")
     
     # remove prevoius executable
     if isfile(dest): remove(dest)

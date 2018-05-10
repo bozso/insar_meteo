@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-from gmt import GMT, info, get_ranges
+from aux.gmt import GMT, info, get_ranges
 
 bindef = "72d"
 
@@ -13,10 +13,10 @@ axis = "a0.25g0.25f0.125"
 
 def main():
     
-    #ll_range, c_range = get_ranges(data=infile, binary=bindef,
-    #                               xy_add=extra, z_add=0.125)
-    
-    gmt = GMT("test.ps", R=(30,60,40,50), J="M500p", debug=True)
+    ll_range, c_range = get_ranges(data=infile, binary=bindef,
+                                   xy_add=extra, z_add=0.125)
+    """
+    gmt = GMT("test.ps", R=(30,60,40,50), J="M5i", debug=True)
     
     #x, y = gmt.multiplot(4)
     
@@ -29,6 +29,9 @@ def main():
     #gmt.psbasemap(B="WSen", Y="-10i")
     
     del gmt; return
+    """
+    
+    gmt = GMT("test.ps", R=ll_range, J="M5i")
     
     gmt.makecpt("scatter.cpt", C="drywet", Z=True, T=c_range)
     gmt.psbasemap(B="WSen+tAAA", Bx=axis, By=axis)

@@ -54,6 +54,7 @@ class GMT(object):
     def __del__(self):
         commands = self.commands
         
+        
         # indices of plotter functions
         idx = [ii for ii, cmd in enumerate(commands) if cmd[0] in _plotters]
         
@@ -319,7 +320,7 @@ def get_ranges(data, binary=None, xy_add=None, z_add=None):
     else:
         info_str = info(data, C=True).split()
     
-    ranges = (float(data) for data in info_str)
+    ranges = tuple(float(data) for data in info_str)
     
     if xy_add is not None:
         xy_range = (ranges[0] - xy_add, ranges[1] + xy_add,

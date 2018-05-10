@@ -1,11 +1,12 @@
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
-#define QUOTE(s) # s   /* turn s into string "s" */
+// turn s into string "s"
+#define QUOTE(s) # s   
 
-//----------------------------------------------------------------------
-// WGS-84 ELLIPSOID PARAMETERS
-//----------------------------------------------------------------------
+/*******************************
+ * WGS-84 ELLIPSOID PARAMETERS *
+ *******************************/
 
 // RADIUS OF EARTH
 #define R_earth 6372000
@@ -17,9 +18,9 @@
 #define E2  6.694380e-03
 
 
-//----------------------------------------------------------------------
-// DEGREES, RADIANS, PI
-//----------------------------------------------------------------------
+/************************
+ * DEGREES, RADIANS, PI *
+ ************************/
 
 #ifndef M_PI
 #define M_PI 3.14159265358979
@@ -33,17 +34,17 @@
 #define OR ||
 #define AND &&
 
-//----------------------------------------------------------------------
-// FOR MACROS
-// REQUIRES C99 standard!
-//----------------------------------------------------------------------
+/**************************
+ * FOR MACROS             *
+ * REQUIRES C99 standard! *
+ **************************/
 
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); (ii)++)
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
-//----------------------------------------------------------------------
-// IO MACROS
-//----------------------------------------------------------------------
+/*************
+ * IO MACROS *
+ *************/
 
 #define error(text) PySys_WriteStderr(text)
 #define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
@@ -51,13 +52,11 @@
 #define print(string) PySys_WriteStdout(string)
 #define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
 
-#define Log print("%s\t%d", __FILE__, __LINE__)
+#define Log print("File: %s line: %d", __FILE__, __LINE__)
 
-//----------------------------------------------------------------------
-// FUNCTION DEFINITION MACROS
-//----------------------------------------------------------------------
-
-#define PyFun_Noargs(fun_name) static PyObject * fun_name (PyObject * self)
+/******************************
+ * FUNCTION DEFINITION MACROS *
+ ******************************/
 
 #define PyFun_Varargs PyObject * self, PyObject * args
 #define PyFun_Keywords PyObject * self, PyObject * args, PyObject * kwargs
@@ -77,21 +76,21 @@
 #define PyFun_Doc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
 
 #define PyFun_Parse_Keywords(keywords, format, ...) \
-({ \
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords, \
+({\
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords,\
                                      __VA_ARGS__))\
-        return NULL; \
+        return NULL;\
 })
 
 #define PyFun_Parse_Varargs(format, ...) \
-({ \
+({\
     if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\
-        return NULL; \
+        return NULL;\
 })
 
-//----------------------------------------------------------------------
-// NUMPY CONVENIENCE MACROS
-//----------------------------------------------------------------------
+/****************************
+ * NUMPY CONVENIENCE MACROS *
+ ****************************/
 
 #define Np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
 #define Np_ptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
@@ -164,9 +163,9 @@
   }\
 })
 
-//----------------------------------------------------------------------
-// ERROR CODES
-//----------------------------------------------------------------------
+/***************
+ * ERROR CODES *
+ ***************/
 
 #define IO_ERR    -1
 #define ALLOC_ERR -2

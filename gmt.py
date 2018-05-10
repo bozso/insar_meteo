@@ -20,6 +20,7 @@ class GMT(object):
     def __init__(self, out, gmt5=True, portrait=False, debug=False,
                  config=None, **common_flags):
         
+        # Cleanup
         if pth.isfile("gmt.conf"): os.remove("gmt.conf")
         if pth.isfile("gmt.history"): os.remove("gmt.history")
         
@@ -53,6 +54,7 @@ class GMT(object):
     def __del__(self):
         commands = self.commands
         
+        # indices of plotter functions
         idx = [ii for ii, cmd in enumerate(commands) if cmd[0] in _plotters]
         
         # add -K, -P and -O flags to plotter functions
@@ -68,11 +70,12 @@ class GMT(object):
                 commands[ii][1] += " -P"
         
         if self.is_gmt5:
-            commands = [["gmt " + cmd[0], *cmd[1:]] for cmd in commands]
-            
+            commands = [["gmt " + cmd[0], cmd[1], cmd[2], cmd[3]]
+                        for cmd in commands]
+        
         if self.debug:
             print("\n".join(" ".join(elem for elem in cmd[0:2])
-                  for cmd in commands))
+                                          for cmd in commands))
         
         # gather all the outputfiles and remove the ones that already exist
         outfiles = set(cmd[3] for cmd in commands
@@ -113,6 +116,7 @@ class GMT(object):
         if self.is_portrait:
             width, height = _gmt_paper_sizes[paper]
             
+            # for portrait mode ensure we have more rows than columns
             if ncols > nrows:
                 ncols, nrows = nrows, ncols
         else:
@@ -126,8 +130,9 @@ class GMT(object):
         width  = float(awidth) / ncols
         height = float(aheight) / nrows
         
+        # calculate psbasemap shifts in x and y directions
         x = ("f{}p".format(left + ii * width) for ii in range(ncols)
-                                             for jj in range(nrows))
+                                              for jj in range(nrows))
         
         y = ("f{}p".format(aheight + bottom - ii * height)
                           for jj in range(ncols)
@@ -138,21 +143,21 @@ class GMT(object):
         return list(x), list(y)
 
     def _gmtcmd(self, gmt_exec, data=None, palette=None, outfile=None, **flags):
-        gmt_flags = ""
-        
         if data is not None:
-            # data is a path to a file
             if isinstance(data, string_types) and pth.isfile(data):
-                gmt_flags += "{} ".format(data)
+            # data is a path to a file
+                gmt_flags = "{} ".format(data)
                 data = None
-            # data is a numpy array
             elif isinstance(data, np.ndarray):
-                gmt_flags += "-bi{}dw ".format(data.shape[1])
+            # data is a numpy array
+                gmt_flags = "-bi{}dw ".format(data.shape[1])
                 data = data.tobytes()
             else:
                 raise ValueError("`data` is not a path to an existing file "
                                  "nor is a numpy array.")
-
+        else:
+            gmt_flags = ""
+        
         # if we have flags parse them
         if len(flags) > 0:
             gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
@@ -203,6 +208,7 @@ def proc_flag(flag):
         return flag
 
 def execute_gmt_cmd(cmd, ret_out=False):
+    # join command and flags
     gmt_cmd = cmd[0] + " " + cmd[1]
     
     try:
@@ -300,18 +306,20 @@ def info(data, is_gmt5=True, **flags):
                                for key, flag in flags.items()])
     
     if is_gmt5:
-        Cmd = "gmt info"
+        Cmd = "gmt info " + gmt_flags
     else:
-        Cmd = "gmtinfo"
+        Cmd = "gmtinfo " + gmt_flags
     
-    return cmd(Cmd + " " + gmt_flags, ret_out=True).decode()
+    return cmd(Cmd, ret_out=True).decode()
 
 def get_ranges(data, binary=None, xy_add=None, z_add=None):
     
     if binary is not None:
-        ranges = np.genfromtxt(info(data, bi=binary, C=True).split())
+        info_str = info(data, bi=binary, C=True).split()
     else:
-        ranges = np.genfromtxt(info(data, C=True).split())
+        info_str = info(data, C=True).split()
+    
+    ranges = (float(data) for data in info_str)
     
     if xy_add is not None:
         xy_range = (ranges[0] - xy_add, ranges[1] + xy_add,
@@ -319,10 +327,12 @@ def get_ranges(data, binary=None, xy_add=None, z_add=None):
     else:
         xy_range = ranges[0:4]
 
+    non_xy = ranges[4:]
+    
     if z_add is not None:
-        z_range = (min(ranges[4:]) - z_add, max(ranges[4:]) + z_add)
+        z_range = (min(non_xy) - z_add, max(non_xy) + z_add)
     else:
-        z_range = (min(ranges[4:]), max(ranges[4:]))
+        z_range = (min(non_xy), max(non_xy))
         
     return xy_range, z_range
 

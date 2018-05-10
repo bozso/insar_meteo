@@ -8,6 +8,8 @@
  *     - argv[1] is the module name */
 #define Minarg 2
 
+#define Modules "data_select, dominant, poly_orbit, integrate, zero_select"
+
 #define error(string) fprintf(stderr, string)
 #define errorln(format, ...) fprintf(stderr, format"\n", __VA_ARGS__)
 
@@ -41,44 +43,41 @@ typedef struct { double t; double x; double y; double z; } torb;
  * Auxilliary functions *
  ************************/
 
-static void cart_ell( station *sta )
+static void cart_ell (station *sta)
 {
-// from cartesian to ellipsoidal
-// coordinates
+    // from cartesian to ellipsoidal
+    // coordinates
+    
+    double n, p,o,so,co, x,y,z;
+    
+    n=(WA*WA-WB*WB);
+    x=sta->x; y=sta->y; z=sta->z;
+    p=sqrt(x*x+y*y);
+    
+    o=atan(WA/p/WB*z);
+    so=sin(o); co=cos(o);
+    o=atan((z+n/WB*so*so*so)/(p-n/WA*co*co*co));
+    so=sin(o); co=cos(o);
+    n=WA*WA/sqrt(WA*co*co*WA+WB*so*so*WB);
+    
+    sta->f = o;
+    o=atan(y/x); if(x<0.0) o+=M_PI;
+    sta->l = o;
+    sta->h = p/co-n;
+    
+} // end of cart_ell
 
- double n, p,o,so,co, x,y,z;
-
- n=(WA*WA-WB*WB);
- x=sta->x; y=sta->y; z=sta->z;
- p=sqrt(x*x+y*y);
-
- o=atan(WA/p/WB*z);
- so=sin(o); co=cos(o);
- o=atan((z+n/WB*so*so*so)/(p-n/WA*co*co*co));
- so=sin(o); co=cos(o);
- n=WA*WA/sqrt(WA*co*co*WA+WB*so*so*WB);
-  
- sta->f = o;
- o=atan(y/x); if(x<0.0) o+=M_PI;
- sta->l = o;
- sta->h = p/co-n;
- 
-}  // end of cart_ell
-
-// --------------------------
-
-static void ell_cart( station *sta )
+static void ell_cart (station *sta)
 {
-// from ellipsoidal to cartesian
-// coordinates
-   double fi,la,n;
-   fi=sta->f;
-   la=sta->l;
-   n=WA/sqrt(1.0-E2*sin(fi)*sin(fi));
-
-   sta->x=(         n+sta->h)*cos(fi)*cos(la);
-   sta->y=(         n+sta->h)*cos(fi)*sin(la);
-   sta->z=((1.0-E2)*n+sta->h)*sin(fi);
+    // from ellipsoidal to cartesian coordinates
+    double fi, la, n;
+    fi=sta->f;
+    la=sta->l;
+    n=WA/sqrt(1.0-E2*sin(fi)*sin(fi));
+    
+    sta->x=(         n+sta->h)*cos(fi)*cos(la);
+    sta->y=(         n+sta->h)*cos(fi)*sin(la);
+    sta->z=((1.0-E2)*n+sta->h)*sin(fi);
   
 }  // end of ell_cart
 
@@ -636,7 +635,7 @@ static void change_ext ( char *name, char *ext )
  * Main modules *
  ****************/
 
- int data_select(int argc, char *argv [])
+int data_select(int argc, char *argv [])
 {
    int i,n,ni1,ni2;
    psxy *indata;
@@ -658,14 +657,14 @@ static void change_ext ( char *name, char *ext )
   if (( out2 = (char *) malloc(80 * sizeof(char)) ) == NULL)
   { error("\n Not enough memory to allocate OUT2\n");  exit(1); }
 
-    printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-            \n +                  ps_data_select                    +\
-            \n + adjacent ascending and descending PSs are selected +\
-            \n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+    printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++\
+            \n +                   DATA_SELECT                       +\
+            \n + Adjacent ascending and descending PSs are selected. +\
+            \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
     
     if(argc - Minarg<3)
    {
-    printf("\n   usage:  ps_data_select asc_data.xy dsc_data.xy 100  \n\
+    printf("\n   usage:  daisy data_select asc_data.xy dsc_data.xy 100  \n\
             \n           asc_data.xy  - (1st) ascending  data file\
             \n           dsc_data.xy  - (2nd) descending data file\
             \n           100          - (3rd) PSs separation (m)\n\
@@ -763,7 +762,7 @@ static void change_ext ( char *name, char *ext )
    fprintf(log,"\n %s PSs %d\n\n",out2,n);
 
 printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-        \n +                end   ps_data_select                +\
+        \n +                  END DATA_SELECT                   +\
         \n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 return(0);
@@ -795,14 +794,14 @@ return(0);
 //  printf("%s\n",argv[2]);    
      
   printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-          \n +                      ps_dominant                      +\
+          \n +                        DOMINANT                       +\
           \n + clusters of ascending and descending PSs are selected +\
           \n +     and the dominant points (DSs) are estimated       +\
           \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
   if(argc-Minarg<3)
  {
-  printf("\n    usage:  ps_dominant asc_data.xys dsc_data.xys 100\n\
+  printf("\n    usage:  daisy dominant asc_data.xys dsc_data.xys 100\n\
           \n            asc_data.xys   - (1st) ascending  data file\
           \n            dsc_data.xys   - (2nd) descending data file\
           \n            100            - (3rd) cluster separation (m)\n\
@@ -910,13 +909,13 @@ return(0);
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-        \n +                   end    ps_dominant                  +\
+        \n +                      END DOMINANT                     +\
         \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 return(0);      
 }  // end dominant   
 
- int integrate(int argc, char *argv[])
+int integrate(int argc, char *argv[])
 {
    int i,j,n=0;                                                     
    station ps, sat;
@@ -945,14 +944,14 @@ return(0);
 //  printf("%s\n",argv[3]);   
      
   printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-          \n +                       ds_integrate                          +\
-          \n +        compute the east-west and up-down velocities         +\
+          \n +                         INTEGRATE                           +\
+          \n +        Compute the east-west and up-down velocities         +\
           \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
   if(argc-Minarg<3)
  {
   printf("\n usage:                                                      \n\
-          \n    ds_integrate dominant.xyd asc_master.porb dsc_master.porb\n\
+          \n    daisy integrate dominant.xyd asc_master.porb dsc_master.porb\n\
           \n              dominant.xyd  - (1st) dominant DSs data file   \
           \n           asc_master.porb  - (2nd) ASC polynomial orbit file\
           \n           dsc_master.porb  - (3rd) DSC polynomial orbit file\n\
@@ -1035,7 +1034,7 @@ return(0);
      fprintf(lo,"\n (     degree          m       mm/year )\n\n");  
  
 printf("\n\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-        \n +                     end    ds_integrate                     +\
+        \n +                        END INTEGRATE                          +\
         \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");
 
 return(0);
@@ -1056,15 +1055,15 @@ return(0);
   FILE *in,*ou, *lo;
 
   printf("\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-          \n +                     ps_poly_orbit                     +\
+          \n +                       POLY_ORBIT                      +\
           \n +    tabular orbit data are converted to polynomials    +\
           \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
   if(argc-Minarg<2)
  {
-  printf("\n          usage:    ps_poly_orbit asc_master.res 4\
+  printf("\n          usage:    daisy poly_orbit asc_master.res 4\
           \n                 or\
-          \n                    ps_poly_orbit dsc_master.res 4\
+          \n                    daisy poly_orbit dsc_master.res 4\
           \n\n          asc_master.res or dsc_master.res - input files\
           \n          4                                - degree     \n\
           \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");    
@@ -1157,127 +1156,10 @@ return(0);
   fclose(lo);
 
   printf("\n\n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-          \n +             end          ps_poly_orbit                +\
+          \n +                     END POLY_ORBIT                      +\
           \n +++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");    
      
 }  // end poly_orbit
-
-static int zero_select(int argc, char *argv[])
-{
-   int n=0,nz=0,nt=0;
-   
-   char *inp;    // input file
-   char *out1;   // output file
-   char *out2;   // output file
-
-   char *buf;                       
-   char *log="zero_select.log";  
-
-   FILE *in, *ou1, *ou2, *lo;     
-
-   float zch;
-   float la,fi,he, ve,vu;
-   
-    printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-            \n +                   ds_zero_select                   +\
-            \n +  select integrated DSs with nearly zero velocity   +\
-            \n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-
-//  printf("argc: %d\n",argc);  
-//  printf("%s\n",argv[0]);
-//  printf("%s\n",argv[1]);  
-//  printf("%s\n",argv[2]);    
-
-    if(argc-Minarg<2)
-   {
-    printf("\n     usage:   ds_zero_select integrate.xyi 0.6 \n\
-            \n            integrate.xyi  -  integrated data file\
-            \n            0.6 (mm/year)  -  zero data criteria\n\
-            \n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");    
-    exit(1);
-   }
-
-  if (( inp = (char *) malloc(80 * sizeof(char)) ) == NULL)
-  { error("\nNot enough memory to allocate INP\n");  exit(1); }
-  if (( out1 = (char *) malloc(80 * sizeof(char)) ) == NULL)
-  { error("\nNot enough memory to allocate OUT\n");  exit(1); }
-  if (( out2 = (char *) malloc(80 * sizeof(char)) ) == NULL)
-  { error("\nNot enough memory to allocate OUT\n");  exit(1); }
-  if (( buf = (char *) malloc(80 * sizeof(char)) ) == NULL)
-  { error("\nNot enough memory to allocate buf\n");  exit(1); }
-  
-//   sprintf(out1,"%s%s",argv[1],".0ref");  // DSs smaller than criteria
-//   sprintf(out2,"%s%s",argv[1],".0trg");  // DSs target
-
-      sprintf(out1,"%s",argv[1]);  // DSs smaller than criteria
-      sprintf(out2,"%s",argv[1]);  // DSs target
-   change_ext(out1,"0ref");
-   change_ext(out2,"0trg");
-
-   sscanf(argv[2],"%f",&zch);
-
-  if( (lo = fopen(log,"w+t")) == NULL )
-  { error("\n LOG data file not found !\n"); exit(1); }
-
-   fprintf(lo,"\n %s %s %s\n",argv[0],argv[1],argv[2]);
-   
-   printf("\n    input: %s"  ,argv[1]);
-   printf("\n   output: %s\n           %s\n",out1,out2);      
-   printf("\n   zero DSs < |%3.1f| mm/year\n",zch); 
-
-   fprintf(lo,"\n    input: %s"  ,argv[1]);
-   fprintf(lo,"\n   output: %s\n           %s\n",out1,out2);      
-   fprintf(lo,"\n   zero DSs < |%3.1f| mm/year\n",zch); 
-
-  if( (in = fopen(argv[1],"rt")) == NULL )
-  { errorln("\n %s data file not found !",argv[1]); exit(1); }
-  if( (ou1 = fopen(out1,"w+t")) == NULL )
-  { error("\n OUT1 data file not found !\n"); exit(1); }
-  if( (ou2 = fopen(out2,"w+t")) == NULL )
-  { error("\n OUT2 data file not found !\n"); exit(1); }
-    
-//---------------------------------------------------------------
-     
-   while( fscanf(in,"%f %f %f %f %f",&la,&fi,&he,&ve,&vu) >0 )
-  { 
-
-      if( sqrt(ve*ve+vu*vu) <= zch )
-     {
-        fprintf(ou1,"%16.7e %15.7e %9.3f %7.3f %7.3f\n",la,fi,he,ve,vu);        
-        nz++;
-
-  
-      }
-      else 
-     {
-       fprintf(ou2,"%16.7e %15.7e %9.3f %7.3f %7.3f\n",la,fi,he,ve,vu);  
-       nt++;
-     }
-      n++; if((n%1000)==0) printf("\n %6d ...",n); 
-  } 
-      printf("\n %6d\n",n); 
-  
-         printf("\n   zero dominant DSs %6d\n        target   DSs %6d\n",nz,nt);
-
-      printf("\n Records of output files:\n"); 
-      printf("\n longitude latitude  height  ew_v   up_v"); 
-      printf("\n (     degree          m       mm/year )\n");  
-
-     fprintf(lo,"\n   zero dominant DSs %6d\n        target   DSs %6d\n",nz,nt); 
-
-     fprintf(lo,"\n Records of output files:\n"); 
-     fprintf(lo,"\n longitude latitude  height  ew_v   up_v"); 
-     fprintf(lo,"\n (     degree          m       mm/year )\n\n");  
-
-
-//----------------------------------------------------------------------
-    printf("\n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\
-            \n +              end    ds_zero_select                 +\
-            \n ++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n");    
-
-return(0);
-
-}  // end zero_select 
 
 /*****************
  * Main function *
@@ -1285,12 +1167,9 @@ return(0);
 
 int main(int argc, char **argv)
 {
-    int ret;
-    
     if (argc < 2) {
-        error("At least one argument (module name) is required.\
-               \nModules to choose from: data_select, dominant, poly_orbit,\
-               \nintegrate, zero_select.\n");
+        errorln("At least one argument (module name) is required.\
+                 \nModules to choose from: %s.", Modules);
         return(-1);
     }
     
@@ -1306,12 +1185,9 @@ int main(int argc, char **argv)
     else if(Str_Select("integrate"))
         return integrate(argc, argv);
 
-    else if(Str_Select("zero_select"))
-        return zero_select(argc, argv);
     else {
         errorln("Unrecognized module: %s", argv[1]);
-        error("Modules to choose from: data_select, dominant, poly_orbit, "
-              "integrate, zero_select.\n");
+        errorln("Modules to choose from: %s.", Modules);
         return(-1);
     }
 }

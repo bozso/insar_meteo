@@ -23,12 +23,14 @@ class Plotter(object):
         cv = Canvas(width=width, height=height, bg=bg)
         cv.pack()
         
+        # create x and y axis
         cv.create_line(x0, y0, width - xpad, y0, width=ax_width)
         cv.create_line(x0, ypad, x0, y0, width=ax_width)
         
         x_range = float(ax_lim[1] - ax_lim[0])
         y_range = float(ax_lim[3] - ax_lim[2])
         
+        # conversion between real and canvas coordinates
         xratio = (width  - 2 * xpad) / x_range
         yratio = (height - 2 * ypad) / y_range
         
@@ -40,6 +42,7 @@ class Plotter(object):
             dx_cv   = (width - 2 * xpad) / float(xticks)
             x0_real = ax_lim[0]
             
+            # convert real coordinates to canvas coordinates
             for ii in range(xticks):
                 x = x0 + ii * dx_cv
                 xx = x0_real + ii * dx_real
@@ -48,6 +51,7 @@ class Plotter(object):
         else:
             nticks = len(xticks)
 
+            # convert real coordinates to canvas coordinates
             for ii in range(nticks):
                 xx = xticks[ii]
                 x = width - xpad - xratio * (ax_lim[1] - xx)
@@ -60,6 +64,7 @@ class Plotter(object):
             dy_cv   = (height - 2 * ypad) / float(yticks)
             y0_real = ax_lim[2]
             
+            # convert real coordinates to canvas coordinates
             for ii in range(yticks):
                 y = y0 - ii * dy_cv
                 yy = y0_real + ii * dy_real
@@ -69,6 +74,7 @@ class Plotter(object):
             nticks = len(yticks)
             ratio = (height - 2 * ypad) / y_range
 
+            # convert real coordinates to canvas coordinates
             for ii in range(nticks):
                 yy = yticks[ii]
                 y = ypad + yratio * (ax_lim[3] - yy)
@@ -87,6 +93,13 @@ class Plotter(object):
         del self.ax_lim
         del self.cv
     
+    def xlabel(self, xlabel, off=5, font="Arial 10 bold"):
+        self.cv.create_text(self.width / 2, self.height - self.ypad / 2 + off,
+                            text=xlabel, font=font)
+    
+    def ylabel(self, ylabel, off=5, font="Arial 10 bold"):
+        self.cv.create_text(off, self.height / 2, text=ylabel, font=font)
+    
     def plot_data(self, x, y, lines=False, line_fill="black",
                   point_fill="SkyBlue2", point_size=6, point_width=2,
                   line_width=2):
@@ -98,15 +111,16 @@ class Plotter(object):
         
         cv = self.cv
         
+        # convert real coordinates to canvas coordinates
         scaled = [(width - xpad - xratio * (ax_lim[1] - xx),
                    ypad + yratio * (ax_lim[3] - yy))
                    for (xx, yy) in zip(x, y)]
         
+        # connect dots with lines
         if lines:
             cv.create_line(scaled, fill=line_fill, width=line_width)
         
         for (x, y) in scaled:
-            print(x, y)
             cv.create_oval(x - point_size, y - point_size,
                            x + point_size, y + point_size,
                            outline="black", fill=point_fill,
@@ -114,6 +128,7 @@ class Plotter(object):
                             
         
     def save_ps(self, outfile, font="Arial", fontsize=12):
+        """ Does not work for some reason """
         ps = self.cv.postscript(fontmap="{} {}".format(font, fontsize))
         
         with open(outfile, 'w') as f:

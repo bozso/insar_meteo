@@ -18,7 +18,7 @@
 #define Log printf("%s\t%d\n", __FILE__, __LINE__)
 
 #define Str_IsEqual(string1, string2) (strcmp((string1), (string2)) == 0)
-#define Str_Select(string) Str_IsEqual(argv[1], string)
+#define Module_Select(string) Str_IsEqual(argv[1], string)
 
 #define R 6372000      // radius of Earth
 #define C 57.295779513 // 180/pi
@@ -1173,16 +1173,16 @@ int main(int argc, char **argv)
         return(-1);
     }
     
-    if (Str_Select("data_select"))
+    if (Module_Select("data_select"))
         return data_select(argc, argv);
     
-    else if(Str_Select("dominant"))
+    else if(Module_Select("dominant"))
         return dominant(argc, argv);
     
-    else if(Str_Select("poly_orbit"))
+    else if(Module_Select("poly_orbit"))
         return poly_orbit(argc, argv);
     
-    else if(Str_Select("integrate"))
+    else if(Module_Select("integrate"))
         return integrate(argc, argv);
 
     else {

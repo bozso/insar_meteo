@@ -6,7 +6,7 @@ except ImportError:
 
 class Plotter(object):
     def __init__(self, root, ax_lim, width=450, height=350, bg="white",
-                 xticks=10, yticks=10, xpad=50, ypad=50, ax_width=2,
+                 xticks=10, yticks=10, xpad=80, ypad=50, ax_width=2,
                  xlabel=None, ylabel=None, form="{:3.2f}",
                  font="Helvetica 12", ticksize=5, xoff=10, yoff=20):
     
@@ -97,12 +97,17 @@ class Plotter(object):
         self.cv.create_text(self.width / 2, self.height - self.ypad / 2 + off,
                             text=xlabel, font=font)
     
-    def ylabel(self, ylabel, off=5, font="Arial 10 bold"):
-        self.cv.create_text(off, self.height / 2, text=ylabel, font=font)
+    def ylabel(self, ylabel, off=20, font="Arial 10 bold"):
+        self.cv.create_text(self.xpad / 2 - off, self.height / 2,
+                            text=ylabel, font=font, angle=90)
     
     def plot_data(self, x, y, lines=False, line_fill="black",
                   point_fill="SkyBlue2", point_size=6, point_width=2,
                   line_width=2):
+        
+        if len(x) != len(y):
+            raise ValueError("Input data must have the same number "
+                             "of elements!")
         
         width, height = self.width, self.height
         xratio, yratio = self.xratio, self.yratio
@@ -114,18 +119,17 @@ class Plotter(object):
         # convert real coordinates to canvas coordinates
         scaled = [(width - xpad - xratio * (ax_lim[1] - xx),
                    ypad + yratio * (ax_lim[3] - yy))
-                   for (xx, yy) in zip(x, y)]
+                   for xx, yy in zip(x, y)]
         
         # connect dots with lines
         if lines:
             cv.create_line(scaled, fill=line_fill, width=line_width)
         
-        for (x, y) in scaled:
+        for x, y in scaled:
             cv.create_oval(x - point_size, y - point_size,
                            x + point_size, y + point_size,
                            outline="black", fill=point_fill,
                            width=point_width)
-                            
         
     def save_ps(self, outfile, font="Arial", fontsize=12):
         """ Does not work for some reason """

@@ -7,7 +7,6 @@
  *     - argv[0] is the executable name
  *     - argv[1] is the module name
  */
-#define Min_Arg 2
 
 //----------------------------------------------------------------------
 // WGS-84 ELLIPSOID PARAMETERS
@@ -69,7 +68,7 @@
 //----------------------------------------------------------------------
 
 #define Str_IsEqual(string1, string2) (strcmp((string1), (string2)) == 0)
-#define Str_Select(string) Str_IsEqual(argv[1], string)
+#define Module_Select(string) Str_IsEqual(argv[1], string)
 
 //----------------------------------------------------------------------
 // ALLOCATION MACROS
@@ -101,10 +100,10 @@
 // IO MACROS
 //----------------------------------------------------------------------
 
-#define error(format, ...) fprintf(stderr, format, __VA_ARGS__)
-#define errorln(format, ...) fprintf(stderr, format"\n", __VA_ARGS__)
+#define error(string) fprintf(stderr, string)
+#define errorln(format, ...) fprintf(stderr, format "\n", __VA_ARGS__)
 
-#define println(format, ...) printf(format"\n", __VA_ARGS__)
+#define println(format, ...) printf(format "\n", __VA_ARGS__)
 
 #define Log printf("%s\t%d\n", __FILE__, __LINE__)
 

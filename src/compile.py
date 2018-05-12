@@ -14,15 +14,9 @@ def main():
     ccomp.compile(c_file, extra_postargs=flags)
     
     ccomp.link_executable([c_basename + ".o"],
-                          c_basename,
+                          pjoin("..", "bin", c_basename),
                           libraries=libs,
                           extra_postargs=flags)
     
-    dest = pjoin("..", "bin", "daisy")
-    
-    # remove prevoius executable
-    if isfile(dest): remove(dest)
-    move(c_basename, dest)
-
 if __name__ == "__main__":
     main()

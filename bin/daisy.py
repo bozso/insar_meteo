@@ -3,6 +3,7 @@
 import argparse
 from subprocess import call, STDOUT, CalledProcessError
 from shlex import split
+import aux.satorbit as so
 
 _steps = ["data_select", "dominant", "poly_orbit", "integrate"]
 
@@ -129,6 +130,10 @@ def parse_steps(args):
         return first, last
         
 def main():
+    
+    #so.fit_orbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res",
+    #             "doris", "test.fit")
+    print(so.load_fit("test.fit")[5]); return
     
     args = parse_args()
     

@@ -2,15 +2,15 @@ import numpy as np
 import os.path as pth
 import pickle as pk
 
-from gnuplot import Gnuplot
+from aux.gnuplot import Gnuplot
 import aux.insar_aux as ina
 
-def fit_orbit(path, preproc, savefile, is_centered=True, deg=3):
+def fit_orbit(path, preproc, savefile, centered=True, deg=3):
     
-    time, coords, data_num = read_orbits(filepath, preproc=preproc)
+    time, coords, data_num = read_orbits(path, preproc=preproc)
     
-    t_start = t[0]
-    t_stop  = t[-1]
+    t_start = time[0]
+    t_stop  = time[-1]
     
     if centered:
         mean_t = np.mean(time)
@@ -23,7 +23,16 @@ def fit_orbit(path, preproc, savefile, is_centered=True, deg=3):
         to_fit = coords
         cent = "centered:\t0\n"
     
-    coeffs = np.asarray(np.polyfit(time, to_fit[:,ii], deg) for ii in range(3))
+    design = np.vander(time, deg + 1)
+    
+    # coeffs[0]: polynom coeffcients are in the columns
+    # coeffs[1]: residuals
+    # coeffs[2]: rank of design matrix
+    # coeffs[3]: singular values of design matrix
+    try:
+        coeffs = np.linalg.lstsq(design, to_fit, rcond=None)
+    except LinAlgError:
+        print("Something went wrong in the fitting of the orbit polynom.")
     
     with open(savefile, "w") as f:
         f.write(cent)
@@ -31,10 +40,15 @@ def fit_orbit(path, preproc, savefile, is_centered=True, deg=3):
         f.write("t_start:\t{}\n".format(t_start))
         f.write("t_stop:\t{}\n".format(t_stop))
         f.write("deg:\t{}\n".format(deg))
-
+        
+        f.write("(x, y, z) residuals: ({})\n"
+                .format(", ".join(str(elem) for elem in coeffs[1].astype(str))))
+        
+        f.write("\nCoeffcients are written in a single line from highest to\
+                \nlowest power. First for x than for y and finally for z.\n\n")
         f.write("coefficients:\t{}\n"
-                .format(' '.join(str(elem) for elem in coeff
-                                           for coeff in coeffs)))
+                .format(" ".join(str(elem)
+                            for elem in coeffs[0].T.reshape(-1).astype(str))))
         
         if centered:
             f.write("mean_time:\t{}\n".format(mean_t))
@@ -127,8 +141,8 @@ def read_orbits(path, preproc="gamma"):
         
         data = np.fromstring(''.join(lines[idx + 1:idx + data_num + 1]),
                              count=data_num * 4, dtype=np.double, sep=" ")\
-                             .reshape((data_num, 4)),
-        
+                             .reshape((data_num, 4))
+
         return  data[:,0], data[:,1:], data_num
     
     elif preproc == "gamma":
@@ -179,14 +193,15 @@ def get_par(parameter, search):
 
 def load_fit(fit_file):
     with open(fit_file, "r") as f:
-        poly = {line.split(':')[0]: line.split(':')[1].strip() for line in f}
+        poly = {line.split(":")[0]: line.split(':')[1].strip()
+                for line in f if ":" in line}
     
-    is_centered = int(poly['centered'])
-    deg = int(poly['deg'])
-
+    is_centered = int(poly["centered"])
+    deg = int(poly["deg"])
+    
     if is_centered:
-        mean_coords = np.array(poly['mean_coords'])
-        t_mean      = float(poly['mean_time'])
+        mean_coords = np.genfromtxt(poly["mean_coords"].split(), dtype=np.double)
+        t_mean      = float(poly["mean_time"])
     else:
         mean_coords = [0.0, 0.0, 0.0]
         t_mean      = 0.0
@@ -194,7 +209,8 @@ def load_fit(fit_file):
     t_start = float(poly["t_start"])
     t_stop  = float(poly["t_stop"])
     
-    coeffs = np.array([float(num) for num in poly['coefficients'].split()])
+    coeffs = np.genfromtxt(poly["coefficients"].split(), dtype=np.double)\
+                           .reshape(3, deg + 1)
     
     return is_centered, mean_coords, t_mean, t_start, t_stop, coeffs, deg
     

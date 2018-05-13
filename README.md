@@ -7,5 +7,5 @@ vapour monitoring. At the moment this is still in its infancy.
 
 The repository now mainly holds programs written in Python and C (both pure
 C, i.e. binary callable from the command line: `daisy.c` and C Python-extension
-that is callable from python: `insar_auxmodule.c`) that are will form the basis
+that is callable from python: `insar_auxmodule.c`) that will form the basis
 for my future programs.

@@ -131,9 +131,10 @@ def parse_steps(args):
         
 def main():
     
-    #so.fit_orbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res",
-    #             "doris", "test.fit")
-    print(so.load_fit("test.fit")[5]); return
+    orbit_file = "/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res"
+    
+    so.fit_orbit(orbit_file, "doris", "test.fit")
+    so.plot_poly("test.fit", orbit_file, "doris", "fit_orbit.ps"); return
     
     args = parse_args()
     

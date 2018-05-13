@@ -1,13 +1,12 @@
 import numpy as np
 import os.path as pth
-import pickle as pk
 
-from aux.gnuplot import Gnuplot
 import aux.insar_aux as ina
+from aux.gmt import GMT
 
-def fit_orbit(path, preproc, savefile, centered=True, deg=3):
+def fit_orbit(orbit_file, preproc, savefile, centered=True, deg=3):
     
-    time, coords, data_num = read_orbits(path, preproc=preproc)
+    time, coords, data_num = read_orbits(orbit_file, preproc=preproc)
     
     t_start = time[0]
     t_stop  = time[-1]
@@ -64,14 +63,18 @@ def azi_inc(fit_file, coords, is_lonlat=True, max_iter=1000):
     return ina.azi_inc(coeffs, t_start, t_stop, t_mean, mean_coords,
                        is_centered, deg, coords, max_iter, is_lonlat)
 
-def plot_poly(self, plotfile, nsamp=100):
+def plot_poly(fit_file, orbit_file, processor, plotfile, nsamp=100):
     
     is_centered, mean_coords, t_mean, t_start, t_stop, coeffs, deg = \
                                                             load_fit(fit_file)
     
+    t, coords, _ = read_orbits(orbit_file, preproc=processor)
+    
+    coords = np.hstack([t[:,None], coords])
+    
     time = np.linspace(t_start, t_stop, nsamp)
     
-    if self.is_centered:
+    if is_centered:
         time_cent = time - t_mean
         
         poly = np.asarray([np.polyval(coeffs[ii,:], time_cent)
@@ -81,39 +84,20 @@ def plot_poly(self, plotfile, nsamp=100):
         poly = np.asarray([np.polyval(coeffs[ii,:], time)
                            for ii in range(3)]).T
     
-    gpt = Gnuplot(out=plotfile, term="pngcairo font ',10'")
+    x_range, y_range, z_range = \
+                            (min(poly[:,0]), max(poly[:,0])),\
+                            (min(poly[:,1]), max(poly[:,1])),\
+                            (min(poly[:,2]), max(poly[:,2]))
     
-    fit = gpt.list2str(time, poly / 1e3)
-    coords = gpt.list2str(self.time, self.coords)
+    gmt = GMT(plotfile, R=(t_start, t_stop, x_range[0], x_range[1]),
+                        J="x2i", portrait=True, debug=True)
     
-    gpt.axis_format("x", "")
-    gpt("set lmargin 10")
-    gpt("set bmargin 3")
-    gpt("set tics font ',8'")
+    xx, yy = gmt.multiplot(3, nrows=3)
     
-    gpt.multiplot((3,1), title=f"Fit of orbital vectors - degree of "
-                               f"polynom: {deg_poly}")
+    gmt.psbasemap(Bx="a10g10", By="a1e4g1e4")
+    gmt.psxy(data=coords[:,[0,1]], byte_swap=True)
     
-    gpt.ylabel("X [km]")
-    gpt("plot '-' using 1:($2 / 1e3) title 'Orbital coordinates' pt 7, "
-             "'-' using 1:2 title 'Fitted polynom' with lines")
-    gpt(coords)
-    gpt(fit)
-    
-    gpt.ylabel("Y [km]")
-    gpt("plot '-' using 1:($3 / 1e3) notitle pt 7, "
-            " '-' using 1:3 notitle with lines")
-    gpt(coords)
-    gpt(fit)
-    
-    gpt("set format x")
-    gpt.labels(x="Time [s]", y="Z [km]")
-    gpt("plot '-' using 1:($4 / 1e3) notitle pt 7, "
-            " '-' using 1:4 notitle with lines")
-    gpt(coords)
-    gpt(fit)
-    
-    del gpt
+    del gmt
 
 def str2orbit(line):
     line_split = line.split()
@@ -139,7 +123,7 @@ def read_orbits(path, preproc="gamma"):
         idx = data_num[0][0]
         data_num = int(data_num[0][1].split(":")[1])
         
-        data = np.fromstring(''.join(lines[idx + 1:idx + data_num + 1]),
+        data = np.fromstring("".join(lines[idx + 1:idx + data_num + 1]),
                              count=data_num * 4, dtype=np.double, sep=" ")\
                              .reshape((data_num, 4))
 

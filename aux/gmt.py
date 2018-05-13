@@ -102,7 +102,17 @@ class GMT(object):
     
     def multiplot(self, nplots, nrows=None, top=10, bottom=10,
                   left=10, right=10):
-        
+        """
+             |       top           |    
+        --------------------------------
+          l  |                     |  r
+          e  |                     |  i
+          f  |                     |  g
+          t  |                     |  h
+             |                     |  t
+        --------------------------------
+             |       bottom        |
+        """
         if nrows is None:
             nrows = ceil(sqrt(nplots) - 1)
             nrows = max([1, nrows])
@@ -123,8 +133,6 @@ class GMT(object):
         else:
             height, width = _gmt_paper_sizes[paper]
         
-        print(width, height)
-        
         # width and height available for plotting
         awidth, aheight = width - (left + right), height - (top + bottom)
         
@@ -139,11 +147,11 @@ class GMT(object):
                           for jj in range(ncols)
                           for ii in range(nrows))
         
-        print(nrows, ncols)
-        
         return list(x), list(y)
 
-    def _gmtcmd(self, gmt_exec, data=None, palette=None, outfile=None, **flags):
+    def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, palette=None,
+                      outfile=None, binary=None, **flags):
+
         if data is not None:
             if isinstance(data, string_types) and pth.isfile(data):
             # data is a path to a file
@@ -151,7 +159,15 @@ class GMT(object):
                 data = None
             elif isinstance(data, np.ndarray):
             # data is a numpy array
-                gmt_flags = "-bi{}dw ".format(data.shape[1])
+                if byte_swap:
+                    byte_swap = "w"
+                else:
+                    byte_swap = ""
+                
+                if binary is None:
+                    gmt_flags = "-bi{}d{} ".format(data.shape[1], byte_swap)
+                else:
+                    gmt_flags = "-bi{}{} ".format(binary, byte_swap)
                 data = data.tobytes()
             else:
                 raise ValueError("`data` is not a path to an existing file "

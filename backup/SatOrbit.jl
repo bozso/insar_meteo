@@ -1,7 +1,6 @@
 #!/usr/bin/env julia
 
 module SatOrbit
-using Solvers
 
 export read_orbits, fit_orbit
 
@@ -71,11 +70,9 @@ function fit_orbit(path::AbstractString, preproc::AbstractString, deg=3::Int,
 
     design[:,1:end-2] = collect(v^p for v in time, p in deg:-1:2)
     
-    println(size(design), size(coords.'))
+    @show size(design), size(coords.')
     
-    @show lsmr(A, b);
-    
-    #println(fit)
+    @show fit = design \ coords.'
     
     return
 end

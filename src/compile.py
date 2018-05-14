@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from os.path import join as pjoin, isfile
 from os import remove
 from shutil import move

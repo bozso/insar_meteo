@@ -3,7 +3,10 @@
 import argparse
 from subprocess import call, STDOUT, CalledProcessError
 from shlex import split
+from tkinter import *
+
 import aux.satorbit as so
+from aux.tkplot import Plotter
 
 _steps = ["data_select", "dominant", "poly_orbit", "integrate"]
 
@@ -130,6 +133,15 @@ def parse_steps(args):
         return first, last
         
 def main():
+    
+    root = Tk()
+    plt = Plotter(root, [0.0, 1.0, -5.0, 6.0])
+    
+    plt.save_ps("test.ps")
+    
+    root.mainloop()
+    
+    return
     
     orbit_file = "/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res"
     

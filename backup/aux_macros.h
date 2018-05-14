@@ -45,7 +45,6 @@
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); (ii)++)
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
-
 /*----------------------------------------------------------------------
  * Documentation and argument number checking
  *---------------------------------------------------------------------- */

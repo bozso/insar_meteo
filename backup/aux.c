@@ -1,12 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tgmath.h>
-#include <aux_module.h>
-#include <aux_macros.h>
+#include "aux_macros.h"
 
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_matrix.h>
+typedef unsigned int uint;
+
+//-----------------------------------------------------------------------------
+// STRUCTS
+//-----------------------------------------------------------------------------
+
+typedef struct { float lon, lat;  } psxy;
+typedef struct { int ni; float lon, lat, he, ve; } psxys;
+typedef struct { double x, y, z, lat, lon, h; } station; // [m,rad]
+
+typedef struct { double x, y, z; } cart; // Cartesian coordinates
+typedef struct { double lon, lat, h; } llh; // Cartesian coordinates
+
+typedef struct {
+    uint is_centered, deg;
+    double * coeffs, *mean_coords;
+    double t_start, t_stop, t_mean;
+} orbit_fit;
 
 /* Extended malloc function */
 void * malloc_or_exit(size_t nbytes, const char * file, int line)
@@ -14,8 +28,8 @@ void * malloc_or_exit(size_t nbytes, const char * file, int line)
     void *x;
 	
     if ((x = malloc(nbytes)) == NULL) {
-        error("%s:line %d: malloc() of %zu bytes failed\n",
-              file, line, nbytes);
+        errorln("%s:line %d: malloc() of %zu bytes failed",
+                file, line, nbytes);
         exit(Err_Alloc);
     }
     else
@@ -28,7 +42,7 @@ FILE * sfopen(const char * path, const char * mode)
     FILE * file = fopen(path, mode);
 
     if (!file) {
-        error("Error opening file: \"%s\". ", path);
+        errorln("Error opening file: \"%s\". ", path);
         perror("fopen");
         exit(Err_Io);
     }
@@ -39,7 +53,7 @@ void ell_cart (const llh *lonlat, cart * coord)
 {
     // from ellipsoidal to cartesian coordinates
 
-    double lat, lon, n;
+    double lat, lon, h, n;
 
     lat = lonlat->lat;
     lon = lonlat->lon;
@@ -107,7 +121,7 @@ void calc_pos(const orbit_fit * orb, double time, cart * pos)
     const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
     
     if (is_centered)
-        time -= orb->mean_t;
+        time -= orb->t_mean;
     
     if(n_poly == 2) {
         x = coeffs[0] * time + coeffs[1];
@@ -148,7 +162,7 @@ double dot_product(const orbit_fit * orb, const cart * coord, double time)
     const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
     
     if (orb->is_centered)
-        time -= orb->mean_t;
+        time -= orb->t_mean;
     
     // linear case 
     if(n_poly == 2) {
@@ -209,8 +223,8 @@ void closest_appr(const orbit_fit * orb, const cart * coord,
     // compute the sat position using closest approache
     
     // first, last and middle time
-    double t_start = orb->start_t - 5.0,
-           t_stop  = orb->stop_t + 5.0,
+    double t_start = orb->t_start - 5.0,
+           t_stop  = orb->t_stop + 5.0,
            t_middle; 
     
     printf("Start time: %lf, Stop time: %lf  ", t_start, t_stop);
@@ -226,7 +240,7 @@ void closest_appr(const orbit_fit * orb, const cart * coord,
     while( fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
         t_middle = (t_start + t_stop) / 2.0;
 
-        dot_middle = dot_product(orb, X, Y, Z, t_middle);
+        dot_middle = dot_product(orb, coord, t_middle);
         
         // change start for middle
         if ((dot_start * dot_middle) > 0.0) {
@@ -247,11 +261,20 @@ void closest_appr(const orbit_fit * orb, const cart * coord,
            sat_pos->z / 1e3);
 } // end closest_appr
 
-void azi_inc(const orbit_fit * orbit, const cart * coords, uint ndata,
-             double *azimuths, double *inclinations)
+void azi_inc(double t_start, double t_stop, double t_mean)
+//             double * coeffs, double * coords, double * mean_coords,
+//             uint is_centered, uint deg, uint max_iter, uint is_lonlat)
 {
     // topocentric parameters in PS local system
-    double xf, yf, zf, xl, yl, zl, t0, lon, lat, azi, inc;
+    // double xf, yf, zf, xl, yl, zl, t0, lon, lat, azi, inc;
+    
+    println("%lf %lf %lf\n", t_start, t_stop, t_mean);
+    
+    //return;
+    /*
+    const orbit_fit orbit;
+    
+    orbit.t_start = t_start
     
     cart sat;
     const cart *coord;
@@ -300,6 +323,7 @@ void azi_inc(const orbit_fit * orbit, const cart * coords, uint ndata,
         azimuths[ii] = azi;
         inclinations[ii] = inc;
     }
+    * */
 }
 
 /*
@@ -318,6 +342,7 @@ void poly_sat_vel(double *vx, double *vy, double *vz, const double time,
 }
 */
 
+/*
 int fit_orbit(const torb * orbits, const uint ndata, const uint deg,
               const uint is_centered, const char * outfile)
 {
@@ -410,7 +435,7 @@ int fit_orbit(const torb * orbits, const uint ndata, const uint deg,
     return status;
 }
 // end fit_orbit
-
+*/
 void axd(const double  a1, const double  a2, const double  a3,
          const double  d1, const double  d2, const double  d3,
          double *n1, double *n2, double *n3)

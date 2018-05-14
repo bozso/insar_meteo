@@ -1,3 +1,3 @@
 #!/usr/bin/env julia
 
-run(`gcc aux.c -o libaux.so -fPIC -shared -Wall -Werror`)
+run(`gcc insar.c -o libinsar.so -fPIC -shared -Wall -Werror`)

@@ -3,7 +3,16 @@
 #include <tgmath.h>
 #include "aux_macros.h"
 
+/* Iterating over array   
+ * for(uint ii = 0; ii < ncols; ii++)
+ *      for(uint jj = 0; jj < nrows; jj++)
+ *          data[ii * nrows + jj] = ...;
+ */
+
+#define Idx(ii, jj, nrows) (ii) * (nrows) + (jj)
+
 typedef unsigned int uint;
+typedef const double cdouble;
 
 //-----------------------------------------------------------------------------
 // STRUCTS
@@ -261,14 +270,15 @@ void closest_appr(const orbit_fit * orb, const cart * coord,
            sat_pos->z / 1e3);
 } // end closest_appr
 
-void azi_inc(double t_start, double t_stop, double t_mean)
-//             double * coeffs, double * coords, double * mean_coords,
-//             uint is_centered, uint deg, uint max_iter, uint is_lonlat)
+void azi_inc(cdouble t_start, cdouble t_stop, cdouble t_mean,
+             cdouble * coeffs, cdouble * coords, cdouble * mean_coords,
+             double * azi_inc, uint ndata, uint is_centered, uint deg,
+             uint max_iter, uint is_lonlat)
 {
     // topocentric parameters in PS local system
     // double xf, yf, zf, xl, yl, zl, t0, lon, lat, azi, inc;
     
-    println("%lf %lf %lf\n", t_start, t_stop, t_mean);
+    println("%lf %lf %lf\n", coeffs[0], coeffs[1], coeffs[2]);
     
     //return;
     /*
@@ -445,3 +455,11 @@ void axd(const double  a1, const double  a2, const double  a3,
    *n2 = a3 * d1 - a1 * d3;
    *n3 = a1 * d2 - a2 * d1;
 }
+
+void testfun(double * data, uint nrows, uint ncols)
+{
+    for(uint ii = 0; ii < ncols; ii++)
+        for(uint jj = 0; jj < nrows; jj++)
+        data[ii * nrows + jj] = ii;
+}
+

@@ -3,8 +3,12 @@
 using SatOrbit
 
 function main()
-    ccall((:azi_inc, "libaux"), Void, (Cdouble, Cdouble, Cdouble), 0.0, 1.0, 2.0)
-    return
+    
+    a = Array{Float64, 2}(5, 4)
+    
+    ccall((:testfun, "libinsar"), Void, (Ptr{Cdouble}, Cuint, Cuint), a, 5, 4)
+    
+    println(a); return
     
     orbit_file = joinpath(homedir(), "progs", "insar_meteo", "daisy_test_data",
                           "asc_master.res")

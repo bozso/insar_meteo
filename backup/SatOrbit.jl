@@ -77,4 +77,16 @@ function fit_orbit(path::AbstractString, preproc::AbstractString, deg=3::Int,
     return
 end
 
+#=
+function azi_inc()
+    
+    inarg = (Cdouble, Cdouble, Cdouble, Ptr{Cdouble}, Ptr{Cdouble},
+             Ptr{Cdouble}, Ptr{Cdouble}, Cuint, Cuint, Cuint, Cuint, Cuint)
+    ndata = 
+    ret = Array{Float64, 2}(ndata, 2)
+    
+    ccall((:azi_inc, "libinsar"), Void, inarg, 0.0, 1.0, 2.0, a, b, c)
+
+end
+=#
 end

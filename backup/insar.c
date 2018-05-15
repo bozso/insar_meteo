@@ -4,9 +4,9 @@
 #include "aux_macros.h"
 
 /* Iterating over array   
- * for(uint ii = 0; ii < ncols; ii++)
- *      for(uint jj = 0; jj < nrows; jj++)
- *          data[ii * nrows + jj] = ...;
+ * for(uint jj = 0; jj < ncols; jj++)
+ *      for(uint ii = 0; ii < nrows; ii++)
+ *          data[jj * nrows + ii] = ...;
  */
 
 #define Idx(ii, jj, nrows) (ii) * (nrows) + (jj)
@@ -32,7 +32,7 @@ typedef struct {
 } orbit_fit;
 
 /* Extended malloc function */
-void * malloc_or_exit(size_t nbytes, const char * file, int line)
+static void * malloc_or_exit(size_t nbytes, const char * file, int line)
 {	
     void *x;
 	
@@ -46,7 +46,7 @@ void * malloc_or_exit(size_t nbytes, const char * file, int line)
 }
 
 /* Safely open files. */
-FILE * sfopen(const char * path, const char * mode)
+static FILE * sfopen(const char * path, const char * mode)
 {
     FILE * file = fopen(path, mode);
 
@@ -58,7 +58,7 @@ FILE * sfopen(const char * path, const char * mode)
     return file;
 }
 
-void ell_cart (const llh *lonlat, cart * coord)
+static void ell_cart (const llh *lonlat, cart * coord)
 {
     // from ellipsoidal to cartesian coordinates
 
@@ -76,7 +76,7 @@ void ell_cart (const llh *lonlat, cart * coord)
 }
 // end of ell_cart
 
-void cart_ell (const cart * coord, llh * lonlat)
+static void cart_ell (const cart * coord, llh * lonlat)
 {
     // from cartesian to ellipsoidal coordinates
 
@@ -100,19 +100,7 @@ void cart_ell (const cart * coord, llh * lonlat)
 }
 // end of cart_ell
 
-void change_ext (char *name, char *ext)
-{
-    // change the extent of name for ext
-
-    int  ii = 0;
-    while( name[ii] != '.' && name[ii] != '\0') ii++;
-    name[ii] ='\0';
-
-    sprintf(name, "%s.%s", name, ext);
-}
-// end change_ext
-
-double norm(double x, double y, double z)
+static double norm(cdouble x, cdouble y, cdouble z)
 {
     return sqrt(x * x + y * y + z * z);
 }
@@ -122,7 +110,7 @@ double norm(double x, double y, double z)
  * calculation.
  * --------------------------------------------------------------------------*/
 
-void calc_pos(const orbit_fit * orb, double time, cart * pos)
+static void calc_pos(const orbit_fit * orb, double time, cart * pos)
 {
     uint n_poly = orb->deg + 1, is_centered = orb->is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
@@ -162,7 +150,8 @@ void calc_pos(const orbit_fit * orb, double time, cart * pos)
     pos->x = x; pos->y = y; pos->z = z;
 } // calc_pos
 
-double dot_product(const orbit_fit * orb, const cart * coord, double time)
+static double dot_product(const orbit_fit * orb, const cart * coord,
+                          double time)
 {
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
@@ -226,8 +215,8 @@ double dot_product(const orbit_fit * orb, const cart * coord, double time)
     return(vel_x * dx * inorm + vel_y * dy * inorm + vel_z * dz * inorm);
 }
 
-void closest_appr(const orbit_fit * orb, const cart * coord,
-                  const uint max_iter, cart * sat_pos)
+static void closest_appr(const orbit_fit * orb, const cart * coord,
+                         const uint max_iter, cart * sat_pos)
 {
     // compute the sat position using closest approache
     
@@ -235,8 +224,6 @@ void closest_appr(const orbit_fit * orb, const cart * coord,
     double t_start = orb->t_start - 5.0,
            t_stop  = orb->t_stop + 5.0,
            t_middle; 
-    
-    printf("Start time: %lf, Stop time: %lf  ", t_start, t_stop);
     
     // dot products
     double dot_start, dot_middle = 1.0;
@@ -264,10 +251,6 @@ void closest_appr(const orbit_fit * orb, const cart * coord,
     }
     
     calc_pos(orb, t_middle, sat_pos);
-    println("Middle time: %lf [s]", t_middle);
-    println("Middle time satellite WGS-84 coordinates (x,y,z) [km]: "
-           "(%lf, %lf, %lf)", sat_pos->x / 1e3, sat_pos->y / 1e3,
-           sat_pos->z / 1e3);
 } // end closest_appr
 
 void azi_inc(cdouble t_start, cdouble t_stop, cdouble t_mean,
@@ -446,9 +429,9 @@ int fit_orbit(const torb * orbits, const uint ndata, const uint deg,
 }
 // end fit_orbit
 */
-void axd(const double  a1, const double  a2, const double  a3,
-         const double  d1, const double  d2, const double  d3,
-         double *n1, double *n2, double *n3)
+static void axd(cdouble  a1, cdouble  a2, cdouble  a3,
+                cdouble  d1, cdouble  d2, cdouble  d3,
+                double *n1, double *n2, double *n3)
 {
     // vectorial multiplication a x d
    *n1 = a2 * d3 - a3 * d2;
@@ -458,8 +441,8 @@ void axd(const double  a1, const double  a2, const double  a3,
 
 void testfun(double * data, uint nrows, uint ncols)
 {
-    for(uint ii = 0; ii < ncols; ii++)
-        for(uint jj = 0; jj < nrows; jj++)
-        data[ii * nrows + jj] = ii;
+    FOR(jj, 0, ncols)
+        FOR(ii, 0, nrows)
+            data[Idx(ii, jj, nrows)] = jj;
 }
 

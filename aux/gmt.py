@@ -89,14 +89,7 @@ class GMT(object):
             execute_gmt_cmd(cmd)
         
         #os.remove("gmt.conf")
-        
-        del self.commands
-        del self.config
-        del self.common
-        del self.is_gmt5
-        del self.debug
-        del self.out
-    
+            
     def get_config(self, param):
         return self.config[param.upper()]
     

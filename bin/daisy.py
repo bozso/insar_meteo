@@ -6,7 +6,7 @@ from shlex import split
 from tkinter import *
 
 import aux.satorbit as so
-from aux.tkplot import Plotter
+from aux.tkplot import Plotter, Unwrapper
 
 _steps = ["data_select", "dominant", "poly_orbit", "integrate"]
 
@@ -134,29 +134,14 @@ def parse_steps(args):
         
 def main():
     
-    _lambda = 0.056
-    
-    def callback(event):
-        print("Clicked at: ({},{})".format(event.x, event.y))
-        
-    
     with open("/home/istvan/progs/insar_meteo/backup/IB2-IB1_g_asc.los", "r") as f:
         data = [[float(line.split()[1]), float(line.split()[2])] for line in f]
     
-    year, los = zip(*data)
-    
-    year0 = round(year[0])
-    year = [y - year[0] for y in year]
+    year, los = [list(elem) for elem in zip(*data)]
     
     root = Tk()
-    plt = Plotter(root, width=750, height=500, grid=0.125)
-    plt.xlabel("Fractional year since {}".format(year0))
-    plt.ylabel("LOS displacement")
-    
-    scaled = plt.plot(year, los, lines=True, ret_scaled=True)
-    
-    plt.cv.bind("<Button-1>", callback)
-    
+    unw = Unwrapper(root, year, los, width=750, height=500, grid=0.125)
+
     root.mainloop()
     
     return

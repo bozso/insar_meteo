@@ -134,10 +134,21 @@ def parse_steps(args):
         
 def main():
     
-    root = Tk()
-    plt = Plotter(root, [0.0, 1.0, -5.0, 6.0])
+    _lambda = 0.056
     
-    plt.save_ps("test.ps")
+    with open("/home/istvan/progs/insar_meteo/backup/IB2-IB1_g_asc.los", "r") as f:
+        data = [[float(line.split()[1]), float(line.split()[2])] for line in f]
+    
+    year, los = zip(*data)
+    
+    year0 = round(year[0])
+    year = [y - year[0] for y in year]
+    
+    root = Tk()
+    plt = Plotter(root, width=750, height=500, grid=0.125)
+    plt.xlabel("Fractional year since {}".format(year0))
+    plt.ylabel("LOS displacement")
+    plt.plot(year, los, lines=True)
     
     root.mainloop()
     

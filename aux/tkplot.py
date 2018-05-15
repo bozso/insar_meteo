@@ -1,54 +1,80 @@
 import numpy as np
+from math import ceil, sqrt
+
 try:
     from tkinter import *
 except ImportError:
     from Tkinter import *
 
 class Plotter(object):
-    def __init__(self, root, ax_lim, width=450, height=350, bg="white",
-                 xlabel=None, ylabel=None, form="{:3.2f}", font="Ariel 9",
-                 grid=0.0, **kwargs):
-        
-        # handle additional arguments
-        xpad = kwargs.pop("xpad", 80)
-        ypad = kwargs.pop("ypad", 50)
-        
-        xticks = kwargs.pop("xticks", 10)
-        yticks = kwargs.pop("yticks", 10)
-        
-        ticksize = kwargs.pop("ticksize", 5)
-
-        xoff = kwargs.pop("xoff", 10)
-        yoff = kwargs.pop("yoff", 20)
-        
-        ax_width = kwargs.pop("ax_width", 2)
-        
+    def __init__(self, root, ax_lim=None, width=450, height=350, bg="white",
+                       nplot=1, grid=0.0, xpad=80, ypad=80, **kwargs):
         self.width = width
         self.height = height
         self.ax_lim = ax_lim
-        
+        self.nplot = 1
+        self.grid = grid
         self.xpad, self.ypad = xpad, ypad
         
-        x0, y0 = xpad, height - ypad
-        self.x0 = x0
-        self.y0 = y0
+        self.x0, self.y0 = None, None
+        self.xratio, self.yratio = None, None
         
         cv = Canvas(width=width, height=height, bg=bg)
         cv.pack()
         
-        # create x and y axis
-        cv.create_line(x0, y0, width - xpad, y0, width=ax_width)
-        cv.create_line(x0, ypad, x0, y0, width=ax_width)
+        if ax_lim is not None:
+            self.create_axis(ax_lim, **kwargs)
+            self.axis_created = True
+        else:
+            self.axis_created = False
+        
+        self.cv = cv
+    
+    def create_axis(self, ax_lim, xlabel=None, ylabel=None, form="{:3.2f}",
+                    font="Ariel 9", xticks=10, yticks=10, **kwargs):
+        
+        nplot = self.nplot
+        cv = self.cv
+        grid = self.grid
+        
+        print(grid)
+        
+        nrows = ceil(sqrt(nplot) - 1)
+        nrows = max(1, nrows)
+        ncols = ceil(nplot / nrows)
+        
+        # handle additional arguments
+        xticks = kwargs.pop("xticks", 10)
+        yticks = kwargs.pop("yticks", 10)
+        
+        ticksize = kwargs.pop("ticksize", 10)
+
+        xoff = kwargs.pop("xoff", 20)
+        yoff = kwargs.pop("yoff", 30)
+        
+        ax_width = kwargs.pop("ax_width", 2)
+        
+        xpad, ypad = self.xpad, self.ypad
         
         x_range = float(ax_lim[1] - ax_lim[0])
         y_range = float(ax_lim[3] - ax_lim[2])
+        
+        width, height = self.width, self.height
         
         # conversion between real and canvas coordinates
         xratio = (width  - 2 * xpad) / x_range
         yratio = (height - 2 * ypad) / y_range
         
         self.xratio, self.yratio = xratio, yratio
+
+        x0, y0 = xpad, height - ypad
+        self.x0 = x0
+        self.y0 = y0
         
+        # create x and y axis
+        cv.create_line(x0, y0, width - xpad, y0, width=ax_width)
+        cv.create_line(x0, ypad, x0, y0, width=ax_width)
+
         # create xticks
         if isinstance(xticks, int):
             dx_real = x_range / float(xticks)
@@ -88,10 +114,10 @@ class Plotter(object):
             for Y in y[1:]:
                 cv.create_line(x0, Y, width - xpad, Y, width=grid)
         
-
-        self.cv = cv
-        
     def __del__(self):
+        del self.axis_created
+        del self.nplot
+        del self.grid
         del self.width
         del self.height
         del self.xpad
@@ -101,25 +127,34 @@ class Plotter(object):
         del self.ax_lim
         del self.cv
     
-    def xlabel(self, xlabel, off=5, font="Arial 10 bold"):
+    def xlabel(self, xlabel, off=5, font="Arial 11 bold"):
         self.cv.create_text(self.width / 2, self.height - self.ypad / 2 + off,
                             text=xlabel, font=font)
     
-    def ylabel(self, ylabel, off=20, font="Arial 10 bold"):
+    def ylabel(self, ylabel, off=25, font="Arial 11 bold"):
         self.cv.create_text(self.xpad / 2 - off, self.height / 2,
                             text=ylabel, font=font, angle=90)
     
     def plot(self, x, y, lines=False, points=True, line_fill="black",
-             point_fill="SkyBlue2", point_size=6, point_width=2, line_width=2):
+             point_fill="SkyBlue2", point_size=6, point_width=2, line_width=2,
+             xadd=0.1, yadd=0.1, **kwargs):
+        
+        min_x, max_x, min_y, max_y = min(x), max(x), min(y), max(y)
+        
+        X = (max_x - min_x) * xadd
+        Y = (max_y - min_y) * yadd
+        
+        ax_lim = [min_x - X, max_x + X, min_y - Y, max_y + Y]
+            
+        if not self.axis_created:
+            self.create_axis(ax_lim, **kwargs)
         
         if len(x) != len(y):
-            raise ValueError("Input data must have the same number "
-                             "of elements!")
+            raise ValueError("Input data must have the same number of elements!")
         
         width, height = self.width, self.height
         xratio, yratio = self.xratio, self.yratio
         xpad, ypad = self.xpad, self.ypad
-        ax_lim = self.ax_lim
         
         cv = self.cv
         

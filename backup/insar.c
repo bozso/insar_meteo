@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <tgmath.h>
 #include "insar.h"
+#include "aux_macros.h"
 
 /* Iterating over array   
  * for(uint jj = 0; jj < ncols; jj++)

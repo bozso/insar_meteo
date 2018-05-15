@@ -77,16 +77,28 @@ function fit_orbit(path::AbstractString, preproc::AbstractString, deg=3::Int,
     return
 end
 
-#=
-function azi_inc()
+function load_fit(fit_file::AbstractString)
+
+
+end
+
+function azi_inc(fit_file::AbstractString, coords::Array{T, 2},
+                 is_lonlat=true::Bool, max_iter=1000::Int) where T<:Real
+    
+    t_start, t_stop, t_mean, coeffs, mean_coords, is_centered, deg = \
+    load_fit(fit_file)
     
     inarg = (Cdouble, Cdouble, Cdouble, Ptr{Cdouble}, Ptr{Cdouble},
              Ptr{Cdouble}, Ptr{Cdouble}, Cuint, Cuint, Cuint, Cuint, Cuint)
-    ndata = 
+    
+    ndata = size(coords, 1)
+    
     ret = Array{Float64, 2}(ndata, 2)
     
-    ccall((:azi_inc, "libinsar"), Void, inarg, 0.0, 1.0, 2.0, a, b, c)
-
+    ccall((:azi_inc, "libinsar"), Void, inarg, t_start, t_stop, t_mean,
+                                  coeffs, coords, mean_coords, ret, ndata,
+                                  is_centered, deg, max_iter, is_lonlat)
+    return ret
 end
-=#
+
 end

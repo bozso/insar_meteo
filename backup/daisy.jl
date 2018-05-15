@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using SatOrbit
+#using SatOrbit
 
 function main()
     
@@ -10,10 +10,10 @@ function main()
     
     println(a); return
     
-    orbit_file = joinpath(homedir(), "progs", "insar_meteo", "daisy_test_data",
-                          "asc_master.res")
+    #orbit_file = joinpath(homedir(), "progs", "insar_meteo", "daisy_test_data",
+    #                      "asc_master.res")
     
-    fit_orbit(orbit_file, "doris")
+    #fit_orbit(orbit_file, "doris")
 
 end
 

@@ -424,5 +424,6 @@ EXPORTED_FUNCTION void testfun(double *data, uint nrows, uint ncols)
     //    data[ii] = ii;
     FOR(jj, 0, ncols)
         FOR(ii, 0, nrows)
-            println("%lf", data[Idx(ii, jj, nrows)]);
+            //println("%lf", data[Idx(ii, jj, nrows)]);
+            data[Idx(ii, jj, nrows)] = jj;
 }

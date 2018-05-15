@@ -418,10 +418,11 @@ static void axd(cdouble  a1, cdouble  a2, cdouble  a3,
    *n3 = a1 * d2 - a2 * d1;
 }
 
-void testfun(double * data, uint nrows, uint ncols)
+EXPORTED_FUNCTION void testfun(double *data, uint nrows, uint ncols)
 {
+    //FOR(ii, 0, ndata)
+    //    data[ii] = ii;
     FOR(jj, 0, ncols)
         FOR(ii, 0, nrows)
-            data[Idx(ii, jj, nrows)] = jj;
+            println("%lf", data[Idx(ii, jj, nrows)]);
 }
-

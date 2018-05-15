@@ -1,6 +1,16 @@
 #ifndef INSAR_H
 #define INSAR_H
 
+#ifdef _WIN32
+#ifdef EXPORT_FCNS
+#define EXPORTED_FUNCTION extern "C" __declspec(dllexport)
+#else
+#define EXPORTED_FUNCTION __declspec(dllimport)
+#endif
+#else
+#define EXPORTED_FUNCTION
+#endif
+
 typedef unsigned int uint;
 typedef const double cdouble;
 
@@ -21,6 +31,6 @@ typedef struct {
     double t_start, t_stop, t_mean;
 } orbit_fit;
 
-void testfun(double * data, uint nrows, uint ncols);
+EXPORTED_FUNCTION void testfun(double *, uint, uint);
 
 #endif

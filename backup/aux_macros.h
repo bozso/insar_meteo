@@ -108,6 +108,6 @@
 #define Err_Arg -4
 
 // Idx -- column major order
-#define Idx(ii, jj, nrows) (ii) * (nrows) + (jj)
+#define Idx(ii, jj, nrows) (ii) + (jj) * (nrows)
 
 #endif

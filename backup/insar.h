@@ -1,12 +1,25 @@
-#ifndef AUX_MACROS_H
-#define AUX_MACROS_H
+#ifndef INSAR_H
+#define INSAR_H
 
-#define QUOTE(s) # s   /* turn s into string "s" */
+typedef unsigned int uint;
+typedef const double cdouble;
 
-/* minimum number of arguments:
- *     - argv[0] is the executable name
- *     - argv[1] is the module name
- */
+//-----------------------------------------------------------------------------
+// STRUCTS
+//-----------------------------------------------------------------------------
+
+typedef struct { float lon, lat;  } psxy;
+typedef struct { int ni; float lon, lat, he, ve; } psxys;
+typedef struct { double x, y, z, lat, lon, h; } station; // [m,rad]
+
+typedef struct { double x, y, z; } cart; // Cartesian coordinates
+typedef struct { double lon, lat, h; } llh; // Cartesian coordinates
+
+typedef struct {
+    uint is_centered, deg;
+    double * coeffs, *mean_coords;
+    double t_start, t_stop, t_mean;
+} orbit_fit;
 
 //----------------------------------------------------------------------
 // WGS-84 ELLIPSOID PARAMETERS
@@ -114,5 +127,10 @@
 #define Err_Alloc -2
 #define Err_Num -3
 #define Err_Arg -4
+
+// Idx -- column major order
+#define Idx(ii, jj, nrows) (ii) * (nrows) + (jj)
+
+void testfun(double * data, uint nrows, uint ncols);
 
 #endif

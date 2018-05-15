@@ -1,35 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tgmath.h>
-#include "aux_macros.h"
+#include "insar.h"
 
 /* Iterating over array   
  * for(uint jj = 0; jj < ncols; jj++)
  *      for(uint ii = 0; ii < nrows; ii++)
  *          data[jj * nrows + ii] = ...;
  */
-
-#define Idx(ii, jj, nrows) (ii) * (nrows) + (jj)
-
-typedef unsigned int uint;
-typedef const double cdouble;
-
-//-----------------------------------------------------------------------------
-// STRUCTS
-//-----------------------------------------------------------------------------
-
-typedef struct { float lon, lat;  } psxy;
-typedef struct { int ni; float lon, lat, he, ve; } psxys;
-typedef struct { double x, y, z, lat, lon, h; } station; // [m,rad]
-
-typedef struct { double x, y, z; } cart; // Cartesian coordinates
-typedef struct { double lon, lat, h; } llh; // Cartesian coordinates
-
-typedef struct {
-    uint is_centered, deg;
-    double * coeffs, *mean_coords;
-    double t_start, t_stop, t_mean;
-} orbit_fit;
 
 /* Extended malloc function */
 static void * malloc_or_exit(size_t nbytes, const char * file, int line)

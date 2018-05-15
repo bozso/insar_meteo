@@ -16,7 +16,7 @@ for my future programs.
 
 - aux: Auxilliary C and Python functions/modules
     - capi_macros.h -- useful macros for writing C Python and Numpy extensions
-    - gmt.py -- thin wrapper for [Generic Mapping Tools](http://gmt.soest.hawaii.edu/ GMT)
+    - gmt.py -- thin wrapper for [Generic Mapping Tools](http://gmt.soest.hawaii.edu/)
     - gmtpy.py -- inspiration for gmt.py from emolch <https://github.com/emolch/gmtpy>
     - insar_auxmodule.c -- auxilliary functions callable from python
     - satorbit.py -- module for fitting polynoms to SAR orbit data (t,x,y,z)

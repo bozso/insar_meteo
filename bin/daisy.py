@@ -136,6 +136,10 @@ def main():
     
     _lambda = 0.056
     
+    def callback(event):
+        print("Clicked at: ({},{})".format(event.x, event.y))
+        
+    
     with open("/home/istvan/progs/insar_meteo/backup/IB2-IB1_g_asc.los", "r") as f:
         data = [[float(line.split()[1]), float(line.split()[2])] for line in f]
     
@@ -148,7 +152,10 @@ def main():
     plt = Plotter(root, width=750, height=500, grid=0.125)
     plt.xlabel("Fractional year since {}".format(year0))
     plt.ylabel("LOS displacement")
-    plt.plot(year, los, lines=True)
+    
+    scaled = plt.plot(year, los, lines=True, ret_scaled=True)
+    
+    plt.cv.bind("<Button-1>", callback)
     
     root.mainloop()
     

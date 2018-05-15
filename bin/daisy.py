@@ -3,7 +3,8 @@
 import argparse
 from subprocess import call, STDOUT, CalledProcessError
 from shlex import split
-from tkinter import *
+from tkinter import Tk
+
 
 import aux.satorbit as so
 from aux.tkplot import Plotter, Unwrapper
@@ -133,18 +134,6 @@ def parse_steps(args):
         return first, last
         
 def main():
-    
-    with open("/home/istvan/progs/insar_meteo/backup/IB2-IB1_g_asc.los", "r") as f:
-        data = [[float(line.split()[1]), float(line.split()[2])] for line in f]
-    
-    year, los = [list(elem) for elem in zip(*data)]
-    
-    root = Tk()
-    unw = Unwrapper(root, year, los, width=750, height=500, grid=0.125)
-
-    root.mainloop()
-    
-    return
     
     orbit_file = "/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res"
     

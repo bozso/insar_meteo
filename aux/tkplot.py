@@ -134,7 +134,12 @@ class Plotter(object):
     def plot(self, x, y, lines=False, points=True, line_fill="black",
              point_fill="SkyBlue2", point_size=6, point_width=1.25, line_width=2,
              xadd=0.1, yadd=0.1, make_axis=True, tags=None, **kwargs):
-        
+
+        if len(x) != len(y):
+            raise ValueError("Input data must have the same number of elements!")
+
+        width, height = self.width, self.height
+        xpad, ypad = self.xpad, self.ypad
         
         if make_axis:
             min_x, max_x, min_y, max_y = min(x), max(x), min(y), max(y)
@@ -146,19 +151,16 @@ class Plotter(object):
             self.ax_lim = ax_lim
 
             self.create_axis(ax_lim, **kwargs)
+            xratio, yratio = self.xratio, self.yratio
         else:
             ax_lim = self.ax_lim
-        
-        if len(x) != len(y):
-            raise ValueError("Input data must have the same number of elements!")
-        
-        width, height = self.width, self.height
-        xratio, yratio = self.xratio, self.yratio
-        xpad, ypad = self.xpad, self.ypad
-        
+
+            # conversion between real and canvas coordinates
+            xratio = (width  - 2 * xpad) / float(ax_lim[1] - ax_lim[0])
+            yratio = (height - 2 * ypad) / float(ax_lim[3] - ax_lim[2])
+            
         cv = self.cv
-        
-        # convert real coordinates to canvas coordinates
+
         scaled = [(width - xpad - xratio * (ax_lim[1] - xx),
                    ypad + yratio * (ax_lim[3] - yy))
                    for xx, yy in zip(x, y)]
@@ -196,9 +198,9 @@ class Unwrapper(object):
         year = [y - year0 for y in year]
         
         min_year, max_year = min(year), max(year)
-        X = (min_year - max_year) * xadd
+        X = (max_year - min_year) * xadd
         
-        self.year_range = [min_year - X, max_year + X]
+        self.yr = [min_year - X, max_year + X]
         self.min_los = min(los)
         self.max_los = max(los)
         
@@ -207,11 +209,10 @@ class Unwrapper(object):
     
         plt.plot(year, los, point_fill="white", point_width=2, tags="original")
         
-        self.year0 = year0
         self.year = year
         
         plt.cv.bind("<Button-1>", self.add_lambda_per_2)
-        # plt.cv.bind("<Button-2>", self.subtract_lambda_per_2)
+        plt.cv.bind("<Button-3>", self.subtract_lambda_per_2)
         
         self.plt = plt
         
@@ -230,13 +231,36 @@ class Unwrapper(object):
         min_y, max_y = min(min(self.last), self.min_los), \
                        max(max(self.last), self.max_los)
         
-        Y = (max_y - min_y) * self.yadd
-        ax_lim = self.year_range.copy()
-        ax_lim.extend([min_y - Y, max_y + Y])
+        y = (max_y - min_y) * self.yadd
+        ax_lim = [self.yr[0], self.yr[1], min_y - y, max_y + y]
         
         self.plt.create_axis(ax_lim)
-        self.plt.plot(self.year, self.last, lines=True, tags="last",
-                      make_axis=False)
         self.plt.plot(self.year, self.los, tags="original", point_fill="white",
                       point_width=2, make_axis=False)
+        self.plt.plot(self.year, self.last, lines=True, tags="last",
+                      make_axis=False)
+
+    def subtract_lambda_per_2(self, event):
+        x, y = event.x, event.y
         
+        dists = tuple(self.plt.calc_dist(x, y, X, Y)
+                      for X,Y in zip(self.year, self.last))
+        idx = dists.index(min(dists))
+        
+        self.last = tuple(elem if ii < idx else elem - _lambda_per_2
+                          for ii, elem in enumerate(self.last))
+        
+        self.plt.cv.delete("original", "last", "axis")
+        
+        min_y, max_y = min(min(self.last), self.min_los), \
+                       max(max(self.last), self.max_los)
+        
+        y = (max_y - min_y) * self.yadd
+        ax_lim = [self.yr[0], self.yr[1], min_y - y, max_y + y]
+        
+        self.plt.create_axis(ax_lim)
+        self.plt.plot(self.year, self.los, tags="original", point_fill="white",
+                      point_width=2, make_axis=False)
+        self.plt.plot(self.year, self.last, lines=True, tags="last",
+                      make_axis=False)
+

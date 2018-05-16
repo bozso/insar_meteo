@@ -82,9 +82,9 @@ def parse_arguments():
                         "DESCENDING PS velocities.")
 
     parser.add_argument("orb_asc", help="text file that contains the "
-                        "ASCENDING PS velocities")
+                        "ASCENDING orbit state vectors.")
     parser.add_argument("orb_dsc", help="text file that contains the "
-                        "DESCENDING PS velocities")
+                        "DESCENDING orbit state vectors.")
     
     parser.add_argument("--step", help="Carry out the processing step defined by "
                        "this argument and exit.", choices=_steps, default=None,
@@ -129,12 +129,6 @@ def parse_steps(args):
         return first, last
         
 def main():
-    
-    orbit_file = "/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res"
-    
-    so.fit_orbit(orbit_file, "doris", "test.fit")
-    so.plot_poly("test.fit", orbit_file, "doris", "fit_orbit.ps"); return
-    
     args = parse_arguments()
     
     start, stop = parse_steps(args)

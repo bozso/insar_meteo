@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import argparse as ap
 from tkinter import Tk
 from sys import argv
@@ -129,17 +130,6 @@ def parse_steps(args):
         return first, last
 
 def main():
-    
-    #root = Tk()
-    
-    #plt = Plotter(root, grid=0.125)
-    #plt.plot([0.005, 0.006], [-15.0, -1.0], xtick=0.00025)
-    #plt.xlabel("asd")
-    #plt.ylabel("asd")
-    
-    #root.mainloop()
-    
-    #return
     
     # args = parse_arguments()
     

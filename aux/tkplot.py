@@ -156,7 +156,7 @@ class Plotter(object):
     
     def plot(self, x, y, lines=False, points=True, line_fill="black",
              point_fill="SkyBlue2", point_size=6, point_width=1.25, line_width=2,
-             xadd=0.1, yadd=0.1, make_axis=True, tags=None, **kwargs):
+             xadd=0.1, yadd=0.1, make_axis=False, tags=None, **kwargs):
 
         if len(x) != len(y):
             raise ValueError("Input data must have the same number of elements!")
@@ -210,29 +210,19 @@ class Plotter(object):
         self.cv.postscript(file=outfile, fontmap=font)
 
 def round_tick(step):
-    pass
-    
-    
     step_frac = step % 1
     step_whole = step - step_frac
     
-    z25 = abs(step_frac - 0.25)
-    z5  = abs(step_frac - 0.5)
-    z1  = abs(step_frac - 1.0)
+    diffs = (abs(step_frac - 0.25), abs(step_frac - 0.5),
+             abs(step_frac - 1.0), abs(step_frac - 0.0))
+    vals = (0.25, 0.5, 1.0, 0.0)
     
-    if z1 < z5 and z1 < z25:
-        step_frac = 1.0
-    else:
-        if z5 < z25:
-            step_frac = 0.5
-        else:
-            step_frac = 0.25
-    
-    return step_whole + step_frac
+    return step_whole + vals[diffs.index(min(diffs))]
 
 class Unwrapper(object):
-    def __init__(self, root, year, los, savefile, xadd=0.1, yadd=0.1, **kwargs):
-        
+    def __init__(self, root, year, los, savefile, xadd=0.1, yadd=0.1,
+                 xtick=0.125, ytick=10, **kwargs):
+        self.xtick, self.ytick = xtick, ytick
         self.savefile = savefile
         
         plt = Plotter(root, **kwargs)
@@ -257,13 +247,21 @@ class Unwrapper(object):
         X = (max_year - min_year) * xadd
         
         self.yr = [min_year - X, max_year + X]
-        self.min_los = min(los)
-        self.max_los = max(los)
         
+        min_los, max_los = min(los), max(los)
+        self.min_los, self.max_los = min_los, max_los
+        Y = (max_los - min_los) * yadd
+        
+        ax_lim = [min_year - X, max_year + X, min_los - Y, max_los + Y]
+        ax_lim = [round_tick(elem) for elem in ax_lim]
+        self.ax_lim0 = ax_lim
+        
+        plt.create_axis(ax_lim)
         plt.xlabel("Fractional year since {}".format(year0))
         plt.ylabel("LOS displacement [mm]")
-    
-        plt.plot(year, los, point_fill="white", point_width=2, tags="original")
+        
+        plt.plot(year, los, point_fill="white", point_width=2, xtick=xtick,
+                 ytick=xtick, tags="original")
         
         self.year = year
         
@@ -274,6 +272,7 @@ class Unwrapper(object):
         
     def add_lambda_per_2(self, event):
         x, y = event.x, event.y
+        xtick, ytick = self.xtick, self.ytick
         
         dists = tuple(self.plt.calc_dist(x, y, X, Y)
                       for X,Y in zip(self.year, self.last))
@@ -290,14 +289,17 @@ class Unwrapper(object):
         y = (max_y - min_y) * self.yadd
         ax_lim = [self.yr[0], self.yr[1], min_y - y, max_y + y]
         
+        ax_lim = [round_tick(elem) for elem in ax_lim]
+        
         self.plt.create_axis(ax_lim)
         self.plt.plot(self.year, self.los, tags="original", point_fill="white",
-                      point_width=2, make_axis=False)
+                      xtick=xtick, ytick=ytick, point_width=2)
         self.plt.plot(self.year, self.last, lines=True, tags="last",
-                      make_axis=False)
+                      xtick=xtick, ytick=ytick)
 
     def subtract_lambda_per_2(self, event):
         x, y = event.x, event.y
+        xtick, ytick = self.xtick, self.ytick
         
         dists = tuple(self.plt.calc_dist(x, y, X, Y)
                       for X,Y in zip(self.year, self.last))
@@ -314,16 +316,21 @@ class Unwrapper(object):
         y = (max_y - min_y) * self.yadd
         ax_lim = [self.yr[0], self.yr[1], min_y - y, max_y + y]
         
+        ax_lim = [round_tick(elem) for elem in ax_lim]
+        
         self.plt.create_axis(ax_lim)
         self.plt.plot(self.year, self.los, tags="original", point_fill="white",
-                      point_width=2, make_axis=False)
+                      xtick=xtick, ytick=ytick, point_width=2)
         self.plt.plot(self.year, self.last, lines=True, tags="last",
-                      make_axis=False)
+                      xtick=xtick, ytick=ytick)
 
     def reset(self):
         self.plt.cv.delete("original", "last", "axis")
         self.last = tuple(self.los.copy())
-        self.plt.plot(self.year, self.los, point_fill="white", point_width=2, tags="original")
+        
+        self.plt.create_axis(self.ax_lim0)
+        self.plt.plot(self.year, self.los, point_fill="white", point_width=2,
+                      xtick=0.125, ytick=10, tags="original")
     
     def save(self):
         yr0 = self.year0

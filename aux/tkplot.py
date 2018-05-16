@@ -187,8 +187,19 @@ class Plotter(object):
         self.cv.postscript(file=outfile, fontmap=font)
 
 class Unwrapper(object):
-    def __init__(self, root, year, los, xadd=0.1, yadd=0.1, **kwargs):
+    def __init__(self, root, year, los, savefile, xadd=0.1, yadd=0.1, **kwargs):
+        
+        self.savefile = savefile
+        
         plt = Plotter(root, **kwargs)
+        
+        button_conf = {"borderwidth": 2, "font": "Arial 11 bold"}
+        
+        b_reset = Button(root, text="Reset", command=self.reset, **button_conf)
+        b_reset.pack(side=LEFT)
+
+        b_save = Button(root, text="Save", command=self.save, **button_conf)
+        b_save.pack(side=LEFT)
         
         self.last = tuple(los.copy())
         self.los = los
@@ -196,6 +207,7 @@ class Unwrapper(object):
         
         year0 = round(year[0])
         year = [y - year0 for y in year]
+        self.year0 = year0
         
         min_year, max_year = min(year), max(year)
         X = (max_year - min_year) * xadd
@@ -205,7 +217,7 @@ class Unwrapper(object):
         self.max_los = max(los)
         
         plt.xlabel("Fractional year since {}".format(year0))
-        plt.ylabel("LOS displacement")
+        plt.ylabel("LOS displacement [mm]")
     
         plt.plot(year, los, point_fill="white", point_width=2, tags="original")
         
@@ -264,3 +276,14 @@ class Unwrapper(object):
         self.plt.plot(self.year, self.last, lines=True, tags="last",
                       make_axis=False)
 
+    def reset(self):
+        self.plt.cv.delete("original", "last", "axis")
+        self.last = tuple(self.los.copy())
+        self.plt.plot(self.year, self.los, point_fill="white", point_width=2, tags="original")
+    
+    def save(self):
+        yr0 = self.year0
+        
+        with open(self.savefile, "w") as f:
+            for yr, los in zip(self.year, self.last):
+                f.write("{} {}\n".format(yr + yr0, los))

@@ -10,24 +10,27 @@ except ImportError:
 
 class Plotter(object):
     def __init__(self, root, ax_lim=None, width=450, height=350, bg="white",
-                       nplot=1, grid=0.0, xpad=80, ypad=80, **kwargs):
+                       nplot=1, grid=0.0, top=0.05, bottom=0.15, left=0.15,
+                       right=0.05,**kwargs):
+        
         self.width = width
         self.height = height
         self.ax_lim = ax_lim
         self.nplot = 1
         self.grid = grid
-        self.xpad, self.ypad = xpad, ypad
         
-        self.x0, self.y0 = None, None
+        self.top, self.bottom, self.left, self.right = \
+        round(height * top), round(height * bottom), \
+        round(left * width), round(right * width)
+        
         self.xratio, self.yratio = None, None
         
         cv = Canvas(width=width, height=height, bg=bg)
         cv.pack()
+        self.cv = cv
         
         if ax_lim is not None:
             self.create_axis(ax_lim, **kwargs)
-        
-        self.cv = cv
     
     def create_axis(self, ax_lim, xlabel=None, ylabel=None, form="{:3.2f}",
                     font="Ariel 9", xticks=10, yticks=10, close=True,
@@ -37,13 +40,17 @@ class Plotter(object):
         grid = self.grid
         self.ax_lim = ax_lim
         
+        # ax_lim = [round_tick(elem) for elem in ax_lim]
+        
+        top, bottom ,left, right = self.top, self.bottom, self.left, self.right
+        
         nrows = ceil(sqrt(nplot) - 1)
         nrows = max(1, nrows)
         ncols = ceil(nplot / nrows)
         
         # handle additional arguments
-        xticks = kwargs.pop("xticks", 10)
-        yticks = kwargs.pop("yticks", 10)
+        xtick = kwargs.pop("xtick", 10)
+        ytick = kwargs.pop("ytick", 10)
         
         ticksize = kwargs.pop("ticksize", 10)
 
@@ -52,80 +59,96 @@ class Plotter(object):
         
         ax_width = kwargs.pop("ax_width", 2)
         
-        xpad, ypad = self.xpad, self.ypad
-        
         x_range = float(ax_lim[1] - ax_lim[0])
         y_range = float(ax_lim[3] - ax_lim[2])
         
         width, height = self.width, self.height
         
         # conversion between real and canvas coordinates
-        xratio = (width  - 2 * xpad) / x_range
-        yratio = (height - 2 * ypad) / y_range
+        cv_xrange = width  - left - right
+        cv_yrange = height - top - bottom
+        
+        xratio = cv_xrange / float(x_range)
+        yratio = cv_yrange / float(y_range)
         
         self.xratio, self.yratio = xratio, yratio
 
-        x0, y0 = xpad, height - ypad
-        self.x0 = x0
-        self.y0 = y0
+        y_bottom = height - bottom
+        x_right  = width - right
         
         # create x and y axis
-        cv.create_line(x0, y0, width - xpad, y0, width=ax_width, tags=tags)
-        cv.create_line(x0, ypad, x0, y0, width=ax_width, tags=tags)
+        cv.create_line(left, y_bottom, x_right, y_bottom, width=ax_width, tags=tags)
+        cv.create_line(left, y_bottom, left, top, width=ax_width, tags=tags)
 
         if close:
-            cv.create_line(width - xpad, y0, width - xpad, ypad,
-                           width=ax_width, tags=tags)
-            cv.create_line(xpad, ypad, width - ypad, ypad, width=ax_width,
+            cv.create_line(x_right, y_bottom, x_right, top, width=ax_width,
                            tags=tags)
+            cv.create_line(left, top, x_right, top, width=ax_width, tags=tags)
             
         # create xticks
-        if isinstance(xticks, int):
-            dx_real = x_range / float(xticks)
-            dx_cv   = (width - 2 * xpad) / float(xticks)
+        if isinstance(xtick, int):
             x0_real = ax_lim[0]
+            dx_real = float(x_range / xtick) 
             
-            # real coordinates (x) and canvas coordinates (xx)
-            xx = [x0_real + ii * dx_real for ii in range(xticks)]
-            x  = [x0 + ii * dx_cv for ii in range(xticks)]
-        else:
-            x = [width - xpad - xratio * (ax_lim[1] - xx) for xx in xticks]
+            # real coordinates
+            xx = [x0_real + ii * dx_real for ii in range(xtick)]
+        elif isinstance(xtick, float):
+            x0_real = ax_lim[0]
+            ntick = int(x_range / xtick)
+            
+            xx = [x0_real + ii * xtick for ii in range(ntick + 1)]
+        elif hasattr(xtick, "__iter__"):
             xx = xticks
+        else:
+            raise ValueError("xtick should be either and integer, float or an "
+                             "iterable.")
+
+        x = [width - right - xratio * (ax_lim[1] - X) for X in xx]
 
         for X, XX in zip(x, xx):
-            cv.create_line(X, y0, X, y0 - ticksize, width=ax_width, tags=tags)
-            cv.create_text(X, y0 + xoff, font=font, text=form.format(XX),
+            cv.create_line(X, y_bottom, X, y_bottom - ticksize, width=ax_width,
+                           tags=tags)
+            cv.create_text(X, y_bottom + xoff, font=font, text=form.format(XX),
                            tags=tags)
 
         # create yticks
-        if isinstance(yticks, int):
-            dy_real = y_range / float(yticks)
-            dy_cv   = (height - 2 * ypad) / float(yticks)
+        if isinstance(ytick, int):
             y0_real = ax_lim[2]
-
-            y  = [y0 - ii * dy_cv for ii in range(yticks)]
-            yy = [y0_real + ii * dy_real for ii in range(yticks)]
-        else:
-            y = [ypad + yratio * (ax_lim[3] - yy) for yy in yticks]
+            dy_real = float(y_range / ytick) 
+            
+            # real coordinates
+            yy = [y0_real + ii * dy_real for ii in range(ytick)]
+        elif isinstance(xtick, float):
+            y0_real = ax_lim[2]
+            ntick = int(y_range / ytick)
+            
+            yy = [y0_real + ii * ytick for ii in range(ntick + 1)]
+        elif hasattr(ytick, "__iter__"):
             yy = yticks
+        else:
+            raise ValueError("ytick should be either and integer,float or an "
+                             "iterable.")
+
+        y = [top + yratio * (ax_lim[3] - Y) for Y in yy]
 
         for Y, YY in zip(y, yy):
-            cv.create_line(x0, Y, x0 + ticksize, Y, width=ax_width, tags=tags)
-            cv.create_text(x0 - yoff, Y, font=font, text=form.format(YY),
+            cv.create_line(left, Y, left + ticksize, Y, width=ax_width,
+                           tags=tags)
+            cv.create_text(left - yoff, Y, font=font, text=form.format(YY),
                            tags=tags)
         
         if grid > 0.0:
             for X in x[1:]:
-                cv.create_line(X, y0, X, ypad, width=grid, tags=tags)
+                cv.create_line(X, y_bottom, X, top, width=grid, tags=tags)
             for Y in y[1:]:
-                cv.create_line(x0, Y, width - xpad, Y, width=grid, tags=tags)
+                cv.create_line(left, Y, x_right, Y, width=grid, tags=tags)
         
-    def xlabel(self, xlabel, off=5, font="Arial 11 bold", tags="xlabel"):
-        self.cv.create_text(self.width / 2, self.height - self.ypad / 2 + off,
+    def xlabel(self, xlabel, off=10, font="Arial 11 bold", tags="xlabel"):
+        self.cv.create_text(self.width / 2, self.height - self.bottom / 2 + off,
                             text=xlabel, font=font, tags=tags)
     
     def ylabel(self, ylabel, off=25, font="Arial 11 bold", tags="ylabel"):
-        self.cv.create_text(self.xpad / 2 - off, self.height / 2,
+        self.cv.create_text(self.left / 2 - off, self.height / 2,
                             text=ylabel, font=font, angle=90, tags=tags)
     
     def reset_axis(self):
@@ -139,7 +162,7 @@ class Plotter(object):
             raise ValueError("Input data must have the same number of elements!")
 
         width, height = self.width, self.height
-        xpad, ypad = self.xpad, self.ypad
+        left, right, top, bottom = self.left, self.right, self.top, self.bottom
         
         if make_axis:
             min_x, max_x, min_y, max_y = min(x), max(x), min(y), max(y)
@@ -156,13 +179,13 @@ class Plotter(object):
             ax_lim = self.ax_lim
 
             # conversion between real and canvas coordinates
-            xratio = (width  - 2 * xpad) / float(ax_lim[1] - ax_lim[0])
-            yratio = (height - 2 * ypad) / float(ax_lim[3] - ax_lim[2])
+            xratio = (width  - left - right) / float(ax_lim[1] - ax_lim[0])
+            yratio = (height - top - bottom) / float(ax_lim[3] - ax_lim[2])
             
         cv = self.cv
 
-        scaled = [(width - xpad - xratio * (ax_lim[1] - xx),
-                   ypad + yratio * (ax_lim[3] - yy))
+        scaled = [(width - right - xratio * (ax_lim[1] - xx),
+                   top + yratio * (ax_lim[3] - yy))
                    for xx, yy in zip(x, y)]
         
         # connect dots with lines
@@ -177,14 +200,35 @@ class Plotter(object):
                                width=point_width, tags=tags)
         
     def calc_dist(self, x1, y1, x2, y2):
-        dx = x1 - (self.width - self.xpad - self.xratio * (self.ax_lim[1] - x2))
-        dy = y1 - (self.ypad + self.yratio * (self.ax_lim[3] - y2))
+        dx = x1 - (self.width - self.right - self.xratio * (self.ax_lim[1] - x2))
+        dy = y1 - (self.top + self.yratio * (self.ax_lim[3] - y2))
         
         return sqrt(dx * dx + dy * dy)
         
     def save_ps(self, outfile, font="Arial 12"):
         """ Does not work at the moment for some reason """
         self.cv.postscript(file=outfile, fontmap=font)
+
+def round_tick(step):
+    pass
+    
+    
+    step_frac = step % 1
+    step_whole = step - step_frac
+    
+    z25 = abs(step_frac - 0.25)
+    z5  = abs(step_frac - 0.5)
+    z1  = abs(step_frac - 1.0)
+    
+    if z1 < z5 and z1 < z25:
+        step_frac = 1.0
+    else:
+        if z5 < z25:
+            step_frac = 0.5
+        else:
+            step_frac = 0.25
+    
+    return step_whole + step_frac
 
 class Unwrapper(object):
     def __init__(self, root, year, los, savefile, xadd=0.1, yadd=0.1, **kwargs):

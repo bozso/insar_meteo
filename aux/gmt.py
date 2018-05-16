@@ -93,18 +93,16 @@ class GMT(object):
     def get_config(self, param):
         return self.config[param.upper()]
     
-    def multiplot(self, nplots, nrows=None, top=10, bottom=10,
-                  left=10, right=10):
+    def multiplot(self, nplots, proj, nrows=None, top=100,left=50, right=50,
+                  x_pad=55, y_pad=100):
         """
              |       top           |    
-        --------------------------------
+        -----+---------------------+----
           l  |                     |  r
           e  |                     |  i
           f  |                     |  g
           t  |                     |  h
              |                     |  t
-        --------------------------------
-             |       bottom        |
         """
         if nrows is None:
             nrows = ceil(sqrt(nplots) - 1)
@@ -127,16 +125,18 @@ class GMT(object):
             height, width = _gmt_paper_sizes[paper]
         
         # width and height available for plotting
-        awidth, aheight = width - (left + right), height - (top + bottom)
+        awidth = width - (left + right)
         
-        width  = float(awidth) / ncols
-        height = float(aheight) / nrows
+        width  = float(awidth - (ncols - 1) * x_pad) / ncols
+        
+        self.common += " -J{}{}p".format(proj, width)
         
         # calculate psbasemap shifts in x and y directions
-        x = ("f{}p".format(left + ii * width) for ii in range(ncols)
-                                              for jj in range(nrows))
+        x = ("f{}p".format(left + ii * (width + x_pad))
+                           for ii in range(ncols)
+                           for jj in range(nrows))
         
-        y = ("f{}p".format(aheight + bottom - ii * height)
+        y = ("f{}p".format(height - top - ii * y_pad)
                           for jj in range(ncols)
                           for ii in range(nrows))
         

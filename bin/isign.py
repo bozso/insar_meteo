@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
-
+from aux.tkplot import Unwrapper
 import argparse as ap
-from subprocess import call, STDOUT, CalledProcessError
-from shlex import split
+
 from tkinter import Tk
+from sys import argv
 
-import aux.satorbit as so
-from aux.tkplot import Plotter, Unwrapper
+_steps = ["unwrap"]
 
-_steps = ["data_select", "dominant", "poly_orbit", "integrate"]
-
-_daisy__doc__=\
+_ISIGN__doc__=\
 """
-DAISY
+ISIGN
 Steps: [{}]
 """.format(", ".join(_steps))
 
-def daisy_cmd(module, *args):
+def isign_cmd(module, *args):
     """
-    Calls a DAISY module. Arbitrary number of arguments can be passed through
+    Calls an ISIGN module. Arbitrary number of arguments can be passed through
     `*args`. See documentation of modules' for arguments.
     The passed arguments will be converted to string joined togerther and
     appended to the command.
@@ -26,7 +23,7 @@ def daisy_cmd(module, *args):
     Parameters
     ----------
     module : str
-        Name of the DAISY module to be called.
+        Name of the ISIGN module to be called.
     
     *args
         Arbitrary number of arguments, that can be converted to string, i.e.
@@ -44,7 +41,7 @@ def daisy_cmd(module, *args):
         non zero returncode.
     """
     
-    command = "daisy {} {}".format(module, " ".join(str(arg) for arg in args))
+    command = "isign {} {}".format(module, " ".join(str(arg) for arg in args))
     
     try:
         ret_code = call(split(command), stderr=STDOUT)
@@ -57,24 +54,27 @@ def daisy_cmd(module, *args):
         exit(ret_code)
     
     return ret_code
+
+def unwrap(infile, savefile, width=750, height=500, grid=0.125):
+
+    with open(infile, "r") as f:
+        data = [[float(line.split()[1]), float(line.split()[2])] for line in f]
     
-def data_select(in_asc, in_dsc, ps_sep=100.0):
-    daisy_cmd("data_select", in_asc, in_dsc, ps_sep)
+    year, los = [list(elem) for elem in zip(*data)]
 
-def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0):
-    daisy_cmd("dominant", in_asc, in_dsc, ps_sep)
+    root = Tk()
+    root.title(infile)
+    
+    unw = Unwrapper(root, year, los, argv[2], width=width, height=height,
+                    grid=grid)
 
-def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4):
-    daisy_cmd("poly_orbit", asc_orbit, deg)
-    daisy_cmd("poly_orbit", dsc_orbit, deg)
-
-def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
-              dsc_fit_orbit="dsc_master.porb"):
-    daisy_cmd("integrate", dominant, asc_fit_orbit, dsc_fit_orbit)
+    root.mainloop()
+    
+    return 0
 
 def parse_arguments():
-    parser = ap.ArgumentParser(description=_daisy__doc__,
-            formatter_class=ap.ArgumentDefaultsHelpFormatter)
+    parser = ap.ArgumentParser(description=_isign__doc__,
+                formatter_class=ap.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("in_asc", help="Text file that contains the "
                         "ASCENDING PS velocities.")
@@ -98,9 +98,9 @@ def parse_arguments():
                        choices=_steps, default="zero_select", nargs="?",
                        type=str)
     
-    parser.add_argument("-p", "--ps_sep", help="Maximum separation distance "
-                        "between ASC and DSC PS points in meters.",
-                        nargs="?", type=float, default=100.0)
+    #parser.add_argument("-p", "--ps_sep", help="Maximum separation distance "
+    #                    "between ASC and DSC PS points in meters.",
+    #                    nargs="?", type=float, default=100.0)
 
     parser.add_argument("-d", "--deg", help="Degree of the polynom fitted to "
                         "satellite orbit coordinates.", nargs="?", type=int,
@@ -127,18 +127,20 @@ def parse_steps(args):
         first = _steps.index(start)
         last = _steps.index(stop)
         return first, last
-        
+
 def main():
     
-    orbit_file = "/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res"
+    # args = parse_arguments()
     
-    so.fit_orbit(orbit_file, "doris", "test.fit")
-    so.plot_poly("test.fit", orbit_file, "doris", "fit_orbit.ps"); return
+    # start, stop = parse_steps(args)
+    # ps_sep = args.ps_sep
     
-    args = parse_arguments()
+    if len(argv) != 3:
+        return
     
-    start, stop = parse_steps(args)
-    ps_sep = args.ps_sep
+    unwrap(argv[1], argv[2])
+    
+    return
     
     if start == 0:
         data_select(args.in_asc, args.in_dsc, ps_sep=ps_sep)
@@ -151,7 +153,7 @@ def main():
     
     if stop == 3:
         integrate()
-    
+
     return 0
     
 if __name__ == "__main__":

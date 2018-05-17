@@ -127,15 +127,36 @@ class GMT(object):
         if not self.version >= _gmt_five_two:
             # before version 5.2
             Cmd += " {} -V".format(os.devnull)
-            out = cmd(Cmd, ret_out=True).decode()
+            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
+                   if "Transform" in line]
+            return float(out[0].split("/")[4])
         else:
             Cmd += " -Ww"
+            return float(cmd(Cmd, ret_out=True))
+
+    def get_height(self):
+        
+        if self.is_gmt5:
+            Cmd = "gmt mapproject {} -Dp".format(self.common)
+            version = cmd("gmt --version", ret_out=True)
+        else:
+            Cmd = "mapproject {} -Dp".format(self.common)
+        
+        if not self.version >= _gmt_five_two:
+            # before version 5.2
+            Cmd += " {} -V".format(os.devnull)
+            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
+                   if "Transform" in line]
+            print(out[0].split("/")[6])
+            return float(out[0].split("/")[6].split()[0])
+        else:
+            Cmd += " -Wh"
             return float(cmd(Cmd, ret_out=True))
         
     def get_common_flag(self, flag):
         return self.common.split(flag)[1].split()[0]
     
-    def multiplot(self, nplots, proj=None, nrows=None, top=100,left=50, right=50,
+    def multiplot(self, nplots, proj, nrows=None, top=100,left=50, right=50,
                   x_pad=55, y_pad=100):
         """
              |       top           |    
@@ -163,9 +184,7 @@ class GMT(object):
         
         # width of a single plot
         width  = float(awidth - (ncols - 1) * x_pad) / ncols
-        
-        if proj is None:
-            proj = self.get_common_flag("-J")
+        height = self.get_height()
         
         self.common += " -J{}{}p".format(proj, width)
         
@@ -174,12 +193,12 @@ class GMT(object):
                            for jj in range(nrows)
                            for ii in range(ncols))
         
-        y = ("f{}p".format(height - top - ii * y_pad)
-                          for ii in range(nrows)
+        y = ("f{}p".format(top - ii * height)
+                          for ii in range(1, nrows + 1)
                           for jj in range(ncols))
         
         # residual margin left at the bottom
-        self.bottom = height - top - (nrows - 1) * y_pad
+        self.bottom = top - nrows * height
         
         return tuple(x), tuple(y)
     
@@ -413,7 +432,10 @@ def get_ranges(data, binary=None, xy_add=None, z_add=None):
     
     ranges = tuple(float(data) for data in info_str)
     
+    
     if xy_add is not None:
+        X = (ranges[1] - ranges[0]) * xy_add
+        Y = (ranges[3] - ranges[2]) * xy_add
         xy_range = (ranges[0] - xy_add, ranges[1] + xy_add,
                     ranges[2] - xy_add, ranges[3] + xy_add)
     else:
@@ -422,11 +444,47 @@ def get_ranges(data, binary=None, xy_add=None, z_add=None):
     non_xy = ranges[4:]
     
     if z_add is not None:
-        z_range = (min(non_xy) - z_add, max(non_xy) + z_add)
+        min_z, max_z = min(non_xy), max(non_xy)
+        Z = (max_z - min_z) * z_add
+        z_range = (min_z - z_add, max_z + z_add)
     else:
         z_range = (min(non_xy), max(non_xy))
         
     return xy_range, z_range
+
+def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
+                 cbar_mode="v", cbar_offset=100, colorscale="drywet",
+                 cbar_B="10", x_axis = "a0.5g0.25f0.25",
+                 y_axis = "a0.25g0.25f0.25"):
+    
+    bindef = "{}d".format(ncols + 2)
+    
+    ll_range, c_range = get_ranges(data=scatter_file, binary=bindef,
+                                   xy_add=0.1, z_add=0.1)
+    
+    if idx is None:
+        idx = range(ncols)
+    
+    gmt = GMT(ps_file, R=ll_range, config=config)
+    x, y = gmt.multiplot(len(idx), proj, right=100, y_pad=190, top=180)
+    
+    print(gmt.get_height()); return
+    
+    gmt.makecpt("tmp.cpt", C=colorscale, Z=True, T=c_range)
+
+    for ii in idx:
+        input_format = "0,1,{}".format(ii + 2)
+        gmt.psbasemap(X=x[ii], Y=y[ii], B="WSen+t{}".format(ii + 1),
+                      Bx=x_axis, By=y_axis)
+        gmt.psxy(data=scatter_file, i=input_format, bi=bindef, S="c0.025c",
+                 C="tmp.cpt")
+    
+    gmt.colorbar(mode=cbar_mode, offset=cbar_offset, C="tmp.cpt",
+                 B="10:APS:/:rad:")
+    
+    os.remove("tmp.cpt")
+    
+    del gmt
 
 _gmt_defaults_header = \
 r'''#
@@ -605,6 +663,7 @@ _gmt_paper_sizes = {
 _np2gmt = {
     
 }
+
 # get width
 # gmt mapproject $* /dev/null -V 2>&1 | grep Transform | awk -F/ '{print $5}'
 # get height

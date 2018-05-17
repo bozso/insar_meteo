@@ -150,14 +150,14 @@ function [abs_phase] = invert_abs(varargin)
                                 {'scalar', 'positive', 'finite', 'integer'});
     
     p.addRequired('phase', check_phase);
-    p.addParameter('average', 0.0, check_avg);
+    p.addParameter('last_row', 0.0, check_avg);
     p.addParameter('master_idx', 1, check_idx);
     
     p.parse(varargin{:});
     
     phase      = p.Results.phase;
     master_idx = p.Results.master_idx;
-    avg        = p.Results.average;
+    last       = p.Results.last_row;
     
     [n_ps, n_ifg] = size(phase);
     
@@ -184,16 +184,16 @@ function [abs_phase] = invert_abs(varargin)
     
     design = [design; ones(1, n_sar)];
     
-    if isscalar(avg) && avg == 0.0
+    if isscalar(last) && last == 0.0
         phase = [phase'; zeros(1, n_ps)];
     else
-        if iscolumn(avg)
-            phase = transpose([phase, avg]);
+        if iscolumn(last)
+            phase = transpose([phase, last]);
         else
-            phase = [phase'; avg];
+            phase = [transpose(phase); last];
         end
     end
-
+    
     abs_phase = lscov(design, double(phase));
 end
 
@@ -532,12 +532,22 @@ function [] = calc_wv(varargin)
     
     phase = ph.ph_uw;
     master_idx = ps.master_ix;
+    phase(:,master_idx) = [];
     
     ncols = ps.n_image + 2;
     
     clear ps ph
     
-    phase(:,master_idx) = [];
+    % loading zenith delays
+    d_total = staux('load_binary', 'd_total.dat', ncols);
+    % lon., lat. coordinates (first two columns) are not required
+    d_total = d_total(:,3:end);
+    
+    d_hydro = staux('load_binary', 'd_hydro.dat', ncols);
+    d_hydro = d_hydro(:,3:end);
+    
+    d_wet = staux('load_binary', 'd_wet.dat', ncols);
+    d_wet = d_wet(:,3:end);
     
     azi_inc = staux('load_binary', 'azi_inc.dat', 2);
     inc_angle = azi_inc(:,2); clear azi_inc
@@ -547,64 +557,49 @@ function [] = calc_wv(varargin)
     end
     
     if size(inc_angle, 2) == 1
-        inc_angle = repmat(inc_angle, 1, size(phase, 2));
+        inc_angle = repmat(inc_angle, 1, size(d_total, 2));
         if size(inc_angle, 1) == 1
-            inc_angle = repmat(inc_angle, size(phase, 1), 1);
+            inc_angle = repmat(inc_angle, size(d_total, 1), 1);
         end
     end
     
-    %% Converting the slant delays to zenith delays
-    % d_total = d_total ./ cos(deg2rad(inc_angle));
-    phase = phase .* cos(deg2rad(inc_angle));
+    % Converting the zenith delays to slant delays 
+    d_total = d_total ./ cos(deg2rad(inc_angle));
+    d_hydro = d_hydro ./ cos(deg2rad(inc_angle));
+    % phase = phase .* cos(deg2rad(inc_angle));
     
     %% Converting the range delay to a phase delay
     % The sign convention is such that ph_corrected = ph_original - ph_tropo*
     
     % d_total = -4 * pi ./ lambda .* d_total;
+    
+    % converting phase to delay
     phase = - (lambda / (4 * pi))  .* phase;
 
-    d_total = staux('load_binary', 'd_total.dat', ncols);
-    d_total = d_total(:,3:end);
-    
-    d_hydro = staux('load_binary', 'd_hydro.dat', ncols);
-    d_hydro = d_hydro(:,3:end);
-    
-    d_wet = staux('load_binary', 'd_wet.dat', ncols);
-    d_wet = d_wet(:,3:end);
-    
-    d_avg = mean(d_total, 2);
-    
-    %figure; hist(reshape(d_wet, 1, []));
+    % calculate average total delay for each SAR acquisition
+    % d_avg = mean(d_total, 2);
+    d_sum = sum(d_total, 2);
     
     abs_phase = transpose(invert_abs(phase, 'master_idx', master_idx, ...
-                                     'average', d_avg));
+                                     'last_row', d_sum));
+    abs_wet = abs_phase - d_hydro;
     
-    hist(mean(abs_phase, 2));
+    h = figure('visible', 'off');
+    hist(rms(abs_wet - d_wet));
+    %xlabel('Inverted water vapour slant delay [cm]');
+    %ylabel('ERA water vapour slant delay [cm]');
+    saveas(h, 'dinv_rms_wv.png');
+
+    h = figure('visible', 'off');
+    hist(rms(abs_phase - d_total));
+    % xlabel('Inverted total slant delay [cm]');
+    % ylabel('ERA total slant delay [cm]');
+    saveas(h, 'dinv_rms_total.png');
     
-    %figure; hist(reshape(abs_phase, 1, []));
-    %figure; hist(reshape(abs_phase - d_hydro, 1, []));
-    
-    %staux('save_binary', abs_phase, 'dinv_total.dat');
-    %staux('save_binary', abs_phase - d_hydro, 'dinv_wet.dat');
+    staux('save_binary', abs_phase, 'dinv_total.dat');
+    staux('save_binary', abs_wet, 'dinv_wet.dat');
 end
 
-function fid = sfopen(path, mode, machine)
-
-    if nargin < 1 || isempty(path)
-       error('Required argument path is not specified');
-    end
-    
-    if nargin < 2 || isempty(mode)
-        mode = 'r';
-    end
-    
-    if nargin < 3 || isempty(machine)
-        machine = 'n';
-    end
-
-    [fid, msg] = fopen(path, mode, machine);
-    
-    if fid == -1
-        error(['Could not open file: ', path, '\nError message: ', msg]);
-    end
+function [ret] = rms(data)
+    ret = sqrt( mean(data.^2, 2) );
 end

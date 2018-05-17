@@ -13,14 +13,20 @@ x_axis = "a0.5g0.25f0.25"
 y_axis = "a0.25g0.25f0.25"
 
 def main():
+    gmt = GMT("test.ps", R=(10, 20, 45, 50), J="M10i")
     
-    ll_range, c_range = get_ranges(data=infile, binary=bindef, xy_add=extra,
-                                   z_add=0.125)
+    print(gmt.get_width())
+    
+    return
+    
+    #ll_range, c_range = get_ranges(data=infile, binary=bindef, xy_add=extra,
+                                   #z_add=0.125)
     
     conf = {"FONT_TITLE":"8p", "FONT_ANNOT_PRIMARY": "10p"}
     
-    gmt = GMT("test.ps", R=ll_range, config=conf)
-    x, y = gmt.multiplot(10, "M", right=100, y_pad=190, top=180)
+    gmt = GMT("test.ps", R=(10,20,30,40), j="M", config=conf, debug=True)
+    x, y = gmt.multiplot(10, right=100, y_pad=190, top=180)
+    
     gmt.makecpt("scatter.cpt", C="drywet", Z=True, T=c_range)
     
     for ii in range(10):
@@ -28,7 +34,7 @@ def main():
         gmt.psbasemap(X=x[ii], Y=y[ii], B="WSen+t{}".format(ii + 1),
                       Bx=x_axis, By=y_axis)
         #gmt.psxy(data=infile, i=input_format, bi=bindef, S="c0.025c",
-        #         C="scatter.cpt")
+                 #C="scatter.cpt")
     
     gmt.colorbar(mode="v", offset=100, C="scatter.cpt", B="10:APS:/:rad:")
     

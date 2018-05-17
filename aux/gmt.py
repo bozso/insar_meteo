@@ -21,6 +21,7 @@ class GMT(object):
         
         # no margins by default
         self.left, self.right, self.top, self.bottom = 0.0, 0.0, 0.0, 0.0
+        self.version = cmd("gmt --version", ret_out=True).decode().strip()
         
         self.config = _gmt_defaults
         self.is_portrait = portrait
@@ -107,10 +108,24 @@ class GMT(object):
     
     def get_width(self):
         
-        if 
-        Cmd = "gmt mapproject"
+        if self.is_gmt5:
+            Cmd = "gmt mapproject {} -Dp".format(self.common)
+            version = cmd("gmt --version", ret_out=True)
+        else:
+            Cmd = "mapproject {} -Dp".format(self.common)
+        
+        if not self.version >= "5.2":
+            # before version 5.2
+            Cmd += " {} -V".format(os.devnull)
+            out = cmd(Cmd, ret_out=True).decode()
+        else:
+            Cmd += " -Ww"
+            return float(cmd(Cmd, ret_out=True))
+        
+    def get_common_flag(self, flag):
+        return self.common.split(flag)[1].split()[0]
     
-    def multiplot(self, nplots, proj, nrows=None, top=100,left=50, right=50,
+    def multiplot(self, nplots, proj=None, nrows=None, top=100,left=50, right=50,
                   x_pad=55, y_pad=100):
         """
              |       top           |    
@@ -138,6 +153,9 @@ class GMT(object):
         
         # width of a single plot
         width  = float(awidth - (ncols - 1) * x_pad) / ncols
+        
+        if proj is None:
+            proj = self.get_common_flag("-J")
         
         self.common += " -J{}{}p".format(proj, width)
         
@@ -191,28 +209,27 @@ class GMT(object):
 
     
     def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, palette=None,
-                      outfile=None, binary=None, **flags):
-
+                      outfile=None, **flags):
+        
         if data is not None:
             if isinstance(data, string_types) and pth.isfile(data):
             # data is a path to a file
                 gmt_flags = "{} ".format(data)
                 data = None
-            elif isinstance(data, np.ndarray):
-            # data is a numpy array
-                if byte_swap:
-                    byte_swap = "w"
-                else:
-                    byte_swap = ""
+            #elif isinstance(data, np.ndarray):
+            ## data is a numpy array
+                #if byte_swap:
+                    #byte_swap = "w"
+                #else:
+                    #byte_swap = ""
                 
-                if binary is None:
-                    gmt_flags = "-bi{}d{} ".format(data.shape[1], byte_swap)
-                else:
-                    gmt_flags = "-bi{}{} ".format(binary, byte_swap)
-                data = data.tobytes()
+                #if binary is None:
+                    #gmt_flags = "-bi{}d{} ".format(data.shape[1], byte_swap)
+                #else:
+                    #gmt_flags = "-bi{}{} ".format(binary, byte_swap)
+                #data = data.tobytes()
             else:
-                raise ValueError("`data` is not a path to an existing file "
-                                 "nor is a numpy array.")
+                raise ValueError("`data` should be a path to an existing file!")
         else:
             gmt_flags = ""
         

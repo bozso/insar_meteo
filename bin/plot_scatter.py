@@ -17,19 +17,23 @@ def main():
     ll_range, c_range = get_ranges(data=infile, binary=bindef, xy_add=extra,
                                    z_add=0.125)
     
+    conf = {"FONT_TITLE":"8p", "FONT_ANNOT_PRIMARY": "10p"}
     
-    gmt = GMT("test.ps", R=ll_range)
-    x, y = gmt.multiplot(8, "M", y_pad=180, top=200)
-    
+    gmt = GMT("test.ps", R=ll_range, config=conf)
+    x, y = gmt.multiplot(10, "M", right=100, y_pad=190, top=180)
     gmt.makecpt("scatter.cpt", C="drywet", Z=True, T=c_range)
     
-    for ii in range(8):
+    for ii in range(10):
         input_format = "0,1,{}".format(ii + 2)
-        gmt.psbasemap(X=x[ii], Y=y[ii], B="WSen", Bx=x_axis, By=y_axis)
+        gmt.psbasemap(X=x[ii], Y=y[ii], B="WSen+t{}".format(ii + 1),
+                      Bx=x_axis, By=y_axis)
         gmt.psxy(data=infile, i=input_format, bi=bindef, S="c0.025c",
                  C="scatter.cpt")
     
-    gmt.psscale(D=(22, 9.5, 15, 0.7), C="scatter.cpt", B="10:APS:/:rad:")
+    xx, yy, length, width = gmt.scale_pos("v", offset=25)
+    
+    gmt.psscale(D=(0.0, 0.0, length, width), Xf=xx, Yf=yy,
+                C="scatter.cpt", B="10:APS:/:rad:")
 
     del gmt
     

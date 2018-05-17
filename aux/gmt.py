@@ -4,7 +4,6 @@ import subprocess as sub
 import numpy as np
 from shlex import split
 from math import ceil, sqrt
-from itertools import repeat
 
 # python 2/3 compatibility
 from six import string_types
@@ -20,22 +19,21 @@ class GMT(object):
     def __init__(self, out, gmt5=True, portrait=False, debug=False,
                  config=None, **common_flags):
         
-        # Cleanup
-        if pth.isfile("gmt.conf"): os.remove("gmt.conf")
-        if pth.isfile("gmt.history"): os.remove("gmt.history")
+        self.left, self.right, self.top, self.bottom = None, None, None, None
         
         self.config = _gmt_defaults
         self.is_portrait = portrait
         
         if config is not None:
             self.config.update(config)
+            if self.config["PS_PAGE_ORIENTATION"] == "portrait":
+                self.is_portrait = True
+            
+        with open("gmt.conf", "w") as f:
+            f.write(_gmt_defaults_header)
+            f.write("\n".join("{} = {}".format(key.upper(), value)
+                              for key, value in self.config.items()))
         
-        #with open("gmt.conf", "w") as f:
-        #    f.write(_gmt_defaults_header)
-        #    f.write("\n".join("{} = {}".format(key.upper(), value)
-        #                     for key, value in self.config.items()))
-        
-        # common output Postscript filename
         self.out = out
         
         # list of sets that contain the gmt commands and its argumants
@@ -53,7 +51,6 @@ class GMT(object):
         
     def __del__(self):
         commands = self.commands
-        
         
         # indices of plotter functions
         idx = [ii for ii, cmd in enumerate(commands) if cmd[0] in _plotters]
@@ -88,7 +85,9 @@ class GMT(object):
         for cmd in commands:
             execute_gmt_cmd(cmd)
         
-        #os.remove("gmt.conf")
+        # Cleanup
+        if pth.isfile("gmt.history"): os.remove("gmt.history")
+        os.remove("gmt.conf")
             
     def get_config(self, param):
         return self.config[param.upper()]
@@ -107,7 +106,9 @@ class GMT(object):
         if nrows is None:
             nrows = ceil(sqrt(nplots) - 1)
             nrows = max([1, nrows])
-
+        
+        self.left, self.right, self.top  = left, top, right
+        
         ncols = ceil(nplots / nrows)
         
         paper = self.get_config("ps_media")
@@ -124,6 +125,8 @@ class GMT(object):
         else:
             height, width = _gmt_paper_sizes[paper]
         
+        self.width, self.height = width, height
+        
         # width and height available for plotting
         awidth = width - (left + right)
         
@@ -133,15 +136,41 @@ class GMT(object):
         
         # calculate psbasemap shifts in x and y directions
         x = ("f{}p".format(left + ii * (width + x_pad))
-                           for ii in range(ncols)
-                           for jj in range(nrows))
+                           for jj in range(nrows)
+                           for ii in range(ncols))
         
         y = ("f{}p".format(height - top - ii * y_pad)
-                          for jj in range(ncols)
-                          for ii in range(nrows))
+                          for ii in range(nrows)
+                          for jj in range(ncols))
         
-        return list(x), list(y)
-
+        self.bottom = height - top - (nrows - 1) * y_pad
+        
+        return tuple(x), tuple(y)
+    
+    def scale_pos(self, mode, offset=100, flong=0.8, fshort=0.2):
+        left, right, top, bottom = self.left, self.right, self.top, self.bottom
+        
+        width, height = self.width, self.height
+        
+        if mode == "vertical" or mode == "v":
+            x = width - left - offset
+            y = float(height) / 2
+            # fraction of space available
+            width  = fshort * (left)
+            length = flong * height
+            hor = ""
+        elif mode == "horizontal" or mode == "h":
+            x = float(self.width) / 2
+            y = bottom - offset
+            # fraction of space available
+            width  = flong * width
+            length = fshort * (bottom)
+            hor = "h"
+        else:
+            raise ValueError('mode should be either: "vertical", "horizontal", '
+                             '"v" or "h", not "{}"'.format(mode))
+        return str(x) + "p", str(y) + "p", str(length) + "p", str(width) + "p"
+    
     def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, palette=None,
                       outfile=None, binary=None, **flags):
 
@@ -346,8 +375,8 @@ def get_ranges(data, binary=None, xy_add=None, z_add=None):
         
     return xy_range, z_range
 
-_gmt_defaults_header = r'''
-#
+_gmt_defaults_header = \
+r'''#
 # GMT 5.1.2 Defaults file
 # vim:sw=8:ts=8:sts=8
 #
@@ -377,7 +406,7 @@ _gmt_defaults = {
 "FONT_ANNOT_SECONDARY": "16p,Helvetica,black",
 "FONT_LABEL": "14p,Helvetica,black",
 "FONT_LOGO": "8p,Helvetica,black",
-"FONT_TITLE": "24p,Helvetica,black",
+"FONT_TITLE": "16p,Helvetica,black",
 # *********************
 # * FORMAT Parameters *
 # *********************
@@ -401,7 +430,7 @@ _gmt_defaults = {
 "GMT_CUSTOM_LIBS": "",
 "GMT_EXTRAPOLATE_VAL": "NaN",
 "GMT_FFT": "auto",
-"GMT_HISTORY": "true",
+"GMT_HISTORY": "false",
 "GMT_INTERPOLANT": "akima",
 "GMT_TRIANGULATE": "Shewchuk",
 "GMT_VERBOSE": "compat",
@@ -471,7 +500,7 @@ _gmt_defaults = {
 "PS_MITER_LIMIT": "35",
 "PS_MEDIA": "a4",
 "PS_PAGE_COLOR": "white",
-"PS_PAGE_ORIENTATION": "portrait",
+"PS_PAGE_ORIENTATION": "landscape",
 "PS_SCALE_X": 1,
 "PS_SCALE_Y": 1,
 "PS_TRANSPARENCY": "Normal",

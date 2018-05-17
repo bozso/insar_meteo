@@ -27,10 +27,10 @@ def main():
         input_format = "0,1,{}".format(ii + 2)
         gmt.psbasemap(X=x[ii], Y=y[ii], B="WSen+t{}".format(ii + 1),
                       Bx=x_axis, By=y_axis)
-        gmt.psxy(data=infile, i=input_format, bi=bindef, S="c0.025c",
-                 C="scatter.cpt")
+        #gmt.psxy(data=infile, i=input_format, bi=bindef, S="c0.025c",
+        #         C="scatter.cpt")
     
-    gmt.colorbar(offset=100, C="scatter.cpt", B="10:APS:/:rad:")
+    gmt.colorbar(mode="v", offset=100, C="scatter.cpt", B="10:APS:/:rad:")
     
     #xx, yy, length, width = gmt.scale_pos("v", offset=25)
     

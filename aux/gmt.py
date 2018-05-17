@@ -19,7 +19,8 @@ class GMT(object):
     def __init__(self, out, gmt5=True, portrait=False, debug=False,
                  config=None, **common_flags):
         
-        self.left, self.right, self.top, self.bottom = None, None, None, None
+        # no margins by default
+        self.left, self.right, self.top, self.bottom = 0.0, 0.0, 0.0, 0.0
         
         self.config = _gmt_defaults
         self.is_portrait = portrait
@@ -28,6 +29,17 @@ class GMT(object):
             self.config.update(config)
             if self.config["PS_PAGE_ORIENTATION"] == "portrait":
                 self.is_portrait = True
+    
+        # get paper width and height
+        paper = self.get_config("ps_media")
+
+        if paper.startswith("a") or paper.startswith("b"):
+            paper = paper.upper()
+
+        if self.is_portrait:
+            self.width, self.height = _gmt_paper_sizes[paper]
+        else:
+            self.height, self.width = _gmt_paper_sizes[paper]
             
         with open("gmt.conf", "w") as f:
             f.write(_gmt_defaults_header)
@@ -36,8 +48,8 @@ class GMT(object):
         
         self.out = out
         
-        # list of sets that contain the gmt commands and its argumants
-        # and the filename where the gmt commands output will be written
+        # list of lists that contains the gmt commands, its arguments, input
+        # data and the filename where the command outputs will be written
         self.commands = []
         self.is_gmt5 = gmt5
         self.debug = debug
@@ -72,6 +84,7 @@ class GMT(object):
                         for cmd in commands]
         
         if self.debug:
+            # print commands for debugging
             print("\n".join(" ".join(elem for elem in cmd[0:2])
                                           for cmd in commands))
         
@@ -92,6 +105,11 @@ class GMT(object):
     def get_config(self, param):
         return self.config[param.upper()]
     
+    def get_width(self):
+        
+        if 
+        Cmd = "gmt mapproject"
+    
     def multiplot(self, nplots, proj, nrows=None, top=100,left=50, right=50,
                   x_pad=55, y_pad=100):
         """
@@ -102,6 +120,8 @@ class GMT(object):
           f  |                     |  g
           t  |                     |  h
              |                     |  t
+        -----+---------------------+----
+             |       bottom        |    
         """
         if nrows is None:
             nrows = ceil(sqrt(nplots) - 1)
@@ -111,25 +131,12 @@ class GMT(object):
         
         ncols = ceil(nplots / nrows)
         
-        paper = self.get_config("ps_media")
+        width, height = self.width, self.height
         
-        if paper.startswith("a") or paper.startswith("b"):
-            paper = paper.upper()
-        
-        if self.is_portrait:
-            width, height = _gmt_paper_sizes[paper]
-            
-            # for portrait mode ensure we have more rows than columns
-            if ncols > nrows:
-                ncols, nrows = nrows, ncols
-        else:
-            height, width = _gmt_paper_sizes[paper]
-        
-        self.width, self.height = width, height
-        
-        # width and height available for plotting
+        # width available for plotting
         awidth = width - (left + right)
         
+        # width of a single plot
         width  = float(awidth - (ncols - 1) * x_pad) / ncols
         
         self.common += " -J{}{}p".format(proj, width)
@@ -143,6 +150,7 @@ class GMT(object):
                           for ii in range(nrows)
                           for jj in range(ncols))
         
+        # residual margin left at the bottom
         self.bottom = height - top - (nrows - 1) * y_pad
         
         return tuple(x), tuple(y)
@@ -563,3 +571,7 @@ _gmt_paper_sizes = {
 _np2gmt = {
     
 }
+# get width
+# gmt mapproject $* /dev/null -V 2>&1 | grep Transform | awk -F/ '{print $5}'
+# get height
+# gmt mapproject $* /dev/null -V 2>&1 | grep Transform | awk -F/ '{print $7}' | cut -f1 -d' '

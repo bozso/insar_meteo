@@ -4,6 +4,10 @@ import subprocess as sub
 import numpy as np
 from shlex import split
 from math import ceil, sqrt
+from distutils.version import StrictVersion
+
+_gmt_five = StrictVersion('5.0')
+_gmt_five_two = StrictVersion('5.2')
 
 # python 2/3 compatibility
 from six import string_types
@@ -16,12 +20,19 @@ _plotters = ["grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
              "psxy", "psxyz", "gmtlogo"]
 
 class GMT(object):
-    def __init__(self, out, gmt5=True, portrait=False, debug=False,
-                 config=None, **common_flags):
+    def __init__(self, out, portrait=False, debug=False, config=None,
+                 **common_flags):
         
         # no margins by default
         self.left, self.right, self.top, self.bottom = 0.0, 0.0, 0.0, 0.0
-        self.version = cmd("gmt --version", ret_out=True).decode().strip()
+        
+        # get GMT version
+        self.version = get_version()
+        
+        if self.version > _gmt_five:
+            self.is_gmt5 = True
+        else:
+            self.is_gmt5 = False
         
         self.config = _gmt_defaults
         self.is_portrait = portrait
@@ -52,7 +63,6 @@ class GMT(object):
         # list of lists that contains the gmt commands, its arguments, input
         # data and the filename where the command outputs will be written
         self.commands = []
-        self.is_gmt5 = gmt5
         self.debug = debug
         
         # if we have common flags parse them
@@ -114,7 +124,7 @@ class GMT(object):
         else:
             Cmd = "mapproject {} -Dp".format(self.common)
         
-        if not self.version >= "5.2":
+        if not self.version >= _gmt_five_two:
             # before version 5.2
             Cmd += " {} -V".format(os.devnull)
             out = cmd(Cmd, ret_out=True).decode()
@@ -273,12 +283,16 @@ class GMT(object):
         self.commands.append(("set {}={}".format(parameter, value),
                               None, None, None))
 
-# parse GMT flags        
+def get_version():
+    """ Get the version of the installed GMT as a Strict Version object. """
+    return StrictVersion(cmd("gmt --version", ret_out=True).decode().strip())
+
 def proc_flag(flag):
+    """ Parse GMT flags. """
     if isinstance(flag, bool) and flag:
         return ""
     elif hasattr(flag, "__iter__") and not isinstance(flag, string_types):
-        return "/".join([str(elem) for elem in flag])
+        return "/".join(str(elem) for elem in flag)
     else:
         return flag
 
@@ -302,7 +316,10 @@ def execute_gmt_cmd(cmd, ret_out=False):
         return cmd_out
 
 def cmd(cmd, ret_out=False):
-    
+    """
+    Execute terminal command defined by `cmd`, optionally return the
+    output of the executed command if `ret_out` is set to True.
+    """
     try:
         cmd_out = sub.check_output(split(cmd), stderr=sub.STDOUT)
     except sub.CalledProcessError as e:
@@ -313,7 +330,7 @@ def cmd(cmd, ret_out=False):
     if ret_out:
         return cmd_out
 
-dtypes = {
+dem_dtypes = {
     "r4":"f"
 }
 
@@ -358,10 +375,10 @@ def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
     increments = "{}/{}".format(self.delta_lon, self.delta_lat)
     
     Cmd = "xyz2grd {infile} -ZTL{dtype} -R{ll_range} -I{inc} -r -G{nc}"\
-          .format(infile=dempath, dtype=dtypes[fmt], ll_range=lonlat_range,
+          .format(infile=dempath, dtype=dem_dtypes[fmt], ll_range=lonlat_range,
                   inc=increments, nc=ncfile)
     
-    if gmt5:
+    if get_version() > _gmt_five:
         Cmd = "gmt " + Cmd
     
     cmd(Cmd)
@@ -380,7 +397,7 @@ def info(data, is_gmt5=True, **flags):
         gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
                                for key, flag in flags.items()])
     
-    if is_gmt5:
+    if get_version() > _gmt_five:
         Cmd = "gmt info " + gmt_flags
     else:
         Cmd = "gmtinfo " + gmt_flags

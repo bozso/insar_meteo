@@ -7,6 +7,7 @@
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
+typedef const double cdouble;
 
 //-----------------------------------------------------------------------------
 // STRUCTS
@@ -28,12 +29,12 @@ typedef struct { double x, y, z; } cart;
  * Auxilliary functions *
  * **********************/
 
-static double norm(double x, double y, double z)
+static double norm(cdouble x, cdouble y, cdouble z)
 {
     return sqrt(x * x + y * y + z * z);
 }
 
-static void ell_cart (const double lon, const double lat, const double h,
+static void ell_cart (cdouble lon, cdouble lat, cdouble h,
                       double *x, double *y, double *z)
 {
     // from ellipsoidal to cartesian coordinates
@@ -46,7 +47,7 @@ static void ell_cart (const double lon, const double lat, const double h,
 }
 // end of ell_cart
 
-static void cart_ell (const double x, const double y, const double z,
+static void cart_ell (cdouble x, cdouble y, cdouble z,
                       double *lon, double *lat, double *h)
 {
     // from cartesian to ellipsoidal coordinates
@@ -123,8 +124,8 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
 }
 // end calc_pos
 
-static double dot_product(const orbit_fit * orb, const double X, const double Y,
-                          const double Z, double time)
+static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
+                          cdouble Z, double time)
 {
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
@@ -189,8 +190,8 @@ static double dot_product(const orbit_fit * orb, const double X, const double Y,
 }
 // end dot_product
 
-static void closest_appr(const orbit_fit * orb, const double X, const double Y,
-                         const double Z, const uint max_iter, cart * sat_pos)
+static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
+                         cdouble Z, const uint max_iter, cart * sat_pos)
 {
     // compute the sat position using closest approche
     
@@ -396,6 +397,8 @@ py_ptr azi_inc (PyFun_Varargs)
     }
     // end else
 
+    // Cleanup and return
+    
     Py_DECREF(a_coeffs);
     Py_DECREF(a_coords);
     Py_DECREF(a_meancoords);

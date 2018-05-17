@@ -30,10 +30,11 @@ def main():
         gmt.psxy(data=infile, i=input_format, bi=bindef, S="c0.025c",
                  C="scatter.cpt")
     
-    xx, yy, length, width = gmt.scale_pos("v", offset=25)
+    gmt.colorbar(offset=100, C="scatter.cpt", B="10:APS:/:rad:")
     
-    gmt.psscale(D=(0.0, 0.0, length, width), Xf=xx, Yf=yy,
-                C="scatter.cpt", B="10:APS:/:rad:")
+    #xx, yy, length, width = gmt.scale_pos("v", offset=25)
+    
+    #gmt.psscale(D=(0.0, 0.0, length, width), Xf=xx, Yf=yy)
 
     del gmt
     

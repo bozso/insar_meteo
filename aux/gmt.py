@@ -155,21 +155,32 @@ class GMT(object):
         if mode == "vertical" or mode == "v":
             x = width - left - offset
             y = float(height) / 2
+            
             # fraction of space available
-            width  = fshort * (left)
+            width  = fshort * left
             length = flong * height
             hor = ""
         elif mode == "horizontal" or mode == "h":
             x = float(self.width) / 2
             y = bottom - offset
+            
             # fraction of space available
             width  = flong * width
-            length = fshort * (bottom)
+            length = fshort * bottom
             hor = "h"
         else:
             raise ValueError('mode should be either: "vertical", "horizontal", '
                              '"v" or "h", not "{}"'.format(mode))
+        
         return str(x) + "p", str(y) + "p", str(length) + "p", str(width) + "p"
+    
+    def colorbar(self, mode="v", offset=100, flong=0.8, fshort=0.2, **flags):
+        
+        xx, yy, length, width = self.scale_pos(mode, offset=offset,
+                                               flong=flong, fshort=fshort)
+    
+        self.psscale(D=(0.0, 0.0, length, width), Xf=xx, Yf=yy, **flags)
+
     
     def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, palette=None,
                       outfile=None, binary=None, **flags):
@@ -547,4 +558,8 @@ _gmt_paper_sizes = {
 "legal":      [612, 1008],
 "11x17":      [792, 1224],
 "ledger":     [1224, 792],
+}
+
+_np2gmt = {
+    
 }

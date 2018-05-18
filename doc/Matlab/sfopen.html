@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+                "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+<head>
+  <title>Description of sfopen</title>
+  <meta name="keywords" content="sfopen">
+  <meta name="description" content="fid = sfopen(path, mode, machine)">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta name="generator" content="m2html v1.5 &copy; 2003-2005 Guillaume Flandin">
+  <meta name="robots" content="index, follow">
+  <link type="text/css" rel="stylesheet" href="../m2html.css">
+</head>
+<body>
+<a name="_top"></a>
+<div><a href="../index.html">Home</a> &gt;  <a href="index.html">Matlab</a> &gt; sfopen.m</div>
+
+<!--<table width="100%"><tr><td align="left"><a href="../index.html"><img alt="<" border="0" src="../left.png">&nbsp;Master index</a></td>
+<td align="right"><a href="index.html">Index for Matlab&nbsp;<img alt=">" border="0" src="../right.png"></a></td></tr></table>-->
+
+<h1>sfopen
+</h1>
+
+<h2><a name="_name"></a>PURPOSE <a href="#_top"><img alt="^" border="0" src="../up.png"></a></h2>
+<div class="box"><strong>fid = sfopen(path, mode, machine)</strong></div>
+
+<h2><a name="_synopsis"></a>SYNOPSIS <a href="#_top"><img alt="^" border="0" src="../up.png"></a></h2>
+<div class="box"><strong>function [fid] = sfopen(path, mode, machine) </strong></div>
+
+<h2><a name="_description"></a>DESCRIPTION <a href="#_top"><img alt="^" border="0" src="../up.png"></a></h2>
+<div class="fragment"><pre class="comment"> fid = sfopen(path, mode, machine)
+
+ A slightly modified fopen function that exits with error if the file defined
+ by path cannot be opened.
+ Accepts the same arguments as fopen.</pre></div>
+
+<!-- crossreference -->
+<h2><a name="_cross"></a>CROSS-REFERENCE INFORMATION <a href="#_top"><img alt="^" border="0" src="../up.png"></a></h2>
+This function calls:
+<ul style="list-style-image:url(../matlabicon.gif)">
+</ul>
+This function is called by:
+<ul style="list-style-image:url(../matlabicon.gif)">
+<li><a href="staux.html" class="code" title="function out = staux(fun, varargin)">staux</a>	StaMPS Auxulliary functions.</li><li><a href="traux.html" class="code" title="function out = metin(fun, varargin)">traux</a>	TRAIN Axilliary functions.</li></ul>
+<!-- crossreference -->
+
+
+
+<h2><a name="_source"></a>SOURCE CODE <a href="#_top"><img alt="^" border="0" src="../up.png"></a></h2>
+<div class="fragment"><pre>0001 <a name="_sub0" href="#_subfunctions" class="code">function [fid] = sfopen(path, mode, machine)</a>
+0002 <span class="comment">% fid = sfopen(path, mode, machine)</span>
+0003 <span class="comment">%</span>
+0004 <span class="comment">% A slightly modified fopen function that exits with error if the file defined</span>
+0005 <span class="comment">% by path cannot be opened.</span>
+0006 <span class="comment">% Accepts the same arguments as fopen.</span>
+0007 <span class="comment">%</span>
+0008     
+0009     <span class="comment">% filepath to be opened</span>
+0010     <span class="keyword">if</span> nargin &lt; 1 || isempty(path)
+0011        error(<span class="string">'Required argument path is not specified'</span>);
+0012     <span class="keyword">end</span>
+0013     
+0014     <span class="comment">% read, write, append</span>
+0015     <span class="keyword">if</span> nargin &lt; 2 || isempty(mode)
+0016         mode = <span class="string">'r'</span>;
+0017     <span class="keyword">end</span>
+0018     
+0019     <span class="comment">% endiannes</span>
+0020     <span class="keyword">if</span> nargin &lt; 3 || isempty(machine)
+0021         machine = <span class="string">'n'</span>;
+0022     <span class="keyword">end</span>
+0023 
+0024     [fid, msg] = fopen(path, mode, machine);
+0025     
+0026     <span class="keyword">if</span> fid == -1
+0027         error([<span class="string">'Could not open file: '</span>, path, <span class="string">'\nError message: '</span>, msg]);
+0028     <span class="keyword">end</span>
+0029 <span class="keyword">end</span></pre></div>
+<hr><address>Generated on Fri 18-May-2018 14:32:08 by <strong><a href="http://www.artefact.tk/software/matlab/m2html/" title="Matlab Documentation in HTML">m2html</a></strong> &copy; 2005</address>
+</body>
+</html>

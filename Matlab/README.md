@@ -66,4 +66,4 @@ with some extra rules.
 
 Code from [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/), [TRAIN](https://github.com/dbekaert/TRAIN) were used in the developement of
 these libraries. I wish to thank Andrew Hooper and David Bekaert for
-providing free and open acces to their code.
+providing open acces to their code.

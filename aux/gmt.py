@@ -6,6 +6,8 @@ from shlex import split
 from math import ceil, sqrt
 from distutils.version import StrictVersion
 
+import glob
+
 _gmt_five = StrictVersion('5.0')
 _gmt_five_two = StrictVersion('5.2')
 
@@ -135,7 +137,7 @@ class GMT(object):
             return float(cmd(Cmd, ret_out=True))
 
     def get_height(self):
-        print(self.common)
+        
         if self.is_gmt5:
             Cmd = "gmt mapproject {} -Dp".format(self.common)
             version = cmd("gmt --version", ret_out=True)
@@ -147,7 +149,6 @@ class GMT(object):
             Cmd += " {} -V".format(os.devnull)
             out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
                    if "Transform" in line]
-            print(out[0].split("/")[6])
             return float(out[0].split("/")[6].split()[0])
         else:
             Cmd += " -Wh"
@@ -222,14 +223,15 @@ class GMT(object):
             y = bottom - offset
             
             # fraction of space available
-            width  = flong * width
-            length = fshort * bottom
+            length  = flong * width
+            width   = fshort * bottom
             hor = "h"
         else:
             raise ValueError('mode should be either: "vertical", "horizontal", '
                              '"v" or "h", not "{}"'.format(mode))
         
-        return str(x) + "p", str(y) + "p", str(length) + "p", str(width) + "p"
+        return str(x) + "p", str(y) + "p", str(length) + "p",\
+               str(width) + "p" +  hor
     
     def colorbar(self, mode="v", offset=100, flong=0.8, fshort=0.2, **flags):
         
@@ -458,19 +460,14 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
                  cbar_mode="v", cbar_offset=100, colorscale="drywet", cbar_B="10",
                  x_axis = "a0.5g0.25f0.25", y_axis = "a0.25g0.25f0.25",
                  z_range=None, right=100, xy_range=None, 
-                 y_pad=190, top=180):
+                 y_pad=190, top=180, trygrid=False):
 
-    gmt = GMT(ps_file, R=(10,20,30,40), config=config)
-    x, y = gmt.multiplot(len(idx), proj, right=100, y_pad=190, top=180)
-    
-    return
-    
     # 2 additional coloumns for coordinates
     bindef = "{}d".format(ncols + 2)
     
     if xy_range is None or z_range is None:
         _xy_range, _z_range = get_ranges(data=scatter_file, binary=bindef,
-                                       xy_add=0.1, z_add=0.1)
+                                       xy_add=0.05ex, z_add=0.1)
     
     if xy_range is None:
         xy_range = _xy_range
@@ -483,20 +480,20 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
     gmt = GMT(ps_file, R=xy_range, config=config)
     x, y = gmt.multiplot(len(idx), proj, right=100, y_pad=190, top=180)
     
-    print(gmt.get_height()); return
+    gmt.makecpt("tmp.cpt", C=colorscale, Z=True, T=z_range)
     
-    gmt.makecpt("tmp.cpt", C=colorscale, Z=True, T=c_range)
-
+    
     for ii in idx:
         input_format = "0,1,{}".format(ii + 2)
         gmt.psbasemap(X=x[ii], Y=y[ii], B="WSen+t{}".format(ii + 1),
                       Bx=x_axis, By=y_axis)
-        gmt.psxy(data=scatter_file, i=input_format, bi=bindef, S="c0.025c",
-                 C="tmp.cpt")
-    
+        if not trygrid:
+            gmt.psxy(data=scatter_file, i=input_format, bi=bindef,
+                     S="c0.025c", C="tmp.cpt")
+        
     gmt.colorbar(mode=cbar_mode, offset=cbar_offset, C="tmp.cpt",
                  B=cbar_B)
-    
+
     os.remove("tmp.cpt")
     
     del gmt

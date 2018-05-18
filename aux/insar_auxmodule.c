@@ -5,16 +5,16 @@
 #include "capi_macros.h"
 #include "numpy/arrayobject.h"
 
+/************************
+ * Structs and typedefs *
+ ************************/
+
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
 typedef const double cdouble;
-
-//-----------------------------------------------------------------------------
-// STRUCTS
-//-----------------------------------------------------------------------------
-
 typedef unsigned int uint;
 
+// structure for storing fitted orbit polynom coefficients
 typedef struct {
     double mean_t;
     double * mean_coords;
@@ -23,6 +23,7 @@ typedef struct {
     uint is_centered, deg;
 } orbit_fit;
 
+// cartesian coordinate
 typedef struct { double x, y, z; } cart;
 
 /************************
@@ -31,27 +32,30 @@ typedef struct { double x, y, z; } cart;
 
 static double norm(cdouble x, cdouble y, cdouble z)
 {
+    // vector norm
     return sqrt(x * x + y * y + z * z);
 }
+
 
 static void ell_cart (cdouble lon, cdouble lat, cdouble h,
                       double *x, double *y, double *z)
 {
     // from ellipsoidal to cartesian coordinates
+    
     double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));;
 
     *x = (              n + h) * cos(lat) * cos(lon);
     *y = (              n + h) * cos(lat) * sin(lon);
     *z = ( (1.0 - E2) * n + h) * sin(lat);
 
-}
-// end of ell_cart
+} // end of ell_cart
+
 
 static void cart_ell (cdouble x, cdouble y, cdouble z,
                       double *lon, double *lat, double *h)
 {
     // from cartesian to ellipsoidal coordinates
-
+    
     double n, p, o, so, co;
 
     n = (WA * WA - WB * WB);
@@ -71,8 +75,11 @@ static void cart_ell (cdouble x, cdouble y, cdouble z,
 }
 // end of cart_ell
 
+
 static FILE * sfopen(const char * path, const char * mode)
 {
+    // safely open file
+    
     FILE * file = fopen(path, mode);
 
     if (!file) {
@@ -85,6 +92,8 @@ static FILE * sfopen(const char * path, const char * mode)
 
 static void calc_pos(const orbit_fit * orb, double time, cart * pos)
 {
+    // Calculate satellite position based on fitted polynomial orbits at time
+    
     uint n_poly = orb->deg + 1, is_centered = orb->is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
@@ -121,12 +130,14 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
     }
     
     pos->x = x; pos->y = y; pos->z = z;
-}
-// end calc_pos
+} // end calc_pos
 
 static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
                           cdouble Z, double time)
 {
+    /* Calculate dot product between satellite velocity vector and
+     * and vector between ground position and satellite position. */
+    
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
     uint n_poly = orb->deg + 1;
@@ -186,16 +197,16 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     // product of inverse norms
     inorm = (1.0 / norm(dx, dy, dz)) * (1.0 / norm(vel_x, vel_y, vel_z));
     
-    return(vel_x * dx * inorm + vel_y * dy * inorm + vel_z * dz * inorm);
+    return((vel_x * dx  + vel_y * dy  + vel_z * dz) * inorm);
 }
 // end dot_product
 
 static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
                          cdouble Z, const uint max_iter, cart * sat_pos)
 {
-    // compute the sat position using closest approche
+    // Compute the sat position using closest approche.
     
-    // first, last and middle time
+    // first, last and middle time, extending the time window by 5 seconds
     double t_start = orb->start_t - 5.0,
            t_stop  = orb->stop_t + 5.0,
            t_middle;
@@ -225,9 +236,9 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
         itr++;
     }
     
+    // calculate satellite position at middle time
     calc_pos(orb, t_middle, sat_pos);
-}
-// end closest_appr
+} // end closest_appr
 
 /*****************************************
  * Main functions - calleble from Python *
@@ -258,12 +269,14 @@ py_ptr azi_inc (PyFun_Varargs)
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
                         &max_iter, &is_lonlat);
 
+    // Importing arrays
     Np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     Np_import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     Np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
+    
     Np_check_ndim(a_coeffs, 2);
     Np_check_dim(a_coeffs, 0, 3);
     Np_check_dim(a_coeffs, 1, deg + 1);
@@ -284,6 +297,7 @@ py_ptr azi_inc (PyFun_Varargs)
     // matrix holding azimuth and inclinations values
     Np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
     
+    // Set up orbit polynomial structure
     orb.coeffs = (double *) Np_data(a_coeffs);
     orb.deg = deg;
     orb.is_centered = is_centered;
@@ -294,7 +308,7 @@ py_ptr azi_inc (PyFun_Varargs)
     
     orb.mean_coords = (double *) Np_data(a_meancoords);
     
-    // coords contains lon, lat, h    
+    // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, 0, n_coords) {
             lon = Np_delem(a_coords, ii, 0) * DEG2RAD;
@@ -398,7 +412,6 @@ py_ptr azi_inc (PyFun_Varargs)
     // end else
 
     // Cleanup and return
-    
     Py_DECREF(a_coeffs);
     Py_DECREF(a_coords);
     Py_DECREF(a_meancoords);
@@ -410,8 +423,7 @@ fail:
     Py_XDECREF(a_meancoords);
     Py_XDECREF(azi_inc);
     return NULL;
-}
-// end azim_inc
+} // end azim_inc
 
 PyFun_Doc(asc_dsc_select,
 "asc_dsc_select");

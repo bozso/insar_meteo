@@ -4,6 +4,7 @@ function out = staux(fun, varargin)
 % Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
 % (https://github.com/dbekaert/TRAIN) and
 % StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
+%
     
     switch(fun)
         case 'save_llh'
@@ -31,7 +32,7 @@ function out = staux(fun, varargin)
         case 'plot_ph_grid'
              out = plot_ph_grid(varargin{:});
         case 'ps_output'
-             out = plot_ph_grid();
+             ps_output();
         case 'rel_std_filt'
              out = rel_std_filt(varargin{:});
         case 'report'
@@ -429,6 +430,7 @@ function out = clap(varargin)
 % developed by Andrew Hooper.
 % Modified CLAP filter. I used it to play around with the filter
 % parameters. Feel free to ingore it.
+    
     p = inputParser();
     
     p.addParameter('grid_size', 50, @isscalar)
@@ -516,16 +518,18 @@ function out = clap(varargin)
     out.ph_grid = ph_grid;
 end
 
-% Auxilliary function for plotting the output of the modified CLAP filter
+
 function [] = plot_ph_grid(ph)
+% Auxilliary function for plotting the output of the modified CLAP filter
     figure();
     colormap('jet');
     imagesc(angle(ph));
     colorbar();
 end
 
-% Helper function that loads LOS velocities defined by plot_flags.
 function vv = load_ps_vel(plot_flags)
+% Helper function that loads LOS velocities defined by plot_flags.
+%
 
     % if we have multiple plot_flags
     if iscell(plot_flags)
@@ -574,8 +578,9 @@ function vv = load_ps_vel(plot_flags)
     end
 end
 
-% Wrapper function for ps_plot with argument handling that is more user friendly
 function varargout = plot(varargin)
+% Wrapper function for ps_plot with argument handling that is more user friendly
+%
     p = inputParser();
     
     p.FunctionName = 'plot';
@@ -616,8 +621,9 @@ function varargout = plot(varargin)
     varargout = h;
 end
 
-% Just a bunch of plots
 function [] = report()
+% Just a bunch of plots
+%
     plot('w', 'wrapped.png');
     plot('u', 'unwrapped.png');
     plot('u-do', 'unwrapped_do.png');
@@ -632,10 +638,11 @@ function [] = report()
     
 end
 
-% MODIFIED ps_output. For some reason save('data.txt', 'data', '-ascii')
-% did not work for us. I made some simple modifications to make it work
-% with my save_ascii function (see the last function in this library).
 function [] = ps_output()
+% MODIFIED ps_output from StaMPS. For some reason save('data.txt', 'data', '-ascii')
+% did not work for me. I made some simple modifications to make it work
+% with my `save_ascii` function (see the next function in this library).
+
     %PS_OUTPUT write various output files 
     %
     %   Andy Hooper, June 2006
@@ -707,6 +714,7 @@ function [] = ps_output()
     fclose(fid);
     
     scla = load(sclaname);
+
     if exist([hgtname, '.mat'],'file')
         hgt = load(hgtname);
     else
@@ -791,8 +799,8 @@ function [] = ps_output()
 
 end
 
-% Replacement for save(path, 'data', '-ascii')
 function [] = save_ascii(path, format, data)
+% Replacement for save(path, 'data', '-ascii')
 
     [FID, msg] = fopen(path, 'w');
     
@@ -805,7 +813,7 @@ function [] = save_ascii(path, format, data)
     
 end
 
-function varargout = plot_scatter(varargin)
+function h = plot_scatter(varargin)
 
     check_matrix = @(x) validateattributes(x, {'numeric'}, ...
                                 {'nonempty', 'finite', 'ndims', 2});
@@ -822,13 +830,13 @@ function varargout = plot_scatter(varargin)
 
     p.parse(varargin{:});
     
-    data = p.Results.data;
-    out = p.Results.out;
-    fcols = p.Results.cols;
-    psize = p.Results.psize;
+    data   = p.Results.data;
+    out    = p.Results.out;
+    fcols  = p.Results.cols;
+    psize  = p.Results.psize;
     lon_rg = p.Results.lon_rg;
     lat_rg = p.Results.lat_rg;
-    clims = p.Results.clims;
+    clims  = p.Results.clims;
     
     ncols = size(data, 2);
     
@@ -843,10 +851,6 @@ function varargout = plot_scatter(varargin)
         frows = ceil(sqrt(ncols) - 1);
         frows = max(1, frows);
         fcols = ceil(ncols / frows);
-        
-        %if fcols * frows < ncols
-        %    frows = frows + 1;
-        %end
     end
     
     if isnan(out)
@@ -865,7 +869,6 @@ function varargout = plot_scatter(varargin)
     if ~isnan(out)
         saveas(h, out);
     end
-    varargout = h;
 end
 
 function [] = corr_phase(ifg, value)

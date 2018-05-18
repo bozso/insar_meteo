@@ -4,6 +4,7 @@ function out = metin(fun, varargin)
 % Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
 % (https://github.com/dbekaert/TRAIN) and
 % StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
+%
 
     switch(fun)
         case 'plot_2d_ftt'

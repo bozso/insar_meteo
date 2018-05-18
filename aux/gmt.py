@@ -22,8 +22,7 @@ _plotters = ["grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
              "psxy", "psxyz", "gmtlogo"]
 
 class GMT(object):
-    def __init__(self, out, portrait=False, debug=False, config=None,
-                 **common_flags):
+    def __init__(self, out, debug=False, config=None, **common_flags):
         
         # no margins by default
         self.left, self.right, self.top, self.bottom = 0.0, 0.0, 0.0, 0.0
@@ -37,13 +36,20 @@ class GMT(object):
             self.is_gmt5 = False
         
         self.config = _gmt_defaults
-        self.is_portrait = portrait
         
         if config is not None:
+            # convert keys to uppercase
+            config = {key.upper(): value for key, value in config.items()}
+            
             self.config.update(config)
             if self.config["PS_PAGE_ORIENTATION"] == "portrait":
                 self.is_portrait = True
-    
+            elif self.config["PS_PAGE_ORIENTATION"] == "landscape":
+                self.is_portrait = False
+            else:
+                raise ValueError('PS_PAGE_ORIENTATION should be either '
+                                 '"portrait" or "landscape"')
+            
         # get paper width and height
         paper = self.get_config("ps_media")
 
@@ -241,8 +247,7 @@ class GMT(object):
         self.psscale(D=(0.0, 0.0, length, width), Xf=xx, Yf=yy, **flags)
 
     
-    def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, palette=None,
-                      outfile=None, **flags):
+    def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, outfile=None, **flags):
         
         if data is not None:
             if isinstance(data, string_types) and pth.isfile(data):
@@ -457,17 +462,27 @@ def get_ranges(data, binary=None, xy_add=None, z_add=None):
     return xy_range, z_range
 
 def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
-                 cbar_mode="v", cbar_offset=100, colorscale="drywet", cbar_B="10",
-                 x_axis = "a0.5g0.25f0.25", y_axis = "a0.25g0.25f0.25",
-                 z_range=None, right=100, xy_range=None, 
-                 y_pad=190, top=180, trygrid=False):
-
+                 cbar_conf={}, axis_conf={}, colorscale="drywet",
+                 right=100, top=200, left=100, trygrid=False):
+    
+    #if cbar_conf is None: cbar_conf = dict()
+    #if axid_conf is None: axis_conf = dict()
+    
+    xy_range = axis_config.pop("xy_range", None)
+    z_range  = axis_config.pop("z_range", None)
+    
+    x_axis = axis_config.pop("x_axis", "a0.5g0.25f0.25")
+    y_axis = axis_config.pop("y_axis", "a0.25g0.25f0.25")
+    
+    xy_add = axis_config.pop("xy_add", 0.05)
+    z_add = axis_config.pop("z_add", 0.1)
+    
     # 2 additional coloumns for coordinates
     bindef = "{}d".format(ncols + 2)
     
     if xy_range is None or z_range is None:
         _xy_range, _z_range = get_ranges(data=scatter_file, binary=bindef,
-                                       xy_add=0.05ex, z_add=0.1)
+                                          xy_add=xy_add, z_add=z_add)
     
     if xy_range is None:
         xy_range = _xy_range
@@ -478,7 +493,7 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
         idx = range(ncols)
     
     gmt = GMT(ps_file, R=xy_range, config=config)
-    x, y = gmt.multiplot(len(idx), proj, right=100, y_pad=190, top=180)
+    x, y = gmt.multiplot(len(idx), proj, right=right, top=top, left=left)
     
     gmt.makecpt("tmp.cpt", C=colorscale, Z=True, T=z_range)
     
@@ -491,12 +506,20 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
             gmt.psxy(data=scatter_file, i=input_format, bi=bindef,
                      S="c0.025c", C="tmp.cpt")
         
-    gmt.colorbar(mode=cbar_mode, offset=cbar_offset, C="tmp.cpt",
-                 B=cbar_B)
+    gmt.colorbar(mode=cbar_conf.pop("mode", "v"),
+                 offset=cbar_conf.pop("offset", 10),
+                 B=cbar_cbar_conf.pop("label", ""), C="tmp.cpt",)
 
     os.remove("tmp.cpt")
     
     del gmt
+
+def histo(data, ps_file, config=None, **flags):
+
+    gmt = GMT(ps_file, config=config, **flags)
+    gmt.histogram(data)
+    del gmt
+
 
 _gmt_defaults_header = \
 r'''#
@@ -504,6 +527,7 @@ r'''#
 # vim:sw=8:ts=8:sts=8
 #
 '''
+
 _gmt_defaults = {
 # ********************
 # * COLOR Parameters *

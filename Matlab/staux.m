@@ -1,8 +1,9 @@
+function out = staux(fun, varargin)
+% StaMPS Auxulliary functions.
+%
 % Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
 % (https://github.com/dbekaert/TRAIN) and
 % StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
-
-function out = staux(fun, varargin)
     
     switch(fun)
         case 'save_llh'
@@ -44,12 +45,12 @@ function out = staux(fun, varargin)
     end
 end
 
-function varargout = boxplot_los(varargin)
+function h = boxplot_los(varargin)
 doc = {
 ''
 'function h = BOXPLOT_LOS(plot_flags, out, ...)'
 ''
-'The plot will be saved to an image file defined by the _out_ argument. No '
+'The plot will be saved to an image file defined by the `out` argument. No '
 'figure will pop up.'
 'Plots the boxplot of LOS velocities defined by plot_flags.'
 'Accepted plot flags are the same flags accepted by the ps_plot function,'
@@ -71,12 +72,13 @@ doc = {
 '                  See the help of the boxplot function for additinal '
 '                  information. Default value: nan (no options)'
 ''
-'  The function returns the function handle _h_ to the boxplot.'
+'  The function returns the function handle `h` to the boxplot.'
 ''
 };
 
-    if nargin == 0
+    if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
+        h = nan;
         return;
     end
 
@@ -121,7 +123,6 @@ doc = {
 
     ylabel('LOS velocity [mm/yr]');
     saveas(h, args.out);
-    varagout = h;
 end
 
 function [] = rel_std_filt(varargin)
@@ -138,7 +139,7 @@ doc = {
 ''
 };
 
-    if nargin == 0
+    if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
         return;
     end
@@ -196,7 +197,7 @@ doc = {
 ''
 };
 
-    if nargin == 0
+    if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
         return;
     end
@@ -250,7 +251,7 @@ doc = {
 'IFG 1, 2 and 3.'
 };
 
-    if nargin == 0
+    if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
         return;
     end
@@ -265,7 +266,7 @@ doc = {
     ps_plot('rsb', 1, 0, 0, args.loop);
 end
 
-function varargout = binned_statistic(varargin)
+function out = binned_statistic(varargin)
 doc = {
 'binned = binned_statistic(x, y, ...)'
 ''
@@ -288,8 +289,9 @@ doc = {
 'the values of x.'
 };
 
-    if nargin == 0
+    if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
+        out = nan;
         return;
     end
     
@@ -331,11 +333,11 @@ doc = {
     else
         binned = accumarray(idx', y', [], fun);
     end
-    varargout{1} = binned;
-    varargout{2} = bins;
+    out.binned = binned;
+    out.bins = bins;
 end
 
-function varargout = binned_statistic_2d(varargin)
+function out = binned_statistic_2d(varargin)
 doc = {
 'binned = binned_statistic_2d(x, y, z, ...)'
 ''
@@ -361,8 +363,9 @@ doc = {
 'the values of x and 10 bins along the values of y.'
 };
  
-    if nargin == 0
+    if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
+        out = nan;
         return;
     end
     
@@ -416,12 +419,14 @@ doc = {
     else
         binned = accumarray([idx_x, idx_y], z, [], fun);
     end
-    varargout{1} = binned;
-    varargout{2} = xbins;
-    varargout{3} = ybins;
+    out.binned = binned;
+    out.xbins = xbins;
+    out.ybins = ybins;
 end
 
-function varargout = clap(varargin)
+function out = clap(varargin)
+% Based on the Combined Low-pass Adaptive Filter of the StaMPS package
+% developed by Andrew Hooper.
 % Modified CLAP filter. I used it to play around with the filter
 % parameters. Feel free to ingore it.
     p = inputParser();
@@ -507,8 +512,8 @@ function varargout = clap(varargin)
                                        n_win * 0.75, n_win * 0.25, low_pass);
         end
     end
-    varargout{1} = ph_filt;
-    varargout{2} = ph_grid;
+    out.ph_filt = ph_filt;
+    out.ph_grid = ph_grid;
 end
 
 % Auxilliary function for plotting the output of the modified CLAP filter
@@ -630,7 +635,6 @@ end
 % MODIFIED ps_output. For some reason save('data.txt', 'data', '-ascii')
 % did not work for us. I made some simple modifications to make it work
 % with my save_ascii function (see the last function in this library).
-
 function [] = ps_output()
     %PS_OUTPUT write various output files 
     %
@@ -884,96 +888,6 @@ function [] = corr_phase(ifg, value)
     save('phuw_sb2.mat', 'ph_uw', 'msd')
 end
 
-function [] = plot_sb_baselines(ix)
-    %PLOT_SB_BASELINES plot the small baselines in small_baselines.list
-    %Optional an input argument ix can be specified containing a vector of the
-    %small baseline interferograms to keep which will be plotted in the baseline plot.
-    %
-    %   Andy Hooper, June 2007
-    %
-    %   ======================================================================
-    %   09/2010 AH: Add option to plot in MERGED directory
-    %   09/2010 AH: For SMALL_BASELINES/MERGED don't plot dropped ifgs 
-    %   12/2012 DB: Added meaning of ix to the syntax of the code
-    %   04/2013 DB: Command variable
-    %   03/2014 DB: Suppress command line output
-    %   ======================================================================
-    
-    
-    if nargin <1
-       ix=[];
-    end
-    
-    
-    currdir=pwd;
-    dirs=strread(currdir,'%s','delimiter','/');
-    if strcmp(dirs{end},'SMALL_BASELINES') 
-        [a,b] = system(['\ls -d [1,2]* | sed ''' 's/_/ /''' ' > small_baselines.list']);
-        load ../psver
-        psname=['../ps',num2str(psver)];
-        small_baseline_flag='y';
-    elseif strcmp(dirs{end},'MERGED') 
-        cd ../SMALL_BASELINES
-        [a,b] = system(['\ls -d [1,2]* | sed ''' 's/_/ /''' ' > ../MERGED/small_baselines.list']);
-        cd ../MERGED
-        load ../psver
-        psname=['../ps',num2str(psver)];
-        small_baseline_flag='y';
-    else
-        load psver
-        psname=['ps',num2str(psver)];
-        small_baseline_flag='n';
-    end
-    
-    sb=load('small_baselines.list');
-    n_ifg=size(sb,1);
-    if small_baseline_flag=='y' & isempty(ix) & exist('./parms.mat','file')
-        drop_ifg_index=getparm('drop_ifg_index');
-        if ~isempty(drop_ifg_index)
-           ix=setdiff([1:n_ifg],drop_ifg_index);
-        end
-    end
-    
-    if ~isempty(ix)
-        sb=sb(ix,:);
-    else 
-        ix=1:size(sb,1);
-    end
-    
-    ps=load(psname);
-    
-    n_ifg=size(sb,1);
-    [yyyymmdd,I,J]=unique(sb);
-    ifg_ix=reshape(J,n_ifg,2);
-    x=ifg_ix(:,1);
-    y=ifg_ix(:,2);
-    
-    
-    day=str2num(datestr(ps.day,'yyyymmdd'));
-    [B,I]=intersect(day,yyyymmdd);
-    
-    x=I(x);
-    y=I(y);
-    
-    figure
-
-    for i=1:length(x)
-        l=line([ps.day(x(i)),ps.day(y(i))],[ps.bperp(x(i)),ps.bperp(y(i))]);
-        text((ps.day(x(i))+ps.day(y(i)))/2,(ps.bperp(x(i))+ps.bperp(y(i)))/2,num2str(ix(i)));
-        set(l,'color',[0 1 0],'linewidth',2)
-    end
-
-    hold on
-    p=plot(ps.day,ps.bperp,'ro');
-    set(p,'markersize',12,'linewidth',2)
-    hold off
-    %datetick('x',12)
-    %set(gca,'FontSize',10);
-    xlabel('Felvetel idopontja')
-    ylabel('Meroleges bazisvonal (m)')
-    dateaxis
-end
-
 function [] = crop(varargin)
 
     p = inputParser();
@@ -1047,11 +961,6 @@ function [] = crop(varargin)
     
     save('ps2.mat', '-struct', 'ps');
 end
-
-%function [] = station_crop(varargin)
-%
-%
-%end
 
 function [] = crop_reset()
     movefile ps2_old.mat ps2.mat
@@ -1132,89 +1041,4 @@ function loaded = load_binary(varargin)
     fid = sfopen(args.path, 'r');
     loaded = transpose(fread(fid, [args.ncols, Inf], args.dtype));
     fclose(fid);
-end
-
-function [] = aaa()
-    n_ifg_plot = size(ph_disp, 2);
-    
-    xgap = 0.1;
-    ygap = 0.2;
-    [Y, X] = meshgrid([0.7:-1 * ygap:0.1], [0.1:xgap:0.8]);
-    
-    if ~isempty(lon_rg)
-        ix = lonlat(:,1) >= lon_rg(1) & lonlat(:,1) <= lon_rg(2);
-        lonlat = lonlat(ix,:);
-    end
-    
-    if ~isempty(lat_rg)
-        ix = lonlat(:,2) >= lat_rg(1) & lonlat(:,2) <= lat_rg(2);
-        lonlat = lonlat(ix,:);
-    end
-    
-    max_xy = llh2local([max(lonlat), 0]', [min(lonlat), 0]);
-    
-    fig_ar = 4/3; % aspect ratio of figure window
-    useratio = 1; % max fraction of figure window to use
-    n_i = max_xy(2) * 1000;
-    n_j = max_xy(1) * 1000;
-    ar = max_xy(1) / max_xy(2); % aspect ratio (x/y)
-    
-    if n_x==0
-        % number of plots in y direction
-        n_y = ceil(sqrt((n_ifg_plot) * ar / fig_ar)); 
-        n_x = ceil((n_ifg_plot)  / n_y);
-        
-        % figure with fixed aspect ratio
-        fixed_fig = 1;
-    else
-        n_y = ceil((n_ifg_plot) / n_x);
-        fixed_fig = 0;
-    end
-    
-    d_x = useratio / n_x;
-    d_y = d_x / ar * fig_ar;
-    
-    % TS figure exceeds fig size
-    if d_y > useratio / n_y & fixed_fig == 1
-        d_y = useratio / n_y; 
-        d_x = d_y * ar / fig_ar;
-        h_y = 0.95 * d_y;
-        h_x = h_y * ar / fig_ar;
-    
-        fig_size = 0;
-    elseif d_y > useratio/ n_y & fixed_fig == 0 
-        h_y = 0.95 * d_y;
-        h_x = h_y * ar / fig_ar;
-    
-        y_scale = d_y * n_y;
-        d_y = d_y / y_scale;   
-        
-        % check to indicate fig needs to be adapted
-        fig_size = 1;
-        h_y = 0.95 * d_y;
-    else
-        h_y = 0.95 * d_y;
-        h_x = h_y * ar / fig_ar;
-        fig_size = 0;
-    end
-    y = 1 - d_y:-d_y:0;
-    x = 1 - useratio:d_x:1-d_x;
-
-    [imY, imX] = meshgrid(y, x);
-    if textsize == 0
-        textsize = round(10 * 4 / n_x);
-        if textsize > 16
-            textsize = 16;
-        elseif textsize < 8
-            textsize = 8;
-        end
-    end
-    
-    % text length
-    l_t = 1 / 9 * abs(textsize) / 10;
-    
-    % text height
-    h_t = 1 / 50 * abs(textsize) / 10;
-    x_t = round((h_x - l_t) / h_x / 2 * n_j);
-    y_t = round(h_t * 1.2 / h_y * n_i);
 end

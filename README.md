@@ -14,18 +14,25 @@ for my future programs.
 
 ## Short description of folders and files
 
-- aux: Auxilliary C and Python functions/modules
-    - capi_macros.h -- useful macros for writing C Python and Numpy extensions
-    - gmt.py -- thin wrapper for [Generic Mapping Tools](http://gmt.soest.hawaii.edu/)
-    - gmtpy.py -- inspiration for gmt.py from emolch <https://github.com/emolch/gmtpy>
-    - insar_auxmodule.c -- auxilliary functions callable from python
-    - satorbit.py -- module for fitting polynoms to SAR orbit data (t,x,y,z)
-    - setup.py -- script for compiling insar_auxmodule.c
-    - tkplot.py -- simple 2D plots using tkinter
+- **Matlab**: auxilliary Matlab modules for
+  [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/) and 
+  [TRAIN](https://github.com/dbekaert/TRAIN).
+- **aux**: Auxilliary C and Python functions/modules
+    - **capi_macros.h** -- useful macros for writing C Python and Numpy extensions
+    - **gmt.py** -- thin wrapper for [Generic Mapping Tools](http://gmt.soest.hawaii.edu/)
+    - **gmtpy.py** -- inspiration for gmt.py from emolch <https://github.com/emolch/gmtpy>
+    - **insar_auxmodule.c** -- auxilliary functions callable from python
+    - **satorbit.py** -- module for fitting polynoms to SAR orbit data (t,x,y,z)
+    - **compile.py** -- script for compiling insar_auxmodule.c
+    - **tkplot.py** -- simple 2D plots using tkinter
 
-- backup: I store files here that I do not use anymore, but may be useful in the
+- **backup**: I store files here that I do not use anymore, but may be useful in the
   future
-- daisy_test_data: test datafiles for the daisy program
-- src: source file(s) for C programs
-- insar_meteo.sh source this file in your .bashrc so you can use the C and
+- **daisy_test_data**: test datafiles for the daisy program
+- **src**: source file(s) for C programs
+- **insar_meteo.sh** source this file in your .bashrc so you can use the C and
   Python programs. **IMPORTANT**: first set the MAIN_DIR variable in the file.
+
+## License
+
+Code is licensed with [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).

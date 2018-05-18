@@ -1,8 +1,10 @@
+function out = metin(fun, varargin)
+% TRAIN Axilliary functions.
+%
 % Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
 % (https://github.com/dbekaert/TRAIN) and
 % StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
 
-function out = metin(fun, varargin)
     switch(fun)
         case 'plot_2d_ftt'
             out = plot_2d_fft(varargin{:});
@@ -235,7 +237,7 @@ function [corrected_phase] = subtract_dry()
 end
 
 function [d_total] = total_aps(varargin)
-
+% Based on the `aps_weather_model_InSAR` function of the TRAIN packege.
     p = inputParser;
     p.FunctionName = 'total_aps';
     p.addParameter('outdir', '.', @ischar);

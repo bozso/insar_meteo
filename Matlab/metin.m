@@ -1,5 +1,6 @@
-% Based on codes by David Bekaert and Andrew Hooper from packages TRAIN and
-% StaMPS.
+% Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
+% (https://github.com/dbekaert/TRAIN) and
+% StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
 
 function out = metin(fun, varargin)
     switch(fun)

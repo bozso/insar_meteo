@@ -135,7 +135,7 @@ class GMT(object):
             return float(cmd(Cmd, ret_out=True))
 
     def get_height(self):
-        
+        print(self.common)
         if self.is_gmt5:
             Cmd = "gmt mapproject {} -Dp".format(self.common)
             version = cmd("gmt --version", ret_out=True)
@@ -183,22 +183,24 @@ class GMT(object):
         awidth = width - (left + right)
         
         # width of a single plot
-        width  = float(awidth - (ncols - 1) * x_pad) / ncols
-        height = self.get_height()
+        pwidth  = float(awidth - (ncols - 1) * x_pad) / ncols
         
-        self.common += " -J{}{}p".format(proj, width)
+        self.common += " -J{}{}p".format(proj, pwidth)
+        
+        # height of a single plot
+        pheight = self.get_height()
         
         # calculate psbasemap shifts in x and y directions
-        x = ("f{}p".format(left + ii * (width + x_pad))
+        x = ("f{}p".format(left + ii * (pwidth + x_pad))
                            for jj in range(nrows)
                            for ii in range(ncols))
         
-        y = ("f{}p".format(top - ii * height)
+        y = ("f{}p".format(height - top - ii * pheight)
                           for ii in range(1, nrows + 1)
                           for jj in range(ncols))
         
         # residual margin left at the bottom
-        self.bottom = top - nrows * height
+        self.bottom = height - top - nrows * pheight
         
         return tuple(x), tuple(y)
     
@@ -453,19 +455,32 @@ def get_ranges(data, binary=None, xy_add=None, z_add=None):
     return xy_range, z_range
 
 def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
-                 cbar_mode="v", cbar_offset=100, colorscale="drywet",
-                 cbar_B="10", x_axis = "a0.5g0.25f0.25",
-                 y_axis = "a0.25g0.25f0.25"):
+                 cbar_mode="v", cbar_offset=100, colorscale="drywet", cbar_B="10",
+                 x_axis = "a0.5g0.25f0.25", y_axis = "a0.25g0.25f0.25",
+                 z_range=None, right=100, xy_range=None, 
+                 y_pad=190, top=180):
+
+    gmt = GMT(ps_file, R=(10,20,30,40), config=config)
+    x, y = gmt.multiplot(len(idx), proj, right=100, y_pad=190, top=180)
     
+    return
+    
+    # 2 additional coloumns for coordinates
     bindef = "{}d".format(ncols + 2)
     
-    ll_range, c_range = get_ranges(data=scatter_file, binary=bindef,
-                                   xy_add=0.1, z_add=0.1)
+    if xy_range is None or z_range is None:
+        _xy_range, _z_range = get_ranges(data=scatter_file, binary=bindef,
+                                       xy_add=0.1, z_add=0.1)
+    
+    if xy_range is None:
+        xy_range = _xy_range
+    if z_range is None:
+        z_range = _z_range
     
     if idx is None:
         idx = range(ncols)
     
-    gmt = GMT(ps_file, R=ll_range, config=config)
+    gmt = GMT(ps_file, R=xy_range, config=config)
     x, y = gmt.multiplot(len(idx), proj, right=100, y_pad=190, top=180)
     
     print(gmt.get_height()); return
@@ -480,7 +495,7 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
                  C="tmp.cpt")
     
     gmt.colorbar(mode=cbar_mode, offset=cbar_offset, C="tmp.cpt",
-                 B="10:APS:/:rad:")
+                 B=cbar_B)
     
     os.remove("tmp.cpt")
     

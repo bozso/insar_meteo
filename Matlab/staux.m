@@ -45,8 +45,8 @@ function out = staux(fun, varargin)
     end
 end
 
-function h = boxplot_los(varargin)
-% function h = boxplot_los(plot_flags, out, ...)
+function h = boxplot_los(plot_flags, varargin)
+% function h = boxplot_los(plot_flags, ...)
 % 
 % The plot will be saved to an image file defined by the `out` argument. No
 % figure will pop up.
@@ -71,21 +71,13 @@ function h = boxplot_los(varargin)
 %                  information. Default value: nan (no options)
 % 
 %  The function returns the function handle `h` to the boxplot.
-
-    p = inputParser();
     
-    p.FunctionName = 'boxplot_los';
-    p.addRequired('plot_flags', @(x) ischar(x) | iscell(x));
-    p.addRequired('out', @(x) ischar(x));
+    args = struct('out', 'los_vel_boxplot.png', 'boxplot_opt', nan, 'fun', nan);
     
-    p.addParameter('fun', @(x) x, @(x) isa(x, 'function_handle'));
-    p.addParameter('boxplot_opt', nan, @iscell);
-    
-    p.parse(varargin{:});
-    args = p.Results;
+    args = parseArgs(varargin, args);
     
     % loading ps velocities
-    vv = load_ps_vel(args.plot_flags);
+    vv = load_ps_vel(plot_flags);
     
     if isa(args.fun, 'function_handle')
         vv = args.fun(vv); % apply the function
@@ -97,13 +89,13 @@ function h = boxplot_los(varargin)
         
         % labels are the velocity flags
         args.boxplot_opt{n_var + 1} = 'labels';
-        args.boxplot_opt{n_var + 2} = args.plot_flags;
+        args.boxplot_opt{n_var + 2} = plot_flags;
         
         boxopt = args.boxplot_opt;
     else
         % labels are the velocity flags
         boxopt{1} = 'labels';
-        boxopt{2} = args.plot_flags;
+        boxopt{2} = plot_flags;
     end
     
     % by default it will not show the figure
@@ -115,7 +107,7 @@ function h = boxplot_los(varargin)
     saveas(h, args.out);
 end
 
-function [] = rel_std_filt(varargin)
+function [] = rel_std_filt(max_rel_std)
 % function REL_STD_FILT(max_rel_std)
 % 
 % Filters calculated LOS velocities based in their relative standard deviations.
@@ -125,14 +117,10 @@ function [] = rel_std_filt(varargin)
 % 
 % Filtered LOS velocities will be saved into "ps_data_filt.xy", in ascii format.
    
-    % parse input arguments
-    p = inputParser();
-    p.FunctionName = 'rel_std_filt';
-    p.addRequired('max_rel_std', @isscalar);
-
-    p.parse(varargin{:});
-    args = p.Results;
-    
+   if ~isscalar(max_rel_std)
+        error('max_rel_std should be a scalar!');
+   end
+   
     % create ps_data.xy if it does not exist
     if ~exist('ps_data.xy', 'file')
         ps_output;
@@ -147,7 +135,7 @@ function [] = rel_std_filt(varargin)
     
     rel_std = ps_data(:,3) ./ ps_std(:,3) * 100;
     
-    idx = rel_std < args.max_rel_std;
+    idx = rel_std < max_rel_std;
     
     before = size(ps_data, 1);
     after = sum(idx);
@@ -160,10 +148,10 @@ function [] = rel_std_filt(varargin)
     save('ps_data_filt.xy', 'ps_data', '-ascii');
 end
 
-function [] = iterate_unwrapping(varargin)
-% function ITERATE_UNWRAPPING(numiter)
+function [] = iterate_unwrapping(numiter, varargin)
+% function ITERATE_UNWRAPPING(numiter, 'scla')
 % 
-% Simply iterate the unwrapping process _numiter_ times.
+% Simply iterate the unwrapping process numiter times.
 % At every iteration the spatially-correlated look angle error is calculated
 % (StaMPS Step 7) can be calculated.
 % 
@@ -172,15 +160,12 @@ function [] = iterate_unwrapping(varargin)
 % where ii is the iteration step.
 % 
 % - numiter:       (input) number of iteraions
-% - 'scla', false: (optional) by default SCLA corrections will NOT be calculated
-% 
-    p = inputParser();
-    p.FunctionName = 'iterate_unwrapping';
-    p.addRequired('numiter', @isscalar);
-    p.addParameter('scla', false, @(x) isa(x, 'logical'));
+% - 'scla', flag:  (optional) if present SCLA corrections will be calculated
+%                             and subtracted
 
-    p.parse(varargin{:});
-    args = p.Results;
+    args = struct('scla', 0);
+    
+    args = parseArgs(varargin, args, {'scla'});
     
     if args.scla
         end_step = 7;
@@ -191,7 +176,8 @@ function [] = iterate_unwrapping(varargin)
     % remove previous pngs
     delete iteration_*.png;
 
-    h = figure; set(h, 'Visible', 'off');
+    h = figure;
+    set(h, 'Visible', 'off');
 
     % plot starting residuals
     h = ps_plot('rsb');
@@ -202,15 +188,15 @@ function [] = iterate_unwrapping(varargin)
         fprintf('################\n');
         fprintf('ITERATION #%d\n', ii);
         fprintf('################\n');
-        stamps(6,end_step);
-        h = figure; set(h, 'Visible', 'off');
+        stamps(6, end_step);
+        h = figure('Visible', 'off');
         h = ps_plot('rsb');
         print('-dpng', '-r300', sprintf('iteration_%d.png', ii));
         close(h);
     end
 end
 
-function [] = plot_loop(varargin)
+function [] = plot_loop(loop)
 % function plot_loop(loop)
 % 
 % Plots residual phase terms ('rsb') for the selected
@@ -218,25 +204,16 @@ function [] = plot_loop(varargin)
 % 
 % - loop: (input) vector of interferogram indices
 % 
-% E.g.: plot_loop([1 2 3]); will plot ''rsb'' values for 
+% E.g.: plot_loop([1 2 3]); will plot 'rsb' values for 
 % IFG 1, 2 and 3.
-
-    if strcmp(varargin{1}, 'help')
-        fprintf('%s\n', doc{:});
-        return;
+    if ~isvector(loop)
+        error('loop should be a vector of indices!');
     end
 
-    p = inputParser();
-    p.FunctionName = 'plot_loop';
-    p.addRequired('loop', @isvector);
-
-    p.parse(varargin{:});
-    args = p.Results;
-
-    ps_plot('rsb', 1, 0, 0, args.loop);
+    ps_plot('rsb', 1, 0, 0, loop);
 end
 
-function out = binned_statistic(varargin)
+function out = binned_statistic(x, y, varargin)
 % binned = binned_statistic(x, y, ...)
 % 
 % Sorts y values into bins defined along x values.
@@ -256,24 +233,11 @@ function out = binned_statistic(varargin)
 % This will bin y values into x bins and calculate their
 % mean in each x bins. 100 bins will be placed evenly along
 % the values of x.
-
-    p = inputParser();
     
-    p.addRequired('x', @isvector);
-    p.addRequired('y', @isvector);
+    args = struct('bins', 10, 'fun', nan)
     
-    % 10 bins by default
-    p.addParameter('bins', 10, @(x) isvector(x) || isscalar(x));
+    args = parseArgs(varargin, args);
     
-    % default behaviour is summing y values in x bins
-    p.addParameter('fun', nan, @(x) isnan(x) || ...
-                                      isa(x, 'function_handle'));
-    
-    p.parse(varargin{:});
-    args = p.Results;
-    
-    x = args.x;
-    y = args.y;
     fun = args.fun;
     bins = args.bins;
     
@@ -299,7 +263,7 @@ function out = binned_statistic(varargin)
     out.bins = bins;
 end
 
-function out = binned_statistic_2d(varargin)
+function out = binned_statistic_2d(x, y, z, varargin)
 % binned = binned_statistic_2d(x, y, z, ...)
 % 
 % Sorts z values into bins defined along (x,y) values.
@@ -308,51 +272,29 @@ function out = binned_statistic_2d(varargin)
 % - x, y and z: (input) x, y and z value triplets, should be
 % vectors with the same number of elements
 % 
-% - ''xbins'': (input, optional) number of bins or bin
+% - 'xbins': (input, optional) number of bins or bin
 % edges defined by a vector along x (default: 10)
 % 
-% - ''ybins'': (input, optional) number of bins or bin
+% - 'ybins': (input, optional) number of bins or bin
 % edges defined by a vector along y (default: 10)
 % 
-% - ''fun'': (input, optional) function to apply to
+% - 'fun': (input, optional) function to apply to
 % z values in each bin. By default this is a summation.
 % 
-% E.g. z_binned = binned_statistic(x, y, z, ''xbins'', 100, ...
-%                                  ''fun'', @mean)
+% E.g. z_binned = binned_statistic(x, y, z, 'xbins', 100, 'fun', @mean)
 % 
 % This will bin z values into (x,y) bins and calculate their
 % mean in each (x,y) bins. 100 bins will be placed evenly along
 % the values of x and 10 bins along the values of y.
  
-    if strcmp(varargin{1}, 'help')
-        fprintf('%s\n', doc{:});
-        out = nan;
-        return;
-    end
+    args = struct('xbins', 10, 'ybins', 10, 'fun', nan)
     
-    p = inputParser();
+    args = parseArgs(varargin, args);
     
-    p.addRequired('x', @isvector);
-    p.addRequired('y', @isvector);
-    p.addRequired('z', @isvector);
+    fun = args.fun;
+    xbins = args.xbins;
+    ybins = args.ybins;
     
-    % 10 bins by default
-    p.addParameter('xbins', 10, @(x) isvector(x) || isscalar(x));
-    p.addParameter('ybins', 10, @(x) isvector(x) || isscalar(x));
-    
-    % default behaviour is summing z values in (x,y) bins
-    p.addParameter('fun', 'sum', @(x) ischar(x) || ...
-                                      isa(x, 'function_handle'));
-    
-    p.parse(varargin{:});
-
-    x = p.Results.x;
-    y = p.Results.y;
-    z = p.Results.z;
-    fun = p.Results.fun;
-    xbins = p.Results.xbins;
-    ybins = p.Results.ybins;
-
     if isscalar(xbins)
         xbins = linspace(min(x), max(x), xbins);
     end
@@ -360,7 +302,6 @@ function out = binned_statistic_2d(varargin)
     if isscalar(ybins)
         ybins = linspace(min(y), max(y), ybins);
     end
-
 
     % calculate indices that place (x,y) values into
     % their respective (x,y) bins
@@ -391,23 +332,17 @@ function out = clap(varargin)
 % Modified CLAP filter. I used it to play around with the filter
 % parameters. Feel free to ingore it.
     
-    p = inputParser();
+    args = struct('grid_size', 50, 'alpha', 1, 'beta', 0.3, 'low_pass', 800, ...
+                  'win_size', 32, 'ifg_list', []);
     
-    p.addParameter('grid_size', 50, @isscalar)
-    p.addParameter('alpha', 1, @isscalar)
-    p.addParameter('beta', 0.3, @isscalar)
-    p.addParameter('low_pass', 800, @isscalar)
-    p.addParameter('win_size', 32, @isscalar)
-    p.addParameter('ifg_list', [], @(x) isscalar(x))
+    args = parseArgs(varargin, args);
     
-    p.parse(varargin{:});
-    
-    grid_size = p.Results.grid_size;
-    clap_alpha = p.Results.alpha;
-    clap_beta = p.Results.beta;
-    low_pass_wavelength = p.Results.low_pass;
-    n_win = p.Results.win_size;
-    ifg_idx = p.Results.ifg_list;
+    grid_size           = args.grid_size;
+    clap_alpha          = args.alpha;
+    clap_beta           = args.beta;
+    low_pass_wavelength = args.low_pass;
+    n_win               = args.win_size;
+    ifg_idx             = args.ifg_list;
     
     freq0 = 1 / low_pass_wavelength;
     freq_i= -n_win / grid_size / n_win / 2:1 / grid_size / n_win:(n_win-2) / ...
@@ -451,7 +386,6 @@ function out = clap(varargin)
     ph_grid = zeros(n_i, n_j, 'single');
     ph_filt = zeros(n_j, n_i, 'single');
 
-    
     da = load('da1.mat');
     D_A = da.D_A;
     clear da
@@ -479,10 +413,10 @@ function out = clap(varargin)
 end
 
 
-function [] = plot_ph_grid(ph)
+function [h] = plot_ph_grid(ph)
 % Auxilliary function for plotting the output of the modified CLAP filter
 
-    figure();
+    h = figure();
     colormap('jet');
     imagesc(angle(ph));
     colorbar();
@@ -538,48 +472,48 @@ function vv = load_ps_vel(plot_flags)
     end
 end
 
-function varargout = plot(varargin)
-% Wrapper function for ps_plot with argument handling that is more user friendly
-
-    p = inputParser();
+%function varargout = plot(varargin)
+%% Wrapper function for ps_plot with argument handling that is more user friendly
     
-    p.FunctionName = 'plot';
+    %p = inputParser();
     
-    p.addRequired('value_type', @ischar);
-    p.addRequired('out', @ischar);
+    %p.FunctionName = 'plot';
     
-    p.addParameter('background', 1, @isscalar);    
-    p.addParameter('phase_lims', 0, @(x) isvector(x) || isscalar(x));
-    p.addParameter('ref_ifg', 0, @isscalar);
-    p.addParameter('ifg_list', [], @isvector);
-    p.addParameter('n_x', 0, @isscalar);
-    p.addParameter('cbar_flag', 0, @(x) x == 1 || x == 2 || x == 0);
-    p.addParameter('textsize', 0, @isscalar);
-    p.addParameter('textcolor', [], @isvector);
-    p.addParameter('lon_rg', [], @isvector);
-    p.addParameter('lat_rg', [], @isvector);
+    %p.addRequired('value_type', @ischar);
+    %p.addRequired('out', @ischar);
     
-    p.parse(varargin{:});
+    %p.addParameter('background', 1, @isscalar);    
+    %p.addParameter('phase_lims', 0, @(x) isvector(x) || isscalar(x));
+    %p.addParameter('ref_ifg', 0, @isscalar);
+    %p.addParameter('ifg_list', [], @isvector);
+    %p.addParameter('n_x', 0, @isscalar);
+    %p.addParameter('cbar_flag', 0, @(x) x == 1 || x == 2 || x == 0);
+    %p.addParameter('textsize', 0, @isscalar);
+    %p.addParameter('textcolor', [], @isvector);
+    %p.addParameter('lon_rg', [], @isvector);
+    %p.addParameter('lat_rg', [], @isvector);
     
-    args = p.Results;
+    %p.parse(varargin{:});
     
-    value_type = strsplit(args.value_type, '/');
+    %args = p.Results;
     
-    if length(value_type) == 1
-        h = ps_plot(value_type{1}, args.background, args.phase_lims, args.ref_ifg, ...
-                    args.ifg_list, args.n_x, args.cbar_flag, args.textsize, ...
-                    args.textcolor, args.lon_rg, args.lat_rg);
-    elseif length(value_type) == 2
-        h = ps_plot(value_type{1}, value_type{2}, args.background, args.phase_lims, ...
-                    args.ref_ifg, args.ifg_list, args.n_x, args.cbar_flag, ...
-                    args.textsize, args.textcolor, args.lon_rg, args.lat_rg);
-    else
-        error('');
-    end
+    %value_type = strsplit(args.value_type, '/');
     
-    saveas(h, args.out)
-    varargout = h;
-end
+    %if length(value_type) == 1
+        %h = ps_plot(value_type{1}, args.background, args.phase_lims, args.ref_ifg, ...
+                    %args.ifg_list, args.n_x, args.cbar_flag, args.textsize, ...
+                    %args.textcolor, args.lon_rg, args.lat_rg);
+    %elseif length(value_type) == 2
+        %h = ps_plot(value_type{1}, value_type{2}, args.background, args.phase_lims, ...
+                    %args.ref_ifg, args.ifg_list, args.n_x, args.cbar_flag, ...
+                    %args.textsize, args.textcolor, args.lon_rg, args.lat_rg);
+    %else
+        %error('');
+    %end
+    
+    %saveas(h, args.out)
+    %varargout = h;
+%end
 
 function [] = report()
 % Just a bunch of plots
@@ -773,30 +707,20 @@ function [] = save_ascii(path, format, data)
     
 end
 
-function h = plot_scatter(varargin)
-
-    check_matrix = @(x) validateattributes(x, {'numeric'}, ...
-                                {'nonempty', 'finite', 'ndims', 2});
+function h = plot_scatter(data, varargin)
     
-    p = inputParser;
-    p.FunctionName = 'plot_scatter';
-    p.addRequired('data', check_matrix);
-    p.addParameter('out', nan, @(x) ischar(x) || isnan(x));
-    p.addParameter('cols', 5, @isscalar);
-    p.addParameter('psize', 1.0, @isscalar);
-    p.addParameter('lon_rg', [], @isvector);
-    p.addParameter('lat_rg', [], @isvector);
-    p.addParameter('clims', 'auto', @(x) isscalar(x) || isvector(x));
-
-    p.parse(varargin{:});
+    args = struct('out', nan, 'psize', 1.0, 'lon_rg', [], 'lat_rg', [], ...
+                  'clims', 'auto');
+                  
+    args = parseArgs(varargin, args)
     
-    data   = p.Results.data;
-    out    = p.Results.out;
-    fcols  = p.Results.cols;
-    psize  = p.Results.psize;
-    lon_rg = p.Results.lon_rg;
-    lat_rg = p.Results.lat_rg;
-    clims  = p.Results.clims;
+    validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
+    
+    out    = args.out;
+    psize  = args.psize;
+    lon_rg = args.lon_rg;
+    lat_rg = args.lat_rg;
+    clims  = args.clims;
     
     ncols = size(data, 2);
     
@@ -851,21 +775,8 @@ function [] = corr_phase(ifg, value)
     save('phuw_sb2.mat', 'ph_uw', 'msd')
 end
 
-function [] = crop(varargin)
+function [] = crop(lon_min, lon_max, lat_min, lat_max)
 
-    p = inputParser();
-    p.FunctionName = 'crop';
-    p.addRequired('lon_min', @isscalar);
-    p.addRequired('lon_max', @isscalar);
-    p.addRequired('lat_min', @isscalar);
-    p.addRequired('lat_max', @isscalar);
-
-    p.parse(varargin{:});
-    lon_min = p.Results.lon_min;
-    lon_max = p.Results.lon_max;
-    lat_min = p.Results.lat_min;
-    lat_max = p.Results.lat_max;
-    
     if ~exist('ps2_old.mat', 'file')
         copyfile ps2.mat ps2_old.mat
     end
@@ -953,23 +864,13 @@ function [] = save_llh()
     
 end
 
-function [] = save_binary(varargin)
-    p = inputParser;
-    p.FunctionName = 'save_binary';
+function [] = save_binary(data, path, varargin)
     
-    check_data = @(x) validateattributes(x, {'numeric'}, ...
-                            {'nonempty', 'finite', 'ndims', 2});
+    validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
     
-    p.addRequired('data', check_data);
-    p.addRequired('path', @ischar);
-    p.addParameter('dtype', 'double', @ischar);
+    args = struct('dtype', 'double');
+    args = parseArgs(varargin, args);
     
-    p.parse(varargin{:});
-    
-    data  = p.Results.data;
-    path  = p.Results.path;
-    dtype = p.Results.dtype;
-
     ps = load('ps2.mat');
     
     n_lonlat = size(ps.lonlat, 1);
@@ -985,23 +886,16 @@ function [] = save_binary(varargin)
     ll(:,3:end) = data;
     
     fid = sfopen(path, 'w');
-    fwrite(fid, transpose(ll), dtype);
+    fwrite(fid, transpose(ll), args.dtype);
     fclose(fid);
 end
 
-function loaded = load_binary(varargin)
+function loaded = load_binary(path, ncols, varargin)
 
-    p = inputParser();
-    p.FunctionName = 'load_binary';
+    args = struct('dtype', 'double');
+    args = parseArgs(varargin, args);
     
-    p.addRequired('path', @ischar);
-    p.addRequired('ncols', @(x) isscalar(x) & x > 0.0 & isfinite(x));
-    p.addParameter('dtype', 'double', @ischar);
-    
-    p.parse(varargin{:});
-    args = p.Results;
-    
-    fid = sfopen(args.path, 'r');
-    loaded = transpose(fread(fid, [args.ncols, Inf], args.dtype));
+    fid = sfopen(path, 'r');
+    loaded = transpose(fread(fid, [ncols, Inf], args.dtype));
     fclose(fid);
 end

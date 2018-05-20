@@ -26,35 +26,28 @@ function out = metin(fun, varargin)
         case 'geopot2h'
             out = geopot2h(varargin{:})
         case 'calc_wv'
-            calc_wv(varargin{:})
+            calc_wv()
         otherwise
             error(['Unknown function ', fun]);
     end
 end
 
-function [out] = plot_2d_fft(varargin)
+function [out] = plot_2d_fft(data, varargin)
     
-    check_matrix = @(x) validateattributes(x, {'numeric'}, ...
-                                {'nonempty', 'finite'});
+    validateattributes(data, {'numeric'}, {'nonempty', 'finite'});
     
-    p = inputParser;
-    p.FunctionName = 'plot_fft_2d';
-    p.addRequired('matrix_fft', check_matrix);
-    p.addRequired('out', @ischar);
-    p.addParameter('samp_rate', 1, check_matrix);
-    p.addParameter('logscale', false, @islogical);
-    p.addParameter('fftshift', true, @islogical);
-    p.parse(varargin{:});
+    args = struct('samp_rate', 1, 'logscale', 0, 'fftshift', true);
+    args = parseArgs(varargin, args, {'logscale'});
     
-    args = p.Results;
-    
-    matrix = args.matrix_fft;
-    
-    nx = size(matrix, 2);
-    ny = size(matrix, 1);
+    nx = size(data, 2);
+    ny = size(data, 1);
 
-    samp_rate = p.Results.samp_rate;
+    samp_rate = args.samp_rate;
+    
     if isscalar(samp_rate)
+        if samp_rate < 0.0
+            error('Sampling rate must be positive!');
+        end
         samp_x = 1 / samp_rate;
         samp_y = 1 / samp_rate;
     else
@@ -62,54 +55,47 @@ function [out] = plot_2d_fft(varargin)
         samp_y = 1 / samp_rate(1);
     end
     
-    if samp_x < 0.0 | samp_y < 0.0
-        error('Sampling rate must be positive');
-    end
     
     x_fr = (-nx / 2 : nx / 2 - 1) * samp_x / nx;
     y_fr = (-ny / 2 : ny / 2 - 1) * samp_y / ny;
 
-    h = figure('visible', 'off');
+    h = figure();
     
     if args.fftshift
-        matrix = fftshift(matrix);
+        matrix = fftshift(data);
     end
     
     if args.logscale
-        to_plot = log10(abs(matrix));
+        imagesc(x_fr, y_fr, log10(abs(data)));
     else
-        to_plot = abs(matrix);
+        imagesc(x_fr, y_fr, abs(data));
     end
-    
-    imagesc(x_fr, y_fr, to_plot);
+
     colorbar();
-    saveas(h, args.out);
+    % saveas(h, args.out);
     
     out.h = h;
     out.x_fr = x_fr;
     out.y_fr = y_fr;
 end
 
-function [butter] = butter_filter(varargin)
+function [butter] = butter_filter(matrix_size, low_pass, varargin)
 % Adapted from StaMPS by Andy Hooper
 
-    p = inputParser();
-    p.FunctionName = 'butter_filter';
-    check_matrix = @(x) validateattributes(x, {'numeric'}, ...
-                                {'nonempty', 'positive', 'finite'}, 'fft_2d');
-    check_scalar = @(x) validateattributes(x, {'numeric'}, ...
-        {'scalar', 'positive', 'finite'}, ...
-        'create_butterworth_filter');    
+    validateattributes(matrix_size, {'numeric'}, ...
+                       {'nonempty', 'positive', 'finite'});
+    validateattributes(low_pass, {'numeric'}, {'scalar', 'positive', 'finite'});
     
-    p.addRequired('matrix_size', check_matrix);
-    p.addRequired('low_pass_wavelength', check_scalar);
-    p.addParameter('order', 5, check_scalar);
-    p.addParameter('samp_rate', 1, check_matrix);
+    args = struct('order', 5, 'samp_rate', 1)
+    args = parseArgs(varargin, args);
+    
+    samp_rate = args.sampe_rate;
+    order     = args.order;
 
-    p.parse(varargin{:});
-    
-    msize = p.Results.matrix_size;
-    if isscalar(msize)
+    validateattributes(samp_rate, {'numeric'}, {'nonempty', 'positive', 'finite'});
+    validateattributes(order, {'numeric'}, {'scalar', 'positive', 'finite'});
+
+    if isscalar(matrix_size)
         nx = msize;
         ny = msize;
     else
@@ -117,12 +103,9 @@ function [butter] = butter_filter(varargin)
         ny = msize(1);
     end    
     
-    low_pass_wavelength = p.Results.low_pass_wavelength;
+    low_pass_wavelength = low_pass;
     k0 = 1 / low_pass_wavelength;
     
-    order = p.Results.order;
-    
-    samp_rate = p.Results.samp_rate;
     if isscalar(samp_rate)
         samp_x = samp_rate;
         samp_y = samp_rate;
@@ -141,27 +124,18 @@ function [butter] = butter_filter(varargin)
     butter = 1 ./ (1 + (k_dist ./ k0).^(2*order));
 end
 
-function [abs_phase] = invert_abs(varargin)
+function [abs_phase] = invert_abs(phase, varargin)
+    validateattributes(phase, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
+    
+    args = struct('last_row', 0.0, 'master_idx', 1);
+    args = parseArgs(varargin, args);
 
-    p = inputParser;
-    p.FunctionName = 'invert_abs';
-
-    check_phase = @(x) validateattributes(x, {'numeric'}, ...
-                                {'nonempty', 'finite', 'ndims', 2});
-    check_avg = @(x) validateattributes(x, {'numeric'}, ...
-                                {'nonempty', 'vector', 'finite'});
-    check_idx = @(x) validateattributes(x, {'numeric'}, ...
-                                {'scalar', 'positive', 'finite', 'integer'});
+    master_idx = args.master_idx;
+    last       = args.last_row;
     
-    p.addRequired('phase', check_phase);
-    p.addParameter('last_row', 0.0, check_avg);
-    p.addParameter('master_idx', 1, check_idx);
-    
-    p.parse(varargin{:});
-    
-    phase      = p.Results.phase;
-    master_idx = p.Results.master_idx;
-    last       = p.Results.last_row;
+    validateattributes(last, {'numeric'}, {'nonempty', 'vector', 'finite'});
+    validateattributes(master_idx, {'numeric'}, {'scalar', 'positive', ...
+                                                 'finite', 'integer'});
     
     [n_ps, n_ifg] = size(phase);
     
@@ -202,16 +176,11 @@ function [abs_phase] = invert_abs(varargin)
 end
 
 function [abs_phase] = invert_phase_stamps(varargin)
-
-    p = inputParser;
-    p.FunctionName = 'invert_phase_stamps';
-
-    check_avg = @(x) validateattributes(x, {'numeric'}, ...
-                                {'nonempty', 'vector', 'finite'});
+    args = struct('average', 0.0);
+    args = parseArgs(varargin, args);
     
-    p.addParameter('average', 0.0, check_avg);
-    
-    p.parse(varargin{:});
+    average = args.average;
+    validateattributes(average, {'numeric'}, {'nonempty', 'vector', 'finite'});
     
     ph = load('phuw2.mat');
     ps = load('ps2.mat');
@@ -223,8 +192,7 @@ function [abs_phase] = invert_phase_stamps(varargin)
  
     phase(:,master_idx) = [];
     
-    abs_phase = invert_abs(phase, 'master_idx', master_idx, ...
-                           'average', p.Results.average);
+    abs_phase = invert_abs(phase, 'master_idx', master_idx, 'average', average);
 end
 
 function [corrected_phase] = subtract_dry()
@@ -239,14 +207,14 @@ end
 
 function [d_total] = total_aps(varargin)
 % Based on the `aps_weather_model_InSAR` function of the TRAIN packege.
-
-    p = inputParser;
-    p.FunctionName = 'total_aps';
-    p.addParameter('outdir', '.', @ischar);
+    args = struct('outdir', '.');
+    args = parseArgs(varargin, args);
     
-    p.parse(varargin{:});
+    outdir = args.outdir;
     
-    outdir = p.Results.outdir;
+    if ~ischar(outdir)
+        error('outdir should be a string!');
+    end
     
     % radar wavelength in cm
     lambda         = getparm_aps('lambda', 1) * 100;
@@ -421,16 +389,11 @@ function [d_total] = total_aps(varargin)
     % d_total = -4 * pi ./ lambda .* d_total;    
 end
 
-function [Z] = geopot2h(varargin)
-
-    p = inputParser();
-    p.FunctionName = 'geopot2h';
-    p.addRequired('geopot', @ismatrix);
-    p.addRequired('latgrid', @ismatrix);
-
-    p.parse(varargin{:});
-    geopot = p.Results.geopot;
-    latgrid = p.Results.latgrid;
+function [Z] = geopot2h(geopot, latgrid)
+    
+    if ~ismatrix(geopot) | ~ismatrix(latgrid)
+        error('geopot and latgrid should be matrices!');
+    end
     
     % Convert Geopotential to Geopotential Height and then to Geometric Height
     g0 = 9.80665;
@@ -448,14 +411,11 @@ function [Z] = geopot2h(varargin)
     Z = (H.*Re)./(g/g0.*Re - H);
 end
 
-function [] = aps_setup(varargin)
-
-    p = inputParser();
-    p.FunctionName = 'aps_setup';
-    p.addRequired('lonlat_step', @isscalar);
-
-    p.parse(varargin{:});
-    lonlat_step = p.Results.lonlat_step;
+function [] = aps_setup(lonlat_extend)
+    
+    if ~iscscalar(lonlat_extend)
+        error('lonlat_step should be a scalar!');
+    end
     
     % preprocessor type
     preproc = getparm('insar_processor');
@@ -521,16 +481,18 @@ function [] = aps_setup(varargin)
     lonlat = ps2.lonlat;
     clear ps2;
     
-    setparm_aps('region_lon', [min(lonlat(:,1)) - lonlat_step, ...
-                               max(lonlat(:,1)) + lonlat_step]);
-
-    setparm_aps('region_lat', [min(lonlat(:,2)) - lonlat_step, ...
-                               max(lonlat(:,2)) + lonlat_step]);    
+    min_lon = min(lonlat(:,1)); max_lon = max(lonlat(:,1));
+    min_lat = min(lonlat(:,2)); max_lat = max(lonlat(:,2));
+    
+    lon_add = (max_lon - min_lon) * lonlat_extend;
+    lat_add = (max_lat - min_lat) * lonlat_extend;
+    
+    setparm_aps('region_lon', [min_lon - lon_add, max_lon - lon_add]);
+    setparm_aps('region_lat', [min_lat - lat_add, max_lat - lat_add]);
 end
 
-function [] = calc_wv(varargin)
-    
-    %p = inputParser;
+function [] = calc_wv()
+
     lambda = getparm_aps('lambda', 1) * 100;
     
     ph = load('phuw2.mat');
@@ -592,14 +554,18 @@ function [] = calc_wv(varargin)
     
     h = figure('visible', 'off');
     hist(rms(abs_wet - d_wet));
-    %xlabel('Inverted water vapour slant delay [cm]');
-    %ylabel('ERA water vapour slant delay [cm]');
+    title(['Distribution of the difference RMS values between inverted and ', ...
+           'weather model water vapour slant delay values.']);
+    xlabel('RMS difference for IFGs [cm]');
+    ylabel('Frequency');
     saveas(h, 'dinv_rms_wv.png');
 
     h = figure('visible', 'off');
     hist(rms(abs_phase - d_total));
-    % xlabel('Inverted total slant delay [cm]');
-    % ylabel('ERA total slant delay [cm]');
+    title(['Distribution of the difference RMS values between inverted and ', ...
+           'weather model total slant delay values.']);
+    xlabel('RMS difference for IFGs [cm]');
+    ylabel('Occurance');
     saveas(h, 'dinv_rms_total.png');
     
     staux('save_binary', abs_phase, 'dinv_total.dat');

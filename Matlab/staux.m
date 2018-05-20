@@ -5,7 +5,6 @@ function out = staux(fun, varargin)
 % (https://github.com/dbekaert/TRAIN) and
 % StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
 %
-    
     switch(fun)
         case 'save_llh'
             save_llh();
@@ -47,37 +46,38 @@ function out = staux(fun, varargin)
 end
 
 function h = boxplot_los(varargin)
-doc = {
-''
-'function h = BOXPLOT_LOS(plot_flags, out, ...)'
-''
-'The plot will be saved to an image file defined by the `out` argument. No '
-'figure will pop up.'
-'Plots the boxplot of LOS velocities defined by plot_flags.'
-'Accepted plot flags are the same flags accepted by the ps_plot function,'
-'with some extra rules.'
-'    1) Multiple plot flags must be defined in a cell array, e.g.'
-'    boxplot_los({''v-do'', ''v-da''});'
-'    2) If we have the atmospheric correction option (''v-da''), the'
-'    cooresponding atmospheric correction flag must be defined like this:'
-'    ''v-da/a_e''. This denotes the DEM error and ERA-I corrected velocity'
-'    values. Atmospheric coretcions can be calculated with TRAIN.'
-'' 
-'  Additional options to the boxplot function can be passed using varargin.'
-'  - ''fun'' : function to be applied to the velocity values; default value:'
-'            nan (no function is applied); function should return a vector'
-'            (in the case of a single plot flag) or a matrix'
-'            (in the case of multiple plot flags).'
-'  - ''boxplot_opt'': varargin arguments for boxplot, given in a cell array;'
-'                  e.g.: ''boxplot_opt'', {''widths'', 0.5, ''whisker'', 2.0}'
-'                  See the help of the boxplot function for additinal '
-'                  information. Default value: nan (no options)'
-''
-'  The function returns the function handle `h` to the boxplot.'
-''
-};
+% function h = BOXPLOT_LOS(plot_flags, out, ...)
+% 
+% The plot will be saved to an image file defined by the `out` argument. No
+% figure will pop up.
+% plots the boxplot of LOS velocities defined by plot_flags.
+% accepted plot flags are the same flags accepted by the ps_plot function,
+% with some extra rules.
+%    1) Multiple plot flags must be defined in a cell array, e.g.
+%    boxplot_los({''v-do'', ''v-da''});
+%    2) If we have the atmospheric correction option (''v-da''), the
+%    cooresponding atmospheric correction flag must be defined like this:
+%    ''v-da/a_e''. This denotes the DEM error and ERA-I corrected velocity
+%    values. Atmospheric coretcions can be calculated with TRAIN.
+%  
+%  Additional options to the boxplot function can be passed using varargin.
+%  - ''fun'' : function to be applied to the velocity values; default value:
+%            nan (no function is applied); function should return a vector
+%            (in the case of a single plot flag) or a matrix
+%            (in the case of multiple plot flags).
+%  - ''boxplot_opt'': varargin arguments for boxplot, given in a cell array;
+%                  e.g.: ''boxplot_opt'', {''widths'', 0.5, ''whisker'', 2.0}
+%                  See the help of the boxplot function for additinal 
+%                  information. Default value: nan (no options)
+% 
+%  The function returns the function handle `h` to the boxplot.
+% 
 
     if strcmp(varargin{1}, 'help')
+        help boxplot_los
+        out = nan;
+        return
+
         fprintf('%s\n', doc{:});
         h = nan;
         return;
@@ -127,24 +127,16 @@ doc = {
 end
 
 function [] = rel_std_filt(varargin)
-doc = {
-''
-'function REL_STD_FILT(max_rel_std)'
-''
-'Filters calculated LOS velocities based in their relative standard deviations.'
-'Relative standard deviation = (standard deviation / mean) * 100 (conversion into %).'
-''
-'- max_rel_std       (input) maximum allowed realtive standard deviation'
-''
-'Filtered LOS velocities will be saved into "ps_data_filt.xy", in ascii format.'
-''
-};
-
-    if strcmp(varargin{1}, 'help')
-        fprintf('%s\n', doc{:});
-        return;
-    end
-    
+% function REL_STD_FILT(max_rel_std)
+% '
+% Filters calculated LOS velocities based in their relative standard deviations.
+% Relative standard deviation = (standard deviation / mean) * 100 (conversion into %).
+% '
+% - max_rel_std       (input) maximum allowed realtive standard deviation
+% '
+% Filtered LOS velocities will be saved into "ps_data_filt.xy", in ascii format.
+%
+   
     % parse input arguments
     p = inputParser();
     p.FunctionName = 'rel_std_filt';
@@ -181,22 +173,19 @@ doc = {
 end
 
 function [] = iterate_unwrapping(varargin)
-doc = {
-''
-'function ITERATE_UNWRAPPING(numiter)'
-''
-'Simply iterate the unwrapping process _numiter_ times.'
-'At every iteration the spatially-correlated look angle error is calculated '
-'(StaMPS Step 7) can be calculated.'
-''
-'At the start of the iteration and at every iteration step the phase residuals '
-'will be plotted into a png file, named iteration_(ii).png'
-'where ii is the iteration step.'
-''
-'- numiter:       (input) number of iteraions'
-'- ''scla'', false: (optional) by default SCLA corrections will NOT be calculated'
-''
-};
+% function ITERATE_UNWRAPPING(numiter)
+% 
+% Simply iterate the unwrapping process _numiter_ times.
+% At every iteration the spatially-correlated look angle error is calculated
+% (StaMPS Step 7) can be calculated.
+% 
+% At the start of the iteration and at every iteration step the phase residuals 
+% will be plotted into a png file, named iteration_(ii).png
+% where ii is the iteration step.
+% 
+% - numiter:       (input) number of iteraions
+% - ''scla'', false: (optional) by default SCLA corrections will NOT be calculated
+% 
 
     if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
@@ -240,17 +229,15 @@ doc = {
 end
 
 function [] = plot_loop(varargin)
-doc = {
-'function plot_loop(loop)'
-''
-'Plots residual phase terms (''rsb'') for the selected'
-'interferograms.'
-''
-'- loop: (input) vector of interferogram indices'
-''
-'E.g.: plot_loop([1 2 3]); will plot ''rsb'' values for '
-'IFG 1, 2 and 3.'
-};
+% function plot_loop(loop)
+% 
+% Plots residual phase terms ('rsb') for the selected
+% interferograms.
+% 
+% - loop: (input) vector of interferogram indices
+% 
+% E.g.: plot_loop([1 2 3]); will plot ''rsb'' values for 
+% IFG 1, 2 and 3.
 
     if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
@@ -430,6 +417,11 @@ function out = clap(varargin)
 % developed by Andrew Hooper.
 % Modified CLAP filter. I used it to play around with the filter
 % parameters. Feel free to ingore it.
+    
+    if strcmp(varargin{1}, help)
+        help clap;
+        out = nan;
+    end
     
     p = inputParser();
     

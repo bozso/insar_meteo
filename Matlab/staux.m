@@ -4,7 +4,7 @@ function out = staux(fun, varargin)
 % Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
 % (https://github.com/dbekaert/TRAIN) and
 % StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
-%
+
     switch(fun)
         case 'save_llh'
             save_llh();
@@ -46,7 +46,7 @@ function out = staux(fun, varargin)
 end
 
 function h = boxplot_los(varargin)
-% function h = BOXPLOT_LOS(plot_flags, out, ...)
+% function h = boxplot_los(plot_flags, out, ...)
 % 
 % The plot will be saved to an image file defined by the `out` argument. No
 % figure will pop up.
@@ -54,34 +54,23 @@ function h = boxplot_los(varargin)
 % accepted plot flags are the same flags accepted by the ps_plot function,
 % with some extra rules.
 %    1) Multiple plot flags must be defined in a cell array, e.g.
-%    boxplot_los({''v-do'', ''v-da''});
+%    boxplot_los({'v-do', 'v-da'});
 %    2) If we have the atmospheric correction option (''v-da''), the
 %    cooresponding atmospheric correction flag must be defined like this:
-%    ''v-da/a_e''. This denotes the DEM error and ERA-I corrected velocity
+%    'v-da/a_e'. This denotes the DEM error and ERA-I corrected velocity
 %    values. Atmospheric coretcions can be calculated with TRAIN.
 %  
 %  Additional options to the boxplot function can be passed using varargin.
-%  - ''fun'' : function to be applied to the velocity values; default value:
+%  - 'fun' : function to be applied to the velocity values; default value:
 %            nan (no function is applied); function should return a vector
 %            (in the case of a single plot flag) or a matrix
 %            (in the case of multiple plot flags).
-%  - ''boxplot_opt'': varargin arguments for boxplot, given in a cell array;
-%                  e.g.: ''boxplot_opt'', {''widths'', 0.5, ''whisker'', 2.0}
+%  - 'boxplot_opt': varargin arguments for boxplot, given in a cell array;
+%                  e.g.: 'boxplot_opt', {'widths', 0.5, 'whisker', 2.0}
 %                  See the help of the boxplot function for additinal 
 %                  information. Default value: nan (no options)
 % 
 %  The function returns the function handle `h` to the boxplot.
-% 
-
-    if strcmp(varargin{1}, 'help')
-        help boxplot_los
-        out = nan;
-        return
-
-        fprintf('%s\n', doc{:});
-        h = nan;
-        return;
-    end
 
     p = inputParser();
     
@@ -128,14 +117,13 @@ end
 
 function [] = rel_std_filt(varargin)
 % function REL_STD_FILT(max_rel_std)
-% '
+% 
 % Filters calculated LOS velocities based in their relative standard deviations.
 % Relative standard deviation = (standard deviation / mean) * 100 (conversion into %).
-% '
+% 
 % - max_rel_std       (input) maximum allowed realtive standard deviation
-% '
+% 
 % Filtered LOS velocities will be saved into "ps_data_filt.xy", in ascii format.
-%
    
     % parse input arguments
     p = inputParser();
@@ -184,14 +172,8 @@ function [] = iterate_unwrapping(varargin)
 % where ii is the iteration step.
 % 
 % - numiter:       (input) number of iteraions
-% - ''scla'', false: (optional) by default SCLA corrections will NOT be calculated
+% - 'scla', false: (optional) by default SCLA corrections will NOT be calculated
 % 
-
-    if strcmp(varargin{1}, 'help')
-        fprintf('%s\n', doc{:});
-        return;
-    end
-
     p = inputParser();
     p.FunctionName = 'iterate_unwrapping';
     p.addRequired('numiter', @isscalar);
@@ -255,34 +237,26 @@ function [] = plot_loop(varargin)
 end
 
 function out = binned_statistic(varargin)
-doc = {
-'binned = binned_statistic(x, y, ...)'
-''
-'Sorts y values into bins defined along x values.'
-'By default sums y values in each of the x bins.'
-''
-'- x and y: (input) x and y value pairs, should be'
-'a vector with the same number of elements'
-''
-'- ''bins'': (input, optional) number of bins or bin'
-'edges defined by a vector (default: 10)'
-''
-'- ''fun'': (input, optional) function to apply to'
-'y values in each bin. By default this is a summation'
-''
-'E.g. y_binned = binned_statistic(x, y, ''bins'', 100, ...'
-'                                 ''fun'', @mean)'
-'This will bin y values into x bins and calculate their'
-'mean in each x bins. 100 bins will be placed evenly along'
-'the values of x.'
-};
+% binned = binned_statistic(x, y, ...)
+% 
+% Sorts y values into bins defined along x values.
+% By default sums y values in each of the x bins.
+% 
+% - x and y: (input) x and y value pairs, should be
+% a vector with the same number of elements
+% 
+% - ''bins'': (input, optional) number of bins or bin
+% edges defined by a vector (default: 10)
+% 
+% - ''fun'': (input, optional) function to apply to
+% y values in each bin. By default this is a summation
+% 
+% E.g. y_binned = binned_statistic(x, y, ''bins'', 100, ...
+%                                  ''fun'', @mean)
+% This will bin y values into x bins and calculate their
+% mean in each x bins. 100 bins will be placed evenly along
+% the values of x.
 
-    if strcmp(varargin{1}, 'help')
-        fprintf('%s\n', doc{:});
-        out = nan;
-        return;
-    end
-    
     p = inputParser();
     
     p.addRequired('x', @isvector);
@@ -326,30 +300,29 @@ doc = {
 end
 
 function out = binned_statistic_2d(varargin)
-doc = {
-'binned = binned_statistic_2d(x, y, z, ...)'
-''
-'Sorts z values into bins defined along (x,y) values.'
-'By default sums z values in each of the (x,y) bins.'
-''
-'- x, y and z: (input) x, y and z value triplets, should be'
-'vectors with the same number of elements'
-''
-'- ''xbins'': (input, optional) number of bins or bin'
-'edges defined by a vector along x (default: 10)'
-''
-'- ''ybins'': (input, optional) number of bins or bin'
-'edges defined by a vector along y (default: 10)'
-''
-'- ''fun'': (input, optional) function to apply to'
-'z values in each bin. By default this is a summation.'
-''
-'E.g. z_binned = binned_statistic(x, y, z, ''xbins'', 100, ...'
-'                                 ''fun'', @mean)'
-'This will bin z values into (x,y) bins and calculate their'
-'mean in each (x,y) bins. 100 bins will be placed evenly along'
-'the values of x and 10 bins along the values of y.'
-};
+% binned = binned_statistic_2d(x, y, z, ...)
+% 
+% Sorts z values into bins defined along (x,y) values.
+% By default sums z values in each of the (x,y) bins.
+% 
+% - x, y and z: (input) x, y and z value triplets, should be
+% vectors with the same number of elements
+% 
+% - ''xbins'': (input, optional) number of bins or bin
+% edges defined by a vector along x (default: 10)
+% 
+% - ''ybins'': (input, optional) number of bins or bin
+% edges defined by a vector along y (default: 10)
+% 
+% - ''fun'': (input, optional) function to apply to
+% z values in each bin. By default this is a summation.
+% 
+% E.g. z_binned = binned_statistic(x, y, z, ''xbins'', 100, ...
+%                                  ''fun'', @mean)
+% 
+% This will bin z values into (x,y) bins and calculate their
+% mean in each (x,y) bins. 100 bins will be placed evenly along
+% the values of x and 10 bins along the values of y.
  
     if strcmp(varargin{1}, 'help')
         fprintf('%s\n', doc{:});
@@ -417,11 +390,6 @@ function out = clap(varargin)
 % developed by Andrew Hooper.
 % Modified CLAP filter. I used it to play around with the filter
 % parameters. Feel free to ingore it.
-    
-    if strcmp(varargin{1}, help)
-        help clap;
-        out = nan;
-    end
     
     p = inputParser();
     
@@ -513,6 +481,7 @@ end
 
 function [] = plot_ph_grid(ph)
 % Auxilliary function for plotting the output of the modified CLAP filter
+
     figure();
     colormap('jet');
     imagesc(angle(ph));
@@ -521,7 +490,6 @@ end
 
 function vv = load_ps_vel(plot_flags)
 % Helper function that loads LOS velocities defined by plot_flags.
-%
 
     % if we have multiple plot_flags
     if iscell(plot_flags)
@@ -572,7 +540,7 @@ end
 
 function varargout = plot(varargin)
 % Wrapper function for ps_plot with argument handling that is more user friendly
-%
+
     p = inputParser();
     
     p.FunctionName = 'plot';
@@ -615,7 +583,7 @@ end
 
 function [] = report()
 % Just a bunch of plots
-%
+
     plot('w', 'wrapped.png');
     plot('u', 'unwrapped.png');
     plot('u-do', 'unwrapped_do.png');

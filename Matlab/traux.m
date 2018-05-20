@@ -239,6 +239,7 @@ end
 
 function [d_total] = total_aps(varargin)
 % Based on the `aps_weather_model_InSAR` function of the TRAIN packege.
+
     p = inputParser;
     p.FunctionName = 'total_aps';
     p.addParameter('outdir', '.', @ischar);
@@ -284,6 +285,7 @@ function [d_total] = total_aps(varargin)
     end
     
     n_ifg = ps.n_ifg;
+
     % constructing the matrix with master and slave dates
     if sb_flag ==1
         % for SB

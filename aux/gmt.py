@@ -40,16 +40,16 @@ class GMT(object):
         if config is not None:
             # convert keys to uppercase
             config = {key.upper(): value for key, value in config.items()}
-            
             self.config.update(config)
-            if self.config["PS_PAGE_ORIENTATION"] == "portrait":
-                self.is_portrait = True
-            elif self.config["PS_PAGE_ORIENTATION"] == "landscape":
-                self.is_portrait = False
-            else:
-                raise ValueError('PS_PAGE_ORIENTATION should be either '
-                                 '"portrait" or "landscape"')
             
+        if self.config["PS_PAGE_ORIENTATION"] == "portrait":
+            self.is_portrait = True
+        elif self.config["PS_PAGE_ORIENTATION"] == "landscape":
+            self.is_portrait = False
+        else:
+            raise ValueError('PS_PAGE_ORIENTATION should be either '
+                             '"portrait" or "landscape"')
+        
         # get paper width and height
         paper = self.get_config("ps_media")
 
@@ -254,6 +254,9 @@ class GMT(object):
             # data is a path to a file
                 gmt_flags = "{} ".format(data)
                 data = None
+            elif isinstance(data, list) or isinstance(data, tuple):
+                data = ("\n".join(elem for elem in data)).encode()
+                gmt_flags = ""
             #elif isinstance(data, np.ndarray):
             ## data is a numpy array
                 #if byte_swap:
@@ -605,7 +608,7 @@ _gmt_defaults = {
 "MAP_ANNOT_ORTHO": "we",
 "MAP_DEFAULT_PEN": "default,black",
 "MAP_DEGREE_SYMBOL": "ring",
-"MAP_FRAME_AXES": "WESNZ",
+"MAP_FRAME_AXES": "WSenZ",
 "MAP_FRAME_PEN": "thicker,black",
 "MAP_FRAME_TYPE": "fancy",
 "MAP_FRAME_WIDTH": "5p",

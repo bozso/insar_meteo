@@ -32,7 +32,7 @@ and the code to figure out the input parameters. **staux.m** is relatively
 well documented, documentation for **traux.m** is underway. For some
 functions help is available and can be printed in the following way:
 ```Matlab
->> staux('boxplot_los', 'help');
+>> help staux>boxplot_los
 
 function h = BOXPLOT_LOS(plot_flags, out, ...)
 
@@ -60,7 +60,6 @@ with some extra rules.
 
   The function returns the function handle `h` to the boxplot.
 ```
-
 
 ## Acknowledgement
 

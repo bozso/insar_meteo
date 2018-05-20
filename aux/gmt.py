@@ -120,133 +120,7 @@ class GMT(object):
         # Cleanup
         if pth.isfile("gmt.history"): os.remove("gmt.history")
         os.remove("gmt.conf")
-            
-    def get_config(self, param):
-        return self.config[param.upper()]
-    
-    def get_width(self):
-        
-        if self.is_gmt5:
-            Cmd = "gmt mapproject {} -Dp".format(self.common)
-            version = cmd("gmt --version", ret_out=True)
-        else:
-            Cmd = "mapproject {} -Dp".format(self.common)
-        
-        if not self.version >= _gmt_five_two:
-            # before version 5.2
-            Cmd += " {} -V".format(os.devnull)
-            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
-                   if "Transform" in line]
-            return float(out[0].split("/")[4])
-        else:
-            Cmd += " -Ww"
-            return float(cmd(Cmd, ret_out=True))
 
-    def get_height(self):
-        
-        if self.is_gmt5:
-            Cmd = "gmt mapproject {} -Dp".format(self.common)
-            version = cmd("gmt --version", ret_out=True)
-        else:
-            Cmd = "mapproject {} -Dp".format(self.common)
-        
-        if not self.version >= _gmt_five_two:
-            # before version 5.2
-            Cmd += " {} -V".format(os.devnull)
-            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
-                   if "Transform" in line]
-            return float(out[0].split("/")[6].split()[0])
-        else:
-            Cmd += " -Wh"
-            return float(cmd(Cmd, ret_out=True))
-        
-    def get_common_flag(self, flag):
-        return self.common.split(flag)[1].split()[0]
-    
-    def multiplot(self, nplots, proj, nrows=None, top=100,left=50, right=50,
-                  x_pad=55, y_pad=100):
-        """
-             |       top           |    
-        -----+---------------------+----
-          l  |                     |  r
-          e  |                     |  i
-          f  |                     |  g
-          t  |                     |  h
-             |                     |  t
-        -----+---------------------+----
-             |       bottom        |    
-        """
-        if nrows is None:
-            nrows = ceil(sqrt(nplots) - 1)
-            nrows = max([1, nrows])
-        
-        self.left, self.right, self.top  = left, top, right
-        
-        ncols = ceil(nplots / nrows)
-        
-        width, height = self.width, self.height
-        
-        # width available for plotting
-        awidth = width - (left + right)
-        
-        # width of a single plot
-        pwidth  = float(awidth - (ncols - 1) * x_pad) / ncols
-        
-        self.common += " -J{}{}p".format(proj, pwidth)
-        
-        # height of a single plot
-        pheight = self.get_height()
-        
-        # calculate psbasemap shifts in x and y directions
-        x = ("f{}p".format(left + ii * (pwidth + x_pad))
-                           for jj in range(nrows)
-                           for ii in range(ncols))
-        
-        y = ("f{}p".format(height - top - ii * pheight)
-                          for ii in range(1, nrows + 1)
-                          for jj in range(ncols))
-        
-        # residual margin left at the bottom
-        self.bottom = height - top - nrows * pheight
-        
-        return tuple(x), tuple(y)
-    
-    def scale_pos(self, mode, offset=100, flong=0.8, fshort=0.2):
-        left, right, top, bottom = self.left, self.right, self.top, self.bottom
-        
-        width, height = self.width, self.height
-        
-        if mode == "vertical" or mode == "v":
-            x = width - left - offset
-            y = float(height) / 2
-            
-            # fraction of space available
-            width  = fshort * left
-            length = flong * height
-            hor = ""
-        elif mode == "horizontal" or mode == "h":
-            x = float(self.width) / 2
-            y = bottom - offset
-            
-            # fraction of space available
-            length  = flong * width
-            width   = fshort * bottom
-            hor = "h"
-        else:
-            raise ValueError('mode should be either: "vertical", "horizontal", '
-                             '"v" or "h", not "{}"'.format(mode))
-        
-        return str(x) + "p", str(y) + "p", str(length) + "p",\
-               str(width) + "p" +  hor
-    
-    def colorbar(self, mode="v", offset=100, flong=0.8, fshort=0.2, **flags):
-        
-        xx, yy, length, width = self.scale_pos(mode, offset=offset,
-                                               flong=flong, fshort=fshort)
-    
-        self.psscale(D=(0.0, 0.0, length, width), Xf=xx, Yf=yy, **flags)
-
-    
     def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, outfile=None, **flags):
         
         if data is not None:
@@ -293,7 +167,7 @@ class GMT(object):
             self._gmtcmd(command, *args, **kwargs)
         return f
     
-    def reform(self, portrait=False, **common_flags):
+    def reform(self, **common_flags):
         # if we have common flags parse them
         if len(common_flags) > 0:
             self.common = " ".join(["-{}{}".format(key, proc_flag(flag))
@@ -314,16 +188,206 @@ class GMT(object):
         self.commands.append(("set {}={}".format(parameter, value),
                               None, None, None))
 
+    def get_config(self, param):
+        return self.config[param.upper()]
+    
+    def get_width(self):
+        
+        if self.is_gmt5:
+            Cmd = "gmt mapproject {} -Dp".format(self.common)
+            version = cmd("gmt --version", ret_out=True)
+        else:
+            Cmd = "mapproject {} -Dp".format(self.common)
+        
+        if not self.version >= _gmt_five_two:
+            # before version 5.2
+            Cmd += " {} -V".format(os.devnull)
+            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
+                   if "Transform" in line]
+            return float(out[0].split("/")[4])
+        else:
+            Cmd += " -Ww"
+            return float(cmd(Cmd, ret_out=True))
+
+    def get_height(self):
+        
+        if self.is_gmt5:
+            Cmd = "gmt mapproject {} -Dp".format(self.common)
+            version = cmd("gmt --version", ret_out=True)
+        else:
+            Cmd = "mapproject {} -Dp".format(self.common)
+        
+        if not self.version >= _gmt_five_two:
+            # before version 5.2
+            Cmd += " {} -V".format(os.devnull)
+            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
+                   if "Transform" in line]
+            return float(out[0].split("/")[6].split()[0])
+        else:
+            Cmd += " -Wh"
+            return float(cmd(Cmd, ret_out=True))
+        
+    def get_common_flag(self, flag):
+        return self.common.split(flag)[1].split()[0]
+    
+    def multiplot(self, nplots, proj, nrows=None, top=0, left=25, right=50,
+                  x_pad=55, y_pad=75):
+        """
+             |       top           |    
+        -----+---------------------+----
+          l  |                     |  r
+          e  |                     |  i
+          f  |                     |  g
+          t  |                     |  h
+             |                     |  t
+        -----+---------------------+----
+             |       bottom        |    
+        """
+        if nrows is None:
+            nrows = ceil(sqrt(nplots) - 1)
+            nrows = max([1, nrows])
+        
+        self.left, self.right, self.top  = left, top, right
+        
+        ncols = ceil(nplots / nrows)
+        
+        width, height = self.width, self.height
+        
+        # width available for plotting
+        awidth = width - (left + right)
+        
+        # width of a single plot
+        pwidth  = float(awidth - (ncols - 1) * x_pad) / ncols
+        
+        self.common += " -J{}{}p".format(proj, pwidth)
+        
+        # height of a single plot
+        pheight = self.get_height()
+        
+        # calculate psbasemap shifts in x and y directions
+        x = (left + ii * (pwidth + x_pad) for jj in range(nrows)
+                                          for ii in range(ncols))
+        
+        y = (height - top - ii * (pheight + y_pad)
+             for ii in range(1, nrows + 1)
+             for jj in range(ncols))
+        
+        # residual margin left at the bottom
+        self.bottom = height - top - nrows * pheight
+        
+        return tuple(x), tuple(y)
+    
+    def scale_pos(self, mode, offset=100, flong=0.8, fshort=0.2):
+        left, right, top, bottom = self.left, self.right, self.top, self.bottom
+        
+        width, height = self.width, self.height
+        
+        if mode == "vertical" or mode == "v":
+            x = width - left - offset
+            y = float(height) / 2
+            
+            # fraction of space available
+            width  = fshort * left
+            length = flong * height
+            hor = ""
+        elif mode == "horizontal" or mode == "h":
+            x = float(self.width) / 2
+            y = bottom - offset
+            
+            # fraction of space available
+            length  = flong * width
+            width   = fshort * bottom
+            hor = "h"
+        else:
+            raise ValueError('mode should be either: "vertical", "horizontal", '
+                             '"v" or "h", not "{}"'.format(mode))
+        
+        return str(x) + "p", str(y) + "p", str(length) + "p",\
+               str(width) + "p" +  hor
+    
+    def colorbar(self, mode="v", offset=100, flong=0.8, fshort=0.2, **flags):
+        
+        xx, yy, length, width = self.scale_pos(mode, offset=offset,
+                                               flong=flong, fshort=fshort)
+    
+        self.psscale(D=(0.0, 0.0, length, width), Xf=xx, Yf=yy, **flags)
+
+    # end GMT
+    
+def info(data, **flags):
+    gmt_flags = ""
+    
+    if isinstance(data, string_types) and pth.isfile(data):
+        gmt_flags += "{} ".format(data)
+        data = None
+    else:
+        raise ValueError("`data` is not a path to an existing file.")
+
+    # if we have flags parse them
+    if len(flags) > 0:
+        gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
+                               for key, flag in flags.items()])
+    
+    if get_version() > _gmt_five:
+        Cmd = "gmt info " + gmt_flags
+    else:
+        Cmd = "gmtinfo " + gmt_flags
+    
+    return cmd(Cmd, ret_out=True).decode()
+
+def get_ranges(data, binary=None, xy_add=None, z_add=None):
+    
+    if binary is not None:
+        info_str = info(data, bi=binary, C=True).split()
+    else:
+        info_str = info(data, C=True).split()
+    
+    ranges = tuple(float(data) for data in info_str)
+    
+    if xy_add is not None:
+        X = (ranges[1] - ranges[0]) * xy_add
+        Y = (ranges[3] - ranges[2]) * xy_add
+        xy_range = (ranges[0] - xy_add, ranges[1] + xy_add,
+                    ranges[2] - xy_add, ranges[3] + xy_add)
+    else:
+        xy_range = ranges[0:4]
+
+    non_xy = ranges[4:]
+    
+    if z_add is not None:
+        min_z, max_z = min(non_xy), max(non_xy)
+        Z = (max_z - min_z) * z_add
+        z_range = (min_z - z_add, max_z + z_add)
+    else:
+        z_range = (min(non_xy), max(non_xy))
+        
+    return xy_range, z_range
+
 def get_version():
     """ Get the version of the installed GMT as a Strict Version object. """
     return StrictVersion(cmd("gmt --version", ret_out=True).decode().strip())
 
+def get_paper_size(paper, is_portrait=False):
+    """ Get paper width and height. """
+
+    if paper.startswith("a") or paper.startswith("b"):
+        paper = paper.upper()
+
+    if is_portrait:
+        width, height = _gmt_paper_sizes[paper]
+    else:
+        height, width = _gmt_paper_sizes[paper]
+    
+    return width, height
+    
 def proc_flag(flag):
     """ Parse GMT flags. """
     if isinstance(flag, bool) and flag:
         return ""
     elif hasattr(flag, "__iter__") and not isinstance(flag, string_types):
         return "/".join(str(elem) for elem in flag)
+    elif flag is None:
+        return ""
     else:
         return flag
 
@@ -414,62 +478,10 @@ def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
     
     cmd(Cmd)
     
-def info(data, is_gmt5=True, **flags):
-    gmt_flags = ""
-    
-    if isinstance(data, string_types) and pth.isfile(data):
-        gmt_flags += "{} ".format(data)
-        data = None
-    else:
-        raise ValueError("`data` is not a path to an existing file.")
-
-    # if we have flags parse them
-    if len(flags) > 0:
-        gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
-                               for key, flag in flags.items()])
-    
-    if get_version() > _gmt_five:
-        Cmd = "gmt info " + gmt_flags
-    else:
-        Cmd = "gmtinfo " + gmt_flags
-    
-    return cmd(Cmd, ret_out=True).decode()
-
-def get_ranges(data, binary=None, xy_add=None, z_add=None):
-    
-    if binary is not None:
-        info_str = info(data, bi=binary, C=True).split()
-    else:
-        info_str = info(data, C=True).split()
-    
-    ranges = tuple(float(data) for data in info_str)
-    
-    
-    if xy_add is not None:
-        X = (ranges[1] - ranges[0]) * xy_add
-        Y = (ranges[3] - ranges[2]) * xy_add
-        xy_range = (ranges[0] - xy_add, ranges[1] + xy_add,
-                    ranges[2] - xy_add, ranges[3] + xy_add)
-    else:
-        xy_range = ranges[0:4]
-
-    non_xy = ranges[4:]
-    
-    if z_add is not None:
-        min_z, max_z = min(non_xy), max(non_xy)
-        Z = (max_z - min_z) * z_add
-        z_range = (min_z - z_add, max_z + z_add)
-    else:
-        z_range = (min(non_xy), max(non_xy))
-        
-    return xy_range, z_range
-
 def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
-                 cbar_conf={}, axis_conf={}, colorscale="drywet",
-                 right=100, top=200, left=100, trygrid=False):
-    
-    #if cbar_conf is None: cbar_conf = dict()
-    #if axid_conf is None: axis_conf = dict()
+                 cbar_config={}, axis_config={}, colorscale="drywet",
+                 right=100, top=0, left=50, tryaxis=False,
+                 titles=None):
     
     xy_range = axis_config.pop("xy_range", None)
     z_range  = axis_config.pop("z_range", None)
@@ -478,7 +490,7 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
     y_axis = axis_config.pop("y_axis", "a0.25g0.25f0.25")
     
     xy_add = axis_config.pop("xy_add", 0.05)
-    z_add = axis_config.pop("z_add", 0.1)
+    z_add  = axis_config.pop("z_add", 0.1)
     
     # 2 additional coloumns for coordinates
     bindef = "{}d".format(ncols + 2)
@@ -495,34 +507,54 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
     if idx is None:
         idx = range(ncols)
     
+    if titles is None:
+        titles = range(1, ncols + 1)
+    
     gmt = GMT(ps_file, R=xy_range, config=config)
     x, y = gmt.multiplot(len(idx), proj, right=right, top=top, left=left)
     
     gmt.makecpt("tmp.cpt", C=colorscale, Z=True, T=z_range)
     
-    
     for ii in idx:
         input_format = "0,1,{}".format(ii + 2)
-        gmt.psbasemap(X=x[ii], Y=y[ii], B="WSen+t{}".format(ii + 1),
-                      Bx=x_axis, By=y_axis)
-        if not trygrid:
+        gmt.psbasemap(Xf=str(x[ii]) + "p", Yf=str(y[ii]) + "p",
+                      B="WSen+t{}".format(titles[ii]), Bx=x_axis, By=y_axis)
+        
+        # do not plot the scatter points yet just see the placement of
+        # basemaps
+        if not tryaxis:
             gmt.psxy(data=scatter_file, i=input_format, bi=bindef,
                      S="c0.025c", C="tmp.cpt")
         
-    gmt.colorbar(mode=cbar_conf.pop("mode", "v"),
-                 offset=cbar_conf.pop("offset", 10),
-                 B=cbar_cbar_conf.pop("label", ""), C="tmp.cpt",)
+    gmt.colorbar(mode=cbar_config.pop("mode", "v"),
+                 offset=cbar_config.pop("offset", 10),
+                 B=cbar_config.pop("label", ""), C="tmp.cpt",)
 
     os.remove("tmp.cpt")
     
     del gmt
 
-def histo(data, ps_file, config=None, **flags):
+def hist(data, ps_file, binwidth=0.1, config={}, binary=None, 
+         left=50, right=25, top=25, bottom=50, **flags):
+    
+    ranges = tuple(float(elem)
+                   for elem in info(data, bi=binary, C=True).split())
+    
+    min_r, max_r = min(ranges), max(ranges)
+    binwidth = (max_r - min_r) * binwidth
+    
+    width, height = get_paper_size(config.pop("PS_MEDIA", "A4"))
+    
+    proj="X{}p/{}p".format(width - left - right, height - top - bottom)
+    
+    gmt = GMT(ps_file, config=config, R=(min_r, max_r, 0.0, 100.0), J=proj)
+    
+    gmt.psbasemap(Bx="a{}".format(round(binwidth)), By=5,
+                  Xf=str(left) + "p", Yf=str(bottom) + "p")
+    
+    gmt.pshistogram(data=data, W=binwidth, G="blue", bi=binary, Z=1)
 
-    gmt = GMT(ps_file, config=config, **flags)
-    gmt.histogram(data)
     del gmt
-
 
 _gmt_defaults_header = \
 r'''#

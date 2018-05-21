@@ -11,33 +11,29 @@ function out = staux(fun, varargin)
         case 'save_binary'
             save_binary(varargin{:});
         case 'load_binary'
-             out = load_binary(varargin{:});
-        case 'load_phase'
-             out = load_phase(varargin{:});
+            out = load_binary(varargin{:});
         case 'boxplot_los'
-             out = boxplot_los(varargin{:});
+            out = boxplot_los(varargin{:});
         case 'binned_statistic'
-             out = binned_statistic(varargin{:});
+            out = binned_statistic(varargin{:});
         case 'binned_statistic_2d'
-             out = binned_statistic_2d(varargin{:});
+            out = binned_statistic_2d(varargin{:});
         case 'clap'
-             out = clap(varargin{:});
+            out = clap(varargin{:});
         case 'iterate_unwrapping'
-             out = iterate_unwrapping(varargin{:});
+            out = iterate_unwrapping(varargin{:});
         case 'plot'
-             out = plot(varargin{:});
+            out = plot(varargin{:});
         case 'plot_scatter'
-             out = plot_scatter(varargin{:});
-        case 'subsample'
-             out = subsample(varargin{:});
+            out = plot_scatter(varargin{:});
         case 'plot_loop'
-             out = plot_loop(varargin{:});
+            out = plot_loop(varargin{:});
         case 'plot_ph_grid'
-             out = plot_ph_grid(varargin{:});
-        case 'ps_output'
-             ps_output();
+            out = plot_ph_grid(varargin{:});
+        case 'output'
+            output();
         case 'rel_std_filt'
-             out = rel_std_filt(varargin{:});
+            out = rel_std_filt(varargin{:});
         case 'report'
             report();
         case 'crop'
@@ -47,82 +43,95 @@ function out = staux(fun, varargin)
         otherwise
             error(['Unknown function ', fun]);
     end
-end
+end % staux
 
 function h = boxplot_los(plot_flags, varargin)
-% function h = boxplot_los(plot_flags, ...)
+% function h = boxplot_los(plot_flags, 'out', '', 'boxplot_opt', nan, 'fun', nan)
 % 
-% The plot will be saved to an image file defined by the `out` argument. No
-% figure will pop up.
-% plots the boxplot of LOS velocities defined by plot_flags.
+% Plots the boxplot of LOS velocities defined by plot_flags.
 % accepted plot flags are the same flags accepted by the ps_plot function,
 % with some extra rules.
 %    1) Multiple plot flags must be defined in a cell array, e.g.
 %    boxplot_los({'v-do', 'v-da'});
+%
 %    2) If we have the atmospheric correction option (''v-da''), the
 %    cooresponding atmospheric correction flag must be defined like this:
 %    'v-da/a_e'. This denotes the DEM error and ERA-I corrected velocity
 %    values. Atmospheric coretcions can be calculated with TRAIN.
+%
+% The plot will be saved to an image file defined by the 'out' argument. No
+% figure will pop up, if the 'out' parameter is defined and is not an empty 
+% string.
 %  
-%  Additional options to the boxplot function can be passed using varargin.
-%  - 'fun' : function to be applied to the velocity values; default value:
-%            nan (no function is applied); function should return a vector
-%            (in the case of a single plot flag) or a matrix
-%            (in the case of multiple plot flags).
-%  - 'boxplot_opt': varargin arguments for boxplot, given in a cell array;
-%                  e.g.: 'boxplot_opt', {'widths', 0.5, 'whisker', 2.0}
-%                  See the help of the boxplot function for additinal 
-%                  information. Default value: nan (no options)
+%  Additional options to the boxplot function can be passed using varargin:
+%
+% 'fun' : function to be applied to the velocity values; default value:
+%         nan (no function is applied); function should return a vector
+%         (in the case of a single plot flag) or a matrix
+%         (in the case of multiple plot flags).
+%
+% 'boxplot_opt': varargin arguments for boxplot, given in a cell array;
+%                 e.g.: 'boxplot_opt', {'widths', 0.5, 'whisker', 2.0}
+%                 See the help of the boxplot function for additinal 
+%                 information. Default value: nan (no options)
 % 
-%  The function returns the function handle `h` to the boxplot.
+% The function returns the function handle `h` to the boxplot.
     
-    args = struct('out', 'los_vel_boxplot.png', 'boxplot_opt', nan, 'fun', nan);
-    
+    args = struct('out', '', 'boxplot_opt', nan, 'fun', nan);
     args = parseArgs(varargin, args);
     
     % loading ps velocities
     vv = load_ps_vel(plot_flags);
     
-    if isa(args.fun, 'function_handle')
-        vv = args.fun(vv); % apply the function
+    out     = args.out;
+    boxopt  = args.boxopt;
+    fun     = args.fun;
+
+    if isa(fun, 'function_handle')
+        vv = fun(vv); % apply the function
     end
 
     % set up labels
-    if iscell(args.boxplot_opt)
-        n_var = length(args.boxplot_opt);
+    if iscell(boxplot_opt)
+        n_var = length(boxplot_opt);
         
         % labels are the velocity flags
-        args.boxplot_opt{n_var + 1} = 'labels';
-        args.boxplot_opt{n_var + 2} = plot_flags;
+        boxplot_opt{n_var + 1} = 'labels';
+        boxplot_opt{n_var + 2} = plot_flags;
         
-        boxopt = args.boxplot_opt;
+        boxopt = boxplot_opt;
     else
         % labels are the velocity flags
         boxopt{1} = 'labels';
         boxopt{2} = plot_flags;
     end
     
-    % by default it will not show the figure
-    % instead it will save it to an image file
-    h = figure('visible', 'off');
-    boxplot(vv, boxopt{:});
-
-    ylabel('LOS velocity [mm/yr]');
-    saveas(h, args.out);
-end
+    if isempty(out)
+        h = figure;
+        boxplot(vv, boxopt{:});
+        ylabel('LOS velocity [mm/yr]');
+    else
+        h = figure('visible', 'off');
+        boxplot(vv, boxopt{:});
+        ylabel('LOS velocity [mm/yr]');
+        saveas(h, out);
+    end
+end % boxplot_los
 
 function [] = rel_std_filt(max_rel_std)
-% function REL_STD_FILT(max_rel_std)
+% function rel_std_filt(max_rel_std)
 % 
 % Filters calculated LOS velocities based in their relative standard deviations.
 % Relative standard deviation = (standard deviation / mean) * 100 (conversion into %).
 % 
-% - max_rel_std       (input) maximum allowed realtive standard deviation
+% max_rel_std: maximum allowed realtive standard deviation
 % 
 % Filtered LOS velocities will be saved into "ps_data_filt.xy", in ascii format.
    
-   if ~isscalar(max_rel_std)
-        error('max_rel_std should be a scalar!');
+   validateattributes(max_rel_std, {'numeric'}, {'scalar', 'positive', 'real'});
+   
+   if ~isscalar(max_rel_std) | max_rel_std < 0.0
+        error('max_rel_std should be a scalar and should be positive!');
    end
    
     % create ps_data.xy if it does not exist
@@ -150,26 +159,32 @@ function [] = rel_std_filt(max_rel_std)
              'Number of points after filtering: %d\n'], before, after);
     
     save('ps_data_filt.xy', 'ps_data', '-ascii');
-end
+end % rel_std_filt
 
 function [] = iterate_unwrapping(numiter, varargin)
-% function ITERATE_UNWRAPPING(numiter, 'scla')
+% function iterate_unwrapping(numiter, 'scla')
 % 
 % Simply iterate the unwrapping process numiter times.
-% At every iteration the spatially-correlated look angle error is calculated
+% At every iteration the spatially-correlated look angle error
 % (StaMPS Step 7) can be calculated.
 % 
 % At the start of the iteration and at every iteration step the phase residuals 
 % will be plotted into a png file, named iteration_(ii).png
 % where ii is the iteration step.
 % 
-% - numiter:       (input) number of iteraions
-% - 'scla', flag:  (optional) if present SCLA corrections will be calculated
-%                             and subtracted
-
-    args = struct('scla', 0);
+% numiter:       (input) number of iteraions
+% 'scla', flag:  (optional) if present SCLA corrections will be calculated
+%                           and subtracted
     
+    validateattributes(numiter, {'numeric'}, {'scalar', 'positive', 'integer', ...
+                       'finite', 'nonnan'});
+    
+    args = struct('scla', 0);
     args = parseArgs(varargin, args, {'scla'});
+    
+    if ~iscalar(numiter) | numiter < 0.0
+        error('numiter should be a positive intiger!');
+    end
     
     if args.scla
         end_step = 7;
@@ -180,8 +195,7 @@ function [] = iterate_unwrapping(numiter, varargin)
     % remove previous pngs
     delete iteration_*.png;
 
-    h = figure;
-    set(h, 'Visible', 'off');
+    h = figure('Visible', 'off');
 
     % plot starting residuals
     h = ps_plot('rsb');
@@ -198,48 +212,48 @@ function [] = iterate_unwrapping(numiter, varargin)
         print('-dpng', '-r300', sprintf('iteration_%d.png', ii));
         close(h);
     end
-end
+end % iterate_unwrapping
 
 function [] = plot_loop(loop)
 % function plot_loop(loop)
 % 
-% Plots residual phase terms ('rsb') for the selected
-% interferograms.
+% Plots residual phase terms ('rsb') for the selected interferograms.
 % 
-% - loop: (input) vector of interferogram indices
+% loop: vector of interferogram indices
 % 
 % E.g.: plot_loop([1 2 3]); will plot 'rsb' values for 
 % IFG 1, 2 and 3.
-    if ~isvector(loop)
-        error('loop should be a vector of indices!');
-    end
+    validateattributes(loop, {'numeric'}, {'vector', 'intiger', 'finite', ...
+                      'nonnan', 'positive'});
 
     ps_plot('rsb', 1, 0, 0, loop);
-end
+end % plot_loop
 
 function out = binned_statistic(x, y, varargin)
-% binned = binned_statistic(x, y, ...)
+% binned = binned_statistic(x, y, 'bins', 10, 'fun', nan)
 % 
-% Sorts y values into bins defined along x values.
-% By default sums y values in each of the x bins.
+% Sorts y values into bins defined along x values. By default sums y values 
+% in each of the x bins.
 % 
-% - x and y: (input) x and y value pairs, should be
-% a vector with the same number of elements
+% x and y: x and y value pairs, should be a vector with the same number of 
+% elements.
 % 
-% - ''bins'': (input, optional) number of bins or bin
-% edges defined by a vector (default: 10)
+% 'bins': optional, number of bins or bin edges defined by a vector.
 % 
-% - ''fun'': (input, optional) function to apply to
-% y values in each bin. By default this is a summation
+% 'fun': optional, function to apply to y values in each bin.
+% By default this is a summation
 % 
-% E.g. y_binned = binned_statistic(x, y, ''bins'', 100, ...
-%                                  ''fun'', @mean)
-% This will bin y values into x bins and calculate their
-% mean in each x bins. 100 bins will be placed evenly along
-% the values of x.
+% E.g. y_binned = binned_statistic(x, y, 'bins', 100, 'fun', @mean)
+% 
+% This will bin y values into x bins and calculate their mean in each x bins. 
+% 100 bins will be placed evenly along the values of x.
+    
+    klass = {'numeric'};
+    attr = {'vector', 'nonempty', 'finite', 'nonnan', 'real'};
+    validateattributes(x, klass, attr);
+    validateattributes(y, klass, attr);
     
     args = struct('bins', 10, 'fun', nan)
-    
     args = parseArgs(varargin, args);
     
     fun = args.fun;
@@ -255,49 +269,50 @@ function out = binned_statistic(x, y, varargin)
     
     % do not select values that are out of the range
     % of x bins
-    y   = y(idx > 0.0);
+    y = y(idx > 0.0);
     idx = idx(idx > 0.0);
-
-    if isrow(y) y = y'; end
-    if isrow(idx) idx = idx'; end
     
     if isnan(fun)
-        binned = accumarray(idx, y, []);
+        binned = accumarray(idx', y', []);
     else
-        binned = accumarray(idx, y, [], fun);
+        binned = accumarray(idx', y', [], fun);
     end
     out.binned = binned;
     out.bins = bins;
-end
+end % binned_statistic
 
 function out = binned_statistic_2d(x, y, z, varargin)
-% binned = binned_statistic_2d(x, y, z, ...)
+% binned = binned_statistic_2d(x, y, z, 'xbins', 10, 'ybins', 10, 'fun', nan)
 % 
-% Sorts z values into bins defined along (x,y) values.
-% By default sums z values in each of the (x,y) bins.
+% Sorts z values into bins defined along (x,y) values. By default sums z values
+% in each of the (x,y) bins.
 % 
-% - x, y and z: (input) x, y and z value triplets, should be
-% vectors with the same number of elements
+% x, y and z: x, y and z value triplets, should be vectors with the 
+% same number of elements.
 % 
-% - 'xbins': (input, optional) number of bins or bin
-% edges defined by a vector along x (default: 10)
+% 'xbins': optional, number of bins or bin edges defined by a vector along x.
 % 
-% - 'ybins': (input, optional) number of bins or bin
-% edges defined by a vector along y (default: 10)
+% 'ybins': optional, number of bins or bin edges defined by a vector along y.
 % 
-% - 'fun': (input, optional) function to apply to
-% z values in each bin. By default this is a summation.
+% 'fun': optional, function to apply to z values in each bin. 
+% By default this is a summation.
 % 
 % E.g. z_binned = binned_statistic(x, y, z, 'xbins', 100, 'fun', @mean)
 % 
 % This will bin z values into (x,y) bins and calculate their
 % mean in each (x,y) bins. 100 bins will be placed evenly along
 % the values of x and 10 bins along the values of y.
+    
+    klass = {'numeric'};
+    attr = {'vector', 'nonempty', 'finite', 'nonnan', 'real'};
+    validateattributes(x, klass, attr);
+    validateattributes(y, klass, attr);
+    validateattributes(z, klass, attr);
  
-    args = struct('xbins', 10, 'ybins', 10, 'fun', nan);
+    args = struct('xbins', 10, 'ybins', 10, 'fun', nan)
     args = parseArgs(varargin, args);
     
-    fun   = args.fun;
+    fun = args.fun;
     xbins = args.xbins;
     ybins = args.ybins;
     
@@ -318,14 +333,10 @@ function out = binned_statistic_2d(x, y, z, varargin)
     % of (x,y) bins
     idx = idx_x > 0.0 & idx_y > 0.0;
     
-    z     = z(idx);
+    z = z(idx);
     idx_x = idx_x(idx);
     idx_y = idx_y(idx);
-    
-    if isrow(z) z = z'; end
-    if isrow(idx_x) idx_x = idx_x'; end
-    if isrow(idx_y) idx_y = idx_y'; end
-    
+
     if strcmp(fun, 'sum')
         binned = accumarray([idx_x, idx_y], z, []);
     else
@@ -334,9 +345,12 @@ function out = binned_statistic_2d(x, y, z, varargin)
     out.binned = binned;
     out.xbins = xbins;
     out.ybins = ybins;
-end
+end % binned_statistic_2d
 
 function out = clap(varargin)
+% function out = clap('grid_size', 50, 'alpha', 1, 'beta', 0.3, ...
+%                     'low_pass', 800, 'win_size', 32, 'ifg_list', [])
+% 
 % Based on the Combined Low-pass Adaptive Filter of the StaMPS package
 % developed by Andrew Hooper.
 % Modified CLAP filter. I used it to play around with the filter
@@ -347,6 +361,7 @@ function out = clap(varargin)
     
     args = parseArgs(varargin, args);
     
+    
     grid_size           = args.grid_size;
     clap_alpha          = args.alpha;
     clap_beta           = args.beta;
@@ -354,6 +369,16 @@ function out = clap(varargin)
     n_win               = args.win_size;
     ifg_idx             = args.ifg_list;
     
+    scal_pos = {'scalar', 'finite', 'positive', 'nonnan'};
+    scal_pos_int = {'scalar', 'finite', 'positive', 'integer', 'nonnan'};
+    
+    validateattributes(grid_size, {'numeric'}, scal_pos);
+    validateattributes(clap_alpha, {'numeric'}, scal_pos);
+    validateattributes(clap_beta, {'numeric'}, scal_pos);
+    validateattributes(low_pass_wavelength, {'numeric'}, scal_pos);
+    validateattributes(nwin, {'numeric'}, scal_pos_int);
+    validateattributes(ifg_idx, {'numeric'}, scal_pos_int);
+
     freq0 = 1 / low_pass_wavelength;
     freq_i= -n_win / grid_size / n_win / 2:1 / grid_size / n_win:(n_win-2) / ...
              grid_size / n_win / 2;
@@ -420,24 +445,31 @@ function out = clap(varargin)
     end
     out.ph_filt = ph_filt;
     out.ph_grid = ph_grid;
-end
+end % clap
 
 
 function [h] = plot_ph_grid(ph)
-% Auxilliary function for plotting the output of the modified CLAP filter
-
-    h = figure;
+% function [h] = plot_ph_grid(ph)
+%
+% Auxilliary function for plotting the output of the modified CLAP filter.
+    attr = {'2d', 'nonempty', 'finite', 'nonnan'};
+    validateattributes(, {'numeric'}, attr);
+    
+    h = figure();
     colormap('jet');
     imagesc(angle(ph));
     colorbar();
-end
+end % plot_ph_grid
 
 function vv = load_ps_vel(plot_flags)
-% Helper function that loads LOS velocities defined by plot_flags.
-
+% function vv = load_ps_vel(plot_flags)
+%
+% Helper function that loads LOS velocities defined by the plot_flags cell array.
+    
+    validateattributes(plot_flags, {'char', 'cell'});
+    
     % if we have multiple plot_flags
     if iscell(plot_flags)
-        
         n_flags = length(plot_flags);
 
         ps = load('ps2.mat');
@@ -480,69 +512,56 @@ function vv = load_ps_vel(plot_flags)
         end
         vv = v.ph_disp;
     end
-end
+end % load_ps_vel
 
-%function varargout = plot(varargin)
-%% Wrapper function for ps_plot with argument handling that is more user friendly
+function h = plot(flag_type, varargin)
+% function h = plot(flag_type, 'out', '', 'background', 1, 'phase_lims', 0, ...
+%                   'ref_ifg', 0, 'n_x', 0, 'cbar_flag', 0, 'textsize', 0, ...
+%                   'textcolor', [], 'lon_rg', [], 'lat_rg', [], 'ts')
+% 
+% Wrapper function for ps_plot with argument handling that is more user 
+% friendly. See tha documentation of ps_plot for arguments.
     
-    %p = inputParser();
+    args = struct('out', '', 'background', 1, 'phase_lims', 0, 'ref_ifg', 0, ...
+                  'n_x', 0, 'cbar_flag', 0, 'textsize', 0, 'textcolor', [], ...
+                  'lon_rg', [], 'lat_rg', [], 'ts', 0);
+    args = parseArgs(varargin, args, {'ts'});
     
-    %p.FunctionName = 'plot';
+    if args.ts
+        h = ps_plot(flag_type, 'ts', args.background, args.phase_lims, ...
+                    args.ref_ifg, args.ifg_list, args.n_x, args.cbar_flag, ...
+                    args.textsize, args.textcolor, args.lon_rg, args.lat_rg);
+    else
+        h = ps_plot(flag_type, args.background, args.phase_lims, ...
+                    args.ref_ifg, args.ifg_list, args.n_x, args.cbar_flag, ...
+                    args.textsize, args.textcolor, args.lon_rg, args.lat_rg);
+    end
     
-    %p.addRequired('value_type', @ischar);
-    %p.addRequired('out', @ischar);
-    
-    %p.addParameter('background', 1, @isscalar);    
-    %p.addParameter('phase_lims', 0, @(x) isvector(x) || isscalar(x));
-    %p.addParameter('ref_ifg', 0, @isscalar);
-    %p.addParameter('ifg_list', [], @isvector);
-    %p.addParameter('n_x', 0, @isscalar);
-    %p.addParameter('cbar_flag', 0, @(x) x == 1 || x == 2 || x == 0);
-    %p.addParameter('textsize', 0, @isscalar);
-    %p.addParameter('textcolor', [], @isvector);
-    %p.addParameter('lon_rg', [], @isvector);
-    %p.addParameter('lat_rg', [], @isvector);
-    
-    %p.parse(varargin{:});
-    
-    %args = p.Results;
-    
-    %value_type = strsplit(args.value_type, '/');
-    
-    %if length(value_type) == 1
-        %h = ps_plot(value_type{1}, args.background, args.phase_lims, args.ref_ifg, ...
-                    %args.ifg_list, args.n_x, args.cbar_flag, args.textsize, ...
-                    %args.textcolor, args.lon_rg, args.lat_rg);
-    %elseif length(value_type) == 2
-        %h = ps_plot(value_type{1}, value_type{2}, args.background, args.phase_lims, ...
-                    %args.ref_ifg, args.ifg_list, args.n_x, args.cbar_flag, ...
-                    %args.textsize, args.textcolor, args.lon_rg, args.lat_rg);
-    %else
-        %error('');
-    %end
-    
-    %saveas(h, args.out)
-    %varargout = h;
-%end
+    if ~isempty(args.out)
+        save(h, args.out);
+    end
+end % plot
 
 function [] = report()
-% Just a bunch of plots
+% function [] = report()
+% 
+% Just a bunch of plots, can be safely ignored.
 
-    plot('w', 'wrapped.png');
-    plot('u', 'unwrapped.png');
-    plot('u-do', 'unwrapped_do.png');
-    plot('usb', 'unwrapped_sb.png');
-    plot('rsb', 'rsb.png');
-    plot('usb-do', 'unwrapped_sb_do.png');
+    plot('w', 'out', 'wrapped.png');
+    plot('u', 'out', 'unwrapped.png');
+    plot('u-do', 'out', 'unwrapped_do.png');
+    plot('usb', 'out', 'unwrapped_sb.png');
+    plot('rsb', 'out', 'rsb.png');
+    plot('usb-do', 'out', 'unwrapped_sb_do.png');
     
-    plot('V', 'vel.png');
-    plot('Vs', 'vel_std.png');
-    plot('V-do', 'vel_do.png');
-    plot('Vs-do', 'vel_std_do.png');
-    
-end
+    plot('V', 'out', 'vel.png');
+    plot('Vs', 'out', 'vel_std.png');
+    plot('V-do', 'out', 'vel_do.png');
+    plot('Vs-do', 'out', 'vel_std_do.png');
+end % report
 
-function [] = ps_output()
+function [] = output()
+% function [] = output()
 % MODIFIED ps_output from StaMPS. For some reason save('data.txt', 'data', '-ascii')
 % did not work for me. I made some simple modifications to make it work
 % with my `save_ascii` function (see the next function in this library).
@@ -701,11 +720,23 @@ function [] = ps_output()
         save_ascii(['ps_u-dm.',num2str(i),'.xy'], '%f %f %f\n', ph);
     end
 
-end
+end % output
 
 function [] = save_ascii(path, format, data)
+% function [] = save_ascii(path, format, data)
+% 
 % Replacement for save(path, 'data', '-ascii')
-
+%
+% path: filename, where data will be saved.
+% format: second argument of the fprintf function.
+% data: matrix to be saved.
+% 
+% E.g.: save_ascii('data.txt', '%f', ones(5,4));
+    
+    validateattributes(path, {'char'}, {'nonempty'});
+    validateattributes(format, {'char'}, {'nonempty'});
+    validateattributes(data, {'numeric'});
+    
     [FID, msg] = fopen(path, 'w');
     
     if FID == -1
@@ -715,59 +746,59 @@ function [] = save_ascii(path, format, data)
     fprintf(FID, format, data');
     fclose(FID);
     
-end
+end % save_ascii
 
 function h = plot_scatter(data, varargin)
-    
-    args = struct('out', nan, 'psize', 1.0, 'lon_rg', [], 'lat_rg', [], ...
-                  'clims', 'auto', 'subsamp_thresh', 1e5);
-    args = parseArgs(varargin, args);
-    
+% function h = plot_scatter(data, varargin)
+%
+% Function is still under developement final documentation will be created,
+% when the function will be completed.
     validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
+
+    args = struct('out', nan, 'psize', 1.0, 'lon_rg', [], 'lat_rg', [], ...
+                  'clims', 'auto');
+    args = parseArgs(varargin, args)
     
-    out             = args.out;
-    psize           = args.psize;
-    lon_rg          = args.lon_rg;
-    lat_rg          = args.lat_rg;
-    clims           = args.clims;
-    subsamp_thresh  = args.subsamp_thresh;
     
-    ndata = size(data, 2) - 2;
+    out    = args.out;
+    psize  = args.psize;
+    lon_rg = args.lon_rg;
+    lat_rg = args.lat_rg;
+    clims  = args.clims;
     
-    if ndata == 1
+    validateattributes(out, {'char'});
+    validateattributes(psize, {'numeric'}, {'scalar', 'positive', 'nonnan', ...
+                       'finite'});
+    validateattributes(lon_rg, {'numeric'}, {'vector'});
+    validateattributes(lat_rg, {'numeric'}, {'vector'});
+    validateattributes(clims, {'char', 'numeric'});
+    
+    ncols = size(data, 2);
+    
+    ps = load('ps2.mat');
+    ll = ps.lonlat;
+    clear ps;
+    
+    if ncols == 1
         fcols = 1;
         frows = 1;
     else
-        frows = ceil(sqrt(ndata) - 1);
+        frows = ceil(sqrt(ncols) - 1);
         frows = max(1, frows);
-        fcols = ceil(ndata / frows);
+        fcols = ceil(ncols / frows);
     end
     
     if isnan(out)
-        h = figure;
+        h = figure();
     else
         h = figure('visible', 'off');
     end
     
-    if subsamp_thresh < size(data, 1)
-        fprintf('Number of data points exceeds threshold limit, subsampling.\n');
-        for ii = 1:ndata
-            out = subsample(data(:,1), data(:,2), data(:,ii + 2));
-            
-            subplot_tight(frows, fcols, ii);
-            
-            im = imagesc([out.x(1), out.x(end)], [out.y(end), out.y(1)], out.z);
-            set(im, 'AlphaData', ~isnan(out.z));
-            set(gca, 'YDir', 'normal');
-            caxis(clims);
-        end
-    else
-        for ii = 1:ndata
-            subplot_tight(frows, fcols, ii);
-            scatter(data(:,1), data(:,2), psize, data(:,ii + 2));
-            caxis(clims);
-            colorbar();
-        end
+    for ii = 1:ncols
+        subplot_tight(frows, fcols, ii);
+        scatter(ll(:,1), ll(:,2), psize, data(:,ii));
+        caxis(clims);
+        colorbar();
     end
     
     if ~isnan(out)
@@ -775,71 +806,16 @@ function h = plot_scatter(data, varargin)
     end
 end % plot_scatter
 
-function [out] = subsample(x, y, z, varargin)
-    
-    validateattributes(x, {'numeric'}, {'nonempty', 'finite', 'vector'});
-    validateattributes(y, {'numeric'}, {'nonempty', 'finite', 'vector'});
-    validateattributes(z, {'numeric'}, {'nonempty', 'finite', 'vector'});
-    
-    nx = numel(x);
-    ny = numel(y);
-    nz = numel(z);
-    
-    if nx ~= ny | nz ~= ny | nx ~= nz
-        error('x, y, z should have the same number of elements!');
-    end
-    
-    args = struct('xwidth', 0.005, 'ywidth', 0.005, 'fun', @mean, 'plot', 0, ...
-                  'msg', 0);
-    args = parseArgs(varargin, args, {'plot', 'msg'});
-    
-    xwidth = args.xwidth;
-    ywidth = args.ywidth;
-    fun    = args.fun;
-    
-    if ~isscalar(xwidth) | ~isscalar(ywidth)
-        error('xwidth and ywidth have to be scalars!');
-    end
-    
-    if ~isa(fun, 'function_handle')
-        error('fun should ba a functions handle');
-    end
-    
-    min_x = min(x); max_x = max(x);
-    min_y = min(y); max_y = max(y);
-    
-    xbin = (max_x - min_x) * xwidth;
-    ybin = (max_y - min_y) * ywidth;
-    
-    xbins = min_x : xbin : max_x;
-    ybins = min_y : ybin : max_y;
-    
-    if args.msg
-        fprintf(['Original number of points: %d\n', ...
-                 'Subsampled number of points: %d\n'], nx, ...
-                 numel(xbins) * numel(ybins));
-    end
-    
-    out = binned_statistic_2d(x, y, z, 'xbins', xbins, 'ybins', ybins, ...
-                                       'fun', fun);
-    binned = out.binned;
-    binned(binned == 0.0) = nan;
-    
-    out.z = rot90(binned);
-    out.x = out.xbins;
-    out.y = out.ybins;
-    
-    if args.plot
-        figure;
-        im = imagesc([out.x(1), out.x(end)], [out.y(end), out.y(1)], out.z);
-        set(im, 'AlphaData', ~isnan(out.z));
-        set(gca, 'YDir', 'normal');
-        colorbar;
-    end
-end % subsample
-
 function [] = corr_phase(ifg, value)
-
+% function [] = corr_phase(ifg, value)
+%
+% Add value to the points enclosed by x,y point pair polygons to the 
+% interferogram with index ifg.
+    
+    validateattributes(ifg, {'numeric'}, {'scalar', 'intiger', 'finite', ...
+                       'nonnan', 'real'});
+    validateattributes(value, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'});
+    
     [x, y] = ginput;
 
     load('phuw_sb2.mat')
@@ -850,22 +826,27 @@ function [] = corr_phase(ifg, value)
     lat = lonlat(:, 2);
 
     in = inpolygon(lon, lat, x, y);
-
-    ph_ifg(in) = ph_ifg(in) + value;
-
-    ph_uw(:, ifg) = ph_ifg;
+    
+    ph_uw(in,ifg) = ph_uw(in,ifg) + value
 
     save('phuw_sb2.mat', 'ph_uw', 'msd')
-end
-
-function [out] = load_phase()
-    load('phuw_sb2.mat')
-    load('ps2.mat')
-    out  = [lonlat(:,1), lonlat(:,2), ph_uw];
-end
+end % corr_phase
 
 function [] = crop(lon_min, lon_max, lat_min, lat_max)
-
+% function [] = crop(lon_min, lon_max, lat_min, lat_max)
+%
+% Select points in a rectengular area defined by lon_min, lon_max, lat_min, 
+% lat_max. Old *.mat files will be copied (*_old.mat) as a backup.
+% New *.mat files will be created with the selected points.
+    
+    klass = {'numeric'};
+    attr = {'scalar', 'real', 'finite', 'nonnan'};
+    
+    validateattributes(lon_min, klass, attr);
+    validateattributes(lon_max, klass, attr);
+    validateattributes(lat_min, klass, attr);
+    validateattributes(lat_max, klass, attr);
+    
     if ~exist('ps2_old.mat', 'file')
         copyfile ps2.mat ps2_old.mat
     end
@@ -923,9 +904,13 @@ function [] = crop(lon_min, lon_max, lat_min, lat_max)
     save('pm2.mat', '-struct', 'pm');
     
     save('ps2.mat', '-struct', 'ps');
-end
+end % crop
 
 function [] = crop_reset()
+% function [] = crop_reset()
+%
+% Reset cropping done with the crop function. See the help of crop.
+
     movefile ps2_old.mat ps2.mat
     movefile pm2_old.mat pm2.mat
     movefile hgt2_old.mat hgt2.mat
@@ -950,12 +935,12 @@ function [] = save_llh()
     fid = sfopen('llh.dat', 'w');
     fwrite(fid, transpose(llh), 'double');
     fclose(fid);
-    
-end
+end % save_llh
 
 function [] = save_binary(data, path, varargin)
     
-    validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
+    validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2, ...
+                       'nonnan'});
     
     args = struct('dtype', 'double');
     args = parseArgs(varargin, args);
@@ -977,14 +962,20 @@ function [] = save_binary(data, path, varargin)
     fid = sfopen(path, 'w');
     fwrite(fid, transpose(ll), args.dtype);
     fclose(fid);
-end
+end % save_binary
 
 function loaded = load_binary(path, ncols, varargin)
-
+    
+    validateattributes(path, {'char'}, {'nonempty'});
+    validateattributes(ncols, {'numeric'}, {'scalar', 'intiger', 'finite', 'nonnan'});
+    
     args = struct('dtype', 'double');
     args = parseArgs(varargin, args);
+    dtype = args.dtype;
+    
+    validateattributes(dtype, {'char'}, {'nonempty'});
     
     fid = sfopen(path, 'r');
-    loaded = transpose(fread(fid, [ncols, Inf], args.dtype));
+    loaded = transpose(fread(fid, [ncols, Inf], dtype));
     fclose(fid);
 end

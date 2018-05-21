@@ -1,4 +1,4 @@
-function out = metin(fun, varargin)
+function out = traux(fun, varargin)
 % TRAIN Axilliary functions.
 %
 % Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
@@ -30,11 +30,11 @@ function out = metin(fun, varargin)
         otherwise
             error(['Unknown function ', fun]);
     end
-end
+end % traux
 
 function [out] = plot_2d_fft(data, varargin)
     
-    validateattributes(data, {'numeric'}, {'nonempty', 'finite'});
+    validateattributes(data, {'numeric'}, {'2d', 'nonempty', 'finite', 'nonnan'});
     
     args = struct('samp_rate', 1, 'logscale', 0, 'fftshift', true);
     args = parseArgs(varargin, args, {'logscale'});
@@ -44,17 +44,16 @@ function [out] = plot_2d_fft(data, varargin)
 
     samp_rate = args.samp_rate;
     
+    validateattributes(samp_rate, {'numeric'}, {'scalar', 'positive', 'real',
+                       'finite', 'nonnan'});
+    
     if isscalar(samp_rate)
-        if samp_rate < 0.0
-            error('Sampling rate must be positive!');
-        end
         samp_x = 1 / samp_rate;
         samp_y = 1 / samp_rate;
     else
         samp_x = 1 / samp_rate(2);
         samp_y = 1 / samp_rate(1);
     end
-    
     
     x_fr = (-nx / 2 : nx / 2 - 1) * samp_x / nx;
     y_fr = (-ny / 2 : ny / 2 - 1) * samp_y / ny;
@@ -77,13 +76,12 @@ function [out] = plot_2d_fft(data, varargin)
     out.h = h;
     out.x_fr = x_fr;
     out.y_fr = y_fr;
-end
+end % plot_2d_fft
 
 function [butter] = butter_filter(matrix_size, low_pass, varargin)
 % Adapted from StaMPS by Andy Hooper
 
-    validateattributes(matrix_size, {'numeric'}, ...
-                       {'nonempty', 'positive', 'finite'});
+    validateattributes(matrix_size, {'numeric'}, {'nonempty', 'positive', 'finite'});
     validateattributes(low_pass, {'numeric'}, {'scalar', 'positive', 'finite'});
     
     args = struct('order', 5, 'samp_rate', 1)
@@ -92,8 +90,8 @@ function [butter] = butter_filter(matrix_size, low_pass, varargin)
     samp_rate = args.sampe_rate;
     order     = args.order;
 
-    validateattributes(samp_rate, {'numeric'}, {'nonempty', 'positive', 'finite'});
-    validateattributes(order, {'numeric'}, {'scalar', 'positive', 'finite'});
+    validateattributes(samp_rate, {'numeric'}, {'nonempty', 'positive', 'finite', 'nonnan'});
+    validateattributes(order, {'numeric'}, {'scalar', 'positive', 'finite', 'nonnan'});
 
     if isscalar(matrix_size)
         nx = msize;
@@ -122,10 +120,10 @@ function [butter] = butter_filter(matrix_size, low_pass, varargin)
     k_dist = sqrt( kx.^2 + ky.^2 );
     
     butter = 1 ./ (1 + (k_dist ./ k0).^(2*order));
-end
+end % butter_filter
 
 function [abs_phase] = invert_abs(phase, varargin)
-    validateattributes(phase, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
+    validateattributes(phase, {'numeric'}, {'nonempty', 'finite', 'ndims', 2, 'nonnan'});
     
     args = struct('last_row', 0.0, 'master_idx', 1);
     args = parseArgs(varargin, args);
@@ -133,9 +131,9 @@ function [abs_phase] = invert_abs(phase, varargin)
     master_idx = args.master_idx;
     last       = args.last_row;
     
-    validateattributes(last, {'numeric'}, {'nonempty', 'vector', 'finite'});
+    validateattributes(last, {'numeric'}, {'nonempty', 'vector', 'finite', 'nonnan'});
     validateattributes(master_idx, {'numeric'}, {'scalar', 'positive', ...
-                                                 'finite', 'integer'});
+                       'finite', 'integer', 'nonnan'});
     
     [n_ps, n_ifg] = size(phase);
     
@@ -173,14 +171,15 @@ function [abs_phase] = invert_abs(phase, varargin)
     end
     
     abs_phase = lscov(design, double(phase));
-end
+end % invert_abs
 
 function [abs_phase] = invert_phase_stamps(varargin)
     args = struct('average', 0.0);
     args = parseArgs(varargin, args);
     
     average = args.average;
-    validateattributes(average, {'numeric'}, {'nonempty', 'vector', 'finite'});
+    validateattributes(average, {'numeric'}, {'scalar', 'nonempty', 'vector', ...
+                       'finite', 'nonnan'});
     
     ph = load('phuw2.mat');
     ps = load('ps2.mat');
@@ -193,7 +192,7 @@ function [abs_phase] = invert_phase_stamps(varargin)
     phase(:,master_idx) = [];
     
     abs_phase = invert_abs(phase, 'master_idx', master_idx, 'average', average);
-end
+end % invert_phase_stamps
 
 function [corrected_phase] = subtract_dry()
 
@@ -207,14 +206,13 @@ end
 
 function [d_total] = total_aps(varargin)
 % Based on the `aps_weather_model_InSAR` function of the TRAIN packege.
+    
     args = struct('outdir', '.');
     args = parseArgs(varargin, args);
     
     outdir = args.outdir;
     
-    if ~ischar(outdir)
-        error('outdir should be a string!');
-    end
+    validateattributes(outdir, {'char'}, {'nonempty'});
     
     % radar wavelength in cm
     lambda         = getparm_aps('lambda', 1) * 100;
@@ -362,10 +360,6 @@ function [d_total] = total_aps(varargin)
         d_total = d_hydro + d_wet;
     end
 
-    if ~isnan(outfile)
-        save(outfile, 'd_total', 'd_hydro', 'd_wet', '-v7.3');
-    end
-    
     staux('save_binary', d_total, fullfile(outdir, 'd_total.dat'));
     staux('save_binary', d_hydro, fullfile(outdir, 'd_hydro.dat'));
     staux('save_binary', d_wet,   fullfile(outdir, 'd_wet.dat'));
@@ -387,13 +381,14 @@ function [d_total] = total_aps(varargin)
     % converting to phase delay. 
     % The sign convention is such that ph_corrected = ph_original - ph_tropo*
     % d_total = -4 * pi ./ lambda .* d_total;    
-end
+end % total_aps
 
 function [Z] = geopot2h(geopot, latgrid)
     
-    if ~ismatrix(geopot) | ~ismatrix(latgrid)
-        error('geopot and latgrid should be matrices!');
-    end
+    klass = {'numeric'};
+    attr = {'2d', 'finite', 'nonnan', 'nonempty'};
+    validateattributes(geopot, klass, attr);
+    validateattributes(latgrid, klass, attr);
     
     % Convert Geopotential to Geopotential Height and then to Geometric Height
     g0 = 9.80665;
@@ -409,13 +404,12 @@ function [Z] = geopot2h(geopot, latgrid)
 
     % Calculate Geometric Height, Z
     Z = (H.*Re)./(g/g0.*Re - H);
-end
+end % geopot2h
 
 function [] = aps_setup(lonlat_extend)
     
-    if ~iscscalar(lonlat_extend)
-        error('lonlat_step should be a scalar!');
-    end
+    attr = {'scalar', 'finite', 'nonnan', 'positive'};
+    validateattributes(lonlat_extend, {'numeric'}, attr);
     
     % preprocessor type
     preproc = getparm('insar_processor');
@@ -433,9 +427,9 @@ function [] = aps_setup(lonlat_extend)
     
     % get dem file path
     setparm_aps('demfile', dem_path);
-    setparm_aps('era_datapath', [pwd '/era']);
-    setparm_aps('merra_datapath', [pwd '/merra2']);
-    setparm_aps('gacos_datapath', [pwd '/gacos']);
+    setparm_aps('era_datapath', fullfile(pwd, 'era'));
+    setparm_aps('merra_datapath', fullfile(pwd, 'merra2'));
+    setparm_aps('gacos_datapath', fullfile(pwd, 'gacos'));
     
     setparm_aps('lambda', getparm('lambda'), 1);
     setparm_aps('heading', getparm('heading'), 1);
@@ -489,7 +483,7 @@ function [] = aps_setup(lonlat_extend)
     
     setparm_aps('region_lon', [min_lon - lon_add, max_lon - lon_add]);
     setparm_aps('region_lat', [min_lat - lat_add, max_lat - lat_add]);
-end
+end % aps_setup
 
 function [] = calc_wv()
 
@@ -570,8 +564,11 @@ function [] = calc_wv()
     
     staux('save_binary', abs_phase, 'dinv_total.dat');
     staux('save_binary', abs_wet, 'dinv_wet.dat');
-end
+end % calc_wv
 
 function [ret] = rms(data)
+    
+    validateattributes(data, {'numeric'}, {'finite', '2d', 'nonnan'});
+    
     ret = sqrt( mean(data.^2, 2) );
 end

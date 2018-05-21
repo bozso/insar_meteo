@@ -128,11 +128,8 @@ function [] = rel_std_filt(max_rel_std)
 % 
 % Filtered LOS velocities will be saved into "ps_data_filt.xy", in ascii format.
    
-   validateattributes(max_rel_std, {'numeric'}, {'scalar', 'positive', 'real'});
-   
-   if ~isscalar(max_rel_std) | max_rel_std < 0.0
-        error('max_rel_std should be a scalar and should be positive!');
-   end
+   validateattributes(max_rel_std, {'numeric'}, {'scalar', 'positive', 'real', ...
+                      'finite', '<=', 1.0, 'nonnan'});
    
     % create ps_data.xy if it does not exist
     if ~exist('ps_data.xy', 'file')

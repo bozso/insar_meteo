@@ -12,6 +12,8 @@ function out = staux(fun, varargin)
             save_binary(varargin{:});
         case 'load_binary'
              out = load_binary(varargin{:});
+        case 'load_phase'
+             out = load_phase(varargin{:});
         case 'boxplot_los'
              out = boxplot_los(varargin{:});
         case 'binned_statistic'
@@ -26,6 +28,8 @@ function out = staux(fun, varargin)
              out = plot(varargin{:});
         case 'plot_scatter'
              out = plot_scatter(varargin{:});
+        case 'subsample'
+             out = subsample(varargin{:});
         case 'plot_loop'
              out = plot_loop(varargin{:});
         case 'plot_ph_grid'
@@ -251,13 +255,16 @@ function out = binned_statistic(x, y, varargin)
     
     % do not select values that are out of the range
     % of x bins
-    y = y(idx > 0.0);
+    y   = y(idx > 0.0);
     idx = idx(idx > 0.0);
+
+    if isrow(y) y = y'; end
+    if isrow(idx) idx = idx'; end
     
     if isnan(fun)
-        binned = accumarray(idx', y', []);
+        binned = accumarray(idx, y, []);
     else
-        binned = accumarray(idx', y', [], fun);
+        binned = accumarray(idx, y, [], fun);
     end
     out.binned = binned;
     out.bins = bins;
@@ -287,11 +294,10 @@ function out = binned_statistic_2d(x, y, z, varargin)
 % mean in each (x,y) bins. 100 bins will be placed evenly along
 % the values of x and 10 bins along the values of y.
  
-    args = struct('xbins', 10, 'ybins', 10, 'fun', nan)
-    
+    args = struct('xbins', 10, 'ybins', 10, 'fun', nan);
     args = parseArgs(varargin, args);
     
-    fun = args.fun;
+    fun   = args.fun;
     xbins = args.xbins;
     ybins = args.ybins;
     
@@ -312,10 +318,14 @@ function out = binned_statistic_2d(x, y, z, varargin)
     % of (x,y) bins
     idx = idx_x > 0.0 & idx_y > 0.0;
     
-    z = z(idx);
+    z     = z(idx);
     idx_x = idx_x(idx);
     idx_y = idx_y(idx);
-
+    
+    if isrow(z) z = z'; end
+    if isrow(idx_x) idx_x = idx_x'; end
+    if isrow(idx_y) idx_y = idx_y'; end
+    
     if strcmp(fun, 'sum')
         binned = accumarray([idx_x, idx_y], z, []);
     else
@@ -416,7 +426,7 @@ end
 function [h] = plot_ph_grid(ph)
 % Auxilliary function for plotting the output of the modified CLAP filter
 
-    h = figure();
+    h = figure;
     colormap('jet');
     imagesc(angle(ph));
     colorbar();
@@ -710,50 +720,123 @@ end
 function h = plot_scatter(data, varargin)
     
     args = struct('out', nan, 'psize', 1.0, 'lon_rg', [], 'lat_rg', [], ...
-                  'clims', 'auto');
-                  
-    args = parseArgs(varargin, args)
+                  'clims', 'auto', 'subsamp_thresh', 1e5);
+    args = parseArgs(varargin, args);
     
     validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
     
-    out    = args.out;
-    psize  = args.psize;
-    lon_rg = args.lon_rg;
-    lat_rg = args.lat_rg;
-    clims  = args.clims;
+    out             = args.out;
+    psize           = args.psize;
+    lon_rg          = args.lon_rg;
+    lat_rg          = args.lat_rg;
+    clims           = args.clims;
+    subsamp_thresh  = args.subsamp_thresh;
     
-    ncols = size(data, 2);
+    ndata = size(data, 2) - 2;
     
-    ps = load('ps2.mat');
-    ll = ps.lonlat;
-    clear ps;
-    
-    if ncols == 1
+    if ndata == 1
         fcols = 1;
         frows = 1;
     else
-        frows = ceil(sqrt(ncols) - 1);
+        frows = ceil(sqrt(ndata) - 1);
         frows = max(1, frows);
-        fcols = ceil(ncols / frows);
+        fcols = ceil(ndata / frows);
     end
     
     if isnan(out)
-        h = figure();
+        h = figure;
     else
         h = figure('visible', 'off');
     end
     
-    for ii = 1:ncols
-        subplot_tight(frows, fcols, ii);
-        scatter(ll(:,1), ll(:,2), psize, data(:,ii));
-        caxis(clims);
-        colorbar();
+    if subsamp_thresh < size(data, 1)
+        fprintf('Number of data points exceeds threshold limit, subsampling.\n');
+        for ii = 1:ndata
+            out = subsample(data(:,1), data(:,2), data(:,ii + 2));
+            
+            subplot_tight(frows, fcols, ii);
+            
+            im = imagesc([out.x(1), out.x(end)], [out.y(end), out.y(1)], out.z);
+            set(im, 'AlphaData', ~isnan(out.z));
+            set(gca, 'YDir', 'normal');
+            caxis(clims);
+        end
+    else
+        for ii = 1:ndata
+            subplot_tight(frows, fcols, ii);
+            scatter(data(:,1), data(:,2), psize, data(:,ii + 2));
+            caxis(clims);
+            colorbar();
+        end
     end
     
     if ~isnan(out)
         saveas(h, out);
     end
-end
+end % plot_scatter
+
+function [out] = subsample(x, y, z, varargin)
+    
+    validateattributes(x, {'numeric'}, {'nonempty', 'finite', 'vector'});
+    validateattributes(y, {'numeric'}, {'nonempty', 'finite', 'vector'});
+    validateattributes(z, {'numeric'}, {'nonempty', 'finite', 'vector'});
+    
+    nx = numel(x);
+    ny = numel(y);
+    nz = numel(z);
+    
+    if nx ~= ny | nz ~= ny | nx ~= nz
+        error('x, y, z should have the same number of elements!');
+    end
+    
+    args = struct('xwidth', 0.005, 'ywidth', 0.005, 'fun', @mean, 'plot', 0, ...
+                  'msg', 0);
+    args = parseArgs(varargin, args, {'plot', 'msg'});
+    
+    xwidth = args.xwidth;
+    ywidth = args.ywidth;
+    fun    = args.fun;
+    
+    if ~isscalar(xwidth) | ~isscalar(ywidth)
+        error('xwidth and ywidth have to be scalars!');
+    end
+    
+    if ~isa(fun, 'function_handle')
+        error('fun should ba a functions handle');
+    end
+    
+    min_x = min(x); max_x = max(x);
+    min_y = min(y); max_y = max(y);
+    
+    xbin = (max_x - min_x) * xwidth;
+    ybin = (max_y - min_y) * ywidth;
+    
+    xbins = min_x : xbin : max_x;
+    ybins = min_y : ybin : max_y;
+    
+    if args.msg
+        fprintf(['Original number of points: %d\n', ...
+                 'Subsampled number of points: %d\n'], nx, ...
+                 numel(xbins) * numel(ybins));
+    end
+    
+    out = binned_statistic_2d(x, y, z, 'xbins', xbins, 'ybins', ybins, ...
+                                       'fun', fun);
+    binned = out.binned;
+    binned(binned == 0.0) = nan;
+    
+    out.z = rot90(binned);
+    out.x = out.xbins;
+    out.y = out.ybins;
+    
+    if args.plot
+        figure;
+        im = imagesc([out.x(1), out.x(end)], [out.y(end), out.y(1)], out.z);
+        set(im, 'AlphaData', ~isnan(out.z));
+        set(gca, 'YDir', 'normal');
+        colorbar;
+    end
+end % subsample
 
 function [] = corr_phase(ifg, value)
 
@@ -773,6 +856,12 @@ function [] = corr_phase(ifg, value)
     ph_uw(:, ifg) = ph_ifg;
 
     save('phuw_sb2.mat', 'ph_uw', 'msd')
+end
+
+function [out] = load_phase()
+    load('phuw_sb2.mat')
+    load('ps2.mat')
+    out  = [lonlat(:,1), lonlat(:,2), ph_uw];
 end
 
 function [] = crop(lon_min, lon_max, lat_min, lat_max)

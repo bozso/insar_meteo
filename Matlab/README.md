@@ -12,6 +12,9 @@ The two Matlab modules and sfopen.m:
   auxilliary functions,
 - **sfopen.m**: safely open a file. Exits with `error` if the file cannot be
   opened.
+- **parseArgs.m**: parse variable function arguments, `vararagin`, 
+  [original code](https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/21384/versions/11/previews/parseArgs.m/index.html?access_key=)
+
 
 ## Calling functions
 

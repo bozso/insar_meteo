@@ -31,9 +31,17 @@ function out = gmt(fun, varargin)
     end
 end
 
-function out = init(outfile)
-    
+function out = init(outfile, varargin)
+    varargin
     validateattributes(outfile, {'char'}, {'nonempty'});
+    
+    if length(varargin) > 0
+        common = varargin{1};
+    else
+        common = '';
+    end
+
+    validateattributes(common, {'char'}, {});
     
     version = cmd('gmt --version');
     
@@ -50,6 +58,7 @@ function out = init(outfile)
     out.version = version;
     out.is_five = is_five;
     out.outfile = outfile;
+    out.common = common;
     % sentinel
     out.commands = 'init';
 end
@@ -61,6 +70,7 @@ end
 function finalize(Gmt)
     commands = strsplit(Gmt.commands, '\n');
     outfile = Gmt.outfile;
+    common = Gmt.common;
     
     if ~strcmp(commands{1}, 'init')
         error('Gmt struct was not initialized correctly!');
@@ -71,9 +81,16 @@ function finalize(Gmt)
     idx = [];
     
     % get the indices of plotter functions
-    for ii = 2:length(commands)
+    for ii = 2:ncom
         if is_plotter(commands{ii})
             idx(end + 1) = ii;
+        end
+    end
+    
+    % if we have common flags add them
+    if ~isempty(common)
+        for ii = 2:ncom
+            commands{ii} = [commands{ii}, ' ', common];
         end
     end
     
@@ -99,10 +116,10 @@ function finalize(Gmt)
     end
     
     commands
-    
-    %for ii = 2:ncom
-    %    cmd(commands{ii});
-    %end
+    return
+    for ii = 2:ncom
+        cmd(commands{ii});
+    end
 end
 
 function out = is_plotter(command)

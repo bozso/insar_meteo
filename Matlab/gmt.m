@@ -32,10 +32,10 @@ function out = gmt(fun, varargin)
 end
 
 function out = init(outfile, varargin)
-    varargin
     validateattributes(outfile, {'char'}, {'nonempty'});
     
-    if length(varargin) > 0
+    % additional arguments are common flags
+    if length(varargin) == 1
         common = varargin{1};
     else
         common = '';

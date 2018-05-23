@@ -32,7 +32,7 @@ function out = traux(fun, varargin)
     end
 end % traux
 
-function [out] = plot_2d_fft(data, varargin)
+function out = plot_2d_fft(data, varargin)
     
     validateattributes(data, {'numeric'}, {'2d', 'nonempty', 'finite', 'nonnan'});
     
@@ -70,7 +70,7 @@ function [out] = plot_2d_fft(data, varargin)
         imagesc(x_fr, y_fr, abs(data));
     end
 
-    colorbar();
+    colorbar;
     % saveas(h, args.out);
     
     out.h = h;
@@ -78,7 +78,7 @@ function [out] = plot_2d_fft(data, varargin)
     out.y_fr = y_fr;
 end % plot_2d_fft
 
-function [butter] = butter_filter(matrix_size, low_pass, varargin)
+function butter = butter_filter(matrix_size, low_pass, varargin)
 % Adapted from StaMPS by Andy Hooper
 
     validateattributes(matrix_size, {'numeric'}, {'nonempty', 'positive', 'finite'});
@@ -122,7 +122,7 @@ function [butter] = butter_filter(matrix_size, low_pass, varargin)
     butter = 1 ./ (1 + (k_dist ./ k0).^(2*order));
 end % butter_filter
 
-function [abs_phase] = invert_abs(phase, varargin)
+function abs_phase = invert_abs(phase, varargin)
     validateattributes(phase, {'numeric'}, {'nonempty', 'finite', 'ndims', 2, 'nonnan'});
     
     args = struct('last_row', 0.0, 'master_idx', 1);
@@ -173,7 +173,8 @@ function [abs_phase] = invert_abs(phase, varargin)
     abs_phase = lscov(design, double(phase));
 end % invert_abs
 
-function [abs_phase] = invert_phase_stamps(varargin)
+function abs_phase = invert_phase_stamps(varargin)
+    
     args = struct('average', 0.0);
     args = parseArgs(varargin, args);
     
@@ -194,7 +195,7 @@ function [abs_phase] = invert_phase_stamps(varargin)
     abs_phase = invert_abs(phase, 'master_idx', master_idx, 'average', average);
 end % invert_phase_stamps
 
-function [corrected_phase] = subtract_dry()
+function corrected_phase = subtract_dry()
 
     ph_uw = load('phuw2.mat');
     ph_uw = ph_uw.ph_uw;
@@ -204,7 +205,7 @@ function [corrected_phase] = subtract_dry()
     corrected_phase = ph_uw - ph_tropo.ph_tropo_era_hydro;
 end
 
-function [d_total] = total_aps(varargin)
+function d_total = total_aps(varargin)
 % Based on the `aps_weather_model_InSAR` function of the TRAIN packege.
     
     args = struct('outdir', '.');
@@ -383,7 +384,7 @@ function [d_total] = total_aps(varargin)
     % d_total = -4 * pi ./ lambda .* d_total;    
 end % total_aps
 
-function [Z] = geopot2h(geopot, latgrid)
+function Z = geopot2h(geopot, latgrid)
     
     klass = {'numeric'};
     attr = {'2d', 'finite', 'nonnan', 'nonempty'};
@@ -559,16 +560,16 @@ function [] = calc_wv()
     title(['Distribution of the difference RMS values between inverted and ', ...
            'weather model total slant delay values.']);
     xlabel('RMS difference for IFGs [cm]');
-    ylabel('Occurance');
+    ylabel('Frequency');
     saveas(h, 'dinv_rms_total.png');
     
     staux('save_binary', abs_phase, 'dinv_total.dat');
     staux('save_binary', abs_wet, 'dinv_wet.dat');
 end % calc_wv
 
-function [ret] = rms(data)
+function ret = rms(data)
     
     validateattributes(data, {'numeric'}, {'finite', '2d', 'nonnan'});
-    
+
     ret = sqrt( mean(data.^2, 2) );
 end

@@ -445,8 +445,8 @@ function out = clap(varargin)
 end % clap
 
 
-function [h] = plot_ph_grid(ph)
-% function [h] = plot_ph_grid(ph)
+function h = plot_ph_grid(ph)
+% function h = plot_ph_grid(ph)
 %
 % Auxilliary function for plotting the output of the modified CLAP filter.
     attr = {'2d', 'nonempty', 'finite', 'nonnan'};

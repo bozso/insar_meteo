@@ -11,13 +11,13 @@ function out = gmt(fun, varargin)
     'grdgradient', 'grdhisteq', 'grdimage', 'grdinfo', 'grdlandmask', ...
     'grdmask', 'grdmath', 'grdpaste', 'grdproject', 'grdraster', 'grdsample', ...
     'grdtrack', 'grdtrend', 'grdvector', 'grdview', 'grdvolume', 'greenspline', ...
-    'kml2gmt', 'makecpt', 'mapproject', 'nearneighbor', 'project', 'sample1d', ...
+    'kml2gmt', 'mapproject', 'nearneighbor', 'project', 'sample1d', ...
     'spectrum1d', 'sph2grd', 'sphdistance', 'sphinterpolate', 'sphtriangulate', ...
     'splitxyz', 'surface', 'trend1d', 'trend2d', 'triangulate', 'xyz2grd'};
     
-    split = strsplit(varargin{1});
+    splitted = strsplit(fun);
     
-    if isstruct(fun) & ismember(split{1}, gmt_cmds)
+    if ismember(splitted{1}, gmt_cmds)
         out = gmt_cmd(fun, varargin{:});
     else
         switch (fun)
@@ -27,12 +27,17 @@ function out = gmt(fun, varargin)
                 finalize(varargin{:});
             case 'get_width'
                 out = get_width(varargin{:});
+            case 'makecpt'
+                makecpt(varargin{:});
+                out = nan;
             case 'get_height'
                 out = get_height(varargin{:});
             case 'get_version'
                 out = get_version();
             case 'get_ranges'
                 out = get_ranges(varargin{:});
+            case 'info'
+                out = info(varargin{:});
             case 'scale_pos'
                 out = scale_pos(varargin{:});
             case 'colorbar'
@@ -145,8 +150,6 @@ function finalize(Gmt)
         fprintf('DEBUG: GMT commands\n%s\n', strjoin(commands, '\n'));
     end
     
-    return
-    
     for ii = 2:ncom
         fid = sfopen(outfiles{ii}, 'a');
         
@@ -194,8 +197,12 @@ function Gmt = multiplot(Gmt, nplots, proj, varargin)
         
     Gmt.common = sprintf('%s -J%g%gp', Gmt.common, proj, pwidth);
         
-    # height of a single plot
-    pheight = get_height(Gmt)
+    % height of a single plot
+    pheight = get_height(Gmt);
+    
+    Gmt.x = left:(pwidth + xpad):(left + ncols * (pwidth + x_pad));
+    Gmt.y = (height - top - pheight - y_pad):-(pheight + ypad):...
+            (height - top - nrows * (pheight + ypad));
         
     %# calculate psbasemap shifts in x and y directions
     %x = (left + ii * (pwidth + x_pad) for jj in range(nrows)
@@ -205,16 +212,19 @@ function Gmt = multiplot(Gmt, nplots, proj, varargin)
          %for ii in range(1, nrows + 1)
          %for jj in range(ncols))
     
-    %# residual margin left at the bottom
-    %self.bottom = height - top - nrows * pheight
-    
-    %return tuple(x), tuple(y)
-end
+    % residual margin left at the bottom
+    Gmt.bottom = height - top - nrows * (pheight + ypad);
+end % multiplot
 
-function Gmt = gmt_cmd(Cmd, Gmt, outfile)
-    % outfile not defined
-    if nargin == 2
+function Gmt = gmt_cmd(Cmd, varargin)
+    
+    % outfile os default psfile
+    if length(varargin) == 1 & isstruct(varargin{1})
+        Gmt = varargin{1};
         outfile = Gmt.psfile;
+    elseif length(varargin) == 2
+        Gmt = varargin{2};
+        outfile = varargin{1};
     end
     
     Gmt.commands = sprintf('%s\n%s', Gmt.commands, Cmd);
@@ -222,7 +232,19 @@ function Gmt = gmt_cmd(Cmd, Gmt, outfile)
 end
 
 function out = get_version()
-    out = cmd('gmt --vesrion');
+    out = cmd('gmt --version');
+end
+
+function [] = makecpt(flags, outfile, Gmt)
+    if Gmt.is_five
+        outs = cmd(sprintf('gmt makecpt %s', flags));
+    else
+        outs = cmd(sprintf('makecpt %s', flags));
+    end
+    
+    fid = sfopen(outfile);
+    fprintf(fid, outs);
+    fclose(fid);
 end
 
 function width = get_width(Gmt)
@@ -267,7 +289,7 @@ function width = get_width(Gmt)
         Cmd = sprintf('%s -Ww', Cmd);
         width = str2num(cmd(Cmd));
     end
-end
+end % get_width
 
 function height = get_height(Gmt)
     
@@ -312,7 +334,7 @@ function height = get_height(Gmt)
         Cmd = sprintf('%s -Wh', Cmd);
         height = str2num(cmd(Cmd));
     end
-end
+end % get_height
 
 function out = scale_pos(Gmt, mode, varargin)
     
@@ -358,11 +380,11 @@ function out = scale_pos(Gmt, mode, varargin)
         error('mode should be either: ''vertical'', ''horizontal'', ''v'' or ''h''');
     end
     
-    out.x = [num2str(x), 'p'];
-    out.y = [num2str(y), 'p'];
-    out.length = [num2str(length), 'p'];
-    out.width = [num2str(width), 'p', hor];
-end
+    out.x       = sprintf('%gp', x);
+    out.y       = sprintf('%gp', y);
+    out.length  = sprintf('%gp', length);
+    out.width   = sprintf('%gp%s', width, hor);
+end % scale_pos
 
 function Gmt = colorbar(Gmt, varargin)
 
@@ -388,13 +410,13 @@ function Gmt = colorbar(Gmt, varargin)
     
     Cmd = sprintf('psscale -D0.0/0.0/%g/%g Xf%g Yf%g %s', out.length, ...
                   out.width, out.x, out.y, flags);
-    Gmt = gmt_cmd(Cmd, Gmt);
-end
+    Gmt = gmt_cmd(Gmt, Cmd);
+end % colorbar
 
-function info(data, flags)
-    version = cmd('gmt --vesrion');
+function out = info(data, flags)
+    version = cmd('gmt --version');
     
-    if ischar(data) & isfile(data)
+    if ischar(data) & exist(data, 'file') == 2
         gmt_flags = data;
     else
         error('data is not a path to an existing file!');
@@ -403,6 +425,7 @@ function info(data, flags)
     % if we have flags parse them
     if nargin == 2
         gmt_flags = sprintf('%s %s', gmt_flags, flags);
+    end
     
     if version(1) == '5'
         Cmd = ['gmt info ', gmt_flags];
@@ -411,77 +434,83 @@ function info(data, flags)
     end
     
     out = cmd(Cmd);
-end
+end % info
 
 function out = get_ranges(data, varargin)
-
-    args = struct('binary', '', 'xy_add', nan, 'z_add', nan);
+    
+    args = struct('binary', '', 'xy_add', nan, 'z_add', nan, 'flags', '');
     args = parseArgs(varargin, args);
     
     binary = args.binary;
     xy_add = args.xy_add;
     z_add  = args.z_add;
+    flags  = args.flags;
     
     validateattributes(binary, {'char'}, {});
+    validateattributes(flags,  {'char'}, {});
 
-    klass = 'numeric';
-    attr = {'scalar', 'positive', 'real', 'finite'};
+    klass = {'numeric'};
+    attr = {'scalar', 'positive', 'real'};
     validateattributes(xy_add, klass, attr);
     validateattributes(z_add, klass, attr);
     
     if isempty(binary)
-        ranges = str2num(info(data, '-C'));
+        ranges = str2num(info(data, sprintf('-C %s', flags)));
     else
-        ranges = str2num(info(data, sprintf('-bi%s -C', binary)));
+        ranges = str2num(info(data, sprintf('-bi%s -C %s', binary, flags)));
     end
     
     if ~isnan(xy_add)
         X = (ranges(2) - ranges(1)) * xy_add;
         Y = (ranges(4) - ranges(3)) * xy_add;
-        xy_range = (ranges(1) - xy_add, ranges(2) + xy_add,
-                    ranges(3) - xy_add, ranges(4) + xy_add);
+        xy_range = [ranges(1) - xy_add, ranges(2) + xy_add,
+                    ranges(3) - xy_add, ranges(4) + xy_add];
     else
         xy_range = ranges(1:4);
-
+    end
+    
     non_xy = ranges(5:end);
     
     if ~isnan(z_add)
         min_z = min(non_xy); max_z = max(non_xy);
         Z = (max_z - min_z) * z_add;
         z_range = [min_z - z_add, max_z + z_add];
-    else:
+    else
         z_range = [min(non_xy), max(non_xy)];
-        
+    end
+    
     out.xy_range = xy_range;
     out.z_range  = z_range;
-end
+end % get_ranges
 
-function [] = plot_scatter(scatter_file, ncols, ps_file, titles=None):
+function [] = plot_scatter(scatter_file, ncols, ps_file, varargin)
     
     args = struct('proj', 'M', 'idx', [], 'config', {}, 'offset', 25, ...
                   'mode', 'v', 'label', '', 'z_range', [], 'xy_range', [], ...
                   'x_axis', 'a0.5g0.25f0.25', 'y_axis', 'a0.25g0.25f0.25', ...
                   'xy_add', 0.05, 'z_add', 0.1, 'colorscale', 'drywet', ...
-                  'tryaxis', 0, 'left', 50, 'right', 100, 'top', 0, 'titles', []);
+                  'tryaxis', 0, 'left', 50, 'right', 100, 'top', 0, ...
+                  'titles', [], 'point_style', 'c0.25c');
     args = parseArgs(varargin, args, {'tryaxis'});
     
-    proj = args.proj;
-    idx = args.idx;
-    config = args.config;
-    mode = args.mode;
-    label = args.label;
-    z_range = args.z_range;
-    xy_range = args.xy_range;
-    xy_add = args.xy_add;
-    z_add = args.z_add;
-    x_axis = args.x_axis;
-    y_axis = args.y_axis;
-    colorscale = args.colorscale;
-    offset = args.offset;
+    proj        = args.proj;
+    idx         = args.idx;
+    config      = args.config;
+    mode        = args.mode;
+    label       = args.label;
+    z_range     = args.z_range;
+    xy_range    = args.xy_range;
+    xy_add      = args.xy_add;
+    z_add       = args.z_add;
+    x_axis      = args.x_axis;
+    y_axis      = args.y_axis;
+    colorscale  = args.colorscale;
+    offset      = args.offset;
+    point_style = args.point_style;
     
-    left = args.left;
-    right = args.right;
-    top = args.top;
+    left    = args.left;
+    right   = args.right;
+    top     = args.top;
     
     titles = args.titles;
     
@@ -489,6 +518,7 @@ function [] = plot_scatter(scatter_file, ncols, ps_file, titles=None):
     validateattributes(x_axis, {'char'}, {'nonempty'});
     validateattributes(y_axis, {'char'}, {'nonempty'});
     validateattributes(colorscale, {'char'}, {'nonempty'});
+    validateattributes(point_style, {'char'}, {'nonempty'});
 
     klass = 'numeric';
     attr = {'scalar', 'positive', 'real', 'finite', 'nonnan'};
@@ -502,25 +532,26 @@ function [] = plot_scatter(scatter_file, ncols, ps_file, titles=None):
     validateattributes(top, klass, attr);
     
     % 2 additional coloumns for coordinates
-    bindef = sprintf("%dd", ncols + 2);
+    bindef = sprintf('%dd', ncols + 2);
     
     if isempty(xy_range) | isempty(z_range)
         out = get_ranges(scatter_file, 'binary', bindef, 'xy_add', xy_add, ...
                          'z_add', z_add);
+    end
     
     if isempty(xy_range)
         xy_range = out.xy_range;
     end
     
     if isempty(z_range)
-        z_range = _z_range;
+        z_range = out.z_range;
     end
     
     if isempty(idx)
         idx = 1:ncols;
     end
     
-    if isempty(titles):
+    if isempty(titles)
         titles = idx;
     end
     
@@ -529,26 +560,34 @@ function [] = plot_scatter(scatter_file, ncols, ps_file, titles=None):
     
     out = multiplot(numel(idx), proj, 'right', right, 'top', top, 'left', left);
     
+    x = g.x;
+    y = g.y;
+    
+    return
+    
     Cmd = sprintf('makecpt -C%s -Z -T%s', colorscale, arr2str(z_range));
     g = gmt_cmd(Cmd, g, 'tmp.cpt');
     
-    for ii in idx:
-        input_format = "0,1,{}".format(ii + 2)
-        gmt.psbasemap(Xf=str(x[ii]) + "p", Yf=str(y[ii]) + "p",
-                      B="WSen+t{}".format(titles[ii]), Bx=x_axis, By=y_axis)
+    for ii = idx
+        input_format = sprintf('0,1,%d', ii + 2);
         
-        # do not plot the scatter points yet just see the placement of
-        # basemaps
-        if not tryaxis:
-            gmt.psxy(data=scatter_file, i=input_format, bi=bindef,
-                     S="c0.025c", C="tmp.cpt")
-        
-    gmt.colorbar(mode=cbar_config.pop("mode", "v"),
-                 offset=cbar_config.pop("offset", 10),
-                 B=cbar_config.pop("label", ""), C="tmp.cpt",)
+        Cmd = sprintf('psbasemap  Xf%gp Yf%gp BWSen+t%s Bx%s By%s', ...
+                      x(ii), y(ii), titles(ii), x_axis, y_axis);
+        g = gmt_cmd(g, Cmd)
+
+        % do not plot the scatter points yet just see the placement of
+        % basemaps
+        if ~args.tryaxis
+            Cmd = sprintf('psxy %s -i0,1,%d bi%s Sc0.025c Ctmp.cpt', ...
+                          scatter_file, ii + 2);
+            gmt_cmd(g, Cmd)
+        end
+    end
+    
+    g = colorbar(g, 'mode', mode, 'offset', offset, 'label', label);
 
     delete tmp.cpt;
-
+end % plot_scatter
 
 function out = is_plotter(command)
     plotters = {'grdcontour', 'grdimage', 'grdvector', 'grdview', 'psbasemap', ...
@@ -568,12 +607,25 @@ end
 function out = cmd(command)
     
     [status, out] = system(command);
-    
+
     if status ~= 0
         str = sprintf('Command (%s) nonzero return status: %d\nOutput: %s', ...
                        command, status, out);
         error(str);
     end
+    
+    outs = strsplit(out, '\n');
+    
+    out = {};
+    
+    % filter out gmt warning/error messages
+    for ii = 1:length(outs)
+        if isempty(strfind(outs{ii}, 'gmt:'))
+            out{end+1} = outs{ii};
+        end
+    end
+    
+    out = strjoin(out, '\n');
 end
 
 function out = arr2str(array)

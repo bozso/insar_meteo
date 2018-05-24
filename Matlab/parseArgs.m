@@ -57,7 +57,6 @@ if (length(varargin)>0)
     end
 end
  
-
 %---------------Get "numeric" arguments
 NumArgCount=1;
 while (NumArgCount<=size(args,2))&(~ischar(args{NumArgCount}))

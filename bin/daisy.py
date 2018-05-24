@@ -95,7 +95,7 @@ def parse_arguments():
                        "by --stop is reached", choices=_steps,
                        default="data_select", nargs="?", type=str)
     parser.add_argument("--stop", help="Last processing step to be executed.",
-                       choices=_steps, default="zero_select", nargs="?",
+                       choices=_steps, default="integrate", nargs="?",
                        type=str)
     
     parser.add_argument("-p", "--ps_sep", help="Maximum separation distance "

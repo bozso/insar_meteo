@@ -749,21 +749,22 @@ int data_select(int argc, char * argv[]) {
         exit(1);
     }
 
-    fprintf(log, "\n %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
+    fprintf(log, "\n %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], 
+                                           argv[4]);
 
-    sprintf(out1, "%s%s", argv[1], "s");
-    sprintf(out2, "%s%s", argv[2], "s");
-    printf("\n  input: %s\n output: %s\n", argv[1], out1);
-    printf("\n  input: %s\n output: %s\n", argv[2], out2);
+    sprintf(out1, "%s%s", argv[2], "s");
+    sprintf(out2, "%s%s", argv[3], "s");
+    printf("\n  input: %s\n output: %s\n", argv[2], out1);
+    printf("\n  input: %s\n output: %s\n", argv[3], out2);
 
-    fprintf(log, "\n  input: %s\n output: %s\n", argv[1], out1);
-    fprintf(log, "\n  input: %s\n output: %s\n", argv[2], out2);
+    fprintf(log, "\n  input: %s\n output: %s\n", argv[2], out1);
+    fprintf(log, "\n  input: %s\n output: %s\n", argv[3], out2);
 
-    if ((in1 = fopen(argv[1], "rt")) == NULL) {
+    if ((in1 = fopen(argv[2], "rt")) == NULL) {
         error("\n  ASC Data file not found !\n");
         exit(1);
     }
-    if ((in2 = fopen(argv[2], "rt")) == NULL) {
+    if ((in2 = fopen(argv[3], "rt")) == NULL) {
         error("\n  DSC Data file not found !\n");
         exit(1);
     }
@@ -778,7 +779,7 @@ int data_select(int argc, char * argv[]) {
     }
 
     //---------------------------------------------------------------
-    sscanf(argv[3], "%f", & dam);
+    sscanf(argv[4], "%f", & dam);
 
     printf("\n Appr. PSs separation %5.1f (m)\n", dam);
     fprintf(log, "\n Appr. PSs separation %5.1f (m)", dam);
@@ -889,11 +890,11 @@ int dominant(int argc, char * argv[]) {
         exit(1);
     }
 
-    if ((in1 = fopen(argv[1], "rt")) == NULL) {
+    if ((in1 = fopen(argv[2], "rt")) == NULL) {
         error("\n  ASC data file not found !\n");
         exit(1);
     }
-    if ((in2 = fopen(argv[2], "rt")) == NULL) {
+    if ((in2 = fopen(argv[3], "rt")) == NULL) {
         error("\n  DSC data file not found !\n");
         exit(1);
     }
@@ -906,15 +907,15 @@ int dominant(int argc, char * argv[]) {
         exit(1);
     }
 
-    fprintf(lo, "\n %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
+    fprintf(lo, "\n %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4]);
 
-    printf("\n  input: %s\n         %s\n", argv[1], argv[2]);
+    printf("\n  input: %s\n         %s\n", argv[2], argv[3]);
     printf("\n output: %s\n\n", out);
-    fprintf(lo, "\n  input: %s\n         %s\n", argv[1], argv[2]);
+    fprintf(lo, "\n  input: %s\n         %s\n", argv[2], argv[3]);
     fprintf(lo, "\n output: %s\n\n", out);
 
     //------------------------------------------------------
-    sscanf(argv[3], "%f", & dam);
+    sscanf(argv[4], "%f", & dam);
     printf("\n Appr. cluster size %5.1f (m)\n", dam);
     fprintf(lo, "\n Appr. cluster size %5.1f (m)\n\n", dam);
     // -----------------------------------------------------
@@ -1049,15 +1050,15 @@ int integrate(int argc, char * argv[]) {
         exit(1);
     }
 
-    if ((ind = fopen(argv[1], "rt")) == NULL) {
+    if ((ind = fopen(argv[2], "rt")) == NULL) {
         printf("\n  %s data file not found ! ", argv[1]);
         exit(1);
     }
-    if ((ino1 = fopen(argv[2], "rt")) == NULL) {
+    if ((ino1 = fopen(argv[3], "rt")) == NULL) {
         printf("\n  %s data file not found ! ", argv[2]);
         exit(1);
     }
-    if ((ino2 = fopen(argv[3], "rt")) == NULL) {
+    if ((ino2 = fopen(argv[4], "rt")) == NULL) {
         printf("\n  %s data file not found ! ", argv[3]);
         exit(1);
     }
@@ -1073,8 +1074,8 @@ int integrate(int argc, char * argv[]) {
     printf("\n  inputs:   %s\n          %s\n          %s", argv[1], argv[2], argv[3]);
     printf("\n\n outputs:  %s\n           %s\n", out, log);
 
-    fprintf(lo, "\n %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
-    fprintf(lo, "\n  inputs:   %s\n          %s\n          %s", argv[1], argv[2], argv[3]);
+    fprintf(lo, "\n %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4]);
+    fprintf(lo, "\n  inputs:   %s\n          %s\n          %s", argv[2], argv[3], argv[4]);
     fprintf(lo, "\n\n outputs:  %s\n           %s\n", out, log);
 
     // -----------------------------------------------------------   
@@ -1194,15 +1195,15 @@ int poly_orbit(int argc, char * argv[]) {
     }
 
     head = "NUMBER_OF_DATAPOINTS:";
-    sscanf(argv[2], "%d", & dop);
+    sscanf(argv[3], "%d", & dop);
 
     //  sprintf(out,"%s%s",argv[1],"o"); 
-    sprintf(out, "%s", argv[1]);
+    sprintf(out, "%s", argv[2]);
     change_ext(out, "porb");
 
     sprintf(log, "%s%s", out, ".log");
 
-    if (( in = fopen(argv[1], "rt")) == NULL) {
+    if (( in = fopen(argv[2], "rt")) == NULL) {
         error("\n  1. Data file not found !\n");
         exit(1);
     }
@@ -1215,12 +1216,12 @@ int poly_orbit(int argc, char * argv[]) {
         exit(1);
     }
 
-    fprintf(lo, "\n %s %s %s\n", argv[0], argv[1], argv[2]);
-    fprintf(lo, "\n  input: %s", argv[1]);
+    fprintf(lo, "\n %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
+    fprintf(lo, "\n  input: %s", argv[2]);
     fprintf(lo, "\n output: %s", out);
     fprintf(lo, "\n degree: %d\n", dop);
 
-    printf("\n  input: %s", argv[1]);
+    printf("\n  input: %s", argv[2]);
     printf("\n output: %s", out);
     printf("\n degree: %d\n", dop);
 

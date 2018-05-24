@@ -53,7 +53,7 @@ end % gmt
 function out = init(psfile, varargin)
     validateattributes(psfile, {'char'}, {'nonempty'});
     
-    args = struct('common', '', 'left', 50, 'right', 50, 'top', 25, 'bottom', 30, ...
+    args = struct('common', '', 'left', 50, 'right', 50, 'top', 25, 'bottom', 50, ...
                   'debug', 0);
     args = parseArgs(varargin, args, {'debug'});
     
@@ -133,9 +133,12 @@ function finalize(Gmt)
         for ii = idx(1:end - 1)
             commands{ii} = [commands{ii}, ' -K'];
         end
-
+        
+        first = idx(1);
+        commands{first} = [commands{ii}, ' > ', outfiles{ii}];
+        
         for ii = idx(2:end)
-            commands{ii} = [commands{ii}, ' -O'];
+            commands{ii} = [commands{ii}, ' -O >> ', outfiles{ii}];
         end
     end
 
@@ -156,12 +159,7 @@ function finalize(Gmt)
     end
     
     for ii = 2:ncom
-        fid = sfopen(outfiles{ii}, 'a');
-        
-        out = cmd(commands{ii});
-        
-        fprintf(fid, '%s\n', out);
-        fclose(fid);
+        cmd(commands{ii});
     end
 end % finalize
 
@@ -332,7 +330,7 @@ function height = get_height(Gmt)
             error('Keyword ''Transform'' not found in command output!');
         end
         
-        outsplit = strsplit(out, '/')
+        outsplit = strsplit(out, '/');
         outsplit = strsplit(outsplit{7});
         height = str2num(outsplit{1});
     else
@@ -351,14 +349,14 @@ function out = scale_pos(Gmt, mode, varargin)
     top     = Gmt.top;
     bottom  = Gmt.bottom;
 
-    width   = get_width(Gmt);
-    height  = get_height(Gmt);
+    width   = get_width(Gmt)
+    height  = get_height(Gmt)
     
     offset  = args.offset;
     flong   = args.flong;
     fshort  = args.fshort;
 
-    klass = 'numeric';
+    klass = {'numeric'};
     attr = {'scalar', 'positive', 'nonnan', 'real', 'finite'};
     
     validateattributes(offset, klass, attr);
@@ -401,8 +399,9 @@ function Gmt = colorbar(Gmt, varargin)
     offset  = args.offset;
     flong   = args.flong;
     fshort  = args.fshort;
+    flags   = args.flags;
     
-    klass = 'numeric';
+    klass = {'numeric'};
     attr = {'scalar', 'positive', 'nonnan', 'real', 'finite'};
     
     validateattributes(mode, {'char'}, {'nonempty'});
@@ -411,11 +410,11 @@ function Gmt = colorbar(Gmt, varargin)
     validateattributes(flong, klass, attr);
     validateattributes(fshort, klass, attr);
     
-    out = scale_pos(mode, 'offset', offset, 'flong', flong, 'fshort', fshort);
+    out = scale_pos(Gmt, mode, 'offset', offset, 'flong', flong, 'fshort', fshort);
     
-    Cmd = sprintf('psscale -D0.0/0.0/%g/%g Xf%g Yf%g %s', out.length, ...
-                  out.width, out.x, out.y, flags);
-    Gmt = gmt_cmd(Gmt, Cmd);
+    Cmd = sprintf('psscale -D0.0/0.0/%s/%s -Xf%s -Yf%s %s', out.length, ...
+                  out.width, out.x, out.y, flags)
+    Gmt = gmt_cmd(Cmd, Gmt);
 end % colorbar
 
 function out = info(data, flags)

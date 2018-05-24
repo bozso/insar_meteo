@@ -43,7 +43,7 @@ function ArgStruct=parseArgs(args,ArgStruct,varargin)
 %   whatsoever.
 
 % if we do not have arguments return - added by István Bozsó 2018.05.20.
-if ~length(varargin)
+if length(varargin) == 0
     return
 end
 

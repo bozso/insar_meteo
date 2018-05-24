@@ -10,6 +10,8 @@ function out = staux(fun, varargin)
             save_llh();
         case 'save_binary'
             save_binary(varargin{:});
+        case 'save_ascii'
+            save_ascii(varargin{:});
         case 'load_binary'
             out = load_binary(varargin{:});
         case 'boxplot_los'
@@ -449,8 +451,9 @@ function h = plot_ph_grid(ph)
 % function h = plot_ph_grid(ph)
 %
 % Auxilliary function for plotting the output of the modified CLAP filter.
+
     attr = {'2d', 'nonempty', 'finite', 'nonnan'};
-    validateattributes(, {'numeric'}, attr);
+    validateattributes(ph, {'numeric'}, attr);
     
     h = figure();
     colormap('jet');
@@ -719,8 +722,8 @@ function [] = output()
 
 end % output
 
-function [] = save_ascii(path, format, data)
-% function [] = save_ascii(path, format, data)
+function [] = save_ascii(data, path, format)
+% function [] = save_ascii(data, path, format)
 % 
 % Replacement for save(path, 'data', '-ascii')
 %
@@ -732,12 +735,16 @@ function [] = save_ascii(path, format, data)
     
     validateattributes(path, {'char'}, {'nonempty'});
     validateattributes(format, {'char'}, {'nonempty'});
-    validateattributes(data, {'numeric'});
+    validateattributes(data, {'numeric'}, {});
+    
+    ncols = size(data, 2);
+    
+    format = sprintf('%s\n', repmat(sprintf('%s ', format), 1, ncols));
     
     [FID, msg] = fopen(path, 'w');
     
     if FID == -1
-        error(['Could not open file: ', path, '\nError message: ', msg]);
+        error(sprintf('Could not open file: %s  Error message: %s', path, msg));
     end
 
     fprintf(FID, format, data');

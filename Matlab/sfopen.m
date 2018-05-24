@@ -24,6 +24,6 @@ function [fid] = sfopen(path, mode, machine)
     [fid, msg] = fopen(path, mode, machine);
     
     if fid == -1
-        error(['Could not open file: ', path, '\nError message: ', msg]);
+        error(sprintf('Could not open file: %s  Error message: %s', path, msg));
     end
 end

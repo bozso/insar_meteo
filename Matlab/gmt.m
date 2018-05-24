@@ -53,7 +53,7 @@ end % gmt
 function out = init(psfile, varargin)
     validateattributes(psfile, {'char'}, {'nonempty'});
     
-    args = struct('common', '', 'left', 10, 'right', 10, 'top', 10, 'bottom', 10, ...
+    args = struct('common', '', 'left', 50, 'right', 50, 'top', 25, 'bottom', 30, ...
                   'debug', 0);
     args = parseArgs(varargin, args, {'debug'});
     
@@ -131,11 +131,11 @@ function finalize(Gmt)
     % handle -O and -K options
     if numel(idx) > 1
         for ii = idx(1:end - 1)
-            commands{ii} = [commands{ii}, ' -O'];
+            commands{ii} = [commands{ii}, ' -K'];
         end
 
         for ii = idx(2:end)
-            commands{ii} = [commands{ii}, ' -K'];
+            commands{ii} = [commands{ii}, ' -O'];
         end
     end
 
@@ -148,6 +148,11 @@ function finalize(Gmt)
     
     if Gmt.debug
         fprintf('DEBUG: GMT commands\n%s\n', strjoin(commands, '\n'));
+    end
+    
+    for ii = 2:ncom
+        fid = sfopen(outfiles{ii}, 'w');
+        fclose(fid);
     end
     
     for ii = 2:ncom
@@ -242,7 +247,7 @@ function [] = makecpt(flags, outfile, Gmt)
         outs = cmd(sprintf('makecpt %s', flags));
     end
     
-    fid = sfopen(outfile);
+    fid = sfopen(outfile, 'w');
     fprintf(fid, outs);
     fclose(fid);
 end
@@ -284,7 +289,7 @@ function width = get_width(Gmt)
         end
         
         outsplit = strsplit(out, '/');
-        width = str2num(outsplit(5));
+        width = str2num(outsplit{5});
     else
         Cmd = sprintf('%s -Ww', Cmd);
         width = str2num(cmd(Cmd));
@@ -327,9 +332,9 @@ function height = get_height(Gmt)
             error('Keyword ''Transform'' not found in command output!');
         end
         
-        outsplit = strsplit(out, '/');
-        outsplit = strsplit(outsplit(6), ' ');
-        height = str2num(outsplit(1));
+        outsplit = strsplit(out, '/')
+        outsplit = strsplit(outsplit{7});
+        height = str2num(outsplit{1});
     else
         Cmd = sprintf('%s -Wh', Cmd);
         height = str2num(cmd(Cmd));
@@ -609,7 +614,7 @@ function out = cmd(command)
     [status, out] = system(command);
 
     if status ~= 0
-        str = sprintf('Command (%s) nonzero return status: %d\nOutput: %s', ...
+        str = sprintf('Command (%s) nonzero return status: %d\n%s', ...
                        command, status, out);
         error(str);
     end

@@ -15,9 +15,9 @@ function out = gmt(fun, varargin)
     'spectrum1d', 'sph2grd', 'sphdistance', 'sphinterpolate', 'sphtriangulate', ...
     'splitxyz', 'surface', 'trend1d', 'trend2d', 'triangulate', 'xyz2grd'};
     
-    split = strsplit(fun);
+    split = strsplit(varargin{1});
     
-    if ismember(split{1}, gmt_cmds)
+    if isstruct(fun) & ismember(split{1}, gmt_cmds)
         out = gmt_cmd(fun, varargin{:});
     else
         switch (fun)
@@ -29,10 +29,16 @@ function out = gmt(fun, varargin)
                 out = get_width(varargin{:});
             case 'get_height'
                 out = get_height(varargin{:});
+            case 'get_version'
+                out = get_version();
+            case 'get_ranges'
+                out = get_ranges(varargin{:});
             case 'scale_pos'
                 out = scale_pos(varargin{:});
             case 'colorbar'
                 out = colorbar(varargin{:});
+            case 'arr2str'
+                out = arr2str(varargin{:});
             otherwise
                 error(['Unknown function ', fun]);
         end
@@ -206,13 +212,17 @@ function Gmt = multiplot(Gmt, nplots, proj, varargin)
 end
 
 function Gmt = gmt_cmd(Cmd, Gmt, outfile)
-    Gmt.commands = sprintf('%s\n%s', Gmt.commands, Cmd);
-    
     % outfile not defined
     if nargin == 2
         outfile = Gmt.psfile;
     end
+    
+    Gmt.commands = sprintf('%s\n%s', Gmt.commands, Cmd);
     Gmt.outfiles = sprintf('%s\n%s', Gmt.outfiles, outfile);
+end
+
+function out = get_version()
+    out = cmd('gmt --vesrion');
 end
 
 function width = get_width(Gmt)
@@ -381,26 +391,163 @@ function Gmt = colorbar(Gmt, varargin)
     Gmt = gmt_cmd(Cmd, Gmt);
 end
 
-function info(data, **flags):
-    gmt_flags = '';
+function info(data, flags)
+    version = cmd('gmt --vesrion');
     
     if ischar(data) & isfile(data)
         gmt_flags = data;
-    else:
+    else
         error('data is not a path to an existing file!');
     end
+    
+    % if we have flags parse them
+    if nargin == 2
+        gmt_flags = sprintf('%s %s', gmt_flags, flags);
+    
+    if version(1) == '5'
+        Cmd = ['gmt info ', gmt_flags];
+    else
+        Cmd = ['gmtinfo ', gmt_flags];
+    end
+    
+    out = cmd(Cmd);
+end
 
-    # if we have flags parse them
-    if len(flags) > 0:
-        gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
-                               for key, flag in flags.items()])
+function out = get_ranges(data, varargin)
+
+    args = struct('binary', '', 'xy_add', nan, 'z_add', nan);
+    args = parseArgs(varargin, args);
     
-    if get_version() > _gmt_five:
-        Cmd = "gmt info " + gmt_flags
+    binary = args.binary;
+    xy_add = args.xy_add;
+    z_add  = args.z_add;
+    
+    validateattributes(binary, {'char'}, {});
+
+    klass = 'numeric';
+    attr = {'scalar', 'positive', 'real', 'finite'};
+    validateattributes(xy_add, klass, attr);
+    validateattributes(z_add, klass, attr);
+    
+    if isempty(binary)
+        ranges = str2num(info(data, '-C'));
+    else
+        ranges = str2num(info(data, sprintf('-bi%s -C', binary)));
+    end
+    
+    if ~isnan(xy_add)
+        X = (ranges(2) - ranges(1)) * xy_add;
+        Y = (ranges(4) - ranges(3)) * xy_add;
+        xy_range = (ranges(1) - xy_add, ranges(2) + xy_add,
+                    ranges(3) - xy_add, ranges(4) + xy_add);
+    else
+        xy_range = ranges(1:4);
+
+    non_xy = ranges(5:end);
+    
+    if ~isnan(z_add)
+        min_z = min(non_xy); max_z = max(non_xy);
+        Z = (max_z - min_z) * z_add;
+        z_range = [min_z - z_add, max_z + z_add];
     else:
-        Cmd = "gmtinfo " + gmt_flags
+        z_range = [min(non_xy), max(non_xy)];
+        
+    out.xy_range = xy_range;
+    out.z_range  = z_range;
+end
+
+function [] = plot_scatter(scatter_file, ncols, ps_file, titles=None):
     
-    return cmd(Cmd, ret_out=True).decode()
+    args = struct('proj', 'M', 'idx', [], 'config', {}, 'offset', 25, ...
+                  'mode', 'v', 'label', '', 'z_range', [], 'xy_range', [], ...
+                  'x_axis', 'a0.5g0.25f0.25', 'y_axis', 'a0.25g0.25f0.25', ...
+                  'xy_add', 0.05, 'z_add', 0.1, 'colorscale', 'drywet', ...
+                  'tryaxis', 0, 'left', 50, 'right', 100, 'top', 0, 'titles', []);
+    args = parseArgs(varargin, args, {'tryaxis'});
+    
+    proj = args.proj;
+    idx = args.idx;
+    config = args.config;
+    mode = args.mode;
+    label = args.label;
+    z_range = args.z_range;
+    xy_range = args.xy_range;
+    xy_add = args.xy_add;
+    z_add = args.z_add;
+    x_axis = args.x_axis;
+    y_axis = args.y_axis;
+    colorscale = args.colorscale;
+    offset = args.offset;
+    
+    left = args.left;
+    right = args.right;
+    top = args.top;
+    
+    titles = args.titles;
+    
+    validateattributes(proj, {'char'}, {'nonempty'});
+    validateattributes(x_axis, {'char'}, {'nonempty'});
+    validateattributes(y_axis, {'char'}, {'nonempty'});
+    validateattributes(colorscale, {'char'}, {'nonempty'});
+
+    klass = 'numeric';
+    attr = {'scalar', 'positive', 'real', 'finite', 'nonnan'};
+
+    validateattributes(xy_add, klass, attr);
+    validateattributes(z_add, klass, attr);
+    validateattributes(offset, klass, attr);
+    
+    validateattributes(left, klass, attr);
+    validateattributes(rigth, klass, attr);
+    validateattributes(top, klass, attr);
+    
+    % 2 additional coloumns for coordinates
+    bindef = sprintf("%dd", ncols + 2);
+    
+    if isempty(xy_range) | isempty(z_range)
+        out = get_ranges(scatter_file, 'binary', bindef, 'xy_add', xy_add, ...
+                         'z_add', z_add);
+    
+    if isempty(xy_range)
+        xy_range = out.xy_range;
+    end
+    
+    if isempty(z_range)
+        z_range = _z_range;
+    end
+    
+    if isempty(idx)
+        idx = 1:ncols;
+    end
+    
+    if isempty(titles):
+        titles = idx;
+    end
+    
+    g = init(ps_file, 'common', sprintf('-R%s', arr2str(xy_range)), ...
+             'config', config);
+    
+    out = multiplot(numel(idx), proj, 'right', right, 'top', top, 'left', left);
+    
+    Cmd = sprintf('makecpt -C%s -Z -T%s', colorscale, arr2str(z_range));
+    g = gmt_cmd(Cmd, g, 'tmp.cpt');
+    
+    for ii in idx:
+        input_format = "0,1,{}".format(ii + 2)
+        gmt.psbasemap(Xf=str(x[ii]) + "p", Yf=str(y[ii]) + "p",
+                      B="WSen+t{}".format(titles[ii]), Bx=x_axis, By=y_axis)
+        
+        # do not plot the scatter points yet just see the placement of
+        # basemaps
+        if not tryaxis:
+            gmt.psxy(data=scatter_file, i=input_format, bi=bindef,
+                     S="c0.025c", C="tmp.cpt")
+        
+    gmt.colorbar(mode=cbar_config.pop("mode", "v"),
+                 offset=cbar_config.pop("offset", 10),
+                 B=cbar_config.pop("label", ""), C="tmp.cpt",)
+
+    delete tmp.cpt;
 
 
 function out = is_plotter(command)
@@ -427,4 +574,9 @@ function out = cmd(command)
                        command, status, out);
         error(str);
     end
+end
+
+function out = arr2str(array)
+    tmp = sprintf('%g/', array);
+    out = tmp(1:end-1);
 end

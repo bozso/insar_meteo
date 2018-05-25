@@ -1,193 +1,166 @@
 classdef Staux
     methods(Static)
-        function ArgStruct = parse_args(args, ArgStruct, varargin)
-        % Helper function for parsing varargin. 
+        function [argStruct] = parse_args(args, defArgStruct, flagParamNames)
+        % Helper function for parsing varargin from 
+        % https://github.com/onnodb/MATLAB-ParseArgs
         %
+        % INPUT:
+        % args = 'varargin' 1xN cell array
+        % defArgStruct = struct with argument names and corresponding default
+        %                values.
+        % flagParamNames = 1xM cell array with names of parameters that don't
+        %                  require a value. If they appear in 'args', their value
+        %                  will be set to 1. (Optional)
         %
-        % ArgStruct = parse_args(varargin, ArgStruct [, FlagtypeParams [, Aliases]])
+        % OUTPUT:
+        % argStruct = struct with parsed arguments/values. Flags are guaranteed to
+        %             get assigned either a true/false value by parseArgs.
         %
-        % * ArgStruct is the structure full of named arguments with default values.
-        % * Flagtype params is params that don't require a value. 
-        %   (the value will be set to 1 if it is present)
-        % * Aliases can be used to map one argument-name to several argstruct fields
-        %
-        %
-        % example usage: 
-        % --------------
-        % function parseargtest(varargin)
-        %
-        % %define the acceptable named arguments and assign default values
-        % Args = struct('Holdaxis', 0, ...
-        %        'SpacingVertical', 0.05, 'SpacingHorizontal', 0.05, ...
-        %        'PaddingLeft', 0, 'PaddingRight', 0, 'PaddingTop', 0, 'PaddingBottom', 0, ...
-        %        'MarginLeft', 0.1, 'MarginRight', 0.1, 'MarginTop', 0.1, 'MarginBottom', 0.1, ...
-        %        'rows', [], 'cols', []); 
-        %
-        % %The capital letters define abrreviations.  
-        % %  Eg. parseargtest('spacingvertical', 0) is equivalent to parseargtest('sv',0) 
-        %
-        % Args=parseArgs(varargin,Args, ... % fill the arg-struct with values entered by the user
-        %           {'Holdaxis'}, ... %this argument has no value (flag-type)
-        %           {'Spacing' {'sh','sv'}; 'Padding' {'pl','pr','pt','pb'}; ...
-        %            'Margin' {'ml','mr','mt','mb'}});
-        %
-        % disp(Args)
-        %
-        %
-        %
-        %
-        % Aslak Grinsted 2004
+        % EXAMPLES:
+        % >> argStruct = parseArgs(varargin, struct('param1', 0.1, 'otherParam', 'test'));
         
-        % -------------------------------------------------------------------------
-        %   Copyright (C) 2002-2004, Aslak Grinsted
-        %   This software may be used, copied, or redistributed as long as it is not
-        %   sold and this copyright notice is reproduced on each copy made.  This
-        %   routine is provided as is without any express or implied warranties
-        %   whatsoever.
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %% Initialization
+        % This is free and unencumbered software released into the public domain.
+        % 
+        % Anyone is free to copy, modify, publish, use, compile, sell, or 
+        % distribute this software, either in source code form or as a 
+        % compiled binary, for any purpose, commercial or non-commercial, 
+        % and by any means.
+        % 
+        % In jurisdictions that recognize copyright laws, the author or 
+        % authors of this software dedicate any and all copyright interest in 
+        % the software to the public domain. We make this dedication for the 
+        % benefit of the public at large and to the detriment of our heirs and 
+        % successors. We intend this dedication to be an overt act of 
+        % relinquishment in perpetuity of all present and future rights to 
+        % this software under copyright law.
+        % 
+        % THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
+        % EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
+        % OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
+        % NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY 
+        % CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, 
+        % TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+        % SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         
-            % if we do not have arguments return - added by István Bozsó 2018.05.20.
-            if length(varargin) == 0
-                return
+        if nargin < 3
+            flagParamNames = {};
+        end
+        
+        if ~(isscalar(defArgStruct) && isstruct(defArgStruct))
+            error('PARSEARGS:InvalidDefArgStruct', 'Invalid default parameter specification: should be a single struct');
+        end
+        
+        % Create matrix of accepted parameter names
+        validParamNames = fieldnames(defArgStruct);
+        
+        for i = 1:length(flagParamNames)
+            if ~isValidParamName(flagParamNames{i}, validParamNames)
+                error('PARSEARGS:InvalidFlagParamName', 'Invalid flag parameter name "%s"', flagParamNames{i});
             end
-            
-            Aliases = {};
-            FlagTypeParams = '';
-            
-            if (length(varargin) > 0) 
-                FlagTypeParams = lower(strvcat(varargin{1}));
-                if length(varargin) > 1
-                    Aliases = varargin{2};
+        end
+        
+        argStruct = defArgStruct;
+        
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %% Parse!
+        
+        parseStates = struct('paramName', 1, 'paramValue', 2);
+        curParseState = parseStates.paramName;
+        curParamName = '';
+        curArgIdx = 1;
+        
+        while curArgIdx <= length(args)
+            if curParseState == parseStates.paramName
+                curParamName = parseParamName(args{curArgIdx}, validParamNames);
+                if isempty(curParamName)
+                    error('PARSEARGS:InvalidArgument', 'Invalid argument "%s"', args{curArgIdx});
                 end
-            end
-             
-            %---------------Get "numeric" arguments
-            NumArgCount = 1;
-        
-            while (NumArgCount <= size(args, 2)) & (~ischar(args{NumArgCount}))
-                NumArgCount = NumArgCount + 1;
-            end
-            
-            NumArgCount = NumArgCount - 1;
-        
-            if (NumArgCount > 0)
-                ArgStruct.NumericArguments = {args{1:NumArgCount}};
-            else
-                ArgStruct.NumericArguments = {};
-            end 
-            
-            %--------------Make an accepted fieldname matrix (case insensitive)
-            Fnames = fieldnames(ArgStruct);
-        
-            for ii = 1:length(Fnames)
-                name = lower(Fnames{ii,1});
-                
-                % col2 = lower
-                Fnames{ii,2} = name; 
-                AbbrevIdx = find(Fnames{ii,1} ~= name);
-                
-                %col3=abreviation letters (those that are uppercase in the ArgStruct) 
-                % e.g. SpacingHoriz->sh; the space prevents strvcat from removing 
-                % empty lines
-                Fnames{ii,3} = [name(AbbrevIdx) ' ']; 
-                
-                % Does this parameter have a value?
-                Fnames{ii,4} = isempty(strmatch(Fnames{ii,2}, FlagTypeParams)); 
-            end
-        
-            FnamesFull = strvcat(Fnames{:,2});
-            FnamesAbbr = strvcat(Fnames{:,3});
-            
-            if length(Aliases) > 0  
-                for ii = 1:length(Aliases)
-                    name = lower(Aliases{ii,1});
-                    
-                    % try abbreviations (must be exact)
-                    FieldIdx = strmatch(name, FnamesAbbr, 'exact'); 
-                    if isempty(FieldIdx) 
-                        % &??????? exact or not? 
-                        FieldIdx = strmatch(name, FnamesFull); 
-                    end
-                    Aliases{ii,2} = FieldIdx;
-                    AbbrevIdx = find(Aliases{ii,1} ~= name);
-                    
-                    %the space prevents strvcat from removing empty lines
-                    Aliases{ii,3} = [name(AbbrevIdx) ' ']; 
-                    % dont need the name in uppercase anymore for aliases
-                    Aliases{ii,1} = name; 
-                end
-                % Append aliases to the end of FnamesFull and FnamesAbbr
-                FnamesFull = strvcat(FnamesFull, strvcat(Aliases{:,1})); 
-                FnamesAbbr = strvcat(FnamesAbbr, strvcat(Aliases{:,3}));
-            end
-            
-            %--------------get parameters--------------------
-            l = NumArgCount + 1; 
-            while (l <= length(args))
-                a = args{l};
-                if ischar(a)
-                    % assume that the parameter has is of type 'param',value
-                    paramHasValue = 1; 
-                    a = lower(a);
-                    % try abbreviations (must be exact)
-                    FieldIdx = strmatch(a, FnamesAbbr, 'exact'); 
-                    
-                    if isempty(FieldIdx) 
-                        FieldIdx = strmatch(a, FnamesFull); 
-                    end
-                    
-                    % shortest fieldname should win 
-                    if (length(FieldIdx) > 1) 
-                        [mx, mxi] = max(sum(FnamesFull(FieldIdx,:) == ' ', 2));
-                        FieldIdx = FieldIdx(mxi);
-                    end
-                    
-                    % then it's an alias type.
-                    if FieldIdx > length(Fnames) 
-                        FieldIdx = Aliases{FieldIdx - length(Fnames), 2}; 
-                    end
-                    
-                    if isempty(FieldIdx) 
-                        error(['Unknown named parameter: ' a]);
-                    end
-                    
-                    % if it is an alias it could be more than one.
-                    for curField=FieldIdx' 
-                        if (Fnames{curField, 4})
-                            if (l + 1 > length(args))
-                                error(['Expected a value for parameter: ' ...
-                                       Fnames{curField, 1}]);
-                            end
-                            val=args{l+1};
-                        % FLAG PARAMETER
-                        else 
-                            % there might be a explicitly specified value for the flag
-                            if (l < length(args)) 
-                                val = args{l + 1};
-                                if isnumeric(val)
-                                    if (numel(val) == 1)
-                                        val = logical(val);
-                                    else
-                                        error(['Invalid value for flag-parameter: ' ...
-                                               Fnames{curField, 1}])
-                                    end
-                                else
-                                    val = true;
-                                    paramHasValue = 0; 
-                                end
+                if isFlagParam(curParamName, flagParamNames)
+                    % Flag parameter!
+                    % Value might be explicitly specified...
+                    if length(args) > curArgIdx
+                        if islogical(args{curArgIdx+1}) || isnumeric(args{curArgIdx+1})
+                            % Flag value is explicitly specified
+                            if args{curArgIdx+1}
+                                % make sure we explicitly assign true/false
+                                argStruct.(curParamName) = true;
                             else
-                                val = true;
-                                paramHasValue = 0; 
+                                argStruct.(curParamName) = false;
                             end
+        
+                            % --> paramName (skip 1 arg)
+                            curArgIdx = curArgIdx + 2;
+                            curParseState = parseStates.paramName;
+        %^^^
+                            continue;
                         end
-                        ArgStruct.(Fnames{curField,1}) = val;
                     end
-                    % if a wildcard matches more than one
-                    l = l + 1 + paramHasValue; 
+        
+                    % Apparently, value was not explicitly specified: turn it on
+                    argStruct.(curParamName) = true;
+        
+                    % --> paramName
+                    curArgIdx = curArgIdx + 1;
+                    curParseState = parseStates.paramName;
+        %^^^
+                    continue;
                 else
-                    error(['Expected a named parameter: ' num2str(a)]);
+                    % Not a flag parameter
+                    % --> paramValue
+                    curArgIdx = curArgIdx + 1;
+                    curParseState = parseStates.paramValue;
+        %^^^
+                    continue;
+                end
+            elseif curParseState == parseStates.paramValue
+                % Save parameter value
+                argStruct.(curParamName) = args{curArgIdx};
+        
+                % --> paramName
+                curArgIdx = curArgIdx + 1;
+                curParseState = parseStates.paramName;
+        %^^^
+                continue;
+            else
+                error('Invalid parse state in parseArgs!');
+            end
+        end % while
+        
+        % Are we missing anything?
+        if curParseState == parseStates.paramValue
+            error('PARSEARGS:MissingArgumentValue', 'Missing value for argument "%s"', curParamName);
+        end
+        
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+            function [valid] = isValidParamName(paramName, validParamNames)
+                valid = ~isempty(parseParamName(paramName, validParamNames));
+            end
+        
+            function [parsedParamName] = parseParamName(paramName, validParamNames)
+                parsedParamName = '';
+                for j = 1:length(validParamNames)
+                    if strcmpi(paramName, validParamNames{j})
+                        parsedParamName = validParamNames{j};
+                        return
+                    end
                 end
             end
-        end % parseArgs
+        
+            function [isFlag] = isFlagParam(paramName, flagParamNames)
+                isFlag = false;
+                for j = 1:length(flagParamNames)
+                    if strcmpi(paramName, flagParamNames{j})
+                        isFlag = true;
+                        return
+                    end
+                end
+            end
+        end
         
         function h = boxplot_los(plot_flags, varargin)
         % function h = boxplot_los(plot_flags, 'out', '', 'boxplot_opt', nan, ...

@@ -56,7 +56,7 @@ classdef Gmt
             validateattributes(psfile, {'char'}, {'nonempty'});
             
             args = struct('common', '', 'left', 50, 'right', 50, 'top', 25, 'bottom', 50, ...
-                          'debug', 0);
+                          'debug', false);
             args = Staux.parse_args(varargin, args, {'debug'});
             
             common  = args.common;
@@ -118,7 +118,7 @@ classdef Gmt
             
             % get the indices of plotter functions
             for ii = 2:ncom
-                if is_plotter(commands{ii})
+                if Gmt.is_plotter(commands{ii})
                     idx(end + 1) = ii;
                 end
             end
@@ -142,10 +142,13 @@ classdef Gmt
                 for ii = idx(2:end)
                     commands{ii} = [commands{ii}, ' -O >> ', outfiles{ii}];
                 end
+            else
+                first = idx(1);
+                commands{first} = [commands{first}, ' > ', outfiles{first}];
             end
             
             % append 'gmt ' to the command strings
-            if Gmt.is_five
+            if gmt.is_five
                 for ii = 2:ncom
                     commands{ii} = ['gmt ', commands{ii}];
                 end
@@ -161,7 +164,7 @@ classdef Gmt
             end
             
             for ii = 2:ncom
-                cmd(commands{ii});
+                Gmt.cmd(commands{ii});
             end
         end % finalize
         

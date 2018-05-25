@@ -374,8 +374,8 @@ classdef Staux
             ps_plot('rsb', 1, 0, 0, loop);
         end % plot_loop
         
-        function out = binned_statistic(x, y, varargin)
-        % binned = binned_statistic(x, y, 'bins', 10, 'fun', nan)
+        function [binned, bins] = binned_statistic(x, y, varargin)
+        % [binned, bins] = binned_statistic(x, y, 'bins', 10, 'fun', nan)
         % 
         % Sorts y values into bins defined along x values. By default sums y 
         % values in each of the x bins.
@@ -422,13 +422,12 @@ classdef Staux
             else
                 binned = accumarray(idx', y', [], fun);
             end
-            out.binned = binned;
-            out.bins = bins;
         end % binned_statistic
         
-        function out = binned_statistic_2d(x, y, z, varargin)
-        % binned = binned_statistic_2d(x, y, z, 'xbins', 10, 'ybins', 10, ...
-        %                              'fun', nan)
+        function [binned, xbins, ybins] = binned_statistic_2d(x, y, z, varargin)
+        % [binned, xbins, ybins] = binned_statistic_2d(x, y, z, 'xbins', 10, ...
+        %                                              'ybins', 10, ...
+        %                                              'fun', nan)
         % 
         % Sorts z values into bins defined along (x,y) values. By default sums 
         % z values in each of the (x,y) bins.
@@ -490,14 +489,12 @@ classdef Staux
             else
                 binned = accumarray([idx_x, idx_y], z, [], fun);
             end
-            out.binned = binned;
-            out.xbins = xbins;
-            out.ybins = ybins;
         end % binned_statistic_2d
         
-        function out = clap(varargin)
-        % function out = clap('grid_size', 50, 'alpha', 1, 'beta', 0.3, ...
-        %                     'low_pass', 800, 'win_size', 32, 'ifg_list', [])
+        function [ph_grid, ph_filt] = clap(varargin)
+        % function [ph_grid, ph_filt] = clap('grid_size', 50, 'alpha', 1, ...
+        %                                    'beta', 0.3, 'low_pass', 800, ...
+        %                                    'win_size', 32, 'ifg_list', [])
         % 
         % Based on the Combined Low-pass Adaptive Filter of the StaMPS package
         % developed by Andrew Hooper.
@@ -591,10 +588,7 @@ classdef Staux
                                                n_win * 0.75, n_win * 0.25, low_pass);
                 end
             end
-            out.ph_filt = ph_filt;
-            out.ph_grid = ph_grid;
         end % clap
-        
         
         function h = plot_ph_grid(ph)
         % function h = plot_ph_grid(ph)
@@ -1137,195 +1131,6 @@ classdef Staux
             loaded = transpose(fread(fid, [ncols, Inf], dtype));
             fclose(fid);
         end
-        
-        function ArgStruct = parseArgs(args, ArgStruct, varargin)
-        % Helper function for parsing varargin. 
-        %
-        %
-        % ArgStruct = parseArgs(varargin, ArgStruct [, FlagtypeParams [, Aliases]])
-        %
-        % * ArgStruct is the structure full of named arguments with default values.
-        % * Flagtype params is params that don't require a value. 
-        %   (the value will be set to 1 if it is present)
-        % * Aliases can be used to map one argument-name to several argstruct fields
-        %
-        %
-        % example usage: 
-        % --------------
-        % function parseargtest(varargin)
-        %
-        % %define the acceptable named arguments and assign default values
-        % Args = struct('Holdaxis', 0, ...
-        %        'SpacingVertical', 0.05, 'SpacingHorizontal', 0.05, ...
-        %        'PaddingLeft', 0, 'PaddingRight', 0, 'PaddingTop', 0, 'PaddingBottom', 0, ...
-        %        'MarginLeft', 0.1, 'MarginRight', 0.1, 'MarginTop', 0.1, 'MarginBottom', 0.1, ...
-        %        'rows', [], 'cols', []); 
-        %
-        % %The capital letters define abrreviations.  
-        % %  Eg. parseargtest('spacingvertical', 0) is equivalent to parseargtest('sv',0) 
-        %
-        % Args=parseArgs(varargin,Args, ... % fill the arg-struct with values entered by the user
-        %           {'Holdaxis'}, ... %this argument has no value (flag-type)
-        %           {'Spacing' {'sh','sv'}; 'Padding' {'pl','pr','pt','pb'}; ...
-        %            'Margin' {'ml','mr','mt','mb'}});
-        %
-        % disp(Args)
-        %
-        %
-        %
-        %
-        % Aslak Grinsted 2004
-        
-        % -------------------------------------------------------------------------
-        %   Copyright (C) 2002-2004, Aslak Grinsted
-        %   This software may be used, copied, or redistributed as long as it is not
-        %   sold and this copyright notice is reproduced on each copy made.  This
-        %   routine is provided as is without any express or implied warranties
-        %   whatsoever.
-        
-            % if we do not have arguments return - added by István Bozsó 2018.05.20.
-            if length(varargin) == 0
-                return
-            end
-            
-            Aliases = {};
-            FlagTypeParams = '';
-            
-            if (length(varargin) > 0) 
-                FlagTypeParams = lower(strvcat(varargin{1}));
-                if length(varargin) > 1
-                    Aliases = varargin{2};
-                end
-            end
-             
-            %---------------Get "numeric" arguments
-            NumArgCount = 1;
-        
-            while (NumArgCount <= size(args, 2)) & (~ischar(args{NumArgCount}))
-                NumArgCount = NumArgCount + 1;
-            end
-            
-            NumArgCount = NumArgCount - 1;
-        
-            if (NumArgCount > 0)
-                ArgStruct.NumericArguments = {args{1:NumArgCount}};
-            else
-                ArgStruct.NumericArguments = {};
-            end 
-            
-            %--------------Make an accepted fieldname matrix (case insensitive)
-            Fnames = fieldnames(ArgStruct);
-        
-            for ii = 1:length(Fnames)
-                name = lower(Fnames{ii,1});
-                
-                % col2 = lower
-                Fnames{ii,2} = name; 
-                AbbrevIdx = find(Fnames{ii,1} ~= name);
-                
-                %col3=abreviation letters (those that are uppercase in the ArgStruct) 
-                % e.g. SpacingHoriz->sh; the space prevents strvcat from removing 
-                % empty lines
-                Fnames{ii,3} = [name(AbbrevIdx) ' ']; 
-                
-                % Does this parameter have a value?
-                Fnames{ii,4} = isempty(strmatch(Fnames{ii,2}, FlagTypeParams)); 
-            end
-        
-            FnamesFull = strvcat(Fnames{:,2});
-            FnamesAbbr = strvcat(Fnames{:,3});
-            
-            if length(Aliases) > 0  
-                for ii = 1:length(Aliases)
-                    name = lower(Aliases{ii,1});
-                    
-                    % try abbreviations (must be exact)
-                    FieldIdx = strmatch(name, FnamesAbbr, 'exact'); 
-                    if isempty(FieldIdx) 
-                        % &??????? exact or not? 
-                        FieldIdx = strmatch(name, FnamesFull); 
-                    end
-                    Aliases{ii,2} = FieldIdx;
-                    AbbrevIdx = find(Aliases{ii,1} ~= name);
-                    
-                    %the space prevents strvcat from removing empty lines
-                    Aliases{ii,3} = [name(AbbrevIdx) ' ']; 
-                    % dont need the name in uppercase anymore for aliases
-                    Aliases{ii,1} = name; 
-                end
-                % Append aliases to the end of FnamesFull and FnamesAbbr
-                FnamesFull = strvcat(FnamesFull, strvcat(Aliases{:,1})); 
-                FnamesAbbr = strvcat(FnamesAbbr, strvcat(Aliases{:,3}));
-            end
-            
-            %--------------get parameters--------------------
-            l = NumArgCount + 1; 
-            while (l <= length(args))
-                a = args{l};
-                if ischar(a)
-                    % assume that the parameter has is of type 'param',value
-                    paramHasValue = 1; 
-                    a = lower(a);
-                    % try abbreviations (must be exact)
-                    FieldIdx = strmatch(a, FnamesAbbr, 'exact'); 
-                    
-                    if isempty(FieldIdx) 
-                        FieldIdx = strmatch(a, FnamesFull); 
-                    end
-                    
-                    % shortest fieldname should win 
-                    if (length(FieldIdx) > 1) 
-                        [mx, mxi] = max(sum(FnamesFull(FieldIdx,:) == ' ', 2));
-                        FieldIdx = FieldIdx(mxi);
-                    end
-                    
-                    % then it's an alias type.
-                    if FieldIdx > length(Fnames) 
-                        FieldIdx = Aliases{FieldIdx - length(Fnames), 2}; 
-                    end
-                    
-                    if isempty(FieldIdx) 
-                        error(['Unknown named parameter: ' a]);
-                    end
-                    
-                    % if it is an alias it could be more than one.
-                    for curField=FieldIdx' 
-                        if (Fnames{curField, 4})
-                            if (l + 1 > length(args))
-                                error(['Expected a value for parameter: ' ...
-                                       Fnames{curField, 1}]);
-                            end
-                            val=args{l+1};
-                        % FLAG PARAMETER
-                        else 
-                            % there might be a explicitly specified value for the flag
-                            if (l < length(args)) 
-                                val = args{l + 1};
-                                if isnumeric(val)
-                                    if (numel(val) == 1)
-                                        val = logical(val);
-                                    else
-                                        error(['Invalid value for flag-parameter: ' ...
-                                               Fnames{curField, 1}])
-                                    end
-                                else
-                                    val = true;
-                                    paramHasValue = 0; 
-                                end
-                            else
-                                val = true;
-                                paramHasValue = 0; 
-                            end
-                        end
-                        ArgStruct.(Fnames{curField,1}) = val;
-                    end
-                    % if a wildcard matches more than one
-                    l = l + 1 + paramHasValue; 
-                else
-                    error(['Expected a named parameter: ' num2str(a)]);
-                end
-            end
-        end % parseArgs
         
         function fid = sfopen(path, mode, machine)
         % fid = sfopen(path, mode, machine)

@@ -1,24 +1,22 @@
 classdef Daisy
     methods(Static)
-        function [] = gmtfiles(varargin)
+        function [] = gmtfiles(scale)
         
-            args = struct('scalex', 1.0, 'scaley', 1.0);
-            args = Staux.parse_args(varargin, args);
-            
-            scalex = args.scalex;
-            scaley = args.scaley;
+            if nargin < 1
+                scale = 1.0
+            elseif nargin > 1
+                error('Too many arguments!');
+            end
             
             attr = {'scalar', 'positive', 'finite', 'nonnan'};
-            validateattributes(scalex, {'numeric'}, attr);
-            validateattributes(scaley, {'numeric'}, attr);
+            validateattributes(scale, {'numeric'}, attr);
             
             data = load('integrate.xyi', '-ascii');
             ndata = size(data, 1);
             
-            staux('save_ascii', [data(:,1:2), zeros(ndata, 1), data(:,4) .* scalex], ...
-                  'integrate_eastwest.xy', '%f');
-            staux('save_ascii', [data(:,1:2), repmat(90.0, ndata, 1), ...
-                  data(:,5) .* scaley], 'integrate_up.xy', '%f');
+            Staux.save_ascii([data(:,1:2), zeros(ndata, 1), data(:,4) .* scale], ...
+                             'integrate_eastwest.xy', '%f');
+            Staux.save_ascii([data(:,1:2), data(:,5)], 'integrate_up.xy', '%f');
         end
         
         function [] = steps(start, stop, varargin)
@@ -26,7 +24,7 @@ classdef Daisy
             args = struct('asc_data', 'asc_data.xy', 'dsc_data', 'dsc_data.xy', ...
                           'asc_orbit', 'asc_master.res', 'dsc_orbit', 'dsc_orbit.res', ...
                           'ps_sep', 100.0, 'poly_deg', 3);
-            args = parseArgs(varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             asc_data = args.asc_data;
             dsc_data = args.dsc_data;
@@ -37,32 +35,34 @@ classdef Daisy
             ps_sep = args.ps_sep;
             poly_deg = args.poly_deg;
             
-            validateattributes(asc_data, {'char'}, {'nonempty'});
-            validateattributes(dsc_data, {'char'}, {'nonempty'});
+            klass = {'char'};
+            validateattributes(asc_data, klass, {'nonempty'});
+            validateattributes(dsc_data, klass, {'nonempty'});
             
-            validateattributes(asc_orbit, {'char'}, {'nonempty'});
-            validateattributes(dsc_orbit, {'char'}, {'nonempty'});
+            validateattributes(asc_orbit, klass, {'nonempty'});
+            validateattributes(dsc_orbit, klass, {'nonempty'});
             
-            validateattributes(ps_sep, {'numeric'}, {'scalar', 'positive', 'real', ...
-                               'finite', 'nonnan'});
-            validateattributes(poly_deg, {'numeric'}, {'scalar', 'positive', 'real', ...
-                               'finite', 'nonnan', 'intiger'});
+            klass = {'numeric'};
+            validateattributes(ps_sep, klass, {'scalar', 'positive', ...
+                               'real', 'finite', 'nonnan'});
+            validateattributes(poly_deg, klass, {'scalar', 'positive', ...
+                               'real', 'finite', 'nonnan', 'integer'});
             
             if start == 1
-                data_select(asc_data, dsc_data, ps_sep);
+                Daisy.data_select(asc_data, dsc_data, ps_sep);
             end
             
             if start >= 2 & stop <= 2
-                dominant(ps_sep);
+                Daisy.dominant(ps_sep);
             end
             
             if start >= 3 & stop <= 3
-                poly_orbit(asc_orbit, deg);
-                poly_orbit(dsc_orbit, deg);
+                Daisy.poly_orbit(asc_orbit, deg);
+                Daisy.poly_orbit(dsc_orbit, deg);
             end
             
             if stop == 4
-                integrate();
+                Daisy.integrate();
             end
         end
         
@@ -74,7 +74,8 @@ classdef Daisy
                 error('Too many arguments!');
             end
             
-            cmd(sprintf('daisy data_select %s %s %f', asc_data, dsc_data, ps_sep));
+            Daisy.cmd(sprintf('daisy data_select %s %s %f', asc_data, dsc_data, ...
+                        ps_sep))
         end
         
         function [] = dominant(ps_sep)
@@ -85,7 +86,8 @@ classdef Daisy
                 error('Too many arguments!');
             end
             
-            cmd(sprintf('daisy dominant asc_data.xys dsc_data.xys %f', ps_sep));
+            Daisy.cmd(sprintf('daisy dominant asc_data.xys dsc_data.xys %f', ...
+                      ps_sep))
         end
             
         function [] = poly_orbit(orbit_file, deg)
@@ -96,11 +98,12 @@ classdef Daisy
                 error('Too many arguments!');
             end
             
-            cmd(sprintf('daisy poly_orbit %s %d', orbit_file, ps_sep));
+            Daisy.cmd(sprintf('daisy poly_orbit %s %d', orbit_file, ps_sep))
         end
         
         function [] = integrate()
-            cmd('daisy integrate dominant.xyd asc_master.porb dsc_master.porb');
+            Daisy.cmd(['daisy integrate dominant.xyd asc_master.porb ', ...
+                       'dsc_master.porb'])
         end
         
         function out = cmd(command)

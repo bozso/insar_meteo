@@ -1,6 +1,6 @@
 classdef Meteo
     methods(Static)
-        function out = plot_2d_fft(data, varargin)
+        function [h, x_fr, y_fr] = plot_2d_fft(data, varargin)
             
             validateattributes(data, {'numeric'}, {'2d', 'nonempty', 'finite', ...
                                       'nonnan'});
@@ -41,10 +41,6 @@ classdef Meteo
         
             colorbar;
             % saveas(h, args.out);
-            
-            out.h = h;
-            out.x_fr = x_fr;
-            out.y_fr = y_fr;
         end % plot_2d_fft
         
         function butter = butter_filter(matrix_size, low_pass, varargin)

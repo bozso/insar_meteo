@@ -3,6 +3,7 @@
 import argparse as ap
 from tkinter import Tk
 from sys import argv
+from os.path import  isfile
 
 from aux.tkplot import Unwrapper, Plotter, round_tick
 
@@ -56,62 +57,37 @@ def isign_cmd(module, *args):
     
     return ret_code
 
-def unwrap(infile, savefile, width=750, height=500, grid=0.125):
-
+def unwrap(ib_pair, line, width=750, height=500, grid=0.125):
+    
+    sline = line.split()
+    gnss_last = float(sline[2])
+    infile = ib_pair + "_g_{}.los".format(sline[1].strip())
+    
     with open(infile, "r") as f:
         data = [[float(line.split()[1]), float(line.split()[2])] for line in f]
     
     year, los = [list(elem) for elem in zip(*data)]
-
+    
     root = Tk()
     root.title(infile)
     
-    unw = Unwrapper(root, year, los, argv[2], width=width, height=height,
-                    grid=grid)
+    unw = Unwrapper(root, year, los, gnss_last, infile + ".unw", width=width,
+                    height=height, grid=grid)
 
     root.mainloop()
     
     return 0
 
 def parse_arguments():
-    parser = ap.ArgumentParser(description=_isign__doc__,
+    parser = ap.ArgumentParser(description=_ISIGN__doc__,
                 formatter_class=ap.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("in_asc", help="Text file that contains the "
-                        "ASCENDING PS velocities.")
-    parser.add_argument("in_dsc", help="Text file that contains the "
-                        "DESCENDING PS velocities.")
-
-    parser.add_argument("orb_asc", help="text file that contains the "
-                        "ASCENDING PS velocities")
-    parser.add_argument("orb_dsc", help="text file that contains the "
-                        "DESCENDING PS velocities")
-    
-    parser.add_argument("--step", help="Carry out the processing step defined by "
-                       "this argument and exit.", choices=_steps, default=None,
-                       nargs="?", type=str)
-
-    parser.add_argument("--start", help="Starting processing step. Processing "
-                       "steps will be executed until processing step defined "
-                       "by --stop is reached", choices=_steps,
-                       default="data_select", nargs="?", type=str)
-    parser.add_argument("--stop", help="Last processing step to be executed.",
-                       choices=_steps, default="zero_select", nargs="?",
-                       type=str)
-    
-    #parser.add_argument("-p", "--ps_sep", help="Maximum separation distance "
-    #                    "between ASC and DSC PS points in meters.",
-    #                    nargs="?", type=float, default=100.0)
-
-    parser.add_argument("-d", "--deg", help="Degree of the polynom fitted to "
-                        "satellite orbit coordinates.", nargs="?", type=int,
-                        default=3)
-    """
-    parser.add_argument("--logile", help="logfile name ", nargs="?",
-                        type=str, default="daisy.log")
-    parser.add_argument("--loglevel", help="level of logging ", nargs="?",
-                        type=str, default="DEBUG")
-    """
+    parser.add_argument("ib_pair", help="IB pairs to process. E.g. IB3-IB1.",
+                        type=str)
+    parser.add_argument("--width", help="Width of the window.",
+                        nargs="?", type=float, default=750)
+    parser.add_argument("--height", help="Height of the window.",
+                        nargs="?", type=float, default=500)
 
     return parser.parse_args()
 
@@ -131,17 +107,22 @@ def parse_steps(args):
 
 def main():
     
-    # args = parse_arguments()
+    args = parse_arguments()
     
-    # start, stop = parse_steps(args)
-    # ps_sep = args.ps_sep
+    ib_pair = args.ib_pair
     
-    if len(argv) != 3:
-        return
+    ib_file = ib_pair + ".los"
     
-    unwrap(argv[1], argv[2])
+    if not isfile(ib_file):
+        lines = ["gnss asc 0.0", "gnss dsc 0.0"]
+    else:
+        with open(ib_file, "r") as f:
+            lines = f.readlines()
     
-    return
+    for line in lines:
+        unwrap(ib_pair, line, width=args.width, height=args.height)
+
+    return 0
     
     if start == 0:
         data_select(args.in_asc, args.in_dsc, ps_sep=ps_sep)

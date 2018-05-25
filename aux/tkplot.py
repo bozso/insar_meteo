@@ -220,10 +220,19 @@ def round_tick(step):
     return step_whole + vals[diffs.index(min(diffs))]
 
 class Unwrapper(object):
-    def __init__(self, root, year, los, savefile, xadd=0.1, yadd=0.1,
-                 xtick=0.125, ytick=10, **kwargs):
+    def __init__(self, root, year, los, gnss_last, savefile, xadd=0.1, yadd=0.1,
+                 xtick=0.125, ytick=10, thresh=10, **kwargs):
+        
         self.xtick, self.ytick = xtick, ytick
         self.savefile = savefile
+        
+        if gnss_last != 0.0:
+            self.gnss_last = gnss_last
+            self.plot_last = True
+        else:
+            self.plot_last = False
+        
+        self.thresh = thresh
         
         plt = Plotter(root, **kwargs)
         
@@ -239,16 +248,15 @@ class Unwrapper(object):
         self.los = los
         self.yadd = yadd
         
-        year0 = round(year[0])
-        year = [y - year0 for y in year]
-        self.year0 = year0
+        self.year0 = round(year[0])
+        year = [y - self.year0 for y in year]
         
         min_year, max_year = min(year), max(year)
         X = (max_year - min_year) * xadd
         
         self.yr = [min_year - X, max_year + X]
         
-        min_los, max_los = min(los), max(los)
+        min_los, max_los = min(*los, gnss_last), max(*los, gnss_last)
         self.min_los, self.max_los = min_los, max_los
         Y = (max_los - min_los) * yadd
         
@@ -257,31 +265,43 @@ class Unwrapper(object):
         self.ax_lim0 = ax_lim
         
         plt.create_axis(ax_lim)
-        plt.xlabel("Fractional year since {}".format(year0))
+        plt.xlabel("Fractional year since {}".format(self.year0))
         plt.ylabel("LOS displacement [mm]")
         
-        plt.plot(year, los, point_fill="white", point_width=2, xtick=xtick,
-                 ytick=xtick, tags="original")
-        
+        plt.plot(year, los, point_fill="red", point_size=3, xtick=xtick,
+                 ytick=xtick, point_width=1, tags="original")
+
+        if self.plot_last:
+            plt.plot([year[0], year[-1]], [0.0, gnss_last], points=False,
+                     lines=True, tags="gnss")
+
         self.year = year
         
-        plt.cv.bind("<Button-1>", self.add_lambda_per_2)
-        plt.cv.bind("<Button-3>", self.subtract_lambda_per_2)
+        plt.cv.bind("<Button-1>", lambda event: self.add_value(event, _lambda_per_2))
+        plt.cv.bind("<Button-3>", lambda event: self.add_value(event, -_lambda_per_2))
         
         self.plt = plt
         
-    def add_lambda_per_2(self, event):
+    def add_value(self, event, value):
         x, y = event.x, event.y
-        xtick, ytick = self.xtick, self.ytick
         
-        dists = tuple(self.plt.calc_dist(x, y, X, Y)
-                      for X,Y in zip(self.year, self.last))
-        idx = dists.index(min(dists))
+        dists = tuple((ii, self.plt.calc_dist(x, y, X, Y))
+                      for ii, (X,Y) in enumerate(zip(self.year, self.last))
+                      if self.plt.calc_dist(x, y, X, Y) < self.thresh)
         
-        self.last = tuple(elem if ii < idx else elem + _lambda_per_2
+        if not dists:
+            return
+        else:
+            idx, dists = (tuple(elem) for elem in zip(*dists))
+            idx = idx[dists.index(min(dists))]
+        
+        self.last = tuple(elem if ii < idx else elem + value
                           for ii, elem in enumerate(self.last))
         
         self.plt.cv.delete("original", "last", "axis")
+        
+        if self.plot_last:
+            self.plt.cv.delete("gnss")
         
         min_y, max_y = min(min(self.last), self.min_los), \
                        max(max(self.last), self.max_los)
@@ -292,49 +312,36 @@ class Unwrapper(object):
         ax_lim = [round_tick(elem) for elem in ax_lim]
         
         self.plt.create_axis(ax_lim)
-        self.plt.plot(self.year, self.los, tags="original", point_fill="white",
-                      xtick=xtick, ytick=ytick, point_width=2)
-        self.plt.plot(self.year, self.last, lines=True, tags="last",
-                      xtick=xtick, ytick=ytick)
 
-    def subtract_lambda_per_2(self, event):
-        x, y = event.x, event.y
-        xtick, ytick = self.xtick, self.ytick
+        if self.plot_last:
+            self.plt.plot([self.year[0], self.year[-1]], [0.0, self.gnss_last],
+                          points=False, lines=True, tags="gnss")
         
-        dists = tuple(self.plt.calc_dist(x, y, X, Y)
-                      for X,Y in zip(self.year, self.last))
-        idx = dists.index(min(dists))
-        
-        self.last = tuple(elem if ii < idx else elem - _lambda_per_2
-                          for ii, elem in enumerate(self.last))
-        
-        self.plt.cv.delete("original", "last", "axis")
-        
-        min_y, max_y = min(min(self.last), self.min_los), \
-                       max(max(self.last), self.max_los)
-        
-        y = (max_y - min_y) * self.yadd
-        ax_lim = [self.yr[0], self.yr[1], min_y - y, max_y + y]
-        
-        ax_lim = [round_tick(elem) for elem in ax_lim]
-        
-        self.plt.create_axis(ax_lim)
-        self.plt.plot(self.year, self.los, tags="original", point_fill="white",
-                      xtick=xtick, ytick=ytick, point_width=2)
         self.plt.plot(self.year, self.last, lines=True, tags="last",
-                      xtick=xtick, ytick=ytick)
+                      xtick=self.xtick, ytick=self.ytick)
+
+        self.plt.plot(self.year, self.los, tags="original", point_fill="red",
+                      xtick=self.xtick, ytick=self.ytick, point_width=1, point_size=3)
 
     def reset(self):
         self.plt.cv.delete("original", "last", "axis")
+
+        if self.plot_last:
+            self.plt.cv.delete("gnss")
+
         self.last = tuple(self.los.copy())
         
         self.plt.create_axis(self.ax_lim0)
-        self.plt.plot(self.year, self.los, point_fill="white", point_width=2,
-                      xtick=0.125, ytick=10, tags="original")
+
+        self.plt.plot(self.year, self.los, tags="original", point_fill="red",
+                      xtick=self.xtick, ytick=self.ytick, point_width=1,
+                      point_size=3)
+
+        if self.plot_last:
+            self.plt.plot([self.year[0], self.year[-1]], [0.0, self.gnss_last],
+                          points=False, lines=True, tags="gnss")
     
     def save(self):
-        yr0 = self.year0
-        
         with open(self.savefile, "w") as f:
             for yr, los in zip(self.year, self.last):
-                f.write("{} {}\n".format(yr + yr0, los))
+                f.write("{} {}\n".format(yr + self.yr0, los))

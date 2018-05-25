@@ -3,7 +3,7 @@ classdef Daisy
         function [] = gmtfiles(varargin)
         
             args = struct('scalex', 1.0, 'scaley', 1.0);
-            args = parseArgs(varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             scalex = args.scalex;
             scaley = args.scaley;
@@ -75,6 +75,7 @@ classdef Daisy
             end
             
             cmd(sprintf('daisy data_select %s %s %f', asc_data, dsc_data, ps_sep));
+        end
         
         function [] = dominant(ps_sep)
         
@@ -85,6 +86,7 @@ classdef Daisy
             end
             
             cmd(sprintf('daisy dominant asc_data.xys dsc_data.xys %f', ps_sep));
+        end
             
         function [] = poly_orbit(orbit_file, deg)
         

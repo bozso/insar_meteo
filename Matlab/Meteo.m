@@ -2,18 +2,19 @@ classdef Meteo
     methods(Static)
         function out = plot_2d_fft(data, varargin)
             
-            validateattributes(data, {'numeric'}, {'2d', 'nonempty', 'finite', 'nonnan'});
+            validateattributes(data, {'numeric'}, {'2d', 'nonempty', 'finite', ...
+                                      'nonnan'});
             
             args = struct('samp_rate', 1, 'logscale', 0, 'fftshift', true);
-            args = staux('parse_args', varargin, args, {'logscale'});
+            args = Staux.parse_args(varargin, args, {'logscale'});
             
             nx = size(data, 2);
             ny = size(data, 1);
         
             samp_rate = args.samp_rate;
             
-            validateattributes(samp_rate, {'numeric'}, {'scalar', 'positive', 'real',
-                               'finite', 'nonnan'});
+            validateattributes(samp_rate, {'numeric'}, {'scalar', 'positive', ...
+                                           'real', 'finite', 'nonnan'});
             
             if isscalar(samp_rate)
                 samp_x = 1 / samp_rate;
@@ -48,18 +49,22 @@ classdef Meteo
         
         function butter = butter_filter(matrix_size, low_pass, varargin)
         % Adapted from StaMPS by Andy Hooper
-        
-            validateattributes(matrix_size, {'numeric'}, {'nonempty', 'positive', 'finite'});
-            validateattributes(low_pass, {'numeric'}, {'scalar', 'positive', 'finite'});
+            
+            klass = {'numeric'}
+            validateattributes(matrix_size, klass, {'nonempty', 'positive', 'finite'});
+            validateattributes(low_pass, klass, {'scalar', 'positive', 'finite'});
             
             args = struct('order', 5, 'samp_rate', 1)
-            args = staux('parse_args', varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             samp_rate = args.sampe_rate;
             order     = args.order;
-        
-            validateattributes(samp_rate, {'numeric'}, {'nonempty', 'positive', 'finite', 'nonnan'});
-            validateattributes(order, {'numeric'}, {'scalar', 'positive', 'finite', 'nonnan'});
+            
+            klass = {'numeric'}
+            validateattributes(samp_rate, klass, {'nonempty', 'positive', ...
+                                          'finite', 'nonnan'});
+            validateattributes(order, klass, {'scalar', 'positive', ...
+                                      'finite', 'nonnan'});
         
             if isscalar(matrix_size)
                 nx = msize;
@@ -91,15 +96,17 @@ classdef Meteo
         end % butter_filter
         
         function abs_phase = invert_abs(phase, varargin)
-            validateattributes(phase, {'numeric'}, {'nonempty', 'finite', 'ndims', 2, 'nonnan'});
+            validateattributes(phase, {'numeric'}, {'nonempty', 'finite', ...
+                                       'ndims', 2, 'nonnan'});
             
             args = struct('last_row', 0.0, 'master_idx', 1);
-            args = staux('parse_args', varargin, args);
+            args = Staux.parse_args(varargin, args);
         
             master_idx = args.master_idx;
             last       = args.last_row;
             
-            validateattributes(last, {'numeric'}, {'nonempty', 'vector', 'finite', 'nonnan'});
+            validateattributes(last, {'numeric'}, {'nonempty', 'vector', ...
+                                      'finite', 'nonnan'});
             validateattributes(master_idx, {'numeric'}, {'scalar', 'positive', ...
                                'finite', 'integer', 'nonnan'});
             
@@ -121,7 +128,8 @@ classdef Meteo
                 design(1:idx, 1:idx) = slaves(1:idx, 1:idx);
                 
                 idx = master_idx + 1;
-                design(master_idx:end, idx:end) = slaves(master_idx:end, master_idx:end);
+                design(master_idx:end, idx:end) = ...
+                    slaves(master_idx:end, master_idx:end);
             end
             
             clear slaves;
@@ -144,11 +152,11 @@ classdef Meteo
         function abs_phase = invert_phase_stamps(varargin)
             
             args = struct('average', 0.0);
-            args = staux('parse_args', varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             average = args.average;
-            validateattributes(average, {'numeric'}, {'scalar', 'nonempty', 'vector', ...
-                               'finite', 'nonnan'});
+            validateattributes(average, {'numeric'}, {'scalar', 'nonempty', ...
+                                         'vector', 'finite', 'nonnan'});
             
             ph = load('phuw2.mat');
             ps = load('ps2.mat');
@@ -160,7 +168,8 @@ classdef Meteo
          
             phase(:,master_idx) = [];
             
-            abs_phase = invert_abs(phase, 'master_idx', master_idx, 'average', average);
+            abs_phase = invert_abs(phase, 'master_idx', master_idx, ...
+                                          'average', average);
         end % invert_phase_stamps
         
         function corrected_phase = subtract_dry()
@@ -177,7 +186,7 @@ classdef Meteo
         % Based on the `aps_weather_model_InSAR` function of the TRAIN packege.
             
             args = struct('outdir', '.');
-            args = staux('parse_args', varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             outdir = args.outdir;
             
@@ -230,7 +239,8 @@ classdef Meteo
                 ifgday_ix(drop_ifg_index,:) =[];
                 ifg_number(drop_ifg_index)=[];
         
-                % defining ix interferograms for which the delay needs to be computed
+                % defining ix interferograms for which the delay needs to 
+                % be computed
                 ifgs_ix = [ifgday_ix ifg_number];
             else
                 % slightly different for PS.
@@ -286,7 +296,8 @@ classdef Meteo
                     
                     % computing the dry delay
                     [xyz_input, xyz_output] = ...
-                            load_weather_model_SAR(model_filename_hydro, double(lonlat));
+                            load_weather_model_SAR(model_filename_hydro, ...
+                                                            double(lonlat));
                     
                     % saving the data which have not been interpolated
                     d_hydro(:,k) = xyz_output(:,3);
@@ -295,7 +306,8 @@ classdef Meteo
                     
                     % computing the wet delays
                     [xyz_input, xyz_output] = ...
-                                load_weather_model_SAR(model_filename_wet, double(lonlat));
+                                load_weather_model_SAR(model_filename_wet, ...
+                                                            double(lonlat));
                      
                     % saving the output data
                     d_wet(:,k) = xyz_output(:,3);
@@ -304,11 +316,12 @@ classdef Meteo
                 elseif exist(model_filename, 'file') == 2
                     flag_wet_hydro_used = 'n';
                     
-                    % this is the GACOS model file, will need to pass the model-type as
-                    % its grid-note 
+                    % this is the GACOS model file, will need to pass the 
+                    % model-type as its grid-note 
                     
                     [xyz_input, xyz_output] = ...
-                        load_weather_model_SAR(model_filename, double(lonlat), [], model_type);
+                        load_weather_model_SAR(model_filename, double(lonlat), ...
+                                               [], model_type);
                     
                     % saving the output data
                     d_total(:,k) = xyz_output(:,3);
@@ -359,20 +372,23 @@ classdef Meteo
             validateattributes(geopot, klass, attr);
             validateattributes(latgrid, klass, attr);
             
-            % Convert Geopotential to Geopotential Height and then to Geometric Height
+            % Convert Geopotential to Geopotential Height and then to 
+            % Geometric Height
             g0 = 9.80665;
             % Calculate Geopotential Height, H
             H = geopot./g0;
         
             % map of g with latitude
-            g = 9.80616.*(1 - 0.002637.*cosd(2.*latgrid) + 0.0000059.*(cosd(2.*latgrid)).^2);
+            g = 9.80616.*(1 - 0.002637.*cosd(2.*latgrid) + ...
+                          0.0000059.*(cosd(2.*latgrid)).^2);
             % map of Re with latitude
             Rmax = 6378137; 
             Rmin = 6356752;
-            Re = sqrt(1./(((cosd(latgrid).^2)./Rmax^2) + ((sind(latgrid).^2)./Rmin^2)));
+            Re =   sqrt(1./(((cosd(latgrid).^2)./Rmax^2) ...
+                 + ((sind(latgrid).^2)./Rmin^2)));
         
             % Calculate Geometric Height, Z
-            Z = (H.*Re)./(g/g0.*Re - H);
+            Z = (H .* Re) ./ (g / g0 .* Re - H);
         end % geopot2h
         
         function [] = aps_setup(lonlat_extend)
@@ -413,28 +429,28 @@ classdef Meteo
                 
                 if strcmp(preproc, 'doris')
                     % printing dem parameters
-                    fprintf(dem_rsc, ['WIDTH ', fgetl(dem_params), '\n']);
-                    fprintf(dem_rsc, ['LENGTH ', fgetl(dem_params), '\n']);
-                    fprintf(dem_rsc, ['X_FIRST ', fgetl(dem_params), '\n']);        
-                    fprintf(dem_rsc, ['Y_FIRST ', fgetl(dem_params), '\n']);
+                    fprintf(dem_rsc, 'WIDTH %s\n', fgetl(dem_params));
+                    fprintf(dem_rsc, 'LENGTH %s\n', fgetl(dem_params));
+                    fprintf(dem_rsc, 'X_FIRST %s\n', fgetl(dem_params));
+                    fprintf(dem_rsc, 'Y_FIRST %s\n', fgetl(dem_params));
                 
                     % x and y step size
                     step = fgetl(dem_params);
         
-                    fprintf(dem_rsc, ['X_STEP ', step, '\n']);
-                    fprintf(dem_rsc, ['Y_STEP ', '-', step, '\n']);
-                    fprintf(dem_rsc, ['FORMAT ', fgetl(dem_params), '\n']);
+                    fprintf(dem_rsc, 'X_STEP %s\n', step);
+                    fprintf(dem_rsc, 'Y_STEP %s\n', step);
+                    fprintf(dem_rsc, 'FORMAT %s\n', fgetl(dem_params));
                     fclose(dem_params);
                 elseif strcmp(preproc, 'gamma')
                     % printing dem parameters
-                    fprintf(dem_rsc, ['WIDTH ', num2str(readparm(dem_params, 'width')), '\n']);
-                    fprintf(dem_rsc, ['LENGTH ', num2str(readparm(dem_params, 'nlines')), '\n']);
-                    fprintf(dem_rsc, ['X_FIRST ', num2str(readparm(dem_params, 'corner_lon')), '\n']);        
-                    fprintf(dem_rsc, ['Y_FIRST ', num2str(readparm(dem_params, 'corner_lat')), '\n']);
-                
-                    fprintf(dem_rsc, ['X_STEP ', num2str(readparm(dem_params, 'post_lon')), '\n']);
-                    fprintf(dem_rsc, ['Y_STEP ', num2str(readparm(dem_params, 'post_lat')), '\n']);
-                    fprintf(dem_rsc, ['FORMAT ', readparm(dem_params, 'data_format'), '\n']);
+                    fprintf(dem_rsc, 'WIDTH %g\n', readparm(dem_params, 'width'));
+                    fprintf(dem_rsc, 'LENGTH %g\n', readparm(dem_params, 'nlines'));
+                    fprintf(dem_rsc, 'X_FIRST %g\n', readparm(dem_params, 'corner_lon'));
+                    fprintf(dem_rsc, 'Y_FIRST %g\n', readparm(dem_params, 'corner_lat'));
+                    
+                    fprintf(dem_rsc, 'X_STEP %g\n', readparm(dem_params, 'post_lon'));
+                    fprintf(dem_rsc, 'Y_STEP %g\n', readparm(dem_params, 'post_lat'));
+                    fprintf(dem_rsc, 'FORMAT %g\n', readparm(dem_params, 'data_format'));
                 end
                 fclose(dem_rsc);
             end
@@ -518,16 +534,16 @@ classdef Meteo
             
             h = figure('visible', 'off');
             hist(rms(abs_wet - d_wet));
-            title(['Distribution of the difference RMS values between inverted and ', ...
-                   'weather model water vapour slant delay values.']);
+            title(['Distribution of the difference RMS values between inverted ', 
+                    'and weather model water vapour slant delay values.']);
             xlabel('RMS difference for IFGs [cm]');
             ylabel('Frequency');
             saveas(h, 'dinv_rms_wv.png');
         
             h = figure('visible', 'off');
             hist(rms(abs_phase - d_total));
-            title(['Distribution of the difference RMS values between inverted and ', ...
-                   'weather model total slant delay values.']);
+            title(['Distribution of the difference RMS values between inverted ', ...
+                   'and weather model total slant delay values.']);
             xlabel('RMS difference for IFGs [cm]');
             ylabel('Frequency');
             saveas(h, 'dinv_rms_total.png');
@@ -543,37 +559,3 @@ classdef Meteo
         end
     end % methods
 end % Meteo
-
-%function out = meteo(fun, varargin)
-%% TRAIN Axilliary functions.
-%%
-%% Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
-%% (https://github.com/dbekaert/TRAIN) and
-%% StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
-%%
-
-    %switch(fun)
-        %case 'plot_2d_ftt'
-            %out = plot_2d_fft(varargin{:});
-        %case 'butter_filter'
-            %out = buttter_filter(varargin{:});
-        %case 'subtract_dry'
-            %out = subtract_dry(varargin{:});
-        %case 'invert_abs'
-            %out = invert_abs(varargin{:});
-        %case 'invert_phase_stamps'
-            %out = invert_phase_stamps(varargin{:});
-        %case 'zero_outlier'
-            %out = zero_outlier(varargin{:});
-        %case 'total_aps'
-            %out = total_aps(varargin{:});
-        %case 'aps_setup'
-            %aps_setup(varargin{:})
-        %case 'geopot2h'
-            %out = geopot2h(varargin{:})
-        %case 'calc_wv'
-            %calc_wv()
-        %otherwise
-            %error(['Unknown function ', fun]);
-    %end
-%end % meteo

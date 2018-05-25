@@ -7,32 +7,29 @@ I keep Matlab function libraries here I use in conjunction with
 [TRAIN](https://github.com/dbekaert/TRAIN). Mostly helper functions.
 
 The Matlab modules: 
-- **meteo.m**: [TRAIN](https://github.com/dbekaert/TRAIN) auxilliary functions,
-- **staux.m**: [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/)
+- **Meteo.m**: [TRAIN](https://github.com/dbekaert/TRAIN) auxilliary functions,
+- **Staux.m**: [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/)
   auxilliary functions,
-- **daisy.m**: wrapper functions for calling DAISY modules, similar to daisy.py
+- **Daisy.m**: wrapper functions for calling DAISY modules, similar to daisy.py
 - **gmt.m**: thin wrapper for [Generic Mapping Tools](http://gmt.soest.hawaii.edu/)
 
 ## Calling functions
 
 I dislike the way Matlab handles functions (each function has to be in separate
-directory) so I have found a way around that. The main function in a .m file,
-i.e. the first one, can call all the others. So each module has a main function
-that can call all the others. The first argument of the main function is the
-function name to be called, the other arguments should be the arguments to
-the called module function.
+directory) so I have found a way around that. I define a class in each file,
+and that class conatins callable Static methods.
 
 For e.g.
 ```Matlab
 >> a = ones(5,5);
->> staux('save_binary', a, 'a.dat', 'dtype', 'double');
+>> Staux.save_binary(a, 'a.dat', 'dtype', 'double');
 ```
-will call the `save_binary` function from the **staux.m** module. See the documentation
-and the code to figure out the input parameters. **staux.m** is relatively
-well documented, documentation for **traux.m** is underway. For some
+will call the `save_binary` function from the **Staux.m** module. See the documentation
+and the code to figure out the input parameters. **Staux.m** is relatively
+well documented, documentation for **Meteo.m** is underway. For some
 functions help is available and can be printed in the following way:
 ```Matlab
->> help staux>boxplot_los
+>> help Staux.boxplot_los
 
 function h = boxplot_los(plot_flags, 'out', '', 'boxplot_opt', nan, 'fun', nan)
 
@@ -68,6 +65,7 @@ The function returns the function handle `h` to the boxplot.
 
 ## Acknowledgement
 
-Code from [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/), [TRAIN](https://github.com/dbekaert/TRAIN) were used in the developement of
+Code from [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/), 
+[TRAIN](https://github.com/dbekaert/TRAIN) were used in the developement of
 these libraries. I wish to thank Andrew Hooper and David Bekaert for
 providing open acces to their code.

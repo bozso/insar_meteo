@@ -1,10 +1,10 @@
 classdef Staux
     methods(Static)
-        function ArgStruct = parseArgs(args, ArgStruct, varargin)
+        function ArgStruct = parse_args(args, ArgStruct, varargin)
         % Helper function for parsing varargin. 
         %
         %
-        % ArgStruct = parseArgs(varargin, ArgStruct [, FlagtypeParams [, Aliases]])
+        % ArgStruct = parse_args(varargin, ArgStruct [, FlagtypeParams [, Aliases]])
         %
         % * ArgStruct is the structure full of named arguments with default values.
         % * Flagtype params is params that don't require a value. 
@@ -223,14 +223,14 @@ classdef Staux
         % The function returns the function handle `h` to the boxplot.
             
             args = struct('out', '', 'boxplot_opt', nan, 'fun', nan);
-            args = Staux.parseArgs(varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             % loading ps velocities
             vv = Staux.load_ps_vel(plot_flags);
             
-            out     = args.out;
-            boxopt  = args.boxopt;
-            fun     = args.fun;
+            out          = args.out;
+            boxplot_opt  = args.boxplot_opt;
+            fun          = args.fun;
         
             if isa(fun, 'function_handle')
                 vv = fun(vv); % apply the function
@@ -266,15 +266,18 @@ classdef Staux
         function [] = rel_std_filt(max_rel_std)
         % function rel_std_filt(max_rel_std)
         % 
-        % Filters calculated LOS velocities based in their relative standard deviations.
-        % Relative standard deviation = (standard deviation / mean) * 100 (conversion into %).
+        % Filters calculated LOS velocities based in their relative standard 
+        % deviations.
+        % Relative standard deviation = (standard deviation / mean) * 100 
+        % (conversion into %).
         % 
         % max_rel_std: maximum allowed realtive standard deviation
         % 
-        % Filtered LOS velocities will be saved into "ps_data_filt.xy", in ascii format.
+        % Filtered LOS velocities will be saved into "ps_data_filt.xy", in 
+        % ascii format.
            
-           validateattributes(max_rel_std, {'numeric'}, {'scalar', 'positive', 'real', ...
-                              'finite', '<=', 1.0, 'nonnan'});
+           validateattributes(max_rel_std, {'numeric'}, {'scalar', 'positive', ...
+                              'real', 'finite', '<=', 1.0, 'nonnan'});
            
             % create ps_data.xy if it does not exist
             if ~exist('ps_data.xy', 'file')
@@ -310,19 +313,19 @@ classdef Staux
         % At every iteration the spatially-correlated look angle error
         % (StaMPS Step 7) can be calculated.
         % 
-        % At the start of the iteration and at every iteration step the phase residuals 
-        % will be plotted into a png file, named iteration_(ii).png
+        % At the start of the iteration and at every iteration step the phase 
+        % residuals will be plotted into a png file, named iteration_(ii).png
         % where ii is the iteration step.
         % 
         % numiter:       (input) number of iteraions
-        % 'scla', flag:  (optional) if present SCLA corrections will be calculated
-        %                           and subtracted
+        % 'scla', flag:  (optional) if present SCLA corrections will be 
+        %                           calculated and subtracted
             
-            validateattributes(numiter, {'numeric'}, {'scalar', 'positive', 'integer', ...
-                               'finite', 'nonnan'});
+            validateattributes(numiter, {'numeric'}, {'scalar', 'positive', ...
+                               'integer', 'finite', 'nonnan'});
             
             args = struct('scla', 0);
-            args = parseArgs(varargin, args, {'scla'});
+            args = Staux.parse_args(varargin, args, {'scla'});
             
             if ~iscalar(numiter) | numiter < 0.0
                 error('numiter should be a positive intiger!');
@@ -374,11 +377,11 @@ classdef Staux
         function out = binned_statistic(x, y, varargin)
         % binned = binned_statistic(x, y, 'bins', 10, 'fun', nan)
         % 
-        % Sorts y values into bins defined along x values. By default sums y values 
-        % in each of the x bins.
+        % Sorts y values into bins defined along x values. By default sums y 
+        % values in each of the x bins.
         % 
-        % x and y: x and y value pairs, should be a vector with the same number of 
-        % elements.
+        % x and y: x and y value pairs, should be a vector with the same 
+        % number of elements.
         % 
         % 'bins': optional, number of bins or bin edges defined by a vector.
         % 
@@ -387,8 +390,8 @@ classdef Staux
         % 
         % E.g. y_binned = binned_statistic(x, y, 'bins', 100, 'fun', @mean)
         % 
-        % This will bin y values into x bins and calculate their mean in each x bins. 
-        % 100 bins will be placed evenly along the values of x.
+        % This will bin y values into x bins and calculate their mean in each 
+        % x bins. 100 bins will be placed evenly along the values of x.
             
             klass = {'numeric'};
             attr = {'vector', 'nonempty', 'finite', 'nonnan', 'real'};
@@ -396,7 +399,7 @@ classdef Staux
             validateattributes(y, klass, attr);
             
             args = struct('bins', 10, 'fun', nan)
-            args = parseArgs(varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             fun = args.fun;
             bins = args.bins;
@@ -424,17 +427,20 @@ classdef Staux
         end % binned_statistic
         
         function out = binned_statistic_2d(x, y, z, varargin)
-        % binned = binned_statistic_2d(x, y, z, 'xbins', 10, 'ybins', 10, 'fun', nan)
+        % binned = binned_statistic_2d(x, y, z, 'xbins', 10, 'ybins', 10, ...
+        %                              'fun', nan)
         % 
-        % Sorts z values into bins defined along (x,y) values. By default sums z values
-        % in each of the (x,y) bins.
+        % Sorts z values into bins defined along (x,y) values. By default sums 
+        % z values in each of the (x,y) bins.
         % 
         % x, y and z: x, y and z value triplets, should be vectors with the 
         % same number of elements.
         % 
-        % 'xbins': optional, number of bins or bin edges defined by a vector along x.
+        % 'xbins': optional, number of bins or bin edges defined by a vector 
+        %                    along x.
         % 
-        % 'ybins': optional, number of bins or bin edges defined by a vector along y.
+        % 'ybins': optional, number of bins or bin edges defined by a vector 
+        %                    along y.
         % 
         % 'fun': optional, function to apply to z values in each bin. 
         % By default this is a summation.
@@ -452,7 +458,7 @@ classdef Staux
             validateattributes(z, klass, attr);
          
             args = struct('xbins', 10, 'ybins', 10, 'fun', nan)
-            args = parseArgs(varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             fun = args.fun;
             xbins = args.xbins;
@@ -498,11 +504,10 @@ classdef Staux
         % Modified CLAP filter. I used it to play around with the filter
         % parameters. Feel free to ingore it.
             
-            args = struct('grid_size', 50, 'alpha', 1, 'beta', 0.3, 'low_pass', 800, ...
-                          'win_size', 32, 'ifg_list', []);
+            args = struct('grid_size', 50, 'alpha', 1, 'beta', 0.3, ...
+                          'low_pass', 800, 'win_size', 32, 'ifg_list', []);
             
-            args = parseArgs(varargin, args);
-            
+            args = Staux.parse_args(varargin, args);
             
             grid_size           = args.grid_size;
             clap_alpha          = args.alpha;
@@ -514,16 +519,17 @@ classdef Staux
             scal_pos = {'scalar', 'finite', 'positive', 'nonnan'};
             scal_pos_int = {'scalar', 'finite', 'positive', 'integer', 'nonnan'};
             
-            validateattributes(grid_size, {'numeric'}, scal_pos);
-            validateattributes(clap_alpha, {'numeric'}, scal_pos);
-            validateattributes(clap_beta, {'numeric'}, scal_pos);
-            validateattributes(low_pass_wavelength, {'numeric'}, scal_pos);
-            validateattributes(nwin, {'numeric'}, scal_pos_int);
-            validateattributes(ifg_idx, {'numeric'}, scal_pos_int);
+            klass = {'numeric'};
+            validateattributes(grid_size,           klass, scal_pos);
+            validateattributes(clap_alpha,          klass, scal_pos);
+            validateattributes(clap_beta,           klass, scal_pos);
+            validateattributes(low_pass_wavelength, klass, scal_pos);
+            validateattributes(nwin,                klass, scal_pos_int);
+            validateattributes(ifg_idx,             klass, scal_pos_int);
         
             freq0 = 1 / low_pass_wavelength;
-            freq_i= -n_win / grid_size / n_win / 2:1 / grid_size / n_win:(n_win-2) / ...
-                     grid_size / n_win / 2;
+            freq_i= -n_win / grid_size / n_win / 2:1 / grid_size / ...
+                     n_win:(n_win-2) / grid_size / n_win / 2;
             butter_i = 1 ./ (1 + (freq_i / freq0).^(2*5));
             low_pass = butter_i' * butter_i;
             low_pass = fftshift(low_pass);
@@ -668,7 +674,7 @@ classdef Staux
             args = struct('out', '', 'background', 1, 'phase_lims', 0, 'ref_ifg', 0, ...
                           'n_x', 0, 'cbar_flag', 0, 'textsize', 0, 'textcolor', [], ...
                           'lon_rg', [], 'lat_rg', [], 'ts', 0);
-            args = parseArgs(varargin, args, {'ts'});
+            args = Staux.parse_args(varargin, args, {'ts'});
             
             if args.ts
                 h = ps_plot(flag_type, 'ts', args.background, args.phase_lims, ...
@@ -705,9 +711,10 @@ classdef Staux
         
         function [] = output()
         % function [] = output()
-        % MODIFIED ps_output from StaMPS. For some reason save('data.txt', 'data', '-ascii')
-        % did not work for me. I made some simple modifications to make it work
-        % with my `save_ascii` function (see the next function in this library).
+        % MODIFIED ps_output from StaMPS. For some reason 
+        % save('data.txt', 'data', '-ascii') did not work for me. I made some 
+        % simple modifications to make it work with my `save_ascii` 
+        % function (see the next function in this library).
         
             %PS_OUTPUT write various output files 
             %
@@ -886,7 +893,8 @@ classdef Staux
             [FID, msg] = fopen(path, 'w');
             
             if FID == -1
-                error(sprintf('Could not open file: %s  Error message: %s', path, msg));
+                error(sprintf('Could not open file: %s  Error message: %s', ...
+                               path, msg));
             end
         
             fprintf(FID, format, data');
@@ -899,12 +907,13 @@ classdef Staux
         %
         % Function is still under developement final documentation will be created,
         % when the function will be completed.
-            validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2});
+            
+            validateattributes(data, {'numeric'}, {'nonempty', 'finite', ...
+                                      'ndims', 2});
         
             args = struct('out', nan, 'psize', 1.0, 'lon_rg', [], 'lat_rg', [], ...
                           'clims', 'auto');
-            args = parseArgs(varargin, args)
-            
+            args = Staux.parse_args(varargin, args)
             
             out    = args.out;
             psize  = args.psize;
@@ -912,11 +921,12 @@ classdef Staux
             lat_rg = args.lat_rg;
             clims  = args.clims;
             
+            klass = {'numeric'};
             validateattributes(out, {'char'});
-            validateattributes(psize, {'numeric'}, {'scalar', 'positive', 'nonnan', ...
+            validateattributes(psize, klass, {'scalar', 'positive', 'nonnan', ...
                                'finite'});
-            validateattributes(lon_rg, {'numeric'}, {'vector'});
-            validateattributes(lat_rg, {'numeric'}, {'vector'});
+            validateattributes(lon_rg, klass, {'vector'});
+            validateattributes(lat_rg, klass, {'vector'});
             validateattributes(clims, {'char', 'numeric'});
             
             ncols = size(data, 2);
@@ -958,9 +968,10 @@ classdef Staux
         % Add value to the points enclosed by x,y point pair polygons to the 
         % interferogram with index ifg.
             
-            validateattributes(ifg, {'numeric'}, {'scalar', 'intiger', 'finite', ...
+            klass = {'numeric'};
+            validateattributes(ifg, klass, {'scalar', 'intiger', 'finite', ...
                                'nonnan', 'real'});
-            validateattributes(value, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'});
+            validateattributes(value, klass, {'scalar', 'real', 'finite', 'nonnan'});
             
             [x, y] = ginput;
         
@@ -1085,11 +1096,11 @@ classdef Staux
         
         function [] = save_binary(data, path, varargin)
             
-            validateattributes(data, {'numeric'}, {'nonempty', 'finite', 'ndims', 2, ...
-                               'nonnan'});
+            validateattributes(data, {'numeric'}, {'nonempty', 'finite', ...
+                                      'ndims', 2, 'nonnan'});
             
             args = struct('dtype', 'double');
-            args = parseArgs(varargin, args);
+            args = Staux.parse_args(varargin, args);
             
             ps = load('ps2.mat');
             
@@ -1113,10 +1124,11 @@ classdef Staux
         function loaded = load_binary(path, ncols, varargin)
             
             validateattributes(path, {'char'}, {'nonempty'});
-            validateattributes(ncols, {'numeric'}, {'scalar', 'intiger', 'finite', 'nonnan'});
+            validateattributes(ncols, {'numeric'}, {'scalar', 'intiger', ...
+                                       'finite', 'nonnan'});
             
             args = struct('dtype', 'double');
-            args = parseArgs(varargin, args);
+            args = Stuax.parse_args(varargin, args);
             dtype = args.dtype;
             
             validateattributes(dtype, {'char'}, {'nonempty'});
@@ -1340,62 +1352,9 @@ classdef Staux
             [fid, msg] = fopen(path, mode, machine);
             
             if fid == -1
-                error(sprintf('Could not open file: %s  Error message: %s', path, msg));
+                error(sprintf('Could not open file: %s  Error message: %s', ...
+                               path, msg));
             end
         end % sfopen
     end % methods
 end % Staux
-
-%function out = staux(fun, varargin)
-%% StaMPS Auxulliary functions.
-%%
-%% Based on codes by David Bekaert and Andrew Hooper from packages TRAIN
-%% (https://github.com/dbekaert/TRAIN) and
-%% StaMPS (https://homepages.see.leeds.ac.uk/~earahoo/stamps/).
-
-    %switch(fun)
-        %case 'save_llh'
-            %save_llh();
-        %case 'save_binary'
-            %save_binary(varargin{:});
-        %case 'save_ascii'
-            %save_ascii(varargin{:});
-        %case 'load_binary'
-            %out = load_binary(varargin{:});
-        %case 'boxplot_los'
-            %out = boxplot_los(varargin{:});
-        %case 'binned_statistic'
-            %out = binned_statistic(varargin{:});
-        %case 'binned_statistic_2d'
-            %out = binned_statistic_2d(varargin{:});
-        %case 'clap'
-            %out = clap(varargin{:});
-        %case 'iterate_unwrapping'
-            %out = iterate_unwrapping(varargin{:});
-        %case 'plot'
-            %out = plot(varargin{:});
-        %case 'plot_scatter'
-            %out = plot_scatter(varargin{:});
-        %case 'plot_loop'
-            %out = plot_loop(varargin{:});
-        %case 'plot_ph_grid'
-            %out = plot_ph_grid(varargin{:});
-        %case 'output'
-            %output();
-        %case 'rel_std_filt'
-            %out = rel_std_filt(varargin{:});
-        %case 'report'
-            %report();
-        %case 'crop'
-            %crop(varargin);
-        %case 'crop_reset'
-            %crop_reset();
-        %case 'parse_args'
-            %out = parseArgs(varargin{:});
-        %case 'sfopen'
-            %out = sfopen(varargin{:});
-        %otherwise
-            %error(['Unknown function ', fun]);
-    %end
-%end % staux
-

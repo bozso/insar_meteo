@@ -115,17 +115,13 @@ def parse_arguments():
     return parser.parse_args()
 
 def parse_steps(args):
-    step  = args.step
-    start = args.start
-    stop  = args.stop
-    
     if step is not None:
-        first = _steps.index(step)
-        last = _steps.index(step)
+        first = _steps.index(args.step)
+        last = _steps.index(args.step)
         return first, last
     else:
-        first = _steps.index(start)
-        last = _steps.index(stop)
+        first = _steps.index(args.start)
+        last = _steps.index(args.stop)
         return first, last
         
 def main():

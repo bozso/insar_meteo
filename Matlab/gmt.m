@@ -55,7 +55,7 @@ function out = init(psfile, varargin)
     
     args = struct('common', '', 'left', 50, 'right', 50, 'top', 25, 'bottom', 50, ...
                   'debug', 0);
-    args = parseArgs(varargin, args, {'debug'});
+    args = staux('parse_args', varargin, args, {'debug'});
     
     common  = args.common;
     left    = args.left;
@@ -154,7 +154,7 @@ function finalize(Gmt)
     end
     
     for ii = 2:ncom
-        fid = sfopen(outfiles{ii}, 'w');
+        fid = staux('sfopen', outfiles{ii}, 'w');
         fclose(fid);
     end
     
@@ -176,7 +176,7 @@ function Gmt = multiplot(Gmt, nplots, proj, varargin)
 %             |       bottom        |    
     
     args = struct('xpad', 55, 'ypad', 75);
-    args = parseArgs(varargin, args);
+    args = staux('parse_args', varargin, args);
     
     xpad = args.xpad;
     ypad = args.ypad;
@@ -245,7 +245,7 @@ function [] = makecpt(flags, outfile, Gmt)
         outs = cmd(sprintf('makecpt %s', flags));
     end
     
-    fid = sfopen(outfile, 'w');
+    fid = staux('sfopen', outfile, 'w');
     fprintf(fid, outs);
     fclose(fid);
 end
@@ -342,7 +342,7 @@ end % get_height
 function out = scale_pos(Gmt, mode, varargin)
     
     args = struct('offset', 100, 'flong', 0.8, 'fshort', 0.2);
-    args = parseArgs(varargin, args);
+    args = staux('parse_args', varargin, args);
     
     left    = Gmt.left;
     right   = Gmt.right;
@@ -393,7 +393,7 @@ function Gmt = colorbar(Gmt, varargin)
 
     args = struct('mode', 'v', 'offset', 100, 'flong', 0.8, 'fshort', 0.2, ...
                   'flags', '');
-    args = parseArgs(varargin, args);
+    args = staux('parse_args', varargin, args);
     
     mode    = args.mode;
     offset  = args.offset;
@@ -443,7 +443,7 @@ end % info
 function out = get_ranges(data, varargin)
     
     args = struct('binary', '', 'xy_add', nan, 'z_add', nan, 'flags', '');
-    args = parseArgs(varargin, args);
+    args = staux('parse_args', varargin, args);
     
     binary = args.binary;
     xy_add = args.xy_add;
@@ -495,7 +495,7 @@ function [] = plot_scatter(scatter_file, ncols, ps_file, varargin)
                   'xy_add', 0.05, 'z_add', 0.1, 'colorscale', 'drywet', ...
                   'tryaxis', 0, 'left', 50, 'right', 100, 'top', 0, ...
                   'titles', [], 'point_style', 'c0.25c');
-    args = parseArgs(varargin, args, {'tryaxis'});
+    args = staux('parse_args', varargin, args, {'tryaxis'});
     
     proj        = args.proj;
     idx         = args.idx;

@@ -2,19 +2,16 @@
 
 ## Introduction
 
-I keep two Matlab function libraries here I use in conjunction with 
+I keep Matlab function libraries here I use in conjunction with 
 [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/) and 
 [TRAIN](https://github.com/dbekaert/TRAIN). Mostly helper functions.
 
-The two Matlab modules and sfopen.m: 
-- **traux.m**: [TRAIN](https://github.com/dbekaert/TRAIN) auxilliary functions,
+The Matlab modules: 
+- **meteo.m**: [TRAIN](https://github.com/dbekaert/TRAIN) auxilliary functions,
 - **staux.m**: [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/)
   auxilliary functions,
-- **sfopen.m**: safely open a file. Exits with `error` if the file cannot be
-  opened.
-- **parseArgs.m**: parse variable function arguments, `vararagin`, 
-  [original code](https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/21384/versions/11/previews/parseArgs.m/index.html?access_key=)
-
+- **daisy.m**: wrapper functions for calling DAISY modules, similar to daisy.py
+- **gmt.m**: thin wrapper for [Generic Mapping Tools](http://gmt.soest.hawaii.edu/)
 
 ## Calling functions
 
@@ -37,31 +34,36 @@ functions help is available and can be printed in the following way:
 ```Matlab
 >> help staux>boxplot_los
 
-function h = BOXPLOT_LOS(plot_flags, out, ...)
+function h = boxplot_los(plot_flags, 'out', '', 'boxplot_opt', nan, 'fun', nan)
 
-The plot will be saved to an image file defined by the `out` argument. No 
-figure will pop up.
 Plots the boxplot of LOS velocities defined by plot_flags.
-Accepted plot flags are the same flags accepted by the ps_plot function,
+accepted plot flags are the same flags accepted by the ps_plot function,
 with some extra rules.
-    1) Multiple plot flags must be defined in a cell array, e.g.
-    boxplot_los({'v-do', 'v-da'});
-    2) If we have the atmospheric correction option ('v-da'), the
-    cooresponding atmospheric correction flag must be defined like this:
-    'v-da/a_e'. This denotes the DEM error and ERA-I corrected velocity
-    values. Atmospheric coretcions can be calculated with TRAIN.
+   1) Multiple plot flags must be defined in a cell array, e.g.
+   boxplot_los({'v-do', 'v-da'});
 
-  Additional options to the boxplot function can be passed using varargin.
-  - 'fun' : function to be applied to the velocity values; default value:
-            nan (no function is applied); function should return a vector
-            (in the case of a single plot flag) or a matrix
-            (in the case of multiple plot flags).
-  - 'boxplot_opt': varargin arguments for boxplot, given in a cell array;
-                  e.g.: 'boxplot_opt', {'widths', 0.5, 'whisker', 2.0}
-                  See the help of the boxplot function for additinal 
-                  information. Default value: nan (no options)
+   2) If we have the atmospheric correction option (''v-da''), the
+   cooresponding atmospheric correction flag must be defined like this:
+   'v-da/a_e'. This denotes the DEM error and ERA-I corrected velocity
+   values. Atmospheric coretcions can be calculated with TRAIN.
 
-  The function returns the function handle `h` to the boxplot.
+The plot will be saved to an image file defined by the 'out' argument. No
+figure will pop up, if the 'out' parameter is defined and is not an empty 
+string.
+ 
+ Additional options to the boxplot function can be passed using varargin:
+
+'fun' : function to be applied to the velocity values; default value:
+        nan (no function is applied); function should return a vector
+        (in the case of a single plot flag) or a matrix
+        (in the case of multiple plot flags).
+
+'boxplot_opt': varargin arguments for boxplot, given in a cell array;
+                e.g.: 'boxplot_opt', {'widths', 0.5, 'whisker', 2.0}
+                See the help of the boxplot function for additinal 
+                information. Default value: nan (no options)
+
+The function returns the function handle `h` to the boxplot.
 ```
 
 ## Acknowledgement

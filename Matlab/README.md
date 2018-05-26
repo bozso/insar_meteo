@@ -39,7 +39,7 @@ with some extra rules.
    1) Multiple plot flags must be defined in a cell array, e.g.
    boxplot_los({'v-do', 'v-da'});
 
-   2) If we have the atmospheric correction option (''v-da''), the
+   2) If we have the atmospheric correction option ('v-da'), the
    cooresponding atmospheric correction flag must be defined like this:
    'v-da/a_e'. This denotes the DEM error and ERA-I corrected velocity
    values. Atmospheric coretcions can be calculated with TRAIN.

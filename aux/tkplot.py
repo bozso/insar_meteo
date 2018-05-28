@@ -1,7 +1,8 @@
 import numpy as np
 from math import ceil, sqrt
 
-_lambda_per_2 = 28.0
+_lambda = 55.465765
+_lambda_per_2 = 27.73288
 
 try:
     from tkinter import *

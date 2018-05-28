@@ -397,11 +397,11 @@ classdef Meteo
         
             if strcmp(preproc, 'doris')
                 % open dem parameters file
-                dem_params = staux('sfopen', demparms.in', 'r');
+                dem_params = Staux.sfopen('demparms.in', 'r');
                 dem_path = fgetl(dem_params);
             elseif strcmp(preproc, 'gamma')
-                dem_params = '../dem/dem_seg.par';
-                dem_path = '../dem/dem_seg_swapped.dem';
+                dem_params = fullfile('..', 'dem', 'dem_seg.par');
+                dem_path = fullfile('..', 'dem', 'dem_seg_swapped.dem');
             else
                 error(['Unrecognized preprocessor ', preproc]);
             end
@@ -411,6 +411,9 @@ classdef Meteo
             setparm_aps('era_datapath', fullfile(pwd, 'era'));
             setparm_aps('merra_datapath', fullfile(pwd, 'merra2'));
             setparm_aps('gacos_datapath', fullfile(pwd, 'gacos'));
+            setparm_aps('sounding_dir', fullfile(pwd, 'sounding'));
+            setparm_aps('sounding_ifg_dates', 'y')
+            setparm_aps('sounding_data', 'y')
             
             setparm_aps('lambda', getparm('lambda'), 1);
             setparm_aps('heading', getparm('heading'), 1);
@@ -421,7 +424,7 @@ classdef Meteo
             % creating rsc file if .dem is the file extension
             if strcmp(ext, '.dem')
                 fprintf('DEM extension is .dem, creating, .dem.rsc file\n');
-                dem_rsc = staux('sfopen', [dem_path, '.rsc'], 'w');
+                dem_rsc = Staux.sfopen([dem_path, '.rsc'], 'w');
                 
                 if strcmp(preproc, 'doris')
                     % printing dem parameters

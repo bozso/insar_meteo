@@ -1134,5 +1134,45 @@ classdef Staux
                                path, msg));
             end
         end % sfopen
+        
+        function out = read_param(param, path, varargin)
+            
+            if nargin == 3
+                sep = varargin{1};
+            elseif nargin == 2
+                sep = ':';
+            else
+                error('2 or 3 arguments required!');
+            end
+
+            klass = {'char'}; attr = {'nonempty'};
+            attr = {};
+            validateattributes(param,     klass, attr);
+            validateattributes(path,      klass, attr);
+            validateattributes(sep,       klass, attr);
+            
+            fid = Staux.sfopen(path, 'r');
+            
+            while true
+                line = fgetl(fid);
+                
+                if Staux.strin(param, line)
+                    sline = strsplit(line, sep);
+                    out = sline{2};
+                    fclose(fid);
+                    return
+                end
+            end
+            fclose(fid);
+            error(sprintf('%s not found in %s!', param, path));
+        end % read_param
+        
+        function out = strin(str1, str2)
+            if isempty(strfind(str2, str1))
+                out = false;
+            else
+                out = true;
+            end
+        end
     end % methods
 end % Staux

@@ -1,6 +1,21 @@
-classdef Gmt
-    methods(Static)
-        %function out = gmt(fun, varargin)
+classdef Gmt < handle
+    properties
+        version
+        is_five
+        psfile
+        common
+        debug
+        
+        left
+        right
+        top
+        bottom
+        
+        commands
+        outfiles
+    end
+    
+    methods
             %gmt_cmds = {'grdcontour', 'grdimage', 'grdvector', 'grdview', 'psbasemap', ...
             %'psclip', 'pscoast', 'pscontour', 'pshistogram', 'psimage', 'pslegend', ...
             %'psmask', 'psrose', 'psscale', 'pstext', 'pswiggle', 'psxy', 'psxyz', ...
@@ -17,42 +32,7 @@ classdef Gmt
             %'spectrum1d', 'sph2grd', 'sphdistance', 'sphinterpolate', 'sphtriangulate', ...
             %'splitxyz', 'surface', 'trend1d', 'trend2d', 'triangulate', 'xyz2grd'};
             
-            %splitted = strsplit(fun);
-            
-            %if ismember(splitted{1}, gmt_cmds)
-                %out = gmt_cmd(fun, varargin{:});
-            %else
-                %switch (fun)
-                    %case 'init'
-                        %out = init(varargin{:});
-                    %case 'finalize'
-                        %finalize(varargin{:});
-                    %case 'get_width'
-                        %out = get_width(varargin{:});
-                    %case 'makecpt'
-                        %makecpt(varargin{:});
-                        %out = nan;
-                    %case 'get_height'
-                        %out = get_height(varargin{:});
-                    %case 'get_version'
-                        %out = get_version();
-                    %case 'get_ranges'
-                        %out = get_ranges(varargin{:});
-                    %case 'info'
-                        %out = info(varargin{:});
-                    %case 'scale_pos'
-                        %out = scale_pos(varargin{:});
-                    %case 'colorbar'
-                        %out = colorbar(varargin{:});
-                    %case 'arr2str'
-                        %out = arr2str(varargin{:});
-                    %otherwise
-                        %error(['Unknown function ', fun]);
-                %end
-            %end
-        %end % gmt
-        
-        function out = init(psfile, varargin)
+        function obj = Gmt(psfile, varargin)
             validateattributes(psfile, {'char'}, {'nonempty'});
             
             args = struct('common', '', 'left', 50, 'right', 50, 'top', 25, 'bottom', 50, ...
@@ -87,26 +67,26 @@ classdef Gmt
                 error('GMT version is not 4,5 or 6!');
             end
             
-            out.version = version;
-            out.is_five = is_five;
-            out.psfile = psfile;
-            out.common = common;
-            out.debug = args.debug;
+            obj.version = version;
+            obj.is_five = is_five;
+            obj.psfile = psfile;
+            obj.common = common;
+            obj.debug = args.debug;
             
-            out.left = left;
-            out.right = right;
-            out.top = top;
-            out.bottom = bottom;
+            obj.left = left;
+            obj.right = right;
+            obj.top = top;
+            obj.bottom = bottom;
             
             % sentinels
-            out.commands = 'init';
-            out.outfiles = 'init';
+            obj.commands = 'init';
+            obj.outfiles = 'init';
         end % init
         
-        function [] = finalize(gmt)
-            commands = strsplit(gmt.commands, '\n');
-            outfiles = strsplit(gmt.outfiles, '\n');
-            common = gmt.common;
+        function [] = finalize(obj)
+            commands = strsplit(obj.commands, '\n');
+            outfiles = strsplit(obj.outfiles, '\n');
+            common = obj.common;
             
             if ~strcmp(commands{1}, 'init') | ~strcmp(outfiles{1}, 'init')
                 error('Gmt struct was not initialized correctly!');
@@ -148,13 +128,13 @@ classdef Gmt
             end
             
             % append 'gmt ' to the command strings
-            if gmt.is_five
+            if obj.is_five
                 for ii = 2:ncom
                     commands{ii} = ['gmt ', commands{ii}];
                 end
             end
             
-            if gmt.debug
+            if obj.debug
                 fprintf('DEBUG: GMT commands\n%s\n', strjoin(commands, '\n'));
             end
             
@@ -168,7 +148,7 @@ classdef Gmt
             end
         end % finalize
         
-        function gmt = multiplot(gmt, nplots, proj, varargin)
+        function [] = multiplot(obj, nplots, proj, varargin)
         %
         %             |       top           |    
         %        -----+---------------------+----
@@ -203,13 +183,13 @@ classdef Gmt
             % width of a single plot
             pwidth  = (awidth - (ncols - 1) * xpad) / ncols;
                 
-            Gmt.common = sprintf('%s -J%g%gp', Gmt.common, proj, pwidth);
+            obj.common = sprintf('%s -J%g%gp', Gmt.common, proj, pwidth);
                 
             % height of a single plot
             pheight = get_height(gmt);
             
-            gmt.x = left:(pwidth + xpad):(left + ncols * (pwidth + x_pad));
-            gmt.y = (height - top - pheight - y_pad):-(pheight + ypad):...
+            obj.x = left:(pwidth + xpad):(left + ncols * (pwidth + x_pad));
+            obj.y = (height - top - pheight - y_pad):-(pheight + ypad):...
                     (height - top - nrows * (pheight + ypad));
                 
             %# calculate psbasemap shifts in x and y directions
@@ -221,41 +201,25 @@ classdef Gmt
                  %for jj in range(ncols))
             
             % residual margin left at the bottom
-            Gmt.bottom = height - top - nrows * (pheight + ypad);
+            obj.bottom = height - top - nrows * (pheight + ypad);
         end % multiplot
         
-        function gmt = call(Cmd, varargin)
-            
-            % outfile os default psfile
-            if length(varargin) == 1 & isstruct(varargin{1})
-                gmt = varargin{1};
-                outfile = gmt.psfile;
-            elseif length(varargin) == 2
-                gmt = varargin{2};
-                outfile = varargin{1};
-            end
-            
-            gmt.commands = sprintf('%s\n%s', gmt.commands, Cmd);
-            gmt.outfiles = sprintf('%s\n%s', gmt.outfiles, outfile);
-        end
-        
-        function out = get_version()
-            out = Gmt.cmd('gmt --version');
-        end
-        
-        function [] = makecpt(flags, outfile, gmt)
-            if gmt.is_five
-                outs = Gmt.cmd(sprintf('gmt makecpt %s', flags));
+        function [] = call(obj, varargin)
+            if nargin == 2
+                Cmd = varargin{1};
+                outfile = obj.psfile;
+            elseif nargin == 3
+                Cmd = varargin{1};
+                outfile = varargin{2};
             else
-                outs = Gmt.cmd(sprintf('makecpt %s', flags));
+                error('1 or 2 arguments required!');
             end
             
-            fid = Staux.sfopen(outfile, 'w');
-            fprintf(fid, outs);
-            fclose(fid);
+            obj.commands = sprintf('%s\n%s', obj.commands, Cmd);
+            obj.outfiles = sprintf('%s\n%s', obj.outfiles, outfile);
         end
         
-        function width = get_width(gmt)
+        function width = get_width(obj)
             
             if ismac
                 null = '/dev/null';
@@ -269,10 +233,10 @@ classdef Gmt
             
             version = Gmt.cmd('gmt --version');
             
-            if Gmt.is_five
-                Cmd = sprintf('gmt mapproject %s -Dp', gmt.common);
+            if obj.is_five
+                Cmd = sprintf('gmt mapproject %s -Dp', obj.common);
             else
-                Cmd = sprintf('mapproject %s -Dp', gmt.common);
+                Cmd = sprintf('mapproject %s -Dp', obj.common);
             end
             
             % before version 5.2
@@ -299,7 +263,7 @@ classdef Gmt
             end
         end % get_width
         
-        function height = get_height(gmt)
+        function height = get_height(obj)
             
             if ismac
                 null = '/dev/null';
@@ -313,10 +277,10 @@ classdef Gmt
             
             version = Gmt.cmd('gmt --version');
             
-            if Gmt.is_five
-                Cmd = sprintf('gmt mapproject %s -Dp', gmt.common);
+            if obj.is_five
+                Cmd = sprintf('gmt mapproject %s -Dp', obj.common);
             else
-                Cmd = sprintf('mapproject %s -Dp', gmt.common);
+                Cmd = sprintf('mapproject %s -Dp', obj.common);
             end
             
             % before version 5.2
@@ -344,18 +308,18 @@ classdef Gmt
             end
         end % get_height
         
-        function [x, y, width, length] = scale_pos(gmt, mode, varargin)
+        function [x, y, width, length] = scale_pos(obj, mode, varargin)
             
             args = struct('offset', 100, 'flong', 0.8, 'fshort', 0.2);
             args = Staux.parse_args(varargin, args);
             
-            left    = gmt.left;
-            right   = gmt.right;
-            top     = gmt.top;
-            bottom  = gmt.bottom;
+            left    = obj.left;
+            right   = obj.right;
+            top     = obj.top;
+            bottom  = obj.bottom;
         
-            width   = get_width(Gmt);
-            height  = get_height(Gmt);
+            width   = get_width(obj);
+            height  = get_height(obj);
             
             offset  = args.offset;
             flong   = args.flong;
@@ -394,7 +358,7 @@ classdef Gmt
             width   = sprintf('%gp%s', width, hor);
         end % scale_pos
         
-        function gmt = colorbar(gmt, varargin)
+        function gmt = colorbar(obj, varargin)
         
             args = struct('mode', 'v', 'offset', 100, 'flong', 0.8, 'fshort', 0.2, ...
                           'flags', '');
@@ -415,13 +379,27 @@ classdef Gmt
             validateattributes(flong, klass, attr);
             validateattributes(fshort, klass, attr);
             
-            [x, y, width, length] = scale_pos(Gmt, mode, 'offset', offset, ...
+            [x, y, width, length] = scale_pos(obj, mode, 'offset', offset, ...
                                               'flong', flong, 'fshort', fshort);
             
             Cmd = sprintf('psscale -D0.0/0.0/%s/%s -Xf%s -Yf%s %s', length, ...
                           width, x, y, flags);
-            gmt = Gmt.call(Cmd, gmt);
+            call(obj, Cmd, gmt);
         end % colorbar
+    end % methods
+    
+    methods(Static)
+        function [] = makecpt(flags, outfile)
+            if obj.is_five
+                outs = Gmt.cmd(sprintf('gmt makecpt %s > %s', flags, outfile));
+            else
+                outs = Gmt.cmd(sprintf('makecpt %s > %s', flags, outfile));
+            end
+        end
+
+        function out = get_version()
+            out = Gmt.cmd('gmt --version');
+        end
         
         function out = info(data, flags)
             version = Gmt.cmd('gmt --version');
@@ -448,7 +426,8 @@ classdef Gmt
         
         function [xy_range, z_range] = get_ranges(data, varargin)
             
-            args = struct('binary', '', 'xy_add', nan, 'z_add', nan, 'flags', '');
+            args = struct('binary', '', 'xy_add', nan, 'z_add', nan, ...
+                          'flags', '');
             args = Staux.parse_args(varargin, args);
             
             binary = args.binary;
@@ -562,36 +541,36 @@ classdef Gmt
                 titles = idx;
             end
             
-            g = Gmt.init(ps_file, 'common', sprintf('-R%s', Gmt.arr2str(xy_range)), ...
-                     'config', config);
+            gmt = Gmt(ps_file, 'common', sprintf('-R%s', Gmt.arr2str(xy_range)), ...
+                      'config', config);
             
-            [x, y] = Gmt.multiplot(numel(idx), proj, 'right', right, ...
-                                               'top', top, 'left', left);
+            gmt.multiplot(numel(idx), proj, 'right', right, ...
+                          'top', top, 'left', left);
             
             return
             
-            Cmd = sprintf('makecpt -C%s -Z -T%s', colorscale, Gmt.arr2str(z_range));
-            g = gmt_cmd(Cmd, g, 'tmp.cpt');
+            Gmt.makecpt(sprintf('-C%s -Z -T%s', colorscale, ...
+                        Gmt.arr2str(z_range), 'tmp.cpt'));
             
             for ii = idx
                 input_format = sprintf('0,1,%d', ii + 2);
                 
                 Cmd = sprintf('psbasemap  Xf%gp Yf%gp BWSen+t%s Bx%s By%s', ...
                               x(ii), y(ii), titles(ii), x_axis, y_axis);
-                g = Gmt.call(Cmd, g);
+                gmt.call(Cmd);
         
                 % do not plot the scatter points yet just see the placement of
                 % basemaps
                 if ~args.tryaxis
                     Cmd = sprintf('psxy %s -i0,1,%d bi%s Sc0.025c Ctmp.cpt', ...
                                   scatter_file, ii + 2);
-                    Gmt.call(Cmd, g);
+                    gmt.call(Cmd);
                 end
             end
             
-            g = Gmt.colorbar(g, 'mode', mode, 'offset', offset, 'label', label);
+            gmt.colorbar('mode', mode, 'offset', offset, 'label', label);
         
-            delete tmp.cpt;
+            delete('tmp.cpt');
         end % plot_scatter
         
         function out = is_plotter(command)

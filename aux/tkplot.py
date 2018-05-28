@@ -220,21 +220,19 @@ def round_tick(step):
     return step_whole + vals[diffs.index(min(diffs))]
 
 class Unwrapper(object):
-    def __init__(self, root, year, los, gnss_last, savefile, xadd=0.1, yadd=0.1,
-                 xtick=0.125, ytick=10, thresh=10, **kwargs):
+    def __init__(self, root, year, los, savefile, gnss_year=None,
+                 gnss_los=None,  xadd=0.1, yadd=0.1, xtick=0.125, ytick=10,
+                 thresh=10, **kwargs):
         
+        #self.root = root
         self.xtick, self.ytick = xtick, ytick
         self.savefile = savefile
-        
-        if gnss_last != 0.0:
-            self.gnss_last = gnss_last
-            self.plot_last = True
-        else:
-            self.plot_last = False
+        self.width = kwargs.get("width", 750)
+        self.height = kwargs.get("height", 500)
         
         self.thresh = thresh
         
-        plt = Plotter(root, **kwargs)
+        self.plt = Plotter(root, **kwargs)
         
         button_conf = {"borderwidth": 2, "font": "Arial 11 bold"}
         
@@ -250,37 +248,40 @@ class Unwrapper(object):
         
         self.year0 = round(year[0])
         year = [y - self.year0 for y in year]
+        self.year = year
         
         min_year, max_year = min(year), max(year)
         X = (max_year - min_year) * xadd
         
         self.yr = [min_year - X, max_year + X]
         
-        min_los, max_los = min(*los, gnss_last), max(*los, gnss_last)
+        if gnss_year is not None and gnss_los is not None:
+            self.gnss_los = gnss_los
+            self.gnss_year = tuple(yr - self.year0 for yr in gnss_year)
+            min_los, max_los = min(*los, *gnss_los), max(*los, *gnss_los)
+            self.have_gnss = True
+        else:
+            min_los, max_los = min(los), max(los)
+            self.have_gnss = False
+        
         self.min_los, self.max_los = min_los, max_los
         Y = (max_los - min_los) * yadd
-        
+
         ax_lim = [min_year - X, max_year + X, min_los - Y, max_los + Y]
         ax_lim = [round_tick(elem) for elem in ax_lim]
         self.ax_lim0 = ax_lim
         
-        plt.create_axis(ax_lim)
-        plt.xlabel("Fractional year since {}".format(self.year0))
-        plt.ylabel("LOS displacement [mm]")
+        self.plt.create_axis(ax_lim)
+        self.plt.xlabel("Fractional year since {}".format(self.year0))
+        self.plt.ylabel("LOS displacement [mm]")
         
-        plt.plot(year, los, point_fill="red", point_size=3, xtick=xtick,
-                 ytick=xtick, point_width=1, tags="original")
+        self.plot_original()
 
-        if self.plot_last:
-            plt.plot([year[0], year[-1]], [0.0, gnss_last], points=False,
-                     lines=True, tags="gnss")
-
-        self.year = year
+        if self.have_gnss:
+            self.plot_gnss()
         
-        plt.cv.bind("<Button-1>", lambda event: self.add_value(event, _lambda_per_2))
-        plt.cv.bind("<Button-3>", lambda event: self.add_value(event, -_lambda_per_2))
-        
-        self.plt = plt
+        self.plt.cv.bind("<Button-1>", lambda event: self.add_value(event, _lambda_per_2))
+        self.plt.cv.bind("<Button-3>", lambda event: self.add_value(event, -_lambda_per_2))
         
     def add_value(self, event, value):
         x, y = event.x, event.y
@@ -300,9 +301,6 @@ class Unwrapper(object):
         
         self.plt.cv.delete("original", "last", "axis")
         
-        if self.plot_last:
-            self.plt.cv.delete("gnss")
-        
         min_y, max_y = min(min(self.last), self.min_los), \
                        max(max(self.last), self.max_los)
         
@@ -313,33 +311,55 @@ class Unwrapper(object):
         
         self.plt.create_axis(ax_lim)
 
-        if self.plot_last:
-            self.plt.plot([self.year[0], self.year[-1]], [0.0, self.gnss_last],
-                          points=False, lines=True, tags="gnss")
+        if self.have_gnss:
+            self.plt.cv.delete("gnss")
+            self.plot_gnss()
         
-        self.plt.plot(self.year, self.last, lines=True, tags="last",
+        self.plot_last()
+        self.plot_original()
+    
+    def plot_gnss(self, width=2, tags="gnss"):
+        self.plt.plot(self.gnss_year, self.gnss_los, points=False, lines=True,
+                      tags=tags, width=width)
+        
+        x = 3 * float(self.width) / 4
+        self.plt.cv.create_line(x, 10.0, x + 50.0, 10.0, width=width, tags=tags)
+        self.plt.cv.create_text(x + 75.0, 10.0, text="GNSS")
+        
+    def plot_original(self, tags="original", color="red", width=1, size=3):
+        self.plt.plot(self.year, self.los, tags=tags, point_fill=color,
+                      xtick=self.xtick, ytick=self.ytick, point_width=width,
+                      point_size=size)
+        
+        x = 2 * float(self.width) / 4
+        self.plt.cv.create_oval(x - size, 10.0 - size, x + size, 10.0 + size,
+                                outline="black", fill=color, width=width,
+                                tags=tags)
+        
+        self.plt.cv.create_text(x + size + 50.0, 10.0, text="Original LOS")
+    
+    def plot_last(self, tags="last"):
+        self.plt.plot(self.year, self.last, lines=True, tags=tags,
                       xtick=self.xtick, ytick=self.ytick)
-
-        self.plt.plot(self.year, self.los, tags="original", point_fill="red",
-                      xtick=self.xtick, ytick=self.ytick, point_width=1, point_size=3)
-
+        
+        x = float(self.width) / 4
+        self.plt.cv.create_oval(x - 6.0, 4.0, x + 6.0, 16.0, outline="black",
+                                fill="SkyBlue2", width=1.25, tags=tags)
+        
+        self.plt.cv.create_text(x + 56.0, 10.0, text="Corrected LOS", tags=tags)
+        
     def reset(self):
         self.plt.cv.delete("original", "last", "axis")
-
-        if self.plot_last:
-            self.plt.cv.delete("gnss")
 
         self.last = tuple(self.los.copy())
         
         self.plt.create_axis(self.ax_lim0)
 
-        self.plt.plot(self.year, self.los, tags="original", point_fill="red",
-                      xtick=self.xtick, ytick=self.ytick, point_width=1,
-                      point_size=3)
-
-        if self.plot_last:
-            self.plt.plot([self.year[0], self.year[-1]], [0.0, self.gnss_last],
-                          points=False, lines=True, tags="gnss")
+        if self.have_gnss:
+            self.plt.cv.delete("gnss")
+            self.plot_gnss()
+        
+        self.plot_original()
     
     def save(self):
         with open(self.savefile, "w") as f:

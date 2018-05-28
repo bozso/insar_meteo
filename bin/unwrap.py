@@ -71,9 +71,15 @@ def unwrap(ib_pair, line, width=750, height=500, grid=0.125):
     root = Tk()
     root.title(infile)
     
-    unw = Unwrapper(root, year, los, gnss_last, infile + ".unw", width=width,
-                    height=height, grid=grid)
-
+    if gnss_last == 0.0:
+        Unwrapper(root, year, los, infile + ".unw", width=width, height=height,
+                  grid=grid)
+    else:
+        Unwrapper(root, year, los, infile + ".unw",
+                  gnss_year=(year[0], year[-1]), gnss_los=(0.0, gnss_last),
+                  width=width, height=height,
+                  grid=grid)
+        
     root.mainloop()
     
     return 0
@@ -84,6 +90,9 @@ def parse_arguments():
 
     parser.add_argument("ib_pair", help="IB pairs to process. E.g. IB3-IB1.",
                         type=str)
+    parser.add_argument("mode", help="type asc or dsc to unwrap ascending or "
+                        "descending phase values", type=str,
+                        choices=("asc", "dsc"))
     parser.add_argument("--width", help="Width of the window.",
                         nargs="?", type=float, default=750)
     parser.add_argument("--height", help="Height of the window.",
@@ -114,9 +123,19 @@ def main():
     else:
         with open(ib_file, "r") as f:
             lines = f.readlines()
+            
+            # swap
+            if "dsc" in lines[0]:
+                tmp = lines[0]
+                lines[0] = lines[1]
+                lines[1] = tmp
+                
+                del tmp
     
-    for line in lines:
-        unwrap(ib_pair, line, width=args.width, height=args.height)
+    if args.mode == "asc":
+        unwrap(ib_pair, lines[0], width=args.width, height=args.height)
+    elif args.mode == "dsc":
+        unwrap(ib_pair, lines[1], width=args.width, height=args.height)
 
     return 0
     

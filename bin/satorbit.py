@@ -1,7 +1,5 @@
-import numpy as np
 import os.path as pth
 
-import aux.insar_aux as ina
 from aux.gmt import GMT
 
 def fit_orbit(orbit_file, preproc, savefile, centered=True, deg=3):

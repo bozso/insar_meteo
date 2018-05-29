@@ -334,31 +334,13 @@ classdef Meteo
         
         
             %% Computing the type of delay
-            if strcmpi(flag_wet_hydro_used,'y')
+            if strcmpi(flag_wet_hydro_used, 'y')
                 d_total = d_hydro + d_wet;
             end
         
-            staux('save_binary', d_total, fullfile(outdir, 'd_total.dat'));
-            staux('save_binary', d_hydro, fullfile(outdir, 'd_hydro.dat'));
-            staux('save_binary', d_wet,   fullfile(outdir, 'd_wet.dat'));
-        
-            %% Converting the Zenith delays to a slant delay
-            %if size(inc_angle, 2) > 1 && size(inc_angle, 1) == 1
-                %inc_angle = inc_angle';
-            %end
-            
-            %if size(inc_angle, 2) == 1
-                %inc_angle = repmat(inc_angle, 1, size(d_total, 2));
-                %if size(inc_angle, 1) == 1
-                    %inc_angle = repmat(inc_angle, size(d_total,1), 1);
-                %end
-            %end
-            
-            % d_total = d_total ./ cos(deg2rad(inc_angle));
-            %% Converting the range delay to a phase delay
-            % converting to phase delay. 
-            % The sign convention is such that ph_corrected = ph_original - ph_tropo*
-            % d_total = -4 * pi ./ lambda .* d_total;    
+            Staux.save_binary(d_total, fullfile(outdir, 'd_total.dat'));
+            Staux.save_binary(d_hydro, fullfile(outdir, 'd_hydro.dat'));
+            Staux.save_binary(d_wet,   fullfile(outdir, 'd_wet.dat'));
         end % total_aps
         
         function Z = geopot2h(geopot, latgrid)
@@ -485,18 +467,18 @@ classdef Meteo
             clear ps ph
             
             % loading zenith delays
-            d_total = staux('load_binary', 'd_total.dat', ncols);
+            d_total = Staux.load_binary('d_total.dat', ncols);
             
             % lon., lat. coordinates (first two columns) are not required
             d_total = d_total(:,3:end);
             
-            d_hydro = staux('load_binary', 'd_hydro.dat', ncols);
+            d_hydro = Staux.load_binary('d_hydro.dat', ncols);
             d_hydro = d_hydro(:,3:end);
             
-            d_wet = staux('load_binary', 'd_wet.dat', ncols);
+            d_wet = Staux.load_binary('d_wet.dat', ncols);
             d_wet = d_wet(:,3:end);
             
-            azi_inc = staux('load_binary', 'azi_inc.dat', 2);
+            azi_inc = Staux.load_binary('azi_inc.dat', 2);
             inc_angle = azi_inc(:,2); clear azi_inc
             
             if size(inc_angle, 2) > 1 && size(inc_angle, 1) == 1
@@ -547,9 +529,75 @@ classdef Meteo
             ylabel('Frequency');
             saveas(h, 'dinv_rms_total.png');
             
-            staux('save_binary', abs_phase, 'dinv_total.dat');
-            staux('save_binary', abs_wet, 'dinv_wet.dat');
+            Staux.save_binary(abs_phase, 'dinv_total.dat');
+            Staux.save_binary(abs_wet, 'dinv_wet.dat');
         end % calc_wv
+        
+        function [] = wet_delay_conversion(ncols, varargin)
+            
+            args = struct('kmodel', 'EF', 'Rd', 287.0562, 'Rw', 461.5254);
+            args = Staux.parse_args(varargin, args);
+            
+            klass = {'char'}; attr = {'nonempty'};
+            attr = {};
+            validateattributes(args.kmodel, klass, attr);
+            
+            klass = {'numeric'}; attr = {'scalar', 'finite', 'real', ...
+                                         'nonnan'};
+            validateattributes(args.Rd, klass, attr);
+            validateattributes(args.Rw, klass, attr);
+            
+            if strcmp(args.kmodel, 'SW')
+                k1 = 0.77607; % K / Pa
+                k2 = 0.716;   % K / Pa
+                k3 = 3.747e3  % K2 / Pa
+            elseif strcmp(args.kmodel, 'EF')
+                k1 = 0.77624; % K / Pa
+                k2 = 0.647;   % K / Pa
+                k3 = 3.719e3  % K2 / Pa
+            elseif strcmp(args.kmodel, 'Th')
+                k1 = 0.77604; % K / Pa
+                k2 = 0.648;   % K / Pa
+                k3 = 3.776e3  % K2 / Pa
+            else
+                error(['Unrecognized model option! kmodel should be either '...
+                       '''EF'', ''SW'' or ''Th''']);
+            end
+            
+            g0 = 9.784 % m / s2
+            
+            abs_wet = Staux.load_binary('dinv_wet.dat', ncols);
+            
+            hgt = load('hgt2');
+            heights = hgt.hgt;
+            clear hgt;
+            
+            lats = abs_wet(:,2);
+            
+            nsar = ncols - 2;
+            
+            gm = g0 ./ (1 - 0.0026 * cos(deg2rad(lats)) - 0.000000 * heights);
+
+            if isrow(gm)
+                gm = gm';
+            end
+            
+            gm = repmat(gm, 1, nsar);
+            
+            factor =   ( (k2 - (Rd / Rw) * k1) * (Rd / 4) ...
+                     + ( (k3 * Rd) / (4 .* gm - Rd * alpha) ) .* (gm ./ Ts) );
+            
+            if isrow(inc_angle)
+                inc_angle = inc_angle';
+            end
+            
+            inc_angle = repmat(inc_angle, 1, nsar);
+
+            % conversion from slant to zenith range and from cm to meters
+            zwd = cos(deg2rad(inc_angle)) .* abs_wet(:,3:end) ./ 100;
+            
+            iwv = zwd .* 1e6 ./ factor;
+        end
         
         function ret = rms(data)
             

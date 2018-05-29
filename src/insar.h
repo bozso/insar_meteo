@@ -1,16 +1,6 @@
 #ifndef INSAR_H
 #define INSAR_H
 
-#ifdef _WIN32
-#ifdef EXPORT_FCNS
-#define EXPORTED_FUNCTION extern "C" __declspec(dllexport)
-#else
-#define EXPORTED_FUNCTION __declspec(dllimport)
-#endif
-#else
-#define EXPORTED_FUNCTION
-#endif
-
 /************************
  * Structs and typedefs *
  ************************/
@@ -31,10 +21,8 @@ typedef struct {
     double t_start, t_stop, t_mean;
 } orbit_fit;
 
-EXPORTED_FUNCTION void azi_inc(cdouble start_t, cdouble stop_t, cdouble mean_t,
-                               double * coeffs, double * coords,
-                               double * mean_coords, double * azi_inc,
-                               uint is_centered, uint deg, uint max_iter,
-                               uint is_lonlat, uint ncoords);
-
+void azi_inc(cdouble start_t, cdouble stop_t, cdouble mean_t,
+             double * coeffs, double * coords, double * mean_coords,
+             double * azi_inc, uint is_centered, uint deg, uint max_iter,
+             uint is_lonlat, uint ncoords);
 #endif

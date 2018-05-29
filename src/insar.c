@@ -17,7 +17,7 @@
  * **********************/
 
 /* Extended malloc function */
-static void * malloc_or_exit(size_t nbytes, const char * file, int line)
+void * malloc_or_exit(size_t nbytes, const char * file, int line)
 {	
     void *x;
 	
@@ -43,14 +43,13 @@ static FILE * sfopen(const char * path, const char * mode)
     return file;
 }
 
-static double norm(cdouble x, cdouble y, cdouble z)
+double norm(cdouble x, cdouble y, cdouble z)
 {
     // vector norm
     return sqrt(x * x + y * y + z * z);
 }
 
-
-static void ell_cart (cdouble lon, cdouble lat, cdouble h,
+void ell_cart (cdouble lon, cdouble lat, cdouble h,
                       double *x, double *y, double *z)
 {
     // from ellipsoidal to cartesian coordinates
@@ -64,7 +63,7 @@ static void ell_cart (cdouble lon, cdouble lat, cdouble h,
 } // end of ell_cart
 
 
-static void cart_ell (cdouble x, cdouble y, cdouble z,
+void cart_ell (cdouble x, cdouble y, cdouble z,
                       double *lon, double *lat, double *h)
 {
     // from cartesian to ellipsoidal coordinates
@@ -242,11 +241,10 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
  * Main functions - calleble from Python *
  *****************************************/
 
-EXPORTED_FUNCTION void azi_inc(cdouble start_t, cdouble stop_t, cdouble mean_t,
-                               double * coeffs, double * coords,
-                               double * mean_coords, double * azi_inc,
-                               uint is_centered, uint deg, uint max_iter,
-                               uint is_lonlat, uint ncoords)
+void azi_inc(cdouble start_t, cdouble stop_t, cdouble mean_t,
+             double * coeffs, double * coords, double * mean_coords,
+             double * azi_inc, uint is_centered, uint deg, uint max_iter,
+             uint is_lonlat, uint ncoords)
 {
     cart sat;
     orbit_fit orb;

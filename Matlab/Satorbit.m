@@ -143,9 +143,10 @@ classdef Satorbit
                 mean_coords = fscanf(fid, 'mean_coords: %f %f %f\n');
             end
             
-            deg = fscanf(fid, 'deg: %d\n')
-            t_start = fscanf(fid, 't_start: %f\n')
+            deg = fscanf(fid, 'deg: %d\n');
+            t_start = fscanf(fid, 't_start: %f\n');
             t_stop  = fscanf(fid, 't_stop: %f\n')
+            %coeffs  = fscanf(fid, 'coeffs: %f\n', [deg + 1, 3])
             
             fclose(fid);
         end % read_fit

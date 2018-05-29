@@ -41,16 +41,17 @@
  * Documentation and argument number checking *
  **********************************************/
 
-#define Mk_Doc(fun_name, doc) char * fun_name ## __doc__ = doc
-#define Print_Doc(fun_name) printf("%s", fun_name ## __doc__)
+#define mk_doc(fun_name, doc) char * fun_name ## __doc__ = doc
+#define print_doc(fun_name) printf("%s", fun_name ## __doc__)
 
-#define Aux_CheckArg(fun_name, num)\
+#define aux_checkarg(fun_name, num)\
 ({\
-    if (argc != ((num) + Min_Arg)) {\
-        error("Required number of arguments is %d, current number of arguments: %d!",\
-              (num), argc - Min_Arg);\
-        Print_Doc(fun_name);\
-        return(Err_Arg);\
+    if (argc != ((num) + min_arg)) {\
+        errorln("Required number of arguments is %d, current number of \
+                 \narguments: %d!",\
+              (num), argc - min_arg);\
+        print_doc(fun_name);\
+        return err_arg;\
     }\
 })
 
@@ -58,20 +59,20 @@
  * SWITCHING BETWEEN MODULES *
  *****************************/
 
-#define Str_IsEqual(string1, string2) (strcmp((string1), (string2)) == 0)
-#define Module_Select(string) Str_IsEqual(argv[1], string)
+#define str_isequal(string1, string2) (strcmp((string1), (string2)) == 0)
+#define module_select(string) str_isequal(argv[1], string)
 
-//----------------------------------------------------------------------
-// ALLOCATION MACROS
-//----------------------------------------------------------------------
+/*********************
+ * ALLOCATION MACROS *
+ *********************/
 
-#define Aux_Malloc(type, num) (type *) \
+#define aux_malloc(type, num) (type *) \
                         malloc_or_exit((num) * sizeof(type), __FILE__, __LINE__)
 	
-#define Aux_Free(pointer) ({ free(pointer); pointer = NULL; })
+#define aux_free(pointer) ({ free(pointer); pointer = NULL; })
 	
-#define Aux_Alloc(type, num) (type *) calloc((num) * sizeof(type))	
-#define Aux_Realloc(pointer, type, size) (pointer) = (type *) \
+#define aux_alloc(type, num) (type *) calloc((num) * sizeof(type))	
+#define aux_realloc(pointer, type, size) (pointer) = (type *) \
                                      realloc(pointer, (size) * sizeof(type))	
 
 /**************************
@@ -98,14 +99,26 @@
 
 #define Log printf("%s\t%d\n", __FILE__, __LINE__)
 
+#define aux_read(file, format, ...)\
+({\
+    if (fscanf(file, format, __VA_ARGS__) <= 0)\
+        return 1;\
+})
+
+#define aux_fopen(file, path, mode)\
+({\
+    if ( (file = fopen(path, mode)) == NULL)\
+        return err_io;\
+})
+
 /***************
  * ERROR CODES *
  ***************/
 
-#define Err_Io -1
-#define Err_Alloc -2
-#define Err_Num -3
-#define Err_Arg -4
+#define err_io -1
+#define err_alloc -2
+#define err_num -3
+#define err_arg -4
 
 // Idx -- column major order
 #define Idx(ii, jj, nrows) (ii) + (jj) * (nrows)

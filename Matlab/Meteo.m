@@ -535,7 +535,8 @@ classdef Meteo
         
         function [] = wet_delay_conversion(ncols, varargin)
             
-            args = struct('kmodel', 'EF', 'Rd', 287.0562, 'Rw', 461.5254);
+            args = struct('kmodel', 'EF', 'Rd', 287.0562, 'Rw', 461.5254, ...
+                          'alpha', -0.0062);
             args = Staux.parse_args(varargin, args);
             
             klass = {'char'}; attr = {'nonempty'};
@@ -544,29 +545,80 @@ classdef Meteo
             
             klass = {'numeric'}; attr = {'scalar', 'finite', 'real', ...
                                          'nonnan'};
-            validateattributes(args.Rd, klass, attr);
-            validateattributes(args.Rw, klass, attr);
+            validateattributes(args.Rd,    klass, attr);
+            validateattributes(args.Rw,    klass, attr);
+            validateattributes(args.alpha, klass, attr);
             
             if strcmp(args.kmodel, 'SW')
                 k1 = 0.77607; % K / Pa
                 k2 = 0.716;   % K / Pa
-                k3 = 3.747e3  % K2 / Pa
+                k3 = 3.747e3; % K2 / Pa
             elseif strcmp(args.kmodel, 'EF')
                 k1 = 0.77624; % K / Pa
                 k2 = 0.647;   % K / Pa
-                k3 = 3.719e3  % K2 / Pa
+                k3 = 3.719e3; % K2 / Pa
             elseif strcmp(args.kmodel, 'Th')
                 k1 = 0.77604; % K / Pa
                 k2 = 0.648;   % K / Pa
-                k3 = 3.776e3  % K2 / Pa
+                k3 = 3.776e3; % K2 / Pa
             else
                 error(['Unrecognized model option! kmodel should be either '...
                        '''EF'', ''SW'' or ''Th''']);
             end
             
-            g0 = 9.784 % m / s2
+            g0 = 9.784; % m / s2
             
+            ifgday_matfile = getparm_aps('ifgday_matfile',1);
+            UTC_sat        =  getparm_aps('UTC_sat', 1);
+            ifgs_dates     = load(ifgday_matfile);
+            
+            dates = ifgs_dates.day;
+            psver = 2;
+            n_dates = length(dates);
+            
+            model_type = 'era';
+            era_data_type = getparm_aps('era_data_type');
+            weather_model_datapath = getparm_aps('era_datapath', 1);
+            
+            % the time interval the model is outputed
+            timelist_model= ['0000' ; '0600' ; '1200' ; '1800' ; '0000'];       
+
+            % Compute based on Satellite pass which weather model outputs 
+            % that will be used
+            [time_before, time_after, date_before, date_after, f_before, ...
+             f_after] = aps_weather_model_times(timelist_model, dates, UTC_sat);
+            
+            %% generating a file 
+            [modelfile_before, modelfile_after] = ...
+            aps_weather_model_filenames(model_type, time_before, time_after, ...
+                                        date_before, date_after, ...
+                                        weather_model_datapath);
+            
+            for d = 1:n_dates                    
+                file_before = modelfile_before(d,:);
+                file_after  = modelfile_after(d,:);
+
+                [Temp_before, e, Geopot, P, longrid, latgrid, xx, yy, ...
+                 lon0360_flag] =  aps_load_era(file_before, era_data_type);
+                
+                [Temp_before, e, Geopot, P, longrid, latgrid] =  ...
+                aps_weather_model_nan_check(Temp_before, e, Geopot, P, longrid, latgrid);
+
+                [Temp_after, e, Geopot, P, longrid, latgrid, xx, yy, ...
+                 lon0360_flag] =  aps_load_era(file_after, era_data_type);
+                
+                [Temp_after, e, Geopot, P, longrid, latgrid] =  ...
+                aps_weather_model_nan_check(Temp_after, e, Geopot, P, longrid, latgrid);
+                
+                size(Temp_before)
+                size(Temp_after)
+                return
+            end
+
             abs_wet = Staux.load_binary('dinv_wet.dat', ncols);
+            azi_inc = Staux.load_binary('azi_inc.dat', 2);
+            inc_angle = azi_inc(:,2);
+            clear azi_inc;
             
             hgt = load('hgt2');
             heights = hgt.hgt;
@@ -576,16 +628,19 @@ classdef Meteo
             
             nsar = ncols - 2;
             
-            gm = g0 ./ (1 - 0.0026 * cos(deg2rad(lats)) - 0.000000 * heights);
-
+            gm = g0 ./ (1 - 0.0026 .* cos(deg2rad(lats)) - 0.00000028 .* heights);
+            
             if isrow(gm)
                 gm = gm';
             end
             
             gm = repmat(gm, 1, nsar);
             
-            factor =   ( (k2 - (Rd / Rw) * k1) * (Rd / 4) ...
-                     + ( (k3 * Rd) / (4 .* gm - Rd * alpha) ) .* (gm ./ Ts) );
+            factor =    ((k2 - (args.Rd / args.Rw) * k1) * (args.Rd / 4) ...
+                     +  ((k3 * args.Rd) ./ (4 .* gm - args.Rd .* args.alpha)) ...
+                     .* (gm ./ Ts));
+            
+            return
             
             if isrow(inc_angle)
                 inc_angle = inc_angle';
@@ -596,7 +651,10 @@ classdef Meteo
             % conversion from slant to zenith range and from cm to meters
             zwd = cos(deg2rad(inc_angle)) .* abs_wet(:,3:end) ./ 100;
             
+            % calculating iwv
             iwv = zwd .* 1e6 ./ factor;
+            
+            Staux.save_binary(iwv, 'iwv.dat');
         end
         
         function ret = rms(data)

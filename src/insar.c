@@ -25,7 +25,7 @@ void * malloc_or_exit(size_t nbytes, const char * file, int line)
     if ((x = malloc(nbytes)) == NULL) {
         errorln("%s:line %d: malloc() of %zu bytes failed",
                 file, line, nbytes);
-        exit(Err_Alloc);
+        exit err_alloc;
     }
     else
         return x;

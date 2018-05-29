@@ -1091,16 +1091,16 @@ classdef Staux
         function loaded = load_binary(path, ncols, varargin)
             
             validateattributes(path, {'char'}, {'nonempty'});
-            validateattributes(ncols, {'numeric'}, {'scalar', 'intiger', ...
+            validateattributes(ncols, {'numeric'}, {'scalar', 'integer', ...
                                        'finite', 'nonnan'});
             
-            args = struct('dtype', 'double');
-            args = Stuax.parse_args(varargin, args);
+            args = struct('dtype', 'double', 'endian', 'n');
+            args = Staux.parse_args(varargin, args);
             dtype = args.dtype;
             
             validateattributes(dtype, {'char'}, {'nonempty'});
             
-            fid = sfopen(path, 'r');
+            fid = sfopen(path, 'r', args.endian);
             loaded = transpose(fread(fid, [ncols, Inf], dtype));
             fclose(fid);
         end

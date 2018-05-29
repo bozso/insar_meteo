@@ -313,7 +313,7 @@ py_ptr azi_inc (PyFun_Varargs)
         FOR(ii, 0, n_coords) {
             lon = Np_delem(a_coords, ii, 0) * DEG2RAD;
             lat = Np_delem(a_coords, ii, 1) * DEG2RAD;
-            h   = Np_delem(a_coords, ii, 2) * DEG2RAD;
+            h   = Np_delem(a_coords, ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, &X, &Y, &Z);

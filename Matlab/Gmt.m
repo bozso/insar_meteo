@@ -148,7 +148,7 @@ classdef Gmt < handle
             end
         end % finalize
         
-        function [] = multiplot(obj, nplots, proj, varargin)
+        function [x, y] = multiplot(obj, nplots, proj, varargin)
         %
         %             |       top           |    
         %        -----+---------------------+----
@@ -188,9 +188,9 @@ classdef Gmt < handle
             % height of a single plot
             pheight = get_height(gmt);
             
-            obj.x = left:(pwidth + xpad):(left + ncols * (pwidth + x_pad));
-            obj.y = (height - top - pheight - y_pad):-(pheight + ypad):...
-                    (height - top - nrows * (pheight + ypad));
+            x = left:(pwidth + xpad):(left + ncols * (pwidth + x_pad));
+            y = (height - top - pheight - y_pad):-(pheight + ypad):...
+                (height - top - nrows * (pheight + ypad));
                 
             %# calculate psbasemap shifts in x and y directions
             %x = (left + ii * (pwidth + x_pad) for jj in range(nrows)

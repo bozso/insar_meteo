@@ -533,7 +533,7 @@ classdef Meteo
             Staux.save_binary(abs_wet, 'dinv_wet.dat');
         end % calc_wv
         
-        function [] = wet_delay_conversion(ncols, varargin)
+        function [] = wet_delay_conversion(nsar, varargin)
             
             args = struct('kmodel', 'EF', 'Rd', 287.0562, 'Rw', 461.5254, ...
                           'alpha', -0.0062);
@@ -594,6 +594,25 @@ classdef Meteo
                                         date_before, date_after, ...
                                         weather_model_datapath);
             
+            % open the netcdf
+            ncid = netcdf.open(modelfile_before(1,:), 'NC_NOWRITE');
+
+            % read netcdf variables and get number of variables
+            [numdims, numvars, numglobalatts, unlimdimid] = netcdf.inq(ncid);      
+            
+            [~, nlon] = netcdf.inqDim(ncid, 0);
+            [~, nlat] = netcdf.inqDim(ncid, 1);
+            
+            netcdf.close(ncid);
+
+            ncols = nsar + 2;
+            
+            abs_wet = Staux.load_binary('dinv_wet.dat', ncols);
+            lon = abs_wet(:,1);
+            lat = abs_wet(:,2);
+            
+            tempi = zeros(size(abs_wet, 1), nsar);
+            
             for d = 1:n_dates                    
                 file_before = modelfile_before(d,:);
                 file_after  = modelfile_after(d,:);
@@ -610,25 +629,25 @@ classdef Meteo
                 [Temp_after, e, Geopot, P, longrid, latgrid] =  ...
                 aps_weather_model_nan_check(Temp_after, e, Geopot, P, longrid, latgrid);
                 
-                size(Temp_before)
-                size(Temp_after)
-                return
-            end
+                temp = 0.5 * (Temp_before(:,:,1) + Temp_after(:,:,1));
 
-            abs_wet = Staux.load_binary('dinv_wet.dat', ncols);
+                longrid = longrid(:,:,1);
+                latgrid = latgrid(:,:,1);
+                
+                tempi(:,d) = interp2(longrid, latgrid, temp(:,:,1), lon, lat);
+            end
+            
+            clear temp Temp_before Temp_after e Geopot P longrid latgrid;
+            
             azi_inc = Staux.load_binary('azi_inc.dat', 2);
             inc_angle = azi_inc(:,2);
             clear azi_inc;
             
             hgt = load('hgt2');
-            heights = hgt.hgt;
+            h = hgt.hgt;
             clear hgt;
             
-            lats = abs_wet(:,2);
-            
-            nsar = ncols - 2;
-            
-            gm = g0 ./ (1 - 0.0026 .* cos(deg2rad(lats)) - 0.00000028 .* heights);
+            gm = g0 ./ (1 - 0.0026 .* cos(deg2rad(lat)) - 0.00000028 .* h);
             
             if isrow(gm)
                 gm = gm';
@@ -638,16 +657,14 @@ classdef Meteo
             
             factor =    ((k2 - (args.Rd / args.Rw) * k1) * (args.Rd / 4) ...
                      +  ((k3 * args.Rd) ./ (4 .* gm - args.Rd .* args.alpha)) ...
-                     .* (gm ./ Ts));
-            
-            return
+                     .* (gm ./ tempi));
             
             if isrow(inc_angle)
                 inc_angle = inc_angle';
             end
             
             inc_angle = repmat(inc_angle, 1, nsar);
-
+            
             % conversion from slant to zenith range and from cm to meters
             zwd = cos(deg2rad(inc_angle)) .* abs_wet(:,3:end) ./ 100;
             

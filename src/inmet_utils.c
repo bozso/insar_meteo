@@ -16,7 +16,6 @@ typedef struct {
     double t_start, t_stop, t_mean;
 } orbit_fit;
 
-
 int read_fit(const char * path, orbit_fit * orb)
 {
     FILE * fit_file = NULL;
@@ -105,9 +104,6 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
     
     const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
     
-    if (is_centered)
-        time -= orb->t_mean;
-    
     if(n_poly == 2) {
         x = coeffs[0] * time + coeffs[1];
         y = coeffs[2] * time + coeffs[3];
@@ -149,9 +145,6 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     uint n_poly = orb->deg + 1;
     
     const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
-    
-    if (orb->is_centered)
-        time -= orb->t_mean;
     
     // linear case 
     if(n_poly == 2) {
@@ -210,17 +203,12 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
 static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
                          cdouble Z, const uint max_iter, cart * sat_pos)
 {
-    // Compute the sat position using closest approche.
+    /* Compute the sat position using closest approche. */
     
     // first, last and middle time, extending the time window by 5 seconds
     double t_start = orb->t_start - 5.0,
            t_stop  = orb->t_stop  + 5.0,
            t_middle;
-
-    if (orb->is_centered) {
-        t_start += orb->t_mean;
-        t_stop  += orb->t_mean;
-    }
     
     // dot products
     double dot_start, dot_middle = 1.0;

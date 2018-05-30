@@ -515,7 +515,7 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
         
     gmt.colorbar(mode=kwargs.pop("mode", "v"), offset=kwargs.pop("offset", 10),
                  B=kwargs.pop("label", ""), C="tmp.cpt",)
-
+    
     os.remove("tmp.cpt")
     
     del gmt

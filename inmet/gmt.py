@@ -1,7 +1,6 @@
 import os
 import os.path as pth
 import subprocess as sub
-import numpy as np
 from shlex import split
 from math import ceil, sqrt
 from distutils.version import StrictVersion
@@ -131,18 +130,6 @@ class GMT(object):
             elif isinstance(data, list) or isinstance(data, tuple):
                 data = ("\n".join(elem for elem in data)).encode()
                 gmt_flags = ""
-            #elif isinstance(data, np.ndarray):
-            ## data is a numpy array
-                #if byte_swap:
-                    #byte_swap = "w"
-                #else:
-                    #byte_swap = ""
-                
-                #if binary is None:
-                    #gmt_flags = "-bi{}d{} ".format(data.shape[1], byte_swap)
-                #else:
-                    #gmt_flags = "-bi{}{} ".format(binary, byte_swap)
-                #data = data.tobytes()
             else:
                 raise ValueError("`data` should be a path to an existing file!")
         else:
@@ -481,16 +468,16 @@ def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
 def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
                  cbar_config={}, axis_config={}, colorscale="drywet",
                  right=100, top=0, left=50, tryaxis=False,
-                 titles=None):
+                 titles=None, **kwargs):
     
-    xy_range = axis_config.pop("xy_range", None)
-    z_range  = axis_config.pop("z_range", None)
+    xy_range = kwargs.pop("xy_range", None)
+    z_range  = kwargs.pop("z_range", None)
     
-    x_axis = axis_config.pop("x_axis", "a0.5g0.25f0.25")
-    y_axis = axis_config.pop("y_axis", "a0.25g0.25f0.25")
+    x_axis = kwargs.pop("x_axis", "a0.5g0.25f0.25")
+    y_axis = kwargs.pop("y_axis", "a0.25g0.25f0.25")
     
-    xy_add = axis_config.pop("xy_add", 0.05)
-    z_add  = axis_config.pop("z_add", 0.1)
+    xy_add = kwargs.pop("xy_add", 0.05)
+    z_add  = kwargs.pop("z_add", 0.1)
     
     # 2 additional coloumns for coordinates
     bindef = "{}d".format(ncols + 2)
@@ -526,15 +513,14 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
             gmt.psxy(data=scatter_file, i=input_format, bi=bindef,
                      S="c0.025c", C="tmp.cpt")
         
-    gmt.colorbar(mode=cbar_config.pop("mode", "v"),
-                 offset=cbar_config.pop("offset", 10),
-                 B=cbar_config.pop("label", ""), C="tmp.cpt",)
+    gmt.colorbar(mode=kwargs.pop("mode", "v"), offset=kwargs.pop("offset", 10),
+                 B=kwargs.pop("label", ""), C="tmp.cpt",)
 
     os.remove("tmp.cpt")
     
     del gmt
 
-def hist(data, ps_file, binwidth=0.1, config={}, binary=None, 
+def hist(data, ps_file, binwidth=0.1, config=None, binary=None, 
          left=50, right=25, top=25, bottom=50, **flags):
     
     ranges = tuple(float(elem)
@@ -730,12 +716,3 @@ _gmt_paper_sizes = {
 "11x17":      [792, 1224],
 "ledger":     [1224, 792],
 }
-
-_np2gmt = {
-    
-}
-
-# get width
-# gmt mapproject $* /dev/null -V 2>&1 | grep Transform | awk -F/ '{print $5}'
-# get height
-# gmt mapproject $* /dev/null -V 2>&1 | grep Transform | awk -F/ '{print $7}' | cut -f1 -d' '

@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse as ap
-from subprocess import call, STDOUT, CalledProcessError
-from shlex import split
-from tkinter import Tk
 
-import aux.satorbit as so
-from aux.tkplot import Plotter, Unwrapper
+import inmet.cwrap as cw
 
 _steps = ["data_select", "dominant", "poly_orbit", "integrate"]
 
@@ -15,62 +11,6 @@ _daisy__doc__=\
 DAISY
 Steps: [{}]
 """.format(", ".join(_steps))
-
-def daisy_cmd(module, *args):
-    """
-    Calls a DAISY module. Arbitrary number of arguments can be passed through
-    `*args`. See documentation of modules' for arguments.
-    The passed arguments will be converted to string joined togerther and
-    appended to the command.
-    
-    Parameters
-    ----------
-    module : str
-        Name of the DAISY module to be called.
-    
-    *args
-        Arbitrary number of arguments, that can be converted to string, i.e.
-        they have a __str__ method.
-    
-    Returns
-    -------
-    ret_code : int
-        Code returned by daisy module.
-    
-    Raises
-    ------
-    CalledProcessError
-        If something went wrong with the calling of the daisy module, e.g.
-        non zero returncode.
-    """
-    
-    command = "daisy {} {}".format(module, " ".join(str(arg) for arg in args))
-    
-    try:
-        ret_code = call(split(command), stderr=STDOUT)
-    except CalledProcessError as e:
-        print("Command failed, command: '{}'".format(command))
-        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
-
-        ret_code = e.returncode
-        print("RETURNCODE: \n{}".format(ret_code))
-        exit(ret_code)
-    
-    return ret_code
-    
-def data_select(in_asc, in_dsc, ps_sep=100.0):
-    daisy_cmd("data_select", in_asc, in_dsc, ps_sep)
-
-def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0):
-    daisy_cmd("dominant", in_asc, in_dsc, ps_sep)
-
-def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4):
-    daisy_cmd("poly_orbit", asc_orbit, deg)
-    daisy_cmd("poly_orbit", dsc_orbit, deg)
-
-def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
-              dsc_fit_orbit="dsc_master.porb"):
-    daisy_cmd("integrate", dominant, asc_fit_orbit, dsc_fit_orbit)
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=_daisy__doc__,
@@ -131,16 +71,16 @@ def main():
     ps_sep = args.ps_sep
     
     if start == 0:
-        data_select(args.in_asc, args.in_dsc, ps_sep=ps_sep)
+        cw.data_select(args.in_asc, args.in_dsc, ps_sep=ps_sep)
     
     if start <= 1 and stop >= 1:
-        dominant(ps_sep=ps_sep)
+        cw.dominant(ps_sep=ps_sep)
 
     if start <= 2 and stop >= 2:
-        poly_orbit(asc_orbit=args.orb_asc, dsc_orbit=args.orb_dsc, deg=args.deg)
+        cw.poly_orbit(asc_orbit=args.orb_asc, dsc_orbit=args.orb_dsc, deg=args.deg)
     
     if stop == 3:
-        integrate()
+        cw.integrate()
     
     return 0
     

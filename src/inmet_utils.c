@@ -214,8 +214,13 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     
     // first, last and middle time, extending the time window by 5 seconds
     double t_start = orb->t_start - 5.0,
-           t_stop  = orb->t_stop + 5.0,
+           t_stop  = orb->t_stop  + 5.0,
            t_middle;
+
+    if (orb->is_centered) {
+        t_start += orb->t_mean;
+        t_stop  += orb->t_mean;
+    }
     
     // dot products
     double dot_start, dot_middle = 1.0;
@@ -251,14 +256,14 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
  ***********************************************/
 
 mk_doc(azi_inc,
-" Usage: satorbit azi_inc fit_file infile mode max_iter outfile\
-\n \
-\n fit_file - ascii file with fit parameters\
-\n infile   - inputfile with coordinates\
-\n mode     - xyz for WGS-84 coordinates, llh for WGS-84 lon., lat., height\
-\n max_iter - maximum number of iterations when calculating closest approache\
-\n outfile  - binary output will be printed to this file\
-\n");
+"\n Usage: inmet_utils azi_inc fit_file coords mode max_iter outfile\
+ \n \
+ \n fit_file - ascii file with fit parameters\
+ \n coords   - inputfile with coordinates\
+ \n mode     - xyz for WGS-84 coordinates, llh for WGS-84 lon., lat., height\
+ \n max_iter - maximum number of iterations when calculating closest approache\
+ \n outfile  - binary output will be printed to this file\
+ \n\n");
 
 int azi_inc(int argc, char **argv)
 {

@@ -47,8 +47,7 @@
 #define aux_checkarg(fun_name, num)\
 ({\
     if (argc != ((num) + min_arg)) {\
-        errorln("Required number of arguments is %d, current number of \
-                 \narguments: %d!",\
+        errorln("Required number of arguments is %d, current number of arguments: %d!",\
               (num), argc - min_arg);\
         print_doc(fun_name);\
         return err_arg;\

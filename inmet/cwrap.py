@@ -1,10 +1,11 @@
 import os
 import subprocess as sub
 from shlex import split
+import os.path as pth
 
-from gmt import get_version, _gmt_five
+from inmet.gmt import get_version, _gmt_five
 
-def cmd(Cmd, *args):
+def cmd(Cmd, *args, ret_out=False):
     """
     Calls a C module. Arbitrary number of arguments can be passed through
     `*args`. See documentation of modules' for arguments.
@@ -22,29 +23,27 @@ def cmd(Cmd, *args):
     
     Returns
     -------
-    ret_code : int
-        Code returned by daisy module.
+    ret_out : byte-string
+        Output of called module.
     
     Raises
     ------
     CalledProcessError
-        If something went wrong with the calling of the daisy module, e.g.
+        If something went wrong with the calling of the module, e.g.
         non zero returncode.
     """
     
     command = "{} {}".format(Cmd, " ".join(str(arg) for arg in args))
     
     try:
-        ret_code = call(split(command), stderr=STDOUT)
-    except CalledProcessError as e:
-        print("Command failed, command: '{}'".format(command))
+        cmd_out = sub.check_output(split(command), stderr=sub.STDOUT)
+    except sub.CalledProcessError as e:
+        print("ERROR: Non zero returncode from command: '{}'".format(cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
-
-        ret_code = e.returncode
-        print("RETURNCODE: \n{}".format(ret_code))
-        exit(ret_code)
+        print("RETURNCODE was: {}".format(e.returncode))
     
-    return ret_code
+    if ret_out:
+        return cmd_out
 
 # *****************
 # * DAISY Modules *
@@ -88,9 +87,10 @@ def fit_orbit(path, preproc, savefile, deg=3):
                              "number of datapoints.")
     
         idx = data_num[0][0]
+        data_num = int(data_num[0][1].split(":")[1])
         
         with open("coords.txyz", "w") as f:
-            f.write("\n".join(lines[idx + 1:idx + data_num + 1]))
+            f.write("".join(lines[idx + 1:idx + data_num + 1]))
     
     elif preproc == "gamma":
         data_num = [(ii, line) for ii, line in enumerate(lines)
@@ -116,9 +116,14 @@ def fit_orbit(path, preproc, savefile, deg=3):
     ver = get_version()
     
     if ver > _gmt_five:
-        cmd = "gmt trend1d "
+        Cmd = "gmt trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
+    else:
+        Cmd = "trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
     
-    os.remove("coords.txyz")
+    out = (cmd(Cmd.format(deg, ii + 1), ret_out=True) for ii in range(3))
+    
+    with open(savefile, "wb") as f:
+        f.write(b"\n".join(elem for elem in out))
     
 def get_par(parameter, search, sep=":"):
 

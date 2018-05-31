@@ -227,7 +227,7 @@ classdef Meteo
             n_ifg = ps.n_ifg;
         
             % constructing the matrix with master and slave dates
-            if sb_flag ==1
+            if sb_flag == 1
                 % for SB
                 ifg_number = [1:n_ifg]';
                 ifgday_ix = ps.ifgday_ix;
@@ -237,21 +237,21 @@ classdef Meteo
         
                 % defining ix interferograms for which the delay needs to 
                 % be computed
-                ifgs_ix = [ifgday_ix ifg_number];
+                ifgs_ix = [ifgday_ix, ifg_number];
             else
                 % slightly different for PS.
                 date_slave_ix = [1:n_ifg]';
                 ifg_number = [1:n_ifg]';
         
                 % removing those interferograms that have been dropped
-                date_slave_ix(drop_ifg_index)=[];
-                ifg_number(drop_ifg_index)=[];
+                date_slave_ix(drop_ifg_index) = [];
+                ifg_number(drop_ifg_index)    = [];
         
                 % the master dates
-                date_master_ix = repmat(ps.master_ix,size(date_slave_ix,1),1);
+                date_master_ix = repmat(ps.master_ix,size(date_slave_ix, 1), 1);
         
                 % ix interferograms
-                ifgs_ix = [date_master_ix date_slave_ix ifg_number];
+                ifgs_ix = [date_master_ix, date_slave_ix, ifg_number];
             end
             
             n_dates = length(dates);
@@ -535,9 +535,12 @@ classdef Meteo
         
         function [] = wet_delay_conversion(nsar, varargin)
             
-            args = struct('kmodel', 'EF', 'Rd', 287.0562, 'Rw', 461.5254, ...
+            args = struct('kmodel', 'EF', 'Rd', 287.0583, 'Rw', 461.5254, ...
                           'alpha', -0.0062);
             args = Staux.parse_args(varargin, args);
+
+            Rd = args.Rd;
+            Rw = args.Rw
             
             klass = {'char'}; attr = {'nonempty'};
             attr = {};
@@ -545,8 +548,8 @@ classdef Meteo
             
             klass = {'numeric'}; attr = {'scalar', 'finite', 'real', ...
                                          'nonnan'};
-            validateattributes(args.Rd,    klass, attr);
-            validateattributes(args.Rw,    klass, attr);
+            validateattributes(Rd,         klass, attr);
+            validateattributes(Rw,         klass, attr);
             validateattributes(args.alpha, klass, attr);
             
             if strcmp(args.kmodel, 'SW')
@@ -572,6 +575,8 @@ classdef Meteo
             UTC_sat        =  getparm_aps('UTC_sat', 1);
             ifgs_dates     = load(ifgday_matfile);
             
+            %t_sat = str2num(UTC_sat(1:2)) + str2num(
+            %return
             dates = ifgs_dates.day;
             psver = 2;
             n_dates = length(dates);
@@ -630,11 +635,16 @@ classdef Meteo
                 aps_weather_model_nan_check(Temp_after, e, Geopot, P, longrid, latgrid);
                 
                 temp = 0.5 * (Temp_before(:,:,1) + Temp_after(:,:,1));
-
-                longrid = longrid(:,:,1);
-                latgrid = latgrid(:,:,1);
                 
-                tempi(:,d) = interp2(longrid, latgrid, temp(:,:,1), lon, lat);
+                T =   Temp_before(:,:,1) * f_before(d) ...
+                    + Temp_after(:,:,1)  * f_after(d);
+                
+                %figure; imagesc(Temp_before(:,:, 1));
+                %figure; imagesc(Temp_after(:,:, 1));
+                %figure; imagesc(T);
+                
+                tempi(:,d) = interp2(longrid(:,:,1), latgrid(:,:,1), ...
+                                     T, lon, lat);
             end
             
             clear temp Temp_before Temp_after e Geopot P longrid latgrid;
@@ -655,9 +665,11 @@ classdef Meteo
             
             gm = repmat(gm, 1, nsar);
             
-            factor =    ((k2 - (args.Rd / args.Rw) * k1) * (args.Rd / 4) ...
-                     +  ((k3 * args.Rd) ./ (4 .* gm - args.Rd .* args.alpha)) ...
-                     .* (gm ./ tempi));
+            % conversion factor between ZWD and IWD
+            % ZWD = 10^(-6) * factor IWV
+            factor = ((k2 - Rd / Rw * k1) * Rd / 4 ...
+                       +  k3 * Rd ./ (4 .* gm - Rd .* args.alpha) ...
+                       .* gm ./ tempi);
             
             if isrow(inc_angle)
                 inc_angle = inc_angle';

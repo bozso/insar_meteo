@@ -15,10 +15,27 @@ from six import string_types
 
 # plotting functions that will use the common output filename, flags and
 # the -K and -O flags
-_plotters = ["grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
+_plotters = ("grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
              "psclip", "pscoast", "pscontour", "pshistogram", "psimage",
              "pslegend", "psmask", "psrose", "psscale", "pstext", "pswiggle",
-             "psxy", "psxyz", "gmtlogo"]
+             "psxy", "psxyz", "gmtlogo")
+
+_gmt_commands = ('grdcontour', 'grdimage', 'grdvector', 'grdview', 
+'psbasemap', 'psclip', 'pscoast', 'pscontour', 'pshistogram', 'psimage', 
+'pslegend', 'psmask', 'psrose', 'psscale', 'pstext', 'pswiggle', 'psxy', 
+'psxyz', 'gmtlogo', 'blockmean', 'blockmedian', 'blockmode', 'filter1d', 
+'fitcircle', 'gmt2kml', 'gmt5syntax', 'gmtconnect', 'gmtconvert', 
+'gmtdefaults', 'gmtget', 'gmtinfo', 'gmtlogo', 'gmtmath', 'gmtregress', 
+'gmtselect', 'gmtset', 'gmtsimplify', 'gmtspatial', 'gmtvector', 'gmtwhich',
+'grd2cpt', 'grd2rgb', 'grd2xyz', 'grdblend', 'grdclip', 'grdcontour', 
+'grdconvert', 'grdcut', 'grdedit', 'grdfft', 'grdfilter', 'grdgradient', 
+'grdhisteq', 'grdimage', 'grdinfo', 'grdlandmask', 'grdmask', 'grdmath', 
+'grdpaste', 'grdproject', 'grdraster', 'grdsample', 'grdtrack', 'grdtrend', 
+'grdvector', 'grdview', 'grdvolume', 'greenspline', 'kml2gmt', 'mapproject',
+'nearneighbor', 'project', 'sample1d', 'spectrum1d', 'sph2grd', 
+'sphdistance', 'sphinterpolate', 'sphtriangulate', 'splitxyz', 'surface', 
+'trend1d', 'trend2d', 'triangulate', 'xyz2grd')
+            
 
 class GMT(object):
     def __init__(self, out, debug=False, config=None, **common_flags):
@@ -504,7 +521,7 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
     
     for ii in idx:
         input_format = "0,1,{}".format(ii + 2)
-        gmt.psbasemap(Xf=str(x[ii]) + "p", Yf=str(y[ii]) + "p",
+        gmt.psbasemap(Xf="{}p".format(x[ii]), Yf="{}p".format(y[ii]),
                       B="WSen+t{}".format(titles[ii]), Bx=x_axis, By=y_axis)
         
         # do not plot the scatter points yet just see the placement of

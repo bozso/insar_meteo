@@ -44,6 +44,11 @@ classdef Staux
         % TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
         % SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         
+        %if length(args) == 0
+            %argStruct = defArgStruct;
+            %return;
+        %end
+        
         if nargin < 3
             flagParamNames = {};
         end
@@ -299,10 +304,6 @@ classdef Staux
             
             args = struct('scla', 0);
             args = Staux.parse_args(varargin, args, {'scla'});
-            
-            if ~iscalar(numiter) | numiter < 0.0
-                error('numiter should be a positive intiger!');
-            end
             
             if args.scla
                 end_step = 7;
@@ -878,9 +879,9 @@ classdef Staux
             validateattributes(data, {'numeric'}, {'nonempty', 'finite', ...
                                       'ndims', 2});
         
-            args = struct('out', nan, 'psize', 1.0, 'lon_rg', [], 'lat_rg', [], ...
+            args = struct('out', '', 'psize', 1.0, 'lon_rg', [], 'lat_rg', [], ...
                           'clims', 'auto');
-            args = Staux.parse_args(varargin, args)
+            args = Staux.parse_args(varargin, args);
             
             out    = args.out;
             psize  = args.psize;
@@ -888,13 +889,11 @@ classdef Staux
             lat_rg = args.lat_rg;
             clims  = args.clims;
             
-            klass = {'numeric'};
-            validateattributes(out, {'char'});
-            validateattributes(psize, klass, {'scalar', 'positive', 'nonnan', ...
-                               'finite'});
-            validateattributes(lon_rg, klass, {'vector'});
-            validateattributes(lat_rg, klass, {'vector'});
-            validateattributes(clims, {'char', 'numeric'});
+            validateattributes(out, {'char'}, {});
+            validateattributes(psize, {'numeric'}, ...
+                                      {'scalar', 'positive', 'nonnan', ...
+                                       'finite'});
+            validateattributes(clims, {'char', 'numeric'}, {});
             
             ncols = size(data, 2);
             
@@ -911,7 +910,7 @@ classdef Staux
                 fcols = ceil(ncols / frows);
             end
             
-            if isnan(out)
+            if isempty(out)
                 h = figure();
             else
                 h = figure('visible', 'off');

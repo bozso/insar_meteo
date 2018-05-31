@@ -3,7 +3,7 @@ import subprocess as sub
 from shlex import split
 import os.path as pth
 
-from inmet.gmt import get_version, _gmt_five
+from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands
 
 def cmd(Cmd, *args, ret_out=False):
     """
@@ -33,10 +33,10 @@ def cmd(Cmd, *args, ret_out=False):
         non zero returncode.
     """
     
-    command = "{} {}".format(Cmd, " ".join(str(arg) for arg in args))
+    Cmd = "{} {}".format(Cmd, " ".join(str(arg) for arg in args))
     
     try:
-        cmd_out = sub.check_output(split(command), stderr=sub.STDOUT)
+        cmd_out = sub.check_output(split(Cmd), stderr=sub.STDOUT)
     except sub.CalledProcessError as e:
         print("ERROR: Non zero returncode from command: '{}'".format(cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))

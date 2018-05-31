@@ -24,7 +24,7 @@ def main():
     
     plot_scatter(infile1 , 70, "iwv.ps", config=config, idx=idx,
                  mode="v", offset=25, label="10:IWV:/:kgm-2:",
-                 titles=titles, z_range=(0, 220))
+                 titles=titles, z_range=(0, 30))
     
     return
     

@@ -451,7 +451,7 @@ classdef Meteo
             setparm_aps('region_lat', [min_lat - lat_add, max_lat - lat_add]);
         end % aps_setup
         
-        function [] = calc_wv()
+        function [] = calc_delay()
         
             lambda = getparm_aps('lambda', 1) * 100;
             
@@ -486,37 +486,40 @@ classdef Meteo
             end
             
             if size(inc_angle, 2) == 1
-                inc_angle = repmat(inc_angle, 1, size(d_total, 2));
+                inc_angle = repmat(inc_angle, 1, size(phase, 2));
                 if size(inc_angle, 1) == 1
-                    inc_angle = repmat(inc_angle, size(d_total, 1), 1);
+                    inc_angle = repmat(inc_angle, size(phase, 1), 1);
                 end
             end
             
             % Converting the zenith delays to slant delays 
-            d_total = d_total ./ cos(deg2rad(inc_angle));
-            d_hydro = d_hydro ./ cos(deg2rad(inc_angle));
-            % phase = phase .* cos(deg2rad(inc_angle));
-            
-            %% Converting the range delay to a phase delay
-            % The sign convention is such that ph_corrected = ph_original - ph_tropo*
+            % d_total = d_total ./ cos(deg2rad(inc_angle));
+            % d_hydro = d_hydro ./ cos(deg2rad(inc_angle));
+
+            % Converting the phase delay to range delay
+            % and projecting it to zenith direction
+            phase = - (lambda / (4 * pi)) .* phase .* cos(deg2rad(inc_angle));
             
             % d_total = -4 * pi ./ lambda .* d_total;
             
-            % converting phase to delay
-            phase = - (lambda / (4 * pi))  .* phase;
-        
             % calculate average total delay for each SAR acquisition
             % d_avg = mean(d_total, 2);
             d_sum = sum(d_total, 2);
             
-            abs_phase = transpose(invert_abs(phase, 'master_idx', master_idx, ...
-                                             'last_row', d_sum));
+            abs_phase = Meteo.invert_abs(phase, 'master_idx', master_idx, ...
+                                             'last_row', d_sum)';
             abs_wet = abs_phase - d_hydro;
             
+            figure; hist(reshape(abs_wet, 1, []));
+            figure; hist(reshape(d_wet, 1, []));
+            
+            figure; hist(reshape(abs_phase, 1, []));
+            figure; hist(reshape(d_total, 1, []));
+            return
             h = figure('visible', 'off');
             hist(rms(abs_wet - d_wet));
-            title(['Distribution of the difference RMS values between inverted ', 
-                    'and weather model water vapour slant delay values.']);
+            title(['Distribution of the difference RMS values between inverted ', ...
+                    'and weather model water vapour zenith delay values.']);
             xlabel('RMS difference for IFGs [cm]');
             ylabel('Frequency');
             saveas(h, 'dinv_rms_wv.png');
@@ -524,7 +527,7 @@ classdef Meteo
             h = figure('visible', 'off');
             hist(rms(abs_phase - d_total));
             title(['Distribution of the difference RMS values between inverted ', ...
-                   'and weather model total slant delay values.']);
+                   'and weather model total zenith delay values.']);
             xlabel('RMS difference for IFGs [cm]');
             ylabel('Frequency');
             saveas(h, 'dinv_rms_total.png');
@@ -540,7 +543,7 @@ classdef Meteo
             args = Staux.parse_args(varargin, args);
 
             Rd = args.Rd;
-            Rw = args.Rw
+            Rw = args.Rw;
             
             klass = {'char'}; attr = {'nonempty'};
             attr = {};
@@ -575,8 +578,6 @@ classdef Meteo
             UTC_sat        =  getparm_aps('UTC_sat', 1);
             ifgs_dates     = load(ifgday_matfile);
             
-            %t_sat = str2num(UTC_sat(1:2)) + str2num(
-            %return
             dates = ifgs_dates.day;
             psver = 2;
             n_dates = length(dates);
@@ -616,7 +617,7 @@ classdef Meteo
             lon = abs_wet(:,1);
             lat = abs_wet(:,2);
             
-            tempi = zeros(size(abs_wet, 1), nsar);
+            Ts = zeros(size(abs_wet, 1), nsar);
             
             for d = 1:n_dates                    
                 file_before = modelfile_before(d,:);
@@ -638,50 +639,33 @@ classdef Meteo
                 
                 T =   Temp_before(:,:,1) * f_before(d) ...
                     + Temp_after(:,:,1)  * f_after(d);
-                
-                %figure; imagesc(Temp_before(:,:, 1));
-                %figure; imagesc(Temp_after(:,:, 1));
-                %figure; imagesc(T);
-                
-                tempi(:,d) = interp2(longrid(:,:,1), latgrid(:,:,1), ...
-                                     T, lon, lat);
+
+                Ts(:,d) = interp2(longrid(:,:,1), latgrid(:,:,1), ...
+                                  T, lon, lat);
             end
-            
             clear temp Temp_before Temp_after e Geopot P longrid latgrid;
-            
-            azi_inc = Staux.load_binary('azi_inc.dat', 2);
-            inc_angle = azi_inc(:,2);
-            clear azi_inc;
             
             hgt = load('hgt2');
             h = hgt.hgt;
             clear hgt;
             
-            gm = g0 ./ (1 - 0.0026 .* cos(deg2rad(lat)) - 0.00000028 .* h);
             
-            if isrow(gm)
-                gm = gm';
-            end
+            %if isrow(gm)
+                %gm = gm';
+            %end
             
-            gm = repmat(gm, 1, nsar);
+            %gm = repmat(gm, 1, nsar);
             
-            % conversion factor between ZWD and IWD
-            % ZWD = 10^(-6) * factor IWV
-            factor = ((k2 - Rd / Rw * k1) * Rd / 4 ...
-                       +  k3 * Rd ./ (4 .* gm - Rd .* args.alpha) ...
-                       .* gm ./ tempi);
+            % conversion factor between ZWD and IWV
+            % ZWD = Q * IWV
+            Tm = 70.2 + 0.72 .* Ts;
+            Q = 1e-6 .* (k2 - (Rd / Rw) * k1 + (k3 ./ Tm)) * Rw;
             
-            if isrow(inc_angle)
-                inc_angle = inc_angle';
-            end
-            
-            inc_angle = repmat(inc_angle, 1, nsar);
-            
-            % conversion from slant to zenith range and from cm to meters
-            zwd = cos(deg2rad(inc_angle)) .* abs_wet(:,3:end) ./ 100;
-            
+            % conversion from cm to meters
+            zwd = abs_wet(:,3:end) ./ 100;
+
             % calculating iwv
-            iwv = zwd .* 1e6 ./ factor;
+            iwv = zwd  ./ Q;
             
             Staux.save_binary(iwv, 'iwv.dat');
         end
@@ -690,6 +674,11 @@ classdef Meteo
             
             validateattributes(data, {'numeric'}, {'finite', '2d', 'nonnan'});
             ret = sqrt( mean(data.^2, 2) );
+        end
+        
+        function gm = gravi(lat, h)
+        % Saastamoinen 1972
+            gm = g0 ./ (1 - 0.0026 .* cos(2 .* deg2rad(lat)) - 0.00000028 .* h);
         end
     end % methods
 end % Meteo

@@ -346,7 +346,7 @@ classdef Meteo
         function Z = geopot2h(geopot, latgrid)
             
             klass = {'numeric'};
-            attr = {'2d', 'finite', 'nonnan', 'nonempty'};
+            attr = {'finite', 'nonnan', 'nonempty'};
             validateattributes(geopot, klass, attr);
             validateattributes(latgrid, klass, attr);
             
@@ -354,16 +354,18 @@ classdef Meteo
             % Geometric Height
             g0 = 9.80665;
             % Calculate Geopotential Height, H
-            H = geopot./g0;
+            H = geopot ./ g0;
         
             % map of g with latitude
-            g = 9.80616.*(1 - 0.002637.*cosd(2.*latgrid) + ...
-                          0.0000059.*(cosd(2.*latgrid)).^2);
+            g = 9.80616 .* (1 - 0.002637 .* cosd(2 .* latgrid) ...
+                              + 0.0000059 .* (cosd(2 .* latgrid)).^2);
+            
             % map of Re with latitude
             Rmax = 6378137; 
             Rmin = 6356752;
-            Re =   sqrt(1./(((cosd(latgrid).^2)./Rmax^2) ...
-                 + ((sind(latgrid).^2)./Rmin^2)));
+            
+            Re =   sqrt(1 ./ (((cosd(latgrid).^2) ./ Rmax^2) ...
+                        + ((sind(latgrid).^2) ./ Rmin^2)));
         
             % Calculate Geometric Height, Z
             Z = (H .* Re) ./ (g / g0 .* Re - H);
@@ -507,15 +509,9 @@ classdef Meteo
             d_sum = sum(d_total, 2);
             
             abs_phase = Meteo.invert_abs(phase, 'master_idx', master_idx, ...
-                                             'last_row', d_sum)';
+                                                'last_row', d_sum)';
             abs_wet = abs_phase - d_hydro;
             
-            figure; hist(reshape(abs_wet, 1, []));
-            figure; hist(reshape(d_wet, 1, []));
-            
-            figure; hist(reshape(abs_phase, 1, []));
-            figure; hist(reshape(d_total, 1, []));
-            return
             h = figure('visible', 'off');
             hist(rms(abs_wet - d_wet));
             title(['Distribution of the difference RMS values between inverted ', ...
@@ -572,8 +568,6 @@ classdef Meteo
                        '''EF'', ''SW'' or ''Th''']);
             end
             
-            g0 = 9.784; % m / s2
-            
             ifgday_matfile = getparm_aps('ifgday_matfile',1);
             UTC_sat        =  getparm_aps('UTC_sat', 1);
             ifgs_dates     = load(ifgday_matfile);
@@ -619,42 +613,54 @@ classdef Meteo
             
             Ts = zeros(size(abs_wet, 1), nsar);
             
+            era_iwv = zeros(size(abs_wet, 1), nsar);
+            
             for d = 1:n_dates                    
                 file_before = modelfile_before(d,:);
                 file_after  = modelfile_after(d,:);
 
-                [Temp_before, e, Geopot, P, longrid, latgrid, xx, yy, ...
+                [Temp_before, e_before, geop_before, P, longrid, latgrid, xx, yy, ...
                  lon0360_flag] =  aps_load_era(file_before, era_data_type);
                 
-                [Temp_before, e, Geopot, P, longrid, latgrid] =  ...
-                aps_weather_model_nan_check(Temp_before, e, Geopot, P, longrid, latgrid);
+                [Temp_before, e_before, geop_before, P, longrid, latgrid] =  ...
+                aps_weather_model_nan_check(Temp_before, e_before, geop_before, P, ...
+                                            longrid, latgrid);
 
-                [Temp_after, e, Geopot, P, longrid, latgrid, xx, yy, ...
+                [Temp_after, e_after, geop_after, P, longrid, latgrid, xx, yy, ...
                  lon0360_flag] =  aps_load_era(file_after, era_data_type);
                 
-                [Temp_after, e, Geopot, P, longrid, latgrid] =  ...
-                aps_weather_model_nan_check(Temp_after, e, Geopot, P, longrid, latgrid);
-                
-                temp = 0.5 * (Temp_before(:,:,1) + Temp_after(:,:,1));
+                [Temp_after, e_after, geop_after, P, longrid, latgrid] =  ...
+                aps_weather_model_nan_check(Temp_after, e_after, geop_after, P, ...
+                                            longrid, latgrid);
                 
                 T =   Temp_before(:,:,1) * f_before(d) ...
                     + Temp_after(:,:,1)  * f_after(d);
-
+                
+                e = e_before * f_before(d) + e_after * e_after(d);
+                Z = Meteo.geopot2h(  geop_before * f_before(d) ...
+                                   + geop_after * f_after(d), latgrid);
+                
                 Ts(:,d) = interp2(longrid(:,:,1), latgrid(:,:,1), ...
                                   T, lon, lat);
+                
+                [nrow, ncol, ~] = size(e);
+                iwv = zeros(nrow, ncol);
+                
+                for jj = 1:ncol
+                    for ii = 1:nrow
+                        %figure; hist(squeeze(e(ii,jj,:)) ./ 100); return
+                        iwv(ii, jj) = trapz(squeeze(e(ii,jj,:)));
+                                            %squeeze(e(ii,jj,:)) ./ 100);
+                        
+                    end
+                end
+                figure; imagesc(iwv); colorbar; return
             end
             clear temp Temp_before Temp_after e Geopot P longrid latgrid;
             
             hgt = load('hgt2');
             h = hgt.hgt;
             clear hgt;
-            
-            
-            %if isrow(gm)
-                %gm = gm';
-            %end
-            
-            %gm = repmat(gm, 1, nsar);
             
             % conversion factor between ZWD and IWV
             % ZWD = Q * IWV
@@ -666,6 +672,11 @@ classdef Meteo
 
             % calculating iwv
             iwv = zwd  ./ Q;
+            
+            h = figure('Visible', 'off');
+            hist(reshape(iwv, 1, []), 25);
+            xlabel('IWV / kgm-2 or PWV / mm');
+            saveas(h, 'iwv_hist.png');
             
             Staux.save_binary(iwv, 'iwv.dat');
         end

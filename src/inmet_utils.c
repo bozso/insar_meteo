@@ -16,7 +16,7 @@ typedef struct {
     double t_start, t_stop, t_mean;
 } orbit_fit;
 
-int read_fit(const char * path, orbit_fit * orb)
+static int read_fit(const char * path, orbit_fit * orb)
 {
     FILE * fit_file = NULL;
     uint centered, deg;
@@ -259,8 +259,8 @@ int azi_inc(int argc, char **argv)
     
     FILE *infile, *outfile;
     uint is_lonlat, max_iter = atoi(argv[5]), ndata = 0;
-    cart sat, coord_xyz;
-    llh coord_llh;
+    cart sat;
+    double coords[3];
     orbit_fit orb;
     
     // topocentric parameters in PS local system
@@ -280,10 +280,10 @@ int azi_inc(int argc, char **argv)
     
     // infile contains lon, lat, h
     if (str_isequal(argv[4], "llh")) {
-        while (fread(&coord_llh, sizeof(llh), 1, infile) > 0) {
-            lon = coord_llh.lon * DEG2RAD;
-            lat = coord_llh.lat * DEG2RAD;
-            h   = coord_llh.h;
+        while (fread(coords, sizeof(double), 3, infile) > 0) {
+            lon = coords[0] * DEG2RAD;
+            lat = coords[1] * DEG2RAD;
+            h   = coords[2];
             
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, &X, &Y, &Z);
@@ -333,10 +333,10 @@ int azi_inc(int argc, char **argv)
     }
     // infile contains X, Y, Z
     else if (str_isequal(argv[4], "xyz")) {
-        while (fread(&coord_xyz, sizeof(cart), 1, infile) > 0) {
+        while (fread(coords, sizeof(double), 3, infile) > 0) {
             
             // calulate surface WGS-84 Cartesian coordinates
-            ell_cart(lon, lat, h, &coord_xyz.x, &coord_xyz.y, &coord_xyz.z);
+            ell_cart(lon, lat, h, &coords[0], &coords[1], &coords[2]);
             
             // satellite closest approache cooridantes
             closest_appr(&orb, X, Y, Z, max_iter, &sat);

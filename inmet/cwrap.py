@@ -5,7 +5,7 @@ import os.path as pth
 
 from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands
 
-def cmd(Cmd, *args, ret_out=False):
+def cmd(Cmd, *args, rout=False):
     """
     Calls a C module. Arbitrary number of arguments can be passed through
     `*args`. See documentation of modules' for arguments.
@@ -38,37 +38,41 @@ def cmd(Cmd, *args, ret_out=False):
     try:
         cmd_out = sub.check_output(split(Cmd), stderr=sub.STDOUT)
     except sub.CalledProcessError as e:
-        print("ERROR: Non zero returncode from command: '{}'".format(cmd))
+        print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
-    if ret_out:
+    print(cmd_out.decode())
+    
+    if rout:
         return cmd_out
 
 # *****************
 # * DAISY Modules *
 # *****************
 
-def data_select(in_asc, in_dsc, ps_sep=100.0):
-    cmd("daisy data_select", in_asc, in_dsc, ps_sep)
+def data_select(in_asc, in_dsc, ps_sep=100.0, **kwargs):
+    cmd("daisy data_select", in_asc, in_dsc, ps_sep, **kwargs)
 
-def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0):
-    cmd("daisy dominant", in_asc, in_dsc, ps_sep)
+def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0,
+             **kwargs):
+    cmd("daisy dominant", in_asc, in_dsc, ps_sep, **kwargs)
 
-def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4):
-    cmd("daisy poly_orbit", asc_orbit, deg)
-    cmd("daisy poly_orbit", dsc_orbit, deg)
+def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4,
+               **kwargs):
+    cmd("daisy poly_orbit", asc_orbit, deg, **kwargs)
+    cmd("daisy poly_orbit", dsc_orbit, deg, **kwargs)
 
 def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
-              dsc_fit_orbit="dsc_master.porb"):
-    cmd("daisy integrate", dominant, asc_fit_orbit, dsc_fit_orbit)
+              dsc_fit_orbit="dsc_master.porb", **kwargs):
+    cmd("daisy integrate", dominant, asc_fit_orbit, dsc_fit_orbit, **kwargs)
 
-# ****************
-# * Util Modules *
-# ****************
+# *****************
+# * INMET Modules *
+# *****************
 
-def azi_inc(fit_file, coords, mode, outfile, max_iter=1000):
-    cmd("inmet_utils azi_inc", fit_file, coords, mode, max_iter, outfile)
+def azi_inc(fit_file, coords, mode, outfile, max_iter=1000, **kwargs):
+    cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile, **kwargs)
 
 def fit_orbit(path, preproc, savefile, deg=3):
     
@@ -120,10 +124,18 @@ def fit_orbit(path, preproc, savefile, deg=3):
     else:
         Cmd = "trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
     
-    out = (cmd(Cmd.format(deg, ii + 1), ret_out=True) for ii in range(3))
+    out = "\n".join(cmd(Cmd.format(deg, ii + 1), rout=True).decode()
+                    for ii in range(3))
     
-    with open(savefile, "wb") as f:
-        f.write(b"\n".join(elem for elem in out))
+    outs = out.split("\n")
+    
+    m = (outs[ii + 1] for ii, _ in enumerate(outs)
+         if "trend1d: Model Coefficients  (polynomial)" in _)
+    
+    with open(savefile, "w") as f:
+        f.write("deg: {}\n".format(deg))
+        f.write("\n".join(elem.strip()for elem in m) + "\n\n")
+        f.write(out)
     
 def get_par(parameter, search, sep=":"):
 

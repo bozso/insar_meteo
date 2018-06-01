@@ -146,7 +146,7 @@ class GMT(object):
         # Cleanup
         if pth.isfile("gmt.history"): os.remove("gmt.history")
         os.remove("gmt.conf")
-    
+
     def raster(self, out, dpi=200, gray=False, portrait=False,
                with_pagesize=False, multi_page=False, transparent=False):
         
@@ -194,8 +194,6 @@ class GMT(object):
         
         if portrait:
             Cmd += " -P"
-        
-        print(Cmd)
         
         cmd(Cmd)
     

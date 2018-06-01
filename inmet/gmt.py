@@ -1,9 +1,10 @@
 import os
 import os.path as pth
-import subprocess as sub
+import subprocess as subp
 from shlex import split
 from math import ceil, sqrt
 from distutils.version import StrictVersion
+from re import sub
 
 import glob
 
@@ -460,9 +461,9 @@ def execute_gmt_cmd(Cmd, ret_out=False):
     gmt_cmd = Cmd[0] + " " + Cmd[1]
     
     try:
-        cmd_out = sub.check_output(split(gmt_cmd), input=Cmd[2],
-                                   stderr=sub.STDOUT)
-    except sub.CalledProcessError as e:
+        cmd_out = subp.check_output(split(gmt_cmd), input=Cmd[2],
+                                   stderr=subp.STDOUT)
+    except subp.CalledProcessError as e:
         print("ERROR: Non zero returncode from command: '{}'".format(gmt_cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
@@ -480,8 +481,8 @@ def cmd(Cmd, ret_out=False):
     output of the executed command if `ret_out` is set to True.
     """
     try:
-        cmd_out = sub.check_output(split(Cmd), stderr=sub.STDOUT)
-    except sub.CalledProcessError as e:
+        cmd_out = subp.check_output(split(Cmd), stderr=subp.STDOUT)
+    except subp.CalledProcessError as e:
         print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
@@ -798,6 +799,22 @@ _gmt_paper_sizes = {
 "ledger":     [1224, 792],
 }
 
+def shunt(tokens):
+    try:
+        cmd_out = subp.check_output("shunt2.sh", input=tokens.encode(),
+                                   stderr=subp.STDOUT).decode
+    except subp.CalledProcessError as e:
+        print("ERROR: Non zero returncode from command: '{}'".format(gmt_cmd))
+        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
+        print("RETURNCODE was: {}".format(e.returncode))
+    
+    cmd_out = cmd_out.replace("+", "ADD")
+    cmd_out = cmd_out.replace("-", "SUB")
+    cmd_out = cmd_out.replace("/", "DIV")
+    cmd_out = cmd_out.replace("*", "MULT")
+    
+    return sub(r"FUNARG*INVOKE", "", cmd_out)
+
 # **********************************************
 # * Infix to Reverse Polish Notation converter *
 # **********************************************
@@ -807,64 +824,224 @@ _gmt_paper_sizes = {
 # Associativity constants for operators
 LEFT_ASSOC = 0
 RIGHT_ASSOC = 1
+FUN = 2
 
 # Supported operators
 OPERATORS = {
     # A
-    "ABS"     : (5, RIGHT_ASSOC),
-    "ACOS"    : (5, RIGHT_ASSOC),
-    "ACOSH"    : (5, RIGHT_ASSOC),
-    "ACSC"    : (5, RIGHT_ASSOC),
-    "ACOT"    : (5, RIGHT_ASSOC),
-    "ADD"     : (0, LEFT_ASSOC),
-    "AND"     : (0, LEFT_ASSOC),
-    "ASEC"    : (5, RIGHT_ASSOC),
-    "ASIN"    : (5, RIGHT_ASSOC),
-    "ASINH"   : (5, RIGHT_ASSOC),
-    "ATAN"    : (5, RIGHT_ASSOC),
-    "ATAN2"    : (5, LEFT_ASSOC),
-    "ATANH"    : (5, RIGHT_ASSOC),
+    "ABS"       : (5, FUN),
+    "ACOS"      : (5, FUN),
+    "ACOSH"     : (5, FUN),
+    "ACSC"      : (5, FUN),
+    "ACOT"      : (5, FUN),
+    "ADD"       : (0, LEFT_ASSOC),
+    "AND"       : (5, LEFT_ASSOC),
+    "ASEC"      : (5, FUN),
+    "ASIN"      : (5, FUN),
+    "ASINH"     : (5, FUN),
+    "ATAN"      : (5, FUN),
+    "ATAN2"     : (5, FUN),
+    "ATANH"     : (5, FUN),
     # B
-    "SUB"     : (0, LEFT_ASSOC),
-    "MUL"     : (5, LEFT_ASSOC),
-    "DIV"     : (5, LEFT_ASSOC),
-    "%"       : (5, LEFT_ASSOC),
-    "POW"     : (10, RIGHT_ASSOC)
+    "BEI"       : (5, FUN),
+    "BER"       : (5, FUN),
+    "BITAND"    : (5, LEFT_ASSOC),
+    "BITNOT"    : (5, RIGHT_ASSOC),
+    "BITOR"     : (5, LEFT_ASSOC),
+    "BITRIGHT"  : (5, LEFT_ASSOC),
+    "BITTEST"   : (5, LEFT_ASSOC),
+    "BITXOR"    : (5, LEFT_ASSOC),
+    # C
+    "CEIL"      : (5, FUN),
+    "CHICRIT"   : (5, FUN),
+    "CHIDIST"   : (5, FUN),
+    "COL"       : (5, RIGHT_ASSOC),
+    "CORRCOEFF" : (5, LEFT_ASSOC),
+    "COS"       : (5, FUN),
+    "COSD"      : (5, FUN),
+    "COSH"      : (5, FUN),
+    "COT"       : (5, FUN),
+    "COTD"      : (5, FUN),
+    "CSC"       : (5, FUN),
+    "CSCD"      : (5, FUN),
+    "CPOISS"    : (5, LEFT_ASSOC),
+    # D
+    "DDT"       : (5, FUN),
+    "D2DT2"     : (5, FUN),
+    "D2R"       : (5, FUN),
+    "DILOG"     : (5, FUN),
+    "DIFF"      : (5, FUN),
+    "DIV"       : (5, LEFT_ASSOC),
+    "DUP"       : (5, RIGHT_ASSOC),
+    # E
+    "ERF"       : (5, FUN),
+    "ERFC"      : (5, FUN),
+    "ERFINV"    : (5, FUN),
+    "EQ"        : (5, LEFT_ASSOC),
+    "EXCH"      : (5, LEFT_ASSOC),
+    "EXP"       : (5, FUN),
+    # F
+    "FACT"      : (5, FUN),
+    "FCRIT"     : (5, FUN),
+    "FDIST"     : (5, FUN),
+    "FLIPUD"    : (5, RIGHT_ASSOC),
+    "FLOOR"     : (5, FUN),
+    "FMOD"      : (5, FUN),
+    # G
+    "GE"        : (5, LEFT_ASSOC),
+    "GT"        : (5, LEFT_ASSOC),
+    # H
+    "HYPOT"     : (5, FUN),
+    # I
+    "I0"        : (5, FUN),
+    "I1"        : (5, FUN),
+    "IFELSE"    : (5, LEFT_ASSOC),
+    "IN"        : (5, FUN),
+    "INRANGE"   : (5, LEFT_ASSOC),
+    "INT"       : (5, FUN),
+    "INV"       : (5, RIGHT_ASSOC),
+    "ISFINITE"  : (5, RIGHT_ASSOC),
+    "ISNAN"     : (5, RIGHT_ASSOC),
+    # J
+    "J0"        : (5, FUN),
+    "J1"        : (5, FUN),
+    "JN"        : (5, LEFT_ASSOC),
+    # K
+    "K0"        : (5, FUN),
+    "K1"        : (5, FUN),
+    "KN"        : (5, LEFT_ASSOC),
+    "KEI"       : (5, FUN),
+    "KER"       : (5, FUN),
+    "KURT"      : (5, FUN),
+    # L
+    "LE"        : (5, LEFT_ASSOC),
+    "LMSSCL"    : (5, FUN),
+    "LOG"       : (5, FUN),
+    "LOG10"     : (5, FUN),
+    "LOG1P"     : (5, FUN),
+    "LOG2"      : (5, FUN),
+    "LOWER"     : (5, FUN),
+    "LRAND"     : (5, LEFT_ASSOC),
+    "LSQFIT"    : (5, RIGHT_ASSOC),
+    "LT"        : (5, LEFT_ASSOC),
+    # M
+    "MAD"        : (5, FUN),
+    "MAX"        : (5, LEFT_ASSOC),
+    # Fury Road
+    "MEAN"       : (5, FUN),
+    "MED"        : (5, FUN),
+    "MIN"        : (5, LEFT_ASSOC),
+    "MOD"        : (5, LEFT_ASSOC),
+    "MODE"       : (5, FUN),
+    "MUL"        : (5, LEFT_ASSOC),
+    # N
+    "NAN"        : (5, FUN),
+    "NEG"        : (5, RIGHT_ASSOC),
+    "NEQ"        : (5, FUN),
+    "NORM"       : (5, FUN),
+    "NOT"        : (5, RIGHT_ASSOC),
+    "NRAND"      : (5, FUN),
+    # O
+    "OR"         : (5, LEFT_ASSOC),
+    # P
+    "PLM"        : (5, FUN),
+    "PLMg"       : (5, FUN),
+    "POP"        : (5, FUN),
+    "POW"        : (10, FUN),
+    "PQUANT"     : (5, FUN),
+    "PSI"        : (5, FUN),
+    "PV"         : (5, FUN),
+    # Q
+    "QV"         : (5, FUN),
+    # R
+    "R2"         : (5, FUN),
+    "R2D"        : (5, FUN),
+    "RAND"       : (5, FUN),
+    "RINT"       : (5, FUN),
+    "ROTT"       : (5, FUN),
+    # S
+    "SEC"        : (5, FUN),
+    "SECD"       : (5, FUN),
+    "SIGN"       : (5, FUN),
+    "SIN"        : (5, FUN),
+    "SINC"       : (5, FUN),
+    "SIND"       : (5, FUN),
+    "SINH"       : (5, FUN),
+    "SKEW"       : (5, FUN),
+    "SQR"        : (5, FUN),
+    "SQRT"       : (5, FUN),
+    "STD"        : (5, FUN),
+    "STEP"       : (5, FUN),
+    "STEPT"      : (5, FUN),
+    "SUB"        : (0, LEFT_ASSOC),
+    "SUM"        : (5, FUN),
+    # T
+    "TAN"        : (5, FUN),
+    "TAND"       : (5, FUN),
+    "TANH"       : (5, FUN),
+    "TAPER"      : (5, FUN),
+    "TN"         : (5, FUN),
+    "TCRIT"      : (5, FUN),
+    "TDIST"      : (5, FUN),
+    # U
+    "UPPER"      : (5, FUN),
+    # X
+    "XOR"        : (5, LEFT_ASSOC),
+    # Y
+    "Y0"         : (5, FUN),
+    "Y1"         : (5, FUN),
+    "YN"         : (5, FUN),
+    # Z
+    "ZCRIT"      : (5, FUN),
+    "ZDIST"      : (5, FUN),
+    # R
+    "ROOTS"      : (5, FUN)
 }
 
 # Test if a certain token is operator
-def isOperator(token):
-    return token in OPERATORS.keys()
+def is_operator(token):
+    return token in OPERATORS.keys() and OPERATORS[token][1] != 2
 
 # Test the associativity type of a certain token
-def isAssociative(token, assoc):
-    if not isOperator(token):
-        raise ValueError('Invalid token: %s' % token)
+def is_associative(token, assoc):
+    if not is_operator(token):
+        raise ValueError("Invalid token: {}".format(token))
     return OPERATORS[token][1] == assoc
 
 # Compare the precedence of two tokens
-def cmpPrecedence(token1, token2):
-    if not isOperator(token1) or not isOperator(token2):
-        raise ValueError('Invalid tokens: %s %s' % (token1, token2))
+def cmp_precedence(token1, token2):
+    if not is_operator(token1) or not is_operator(token2):
+        raise ValueError('Invalid tokens: {} {}'.format(token1, token2))
     return OPERATORS[token1][0] - OPERATORS[token2][0]
+
+def is_fun(token):
+    return token in OPERATORS.keys() and OPERATORS[token][1] == 2
 
 # Transforms an infix expression to RPN
 def infix2RPN(tokens):
     out = []
     stack = []
     
+    print(tokens)
+    
     # For all the input tokens [S1] read the next token [S2]
     for token in tokens:
-        if isOperator(token):
-            
+        isfun = is_fun(token)
+        isop  = is_operator(token)
+        
+        if not isop and not isfun:
+            out.append(token)
+        if isfun:
+            stack.append(token)
+        if isop:
             # If token is an operator (x) [S3]
-            while len(stack) != 0 and isOperator(stack[-1]):
-                
+            while len(stack) != 0 and is_fun(stack[-1]):
                 # [S4]
-                if (isAssociative(token, LEFT_ASSOC) \
-                    and cmpPrecedence(token, stack[-1]) <= 0) or \
-                    (isAssociative(token, RIGHT_ASSOC) \
-                    and cmpPrecedence(token, stack[-1]) < 0):
+                print(stack)
+                if (is_associative(token, LEFT_ASSOC) \
+                    and cmp_precedence(token, stack[-1]) <= 0) or \
+                    (is_associative(token, RIGHT_ASSOC) \
+                    and cmp_precedence(token, stack[-1]) < 0):
                     # [S5] [S6]
                     out.append(stack.pop())
                     continue

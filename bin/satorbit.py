@@ -3,7 +3,7 @@
 import argparse as ap
 
 import inmet.cwrap as cw
-from inmet.gmt import infix2RPN
+from inmet.gmt import shunt
 
 _steps = ["fit_orbit", "azi_inc"]
 
@@ -52,7 +52,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    print(" ".join(infix2RPN("( ABS 1 ADD ACOS 2 ) MUL ( 3 DIV ASEC 4 ) POW ( 5 ADD 6 )".split(" "))))
+    print(shunt("(ABS(1) + SIND(2)) & (3 / ASEC(4))^(5 + 6)"))
     return
     cw.fit_orbit(args.orbit_data, args.preproc, "orbit.fit", deg=args.deg)
 

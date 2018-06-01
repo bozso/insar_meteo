@@ -35,13 +35,24 @@ _gmt_commands = ('grdcontour', 'grdimage', 'grdvector', 'grdview',
 'nearneighbor', 'project', 'sample1d', 'spectrum1d', 'sph2grd', 
 'sphdistance', 'sphinterpolate', 'sphtriangulate', 'splitxyz', 'surface', 
 'trend1d', 'trend2d', 'triangulate', 'xyz2grd')
-            
+
+_ps2raster = {
+".bmp" : "b",
+".eps" : "e",
+".pdf" : "f",
+".jpeg": "j",
+".png" : "g",
+".ppm" : "m",
+".tiff": "t",
+}
 
 class GMT(object):
     def __init__(self, out, debug=False, config=None, **common_flags):
         
         # no margins by default
         self.left, self.right, self.top, self.bottom = 0.0, 0.0, 0.0, 0.0
+        
+        self.out = out
         
         # get GMT version
         self.version = get_version()
@@ -82,8 +93,6 @@ class GMT(object):
             f.write("\n".join("{} = {}".format(key.upper(), value)
                               for key, value in self.config.items()))
         
-        self.out = out
-        
         # list of lists that contains the gmt commands, its arguments, input
         # data and the filename where the command outputs will be written
         self.commands = []
@@ -100,7 +109,7 @@ class GMT(object):
         commands = self.commands
         
         # indices of plotter functions
-        idx = [ii for ii, cmd in enumerate(commands) if cmd[0] in _plotters]
+        idx = [ii for ii, Cmd in enumerate(commands) if Cmd[0] in _plotters]
         
         # add -K, -P and -O flags to plotter functions
         if len(idx) > 1:
@@ -115,28 +124,81 @@ class GMT(object):
                 commands[ii][1] += " -P"
         
         if self.is_gmt5:
-            commands = [["gmt " + cmd[0], cmd[1], cmd[2], cmd[3]]
-                        for cmd in commands]
+            commands = [["gmt " + Cmd[0], Cmd[1], Cmd[2], Cmd[3]]
+                        for Cmd in commands]
         
         if self.debug:
             # print commands for debugging
-            print("\n".join(" ".join(elem for elem in cmd[0:2])
-                                          for cmd in commands))
+            print("\n".join(" ".join(elem for elem in Cmd[0:2])
+                                          for Cmd in commands))
         
         # gather all the outputfiles and remove the ones that already exist
-        outfiles = set(cmd[3] for cmd in commands
-                       if cmd[3] is not None and pth.isfile(cmd[3]))
+        outfiles = set(Cmd[3] for Cmd in commands
+                       if Cmd[3] is not None and pth.isfile(Cmd[3]))
+        
         for out in outfiles:
             os.remove(out)
         
         # execute gmt commands and write their output to the specified files
-        for cmd in commands:
-            execute_gmt_cmd(cmd)
+        for Cmd in commands:
+            execute_gmt_cmd(Cmd)
         
         # Cleanup
         if pth.isfile("gmt.history"): os.remove("gmt.history")
         os.remove("gmt.conf")
+    
+    def raster(self, out, dpi=200, gray=False, portrait=False,
+               with_pagesize=False, multi_page=False, transparent=False):
+        
+        name, ext = pth.splitext(out)
+        
+        if self.is_five:
+            Cmd = "gmt ps2raster"
+        else:
+            Cmd = "ps2raster"
+        
+        # extension code
+        Ext = _ps2raster[ext]
+        
+        # handle extra options
+        
+        if with_pagesize:
+            if ext == ".eps":
+                Ext = Ext.upper()
+            else:
+                raise ValueError("with_pagesize only available for EPS files.")
+            
+        if multi_page:
+            if ext == ".pdf":
+                Ext = Ext.upper()
+            else:
+                raise ValueError("multi_page only available for PDF files.")
+        
+        if transparent:
+            if ext == ".png":
+                Ext = Ext.upper()
+            else:
+                raise ValueError("transparent only available for PNG files.")
 
+        
+        outdir = pth.dirname(out)
+        
+        if outdir == "":
+            outdir = "."
+        
+        Cmd = "{} {} -T{} -E{} -D{} -F{}"\
+              .format(Cmd, self.out, Ext, dpi, outdir, pth.basename(name))
+        
+        if gray:
+            Cmd += " -I"
+        
+        if portrait:
+            Cmd += " -P"
+        
+        print(Cmd)
+        
+        cmd(Cmd)
+    
     def _gmtcmd(self, gmt_exec, data=None, byte_swap=False, outfile=None, **flags):
         
         if data is not None:
@@ -395,34 +457,34 @@ def proc_flag(flag):
     else:
         return flag
 
-def execute_gmt_cmd(cmd, ret_out=False):
+def execute_gmt_cmd(Cmd, ret_out=False):
     # join command and flags
-    gmt_cmd = cmd[0] + " " + cmd[1]
+    gmt_cmd = Cmd[0] + " " + Cmd[1]
     
     try:
-        cmd_out = sub.check_output(split(gmt_cmd), input=cmd[2],
+        cmd_out = sub.check_output(split(gmt_cmd), input=Cmd[2],
                                    stderr=sub.STDOUT)
     except sub.CalledProcessError as e:
         print("ERROR: Non zero returncode from command: '{}'".format(gmt_cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
-    if cmd[3] is not None:
-        with open(cmd[3], "ab") as f:
+    if Cmd[3] is not None:
+        with open(Cmd[3], "ab") as f:
             f.write(cmd_out)
     
     if ret_out:
         return cmd_out
 
-def cmd(cmd, ret_out=False):
+def cmd(Cmd, ret_out=False):
     """
     Execute terminal command defined by `cmd`, optionally return the
     output of the executed command if `ret_out` is set to True.
     """
     try:
-        cmd_out = sub.check_output(split(cmd), stderr=sub.STDOUT)
+        cmd_out = sub.check_output(split(Cmd), stderr=sub.STDOUT)
     except sub.CalledProcessError as e:
-        print("ERROR: Non zero returncode from command: '{}'".format(cmd))
+        print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
@@ -482,19 +544,19 @@ def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
     
     cmd(Cmd)
     
-def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
+def plot_scatter(scatter_file, ncols, outfile, proj="M", idx=None, config=None,
                  cbar_config={}, axis_config={}, colorscale="drywet",
                  right=100, top=0, left=50, tryaxis=False,
-                 titles=None, **kwargs):
+                 titles=None, xy_range=None, z_range=None,
+                 x_axis="a0.5g0.25f0.25", y_axis="a0.25g0.25f0.25",
+                 xy_add=0.05, z_add=0.1, **kwargs):
+
+    name, ext = pth.splitext(outfile)
     
-    xy_range = kwargs.pop("xy_range", None)
-    z_range  = kwargs.pop("z_range", None)
-    
-    x_axis = kwargs.pop("x_axis", "a0.5g0.25f0.25")
-    y_axis = kwargs.pop("y_axis", "a0.25g0.25f0.25")
-    
-    xy_add = kwargs.pop("xy_add", 0.05)
-    z_add  = kwargs.pop("z_add", 0.1)
+    if ext != ".ps":
+        ps_file = name + ".ps"
+    else:
+        ps_file = outfile
     
     # 2 additional coloumns for coordinates
     bindef = "{}d".format(ncols + 2)
@@ -532,6 +594,10 @@ def plot_scatter(scatter_file, ncols, ps_file, proj="M", idx=None, config=None,
         
     gmt.colorbar(mode=kwargs.pop("mode", "v"), offset=kwargs.pop("offset", 10),
                  B=kwargs.pop("label", ""), C="tmp.cpt",)
+    
+    if ext != ".ps":
+        gmt.raster(outfile, **kwargs)
+        os.remove(ps_file)
     
     os.remove("tmp.cpt")
     

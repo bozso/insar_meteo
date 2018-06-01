@@ -22,7 +22,7 @@ def main():
     titles = ("20160912", "20160924", "20160930", "20161006", "20161018",
               "20161024")
     
-    plot_scatter(infile1 , 70, "iwv.ps", config=config, idx=idx,
+    plot_scatter(infile1 , 70, "iwv.png", config=config, idx=idx,
                  mode="v", offset=25, label="10:IWV:/:kgm-2:",
                  titles=titles, z_range=(0, 30))
     

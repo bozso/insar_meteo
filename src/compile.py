@@ -11,9 +11,8 @@ def main():
     
     ccomp = new_compiler()
     ccomp.compile(c_file, extra_postargs=flags)
-    ccomp.compile(["insar.c"], extra_postargs=flags)
     
-    ccomp.link_executable([c_basename + ".o", "insar.o"],
+    ccomp.link_executable([c_basename + ".o"],
                           pjoin("..", "bin", c_basename),
                           libraries=libs,
                           extra_postargs=flags)

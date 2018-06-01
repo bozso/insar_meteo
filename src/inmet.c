@@ -3,54 +3,61 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "insar.h"
 #include "aux_macros.h"
 
 #define Modules "azi_inc"
 #define min_arg 2
 
+#define norm(x, y, z) sqrt((x) * (x) + (y) * (y) + (z) * (z))
+
+typedef unsigned int uint;
+typedef const double cdouble;
+
+typedef struct { double x, y, z; } cart; // Cartesian coordinates
+typedef struct { double lon, lat, h; } llh; // Cartesian coordinates
+
 typedef struct {
-    uint is_centered, deg;
+    uint deg;
     double * coeffs;
-    double mean_coords[3];
-    double t_start, t_stop, t_mean;
 } orbit_fit;
+
+/************************
+ * Auxilliary functions *
+ * **********************/
+
+static void * malloc_or_exit(size_t nbytes, const char * file, int line)
+{
+    /* Extended malloc function. */	
+    void *x;
+	
+    if ((x = malloc(nbytes)) == NULL) {
+        errorln("%s:line %d: malloc() of %zu bytes failed",
+                file, line, nbytes);
+        exit(err_alloc);
+    }
+    else
+        return x;
+}
 
 static int read_fit(const char * path, orbit_fit * orb)
 {
     FILE * fit_file = NULL;
-    uint centered, deg;
+    uint deg;
     
     if ((fit_file = fopen(path, "r")) == NULL) {
         errorln("Failed to open file %s!", path);
         perror("read_fit");
         return 1;
     }
-    
-    aux_read(fit_file, "centered: %d\n", &centered);
-    
-    if (centered) {
-        aux_read(fit_file, "t_mean: %lf\n", &orb->t_mean);
-        aux_read(fit_file, "mean_coords: %lf %lf %lf\n",
-                 orb->mean_coords, orb->mean_coords + 1, orb->mean_coords + 2);
-    }
-    
     aux_read(fit_file, "deg: %d\n", &deg);
-    aux_read(fit_file, "t_start: %lf\n", &orb->t_start);
-    aux_read(fit_file, "t_stop: %lf\n", &orb->t_stop);
-    
     orb->coeffs = aux_malloc(double, 3 * (deg + 1));
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
-
-    aux_read(fit_file, "coeffs: %lf", orb->coeffs);
-    
-    FOR(ii, 1, 3 * (deg + 1))
+    FOR(ii, 0, 3 * (deg + 1))
         aux_read(fit_file, "%lf", orb->coeffs + ii);
     
-    orb->is_centered = centered;
-    orb->deg         = deg;
+    orb->deg = deg;
     
     fclose(fit_file);
     return 0;
@@ -68,7 +75,6 @@ static void ell_cart (cdouble lon, cdouble lat, cdouble h,
     *z = ( (1.0 - E2) * n + h) * sin(lat);
 
 } // end of ell_cart
-
 
 static void cart_ell (cdouble x, cdouble y, cdouble z,
                       double *lon, double *lat, double *h)
@@ -99,36 +105,32 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
     /* Calculate satellite position based on fitted polynomial orbits
      * at `time`. */
     
-    uint n_poly = orb->deg + 1, is_centered = orb->is_centered;
+    uint n_poly = orb->deg + 1, deg = orb->deg;
     double x = 0.0, y = 0.0, z = 0.0;
     
-    const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
+    cdouble *coeffs = orb->coeffs;
     
     if(n_poly == 2) {
-        x = coeffs[0] * time + coeffs[1];
-        y = coeffs[2] * time + coeffs[3];
-        z = coeffs[4] * time + coeffs[5];
+        x = coeffs[0] + coeffs[1] * time;
+        y = coeffs[2] + coeffs[3] * time;
+        z = coeffs[4] + coeffs[5] * time;
     }
     else {
-        x = coeffs[0]           * time;
-        y = coeffs[n_poly]      * time;
-        z = coeffs[2 * n_poly]  * time;
-
-        FOR(ii, 1, n_poly - 1) {
+        // highest degree
+        x = coeffs[           + deg] * time;
+        y = coeffs[    n_poly + deg] * time;
+        z = coeffs[2 * n_poly + deg] * time;
+        
+        for(uint ii = deg - 1; ii >= 1; ii--) {
             x = (x + coeffs[             ii]) * time;
             y = (y + coeffs[    n_poly + ii]) * time;
             z = (z + coeffs[2 * n_poly + ii]) * time;
         }
         
-        x += coeffs[    n_poly - 1];
-        y += coeffs[2 * n_poly - 1];
-        z += coeffs[3 * n_poly - 1];
-    }
-    
-    if (is_centered) {
-        x += mean_coords[0];
-        y += mean_coords[1];
-        z += mean_coords[2];
+        // lowest degree
+        x += coeffs[         0];
+        y += coeffs[    n_poly];
+        z += coeffs[2 * n_poly];
     }
     
     pos->x = x; pos->y = y; pos->z = z;
@@ -142,52 +144,53 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
-    uint n_poly = orb->deg + 1;
+    uint n_poly = orb->deg + 1, deg = orb->deg;
     
-    const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
+    const double *coeffs = orb->coeffs;
     
     // linear case 
     if(n_poly == 2) {
-        sat_x = coeffs[0] * time + coeffs[1];
-        sat_y = coeffs[2] * time + coeffs[3];
-        sat_z = coeffs[4] * time + coeffs[5];
-        vel_x = coeffs[0]; vel_y = coeffs[2]; vel_z = coeffs[4];
+        sat_x = coeffs[0] + coeffs[1] * time;
+        sat_y = coeffs[2] + coeffs[3] * time;
+        sat_z = coeffs[4] + coeffs[5] * time;
+        
+        vel_x = coeffs[1]; vel_y = coeffs[3]; vel_z = coeffs[5];
     }
     // evaluation of polynom with Horner's method
     else {
-        
-        sat_x = coeffs[0]           * time;
-        sat_y = coeffs[n_poly]      * time;
-        sat_z = coeffs[2 * n_poly]  * time;
+        // highest degree
+        sat_x = coeffs[           + deg] * time;
+        sat_y = coeffs[    n_poly + deg] * time;
+        sat_z = coeffs[2 * n_poly + deg] * time;
 
-        FOR(ii, 1, n_poly - 1) {
+        for(uint ii = deg - 1; ii >= 1; ii--) {
             sat_x = (sat_x + coeffs[             ii]) * time;
             sat_y = (sat_y + coeffs[    n_poly + ii]) * time;
             sat_z = (sat_z + coeffs[2 * n_poly + ii]) * time;
         }
         
-        sat_x += coeffs[    n_poly - 1];
-        sat_y += coeffs[2 * n_poly - 1];
-        sat_z += coeffs[3 * n_poly - 1];
+        // lowest degree
+        sat_x += coeffs[         0];
+        sat_y += coeffs[    n_poly];
+        sat_z += coeffs[2 * n_poly];
         
-        vel_x = coeffs[    n_poly - 2];
-        vel_y = coeffs[2 * n_poly - 2];
-        vel_z = coeffs[3 * n_poly - 2];
+        // constant term
+        vel_x = coeffs[1             ];
+        vel_y = coeffs[1 +     n_poly];
+        vel_z = coeffs[1 + 2 * n_poly];
         
-        FOR(ii, 0, n_poly - 3) {
-            power = (double) n_poly - 1.0 - ii;
+        // linear term
+        vel_x += coeffs[2             ] * time;
+        vel_y += coeffs[2 +     n_poly] * time;
+        vel_z += coeffs[2 + 2 * n_poly] * time;
+        
+        FOR(ii, 3, n_poly) {
+            power = (double) ii - 1;
             vel_x += ii * coeffs[             ii] * pow(time, power);
             vel_y += ii * coeffs[    n_poly + ii] * pow(time, power);
             vel_z += ii * coeffs[2 * n_poly + ii] * pow(time, power);
         }
     }
-    
-    if (orb->is_centered) {
-        sat_x += mean_coords[0];
-        sat_y += mean_coords[1];
-        sat_z += mean_coords[2];
-    }
-    
     // satellite coordinates - GNSS coordinates
     dx = sat_x - X;
     dy = sat_y - Y;
@@ -196,7 +199,7 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     // product of inverse norms
     inorm = (1.0 / norm(dx, dy, dz)) * (1.0 / norm(vel_x, vel_y, vel_z));
     
-    return((vel_x * dx  + vel_y * dy  + vel_z * dz) * inorm);
+    return (vel_x * dx  + vel_y * dy  + vel_z * dz) * inorm;
 }
 // end dot_product
 
@@ -205,9 +208,10 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
 {
     /* Compute the sat position using closest approche. */
     
-    // first, last and middle time, extending the time window by 5 seconds
-    double t_start = orb->t_start - 5.0,
-           t_stop  = orb->t_stop  + 5.0,
+    // first, last and middle time
+    // domain of t is [-1.0, 1.0]
+    double t_start = -1.0000001,
+           t_stop  =  1.0000001,
            t_middle;
     
     // dot products
@@ -274,7 +278,7 @@ int azi_inc(int argc, char **argv)
         errorln("Could not read orbit fit file %s. Exiting!", argv[2]);
         return err_io;
     }
-
+    
     aux_fopen(infile, argv[3], "rb");
     aux_fopen(outfile, argv[6], "wb");
     

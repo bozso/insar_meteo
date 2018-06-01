@@ -105,14 +105,16 @@ def fit_orbit(path, preproc, savefile, deg=3):
                              "number of datapoints.")
         
         idx = data_num[0][0]
+        data_num = int(data_num[0][1].split(":")[1])
         
         t_first = float(lines[idx + 1].split(":")[1].split()[0])
         t_step  = float(lines[idx + 2].split(":")[1].split()[0])
         
-        coords = (get_par("state_vector_position_{}".format(ii + 1), lines)
-                  for ii in range(data_num))
-        
-        print(coords)
+        with open("coords.txyz", "w") as f:
+            for ii in range(data_num):
+                coords = get_par("state_vector_position_{}".format(ii + 1), lines)
+                f.write("{} {}\n".format(t_first + ii * t_step,
+                                         coords.split("m")[0]))
     else:
         raise ValueError('preproc should be either "doris" or "gamma" '
                          'not {}'.format(preproc))
@@ -124,13 +126,11 @@ def fit_orbit(path, preproc, savefile, deg=3):
     else:
         Cmd = "trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
     
-    out = "\n".join(cmd(Cmd.format(deg, ii + 1), rout=True).decode()
+    out = "\n".join(cmd(Cmd.format(deg + 1, ii + 1), rout=True).decode()
                     for ii in range(3))
     
-    outs = out.split("\n")
-    
-    m = (outs[ii + 1] for ii, _ in enumerate(outs)
-         if "trend1d: Model Coefficients  (polynomial)" in _)
+    m = (line.split(":")[2].strip() for ii, line in enumerate(out.split("\n"))
+         if "trend1d: Model Coefficients  (Chebyshev):" in line)
     
     with open(savefile, "w") as f:
         f.write("deg: {}\n".format(deg))

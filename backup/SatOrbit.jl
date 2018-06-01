@@ -98,7 +98,7 @@ function azi_inc(fit_file::AbstractString, coords::Array{T, 2},
     ccall((:azi_inc, "libinsar"), Void, inarg, t_start, t_stop, t_mean,
                                   coeffs, coords, mean_coords, ret, ndata,
                                   is_centered, deg, max_iter, is_lonlat)
-    return ret
+    ret
 end
 
 end

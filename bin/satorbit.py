@@ -51,7 +51,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    #cw.fit_orbit(args.orbit_data, args.preproc, "orbit.fit", deg=args.deg)
+    cw.fit_orbit(args.orbit_data, args.preproc, "orbit.fit", deg=args.deg)
 
     cw.azi_inc("orbit.fit", args.coords_file, args.mode, args.outfile,
                max_iter=args.max_iter)

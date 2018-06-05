@@ -5,8 +5,11 @@ from shlex import split
 from math import ceil, sqrt
 from distutils.version import StrictVersion
 from re import sub
+from argparse import ArgumentParser
 
 import glob
+
+raster_parser = ArgumentParser()
 
 _gmt_five = StrictVersion('5.0')
 _gmt_five_two = StrictVersion('5.2')
@@ -182,13 +185,8 @@ class GMT(object):
                 raise ValueError("transparent only available for PNG files.")
 
         
-        outdir = pth.dirname(out)
-        
-        if outdir == "":
-            outdir = "."
-        
-        Cmd = "{} {} -T{} -E{} -D{} -F{}"\
-              .format(Cmd, self.out, Ext, dpi, outdir, pth.basename(name))
+        Cmd = "{} {} -T{} -E{} -F{}"\
+              .format(Cmd, self.out, Ext, dpi, name)
         
         if gray:
             Cmd += " -I"
@@ -543,65 +541,6 @@ def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
     
     cmd(Cmd)
     
-def plot_scatter(scatter_file, ncols, outfile, proj="M", idx=None, config=None,
-                 cbar_config={}, axis_config={}, colorscale="drywet",
-                 right=100, top=0, left=50, tryaxis=False,
-                 titles=None, xy_range=None, z_range=None,
-                 x_axis="a0.5g0.25f0.25", y_axis="a0.25g0.25f0.25",
-                 xy_add=0.05, z_add=0.1, **kwargs):
-
-    name, ext = pth.splitext(outfile)
-    
-    if ext != ".ps":
-        ps_file = name + ".ps"
-    else:
-        ps_file = outfile
-    
-    # 2 additional coloumns for coordinates
-    bindef = "{}d".format(ncols + 2)
-    
-    if xy_range is None or z_range is None:
-        _xy_range, _z_range = get_ranges(data=scatter_file, binary=bindef,
-                                          xy_add=xy_add, z_add=z_add)
-    
-    if xy_range is None:
-        xy_range = _xy_range
-    if z_range is None:
-        z_range = _z_range
-    
-    if idx is None:
-        idx = range(ncols)
-    
-    if titles is None:
-        titles = range(1, ncols + 1)
-    
-    gmt = GMT(ps_file, R=xy_range, config=config)
-    x, y = gmt.multiplot(len(idx), proj, right=right, top=top, left=left)
-    
-    gmt.makecpt("tmp.cpt", C=colorscale, Z=True, T=z_range)
-    
-    for ii in idx:
-        input_format = "0,1,{}".format(ii + 2)
-        gmt.psbasemap(Xf="{}p".format(x[ii]), Yf="{}p".format(y[ii]),
-                      B="WSen+t{}".format(titles[ii]), Bx=x_axis, By=y_axis)
-        
-        # do not plot the scatter points yet just see the placement of
-        # basemaps
-        if not tryaxis:
-            gmt.psxy(data=scatter_file, i=input_format, bi=bindef,
-                     S="c0.025c", C="tmp.cpt")
-        
-    gmt.colorbar(mode=kwargs.pop("mode", "v"), offset=kwargs.pop("offset", 10),
-                 B=kwargs.pop("label", ""), C="tmp.cpt",)
-    
-    if ext != ".ps":
-        gmt.raster(outfile, **kwargs)
-        os.remove(ps_file)
-    
-    os.remove("tmp.cpt")
-    
-    del gmt
-
 def hist(data, ps_file, binwidth=0.1, config=None, binary=None, 
          left=50, right=25, top=25, bottom=50, **flags):
     

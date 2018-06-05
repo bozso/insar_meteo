@@ -1,6 +1,0 @@
-function a()
-{
-	if(a==12) return(3);
-	if(a==23) return(34);
-}
-

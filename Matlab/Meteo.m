@@ -506,11 +506,11 @@ classdef Meteo
             
             % calculate average total delay for each SAR acquisition
             % d_avg = mean(d_total, 2);
-            d_sum = sum(d_total, 2);
+            d_sum = sum(d_wet, 2);
             
             abs_phase = Meteo.invert_abs(phase, 'master_idx', master_idx, ...
                                                 'last_row', d_sum)';
-            abs_wet = abs_phase - d_hydro;
+            abs_wet = abs_phase;
             
             h = figure('visible', 'off');
             hist(rms(abs_wet - d_wet));
@@ -654,7 +654,7 @@ classdef Meteo
                         
                     end
                 end
-                figure; imagesc(iwv); colorbar; return
+                %figure; imagesc(iwv); colorbar; return
             end
             clear temp Temp_before Temp_after e Geopot P longrid latgrid;
             

@@ -6,12 +6,12 @@
  *******************************/
 
 // RADIUS OF EARTH
-#define R_earth 6372000
+#define R_earth 6372000.0
 
 #define WA  6378137.0
 #define WB  6356752.3142
 
-// (WA*WA-WB*WB)/WA/WA
+// (WA^2 - WB^2) / WA^2
 #define E2  6.694380e-03
 
 /************************
@@ -48,7 +48,7 @@
 ({\
     if (argc != ((num) + min_arg)) {\
         errorln("Required number of arguments is %d, current number of arguments: %d!",\
-              (num), argc - min_arg);\
+                 (num), argc - min_arg);\
         print_doc(fun_name);\
         return err_arg;\
     }\

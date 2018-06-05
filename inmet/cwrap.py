@@ -8,8 +8,8 @@ from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands
 def cmd(Cmd, *args, rout=False):
     """
     Calls a C module. Arbitrary number of arguments can be passed through
-    `*args`. See documentation of modules' for arguments.
-    The passed arguments will be converted to string joined togerther and
+    `*args`. See documentation of modules for arguments.
+    The passed arguments will be converted to string joined together and
     appended to the command.
     
     Parameters
@@ -24,7 +24,7 @@ def cmd(Cmd, *args, rout=False):
     Returns
     -------
     ret_out : byte-string
-        Output of called module.
+        Output of called module returned if rout=True.
     
     Raises
     ------
@@ -41,8 +41,6 @@ def cmd(Cmd, *args, rout=False):
         print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
-    
-    print(cmd_out.decode())
     
     if rout:
         return cmd_out

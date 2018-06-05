@@ -9,8 +9,46 @@ from argparse import ArgumentParser
 
 import glob
 
-raster_parser = ArgumentParser()
+# ***********************************************************
+# * Parent argument parsers for creating command line tools *
+# ***********************************************************
 
+# Arguemnts for the raster function of the GMT object.
+
+raster_parser = ArgumentParser(add_help=False)
+raster_parser.add_argument(
+    "--dpi",
+    nargs="?",
+    default=200,
+    type=float,
+    help="DPI of the output raster file.")
+
+raster_parser.add_argument(
+    "--gray",
+    action="store_true",
+    help="If defined output raster will be grayscaled.")
+
+raster_parser.add_argument(
+    "--portrait",
+    action="store_true",
+    help="If defined output raster will be in portrait format.")
+
+raster_parser.add_argument(
+    "--pagesize",
+    action="store_true",
+    help="If defined output eps will be created with the PageSize command.")
+
+raster_parser.add_argument(
+    "--multi_page",
+    action="store_true",
+    help="If defined output pdf will be multi paged.")
+
+raster_parser.add_argument(
+    "--transparent",
+    action="store_true",
+    help="If defined output png will be transparent.")
+
+# Different GMT versions
 _gmt_five = StrictVersion('5.0')
 _gmt_five_two = StrictVersion('5.2')
 

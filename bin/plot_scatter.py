@@ -8,66 +8,148 @@ import os
 import os.path as pth
 import argparse as ap
 
-from inmet.gmt import GMT, get_ranges
+from inmet.gmt import GMT, get_ranges, raster_parser
 
 def gen_list(cast):
     return lambda x: tuple(cast(elem) for elem in x.split(","))
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=__doc__,
-            formatter_class=ap.ArgumentDefaultsHelpFormatter)
+            formatter_class=ap.ArgumentDefaultsHelpFormatter,
+            parents=[raster_parser])
 
-    parser.add_argument("infile", help="Binary inputfile.", type=str)
-    parser.add_argument("ncols", help="Number of data columns in inputfile.",
-                        type=int)
-    
-    parser.add_argument("--out", help="Postscript or raster outputfile.",
-                        default=None, nargs="?", type=str)
-    parser.add_argument("-p", "--proj", help="Projection of the maps.",
-                        default="J", nargs="?", type=str)
-    parser.add_argument("-i", "--idx", help="Column indices to work with. "
-                        "List of integers.", default=None, nargs="?",
-                        type=gen_list(int))
-    parser.add_argument("--titles", help="Titles of the plots. "
-                        "List of strings.", default=None, nargs="?",
-                        type=gen_list(str))
-    
-    parser.add_argument("--tryaxis", action="store_true")
-    
-    parser.add_argument("-r", "--right", help="Right margin in points.",
-                        default=100, nargs="?", type=float)
-    parser.add_argument("-l", "--left", help="Left margin in points.",
-                        default=50, nargs="?", type=float)
-    parser.add_argument("-t", "--top", help="Top margin in points.",
-                        default=0, nargs="?", type=float)
+    parser.add_argument(
+        "infile",
+        type=str,
+        help="Binary inputfile.")
 
-    parser.add_argument("--xy_range", help="Range of x and y axis. "
-                        "List of floats.", default=None, nargs="?",
-                        type=gen_list(float))
-    parser.add_argument("--z_range", help="Range of z values. "
-                        "List of floats.", default=None, nargs="?",
-                        type=gen_list(float))
-
-    parser.add_argument("--cpt", help="GMT colorscale.", default="drywet",
-                        nargs="?", type=str)
-
-    parser.add_argument("--x_axis", help="GMT configuration of x axis.",
-                        default="a0.5g0.25f0.25", nargs="?", type=str)
-    parser.add_argument("--y_axis", help="GMT configuration of y axis.",
-                        default="a0.25g0.25f0.25", nargs="?", type=str)
+    parser.add_argument(
+        "ncols",
+        type=int,
+        help="Number of data columns in inputfile.")
     
-    parser.add_argument("--xy_add", help="Extension of x and y range.",
-                        default=0.05, nargs="?", type=float)
-    parser.add_argument("--z_add", help="Extension of z range.",
-                        default=0.1, nargs="?", type=float)
+    parser.add_argument(
+        "--out",
+        nargs="?",
+        default=None,
+        type=str,
+        help="Postscript or raster outputfile.")
     
-    parser.add_argument("--mode", help="Colorbar mode, set it to v for "
-                        "vertical or h for horizontal.", nargs="?", default="v",
-                        type=str)
-    parser.add_argument("--label", help="Colorbar label.", nargs="?",
-                        default="", type=str)
-    parser.add_argument("--offset", help="Colorbar offset towards the margins. ",
-                        nargs="?", default=10.0, type=float)
+    parser.add_argument(
+        "-p", "--proj",
+        nargs="?",
+        default="J",
+        type=str,
+        help="Projection of the maps.")
+    
+    parser.add_argument(
+        "-i", "--idx",
+        nargs="?",
+        default=None,
+        type=gen_list(int),
+        help="Column indices to work with. List of integers.")
+        
+    parser.add_argument(
+        "--titles",
+        nargs="?",
+        default=None,
+        type=gen_list(str),
+        help="Titles of the plots. List of strings.")
+    
+    parser.add_argument(
+        "--tryaxis",
+        action="store_true")
+    
+    parser.add_argument(
+        "-r", "--right",
+        nargs="?",
+        default=100,
+        type=float,
+        help="Right margin in points.")
+    
+    parser.add_argument(
+        "-l", "--left",
+        nargs="?",
+        default=50,
+        type=float,
+        help="Left margin in points.")
+        
+    parser.add_argument(
+        "-t", "--top",
+        nargs="?",
+        default=0,
+        type=float,
+        help="Top margin in points.")
+
+    parser.add_argument(
+        "--xy_range",
+        nargs="?",
+        default=None,
+        type=gen_list(float),
+        help="Range of x and y axis. List of floats.")
+    
+    parser.add_argument(
+        "--z_range",
+        nargs="?",
+        default=None,
+        type=gen_list(float),
+        help="Range of z values. List of floats.")
+
+    parser.add_argument(
+        "--cpt",
+        nargs="?",
+        default="drywet",
+        type=str,
+        help="GMT colorscale.")
+
+    parser.add_argument(
+        "--x_axis",
+        nargs="?",
+        default="a0.5g0.25f0.25",
+        type=str,
+        help="GMT configuration of x axis.")
+
+    parser.add_argument(
+        "--y_axis",
+        nargs="?",
+        default="a0.25g0.25f0.25",
+        type=str,
+        help="GMT configuration of x axis.")
+    
+    parser.add_argument(
+        "--xy_add",
+        nargs="?",
+        default=0.05,
+        type=float,
+        help="Extension of x and y range.")
+
+    parser.add_argument(
+        "--z_add",
+        nargs="?",
+        default=0.1,
+        type=float,
+        help="Extension of z range.")
+    
+    parser.add_argument(
+        "--mode",
+        nargs="?",
+        default="v",
+        type=str,
+        help="Colorbar mode, set it to v for vertical or h for horizontal.")
+        
+    parser.add_argument(
+        "--label",
+        nargs="?",
+        default="",
+        type=str,
+        help="Colorbar label. Input of the -B flag of psscale.")
+        
+    parser.add_argument(
+        "--offset",
+        nargs="?",
+        default=10.0,
+        type=float,
+        help="Colorbar offset towards the margins.")
     
     return parser.parse_args()
     

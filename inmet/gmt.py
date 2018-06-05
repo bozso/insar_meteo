@@ -9,6 +9,13 @@ from argparse import ArgumentParser
 
 import glob
 
+def gen_tuple(cast):
+    """
+    Returns a function that creates a tuple of elements found in x.
+    Helper function for parsing command line arguments.
+    """
+    return lambda x: tuple(cast(elem) for elem in x.split(","))
+
 # ***********************************************************
 # * Parent argument parsers for creating command line tools *
 # ***********************************************************
@@ -19,7 +26,7 @@ raster_parser = ArgumentParser(add_help=False)
 raster_parser.add_argument(
     "--dpi",
     nargs="?",
-    default=200,
+    default=100,
     type=float,
     help="DPI of the output raster file.")
 

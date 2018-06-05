@@ -14,7 +14,8 @@ Steps: [{}]
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=_daisy__doc__,
-            formatter_class=ap.ArgumentDefaultsHelpFormatter)
+            formatter_class=ap.ArgumentDefaultsHelpFormatter,
+            parent=[cw.gen_step_parser(_steps)])
 
     parser.add_argument("in_asc", help="Text file that contains the "
                         "ASCENDING PS velocities.")
@@ -26,17 +27,6 @@ def parse_arguments():
     parser.add_argument("orb_dsc", help="text file that contains the "
                         "DESCENDING orbit state vectors.")
     
-    parser.add_argument("--step", help="Carry out the processing step defined by "
-                       "this argument and exit.", choices=_steps, default=None,
-                       nargs="?", type=str)
-
-    parser.add_argument("--start", help="Starting processing step. Processing "
-                       "steps will be executed until processing step defined "
-                       "by --stop is reached", choices=_steps,
-                       default="data_select", nargs="?", type=str)
-    parser.add_argument("--stop", help="Last processing step to be executed.",
-                       choices=_steps, default="integrate", nargs="?",
-                       type=str)
     
     parser.add_argument("-p", "--ps_sep", help="Maximum separation distance "
                         "between ASC and DSC PS points in meters.",

@@ -8,10 +8,7 @@ import os
 import os.path as pth
 import argparse as ap
 
-from inmet.gmt import GMT, get_ranges, raster_parser
-
-def gen_list(cast):
-    return lambda x: tuple(cast(elem) for elem in x.split(","))
+from inmet.gmt import GMT, get_ranges, raster_parser, gen_tuple
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=__doc__,
@@ -46,14 +43,14 @@ def parse_arguments():
         "-i", "--idx",
         nargs="?",
         default=None,
-        type=gen_list(int),
+        type=gen_tuple(int),
         help="Column indices to work with. List of integers.")
         
     parser.add_argument(
         "--titles",
         nargs="?",
         default=None,
-        type=gen_list(str),
+        type=gen_tuple(str),
         help="Titles of the plots. List of strings.")
     
     parser.add_argument(
@@ -85,14 +82,14 @@ def parse_arguments():
         "--xy_range",
         nargs="?",
         default=None,
-        type=gen_list(float),
+        type=gen_tuple(float),
         help="Range of x and y axis. List of floats.")
     
     parser.add_argument(
         "--z_range",
         nargs="?",
         default=None,
-        type=gen_list(float),
+        type=gen_tuple(float),
         help="Range of z values. List of floats.")
 
     parser.add_argument(
@@ -147,7 +144,7 @@ def parse_arguments():
     parser.add_argument(
         "--offset",
         nargs="?",
-        default=10.0,
+        default=0.0,
         type=float,
         help="Colorbar offset towards the margins.")
     
@@ -160,6 +157,7 @@ def main():
     
     infile = args.infile
     
+    # default is "infile".png
     if args.out is None:
         out = pth.basename(args.infile).split(".")[0] + ".png"
     else:
@@ -194,6 +192,7 @@ def main():
     else:
         idx = args.idx
     
+    # parse titles
     if args.titles is None:
         titles = range(1, args.ncols + 1)
     else:
@@ -205,19 +204,20 @@ def main():
     
     gmt.makecpt("tmp.cpt", C=args.cpt, Z=True, T=z_range)
     
+    x_axis = args.x_axis
+    y_axis = args.y_axis
+    
     # do not plot the scatter points yet just test the placement of basemaps
     if args.tryaxis:
         for ii in idx:
             input_format = "0,1,{}".format(ii + 2)
             gmt.psbasemap(Xf="{}p".format(x[ii]), Yf="{}p".format(y[ii]),
-                          B="WSen+t{}".format(titles[ii]),
-                          Bx=args.x_axis, By=args.y_axis)
+                          B="WSen+t{}".format(titles[ii]), Bx=x_axis, By=y_axis)
     else:
         for ii in idx:
             input_format = "0,1,{}".format(ii + 2)
             gmt.psbasemap(Xf="{}p".format(x[ii]), Yf="{}p".format(y[ii]),
-                          B="WSen+t{}".format(titles[ii]),
-                          Bx=args.x_axis, By=args.y_axis)
+                          B="WSen+t{}".format(titles[ii]), Bx=x_axis, By=y_axis)
 
             gmt.psxy(data=infile, i=input_format, bi=bindef, S="c0.025c",
                      C="tmp.cpt")
@@ -225,10 +225,13 @@ def main():
     if args.label == "":
         gmt.colorbar(mode=args.mode, offset=args.offset, C="tmp.cpt")
     else:
-        gmt.colorbar(mode=args.mode, offset=args.offset, B=args.label, C="tmp.cpt")
+        gmt.colorbar(mode=args.mode, offset=args.offset, B=args.label,
+                     C="tmp.cpt")
     
     if ext != ".ps":
-        gmt.raster(out)
+        gmt.raster(out, dpi=args.dpi, gray=args.gray, portrait=args.portrait,
+                   with_pagesize=args.pagesize, multi_page=args.multi_page,
+                   transparent=args.transparent)
         os.remove(ps_file)
     
     os.remove("tmp.cpt")

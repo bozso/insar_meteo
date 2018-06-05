@@ -2,8 +2,41 @@ import os
 import subprocess as sub
 from shlex import split
 import os.path as pth
+from argparse import ArgumentParser
 
 from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands
+
+def gen_step_parser(choices):
+    
+    parser = ArgumentParser(add_help=False)
+    
+    parser.add_argument(
+        "--step",
+        nargs="?",
+        default=None,
+        type=str,
+        choices=steps,
+        help="Carry out the processing step defined by this argument "
+             "and exit.")
+
+    parser.add_argument(
+        "--start",
+        nargs="?",
+        default=steps[0],
+        type=str,
+        choices=steps,
+        help="Starting processing step. Processing steps will be executed "
+             "until processing step defined by --stop is reached")
+    
+    parser.add_argument(
+        "--stop",
+        nargs="?",
+        default=steps[-1],
+        type=str,
+        choices=steps,
+        help="Last processing step to be executed.")
+    
+    return parser
 
 def cmd(Cmd, *args, rout=False):
     """

@@ -12,6 +12,7 @@ import glob
 def gen_tuple(cast):
     """
     Returns a function that creates a tuple of elements found in x.
+    Converts x values using the passed cast function.
     Helper function for parsing command line arguments.
     """
     return lambda x: tuple(cast(elem) for elem in x.split(","))

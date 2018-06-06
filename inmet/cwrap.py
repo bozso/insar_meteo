@@ -26,7 +26,7 @@ def gen_step_parser(choices):
         type=str,
         choices=steps,
         help="Starting processing step. Processing steps will be executed "
-             "until processing step defined by --stop is reached")
+             "until processing step defined by --stop is reached.")
     
     parser.add_argument(
         "--stop",

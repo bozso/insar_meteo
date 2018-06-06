@@ -6,6 +6,16 @@ from argparse import ArgumentParser
 
 from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands
 
+def parse_steps(args, steps):
+    if args.step is not None:
+        first = steps.index(args.step)
+        last = steps.index(args.step)
+        return first, last
+    else:
+        first = steps.index(args.start)
+        last = steps.index(args.stop)
+        return first, last
+
 def gen_step_parser(choices):
     
     parser = ArgumentParser(add_help=False)

@@ -17,24 +17,37 @@ def parse_arguments():
             formatter_class=ap.ArgumentDefaultsHelpFormatter,
             parent=[cw.gen_step_parser(_steps)])
 
-    parser.add_argument("in_asc", help="Text file that contains the "
-                        "ASCENDING PS velocities.")
-    parser.add_argument("in_dsc", help="Text file that contains the "
-                        "DESCENDING PS velocities.")
+    parser.add_argument(
+        "in_asc",
+        help="Text file that contains the ASCENDING PS velocities.")
+        
+    parser.add_argument(
+        "in_dsc",
+        help="Text file that contains the DESCENDING PS velocities.")
 
-    parser.add_argument("orb_asc", help="text file that contains the "
-                        "ASCENDING orbit state vectors.")
-    parser.add_argument("orb_dsc", help="text file that contains the "
-                        "DESCENDING orbit state vectors.")
+    parser.add_argument(
+        "orb_asc",
+        help="Text file that contains the ASCENDING orbit state vectors.")
     
+    parser.add_argument(
+        "orb_dsc",
+        help="Text file that contains the DESCENDING orbit state vectors.")
     
-    parser.add_argument("-p", "--ps_sep", help="Maximum separation distance "
-                        "between ASC and DSC PS points in meters.",
-                        nargs="?", type=float, default=100.0)
+    parser.add_argument(
+        "-p", "--ps_sep",
+        nargs="?",
+        default=100.0,
+        type=float,
+        help="Maximum separation distance between ASC and DSC PS points "
+             "in meters.")
 
-    parser.add_argument("-d", "--deg", help="Degree of the polynom fitted to "
-                        "satellite orbit coordinates.", nargs="?", type=int,
-                        default=3)
+    parser.add_argument(
+        "-d", "--deg",
+        nargs="?",
+        default=3,
+        type=int,
+        help="Degree of the polynom fitted to satellite orbit coordinates.")
+    
     """
     parser.add_argument("--logile", help="logfile name ", nargs="?",
                         type=str, default="daisy.log")
@@ -44,20 +57,10 @@ def parse_arguments():
 
     return parser.parse_args()
 
-def parse_steps(args):
-    if step is not None:
-        first = _steps.index(args.step)
-        last = _steps.index(args.step)
-        return first, last
-    else:
-        first = _steps.index(args.start)
-        last = _steps.index(args.stop)
-        return first, last
-        
 def main():
     args = parse_arguments()
     
-    start, stop = parse_steps(args)
+    start, stop = cw.parse_steps(args, _steps)
     ps_sep = args.ps_sep
     
     if start == 0:

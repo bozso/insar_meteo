@@ -167,6 +167,12 @@ def fit_orbit(path, preproc, savefile, deg=3):
     else:
         Cmd = "trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
     
+    #out = "\n".join(gmt("trend1d", "coords.txyz", rout=True,
+                        #N="p{}r".format(deg + 1),
+                        #F="p", V=True, i="0,{}".format(ii + 1)).decode()
+                        #for ii in range(3))
+                        
+    
     out = "\n".join(cmd(Cmd.format(deg + 1, ii + 1), rout=True).decode()
                     for ii in range(3))
     

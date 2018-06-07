@@ -223,7 +223,7 @@ def round_tick(step):
 class Unwrapper(object):
     def __init__(self, root, year, los, savefile, gnss_year=None,
                  gnss_los=None,  xadd=0.1, yadd=0.1, xtick=0.125, ytick=10,
-                 thresh=10, **kwargs):
+                 xlabel=None, thresh=10, **kwargs):
         
         #self.root = root
         self.xtick, self.ytick = xtick, ytick
@@ -272,8 +272,11 @@ class Unwrapper(object):
         ax_lim = [round_tick(elem) for elem in ax_lim]
         self.ax_lim0 = ax_lim
         
+        if xlabel is None:
+            xlabel = "Fractional year since {}".format(self.year0)
+        
         self.plt.create_axis(ax_lim)
-        self.plt.xlabel("Fractional year since {}".format(self.year0))
+        self.plt.xlabel(xlabel)
         self.plt.ylabel("LOS displacement [mm]")
         
         self.plot_original()

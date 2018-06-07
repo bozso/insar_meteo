@@ -9,6 +9,29 @@ from argparse import ArgumentParser
 
 import glob
 
+def gmt(module, *args, rout=False, **kwargs):
+    if module not in _gmt_commands:
+        raise ValueError("Unrecognized gmt module: {}".format(module))
+    
+    if not module.startswith("gmt") and get_version() > _gmt_five:
+        module = "gmt " + module
+    
+    Cmd = module " " + " ".join(str(arg) for arg in *args)
+
+    if len(kwargs) > 0:
+        Cmd += " " + " ".join(["-{}{}".format(key, proc_flag(flag))
+                               for key, flag in kwargs.items()])
+    
+    try:
+        cmd_out = subp.check_output(split(Cmd), stderr=subp.STDOUT)
+    except subp.CalledProcessError as e:
+        print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
+        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
+        print("RETURNCODE was: {}".format(e.returncode))
+    
+    if rout:
+        return cmd_out
+    
 def gen_tuple(cast):
     """
     Returns a function that creates a tuple of elements found in x.

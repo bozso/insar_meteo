@@ -24,6 +24,7 @@ def gen_tuple(cast):
 # Arguemnts for the raster function of the GMT object.
 
 raster_parser = ArgumentParser(add_help=False)
+
 raster_parser.add_argument(
     "--dpi",
     nargs="?",
@@ -55,6 +56,52 @@ raster_parser.add_argument(
     "--transparent",
     action="store_true",
     help="If defined output png will be transparent.")
+
+# Arguemnts for the raster multiplot of the GMT object.
+
+multi_parser = ArgumentParser(add_help=False)
+    
+multi_parser.add_argument(
+    "--nrows",
+    nargs="?",
+    default=None,
+    type=int,
+    help="Number of rows in multiplot.")
+
+multi_parser.add_argument(
+    "--top",
+    nargs="?",
+    default=0,
+    type=float,
+    help="Top margin in point units.")
+
+multi_parser.add_argument(
+    "--left",
+    nargs="?",
+    default=25,
+    type=float,
+    help="Left margin in point units.")
+
+multi_parser.add_argument(
+    "--right",
+    nargs="?",
+    default=50,
+    type=float,
+    help="Right margin in point units.")
+
+multi_parser.add_argument(
+    "--hpad",
+    nargs="?",
+    default=55,
+    type=float,
+    help="Horizontal padding between plots in point units.")
+
+multi_parser.add_argument(
+    "--vpad",
+    nargs="?",
+    default=55,
+    type=float,
+    help="Vertical padding between plots in point units.")
 
 # Different GMT versions
 _gmt_five = StrictVersion('5.0')

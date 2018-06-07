@@ -8,12 +8,12 @@ import os
 import os.path as pth
 import argparse as ap
 
-from inmet.gmt import GMT, get_ranges, raster_parser, gen_tuple
+from inmet.gmt import GMT, get_ranges, raster_parser, gen_tuple, multi_parser
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=__doc__,
             formatter_class=ap.ArgumentDefaultsHelpFormatter,
-            parents=[raster_parser])
+            parents=[raster_parser, multi_parser])
 
     parser.add_argument(
         "infile",
@@ -58,27 +58,6 @@ def parse_arguments():
         action="store_true")
     
     parser.add_argument(
-        "-r", "--right",
-        nargs="?",
-        default=100,
-        type=float,
-        help="Right margin in points.")
-    
-    parser.add_argument(
-        "-l", "--left",
-        nargs="?",
-        default=50,
-        type=float,
-        help="Left margin in points.")
-        
-    parser.add_argument(
-        "-t", "--top",
-        nargs="?",
-        default=0,
-        type=float,
-        help="Top margin in points.")
-
-    parser.add_argument(
         "--xy_range",
         nargs="?",
         default=None,
@@ -111,7 +90,7 @@ def parse_arguments():
         nargs="?",
         default="a0.25g0.25f0.25",
         type=str,
-        help="GMT configuration of x axis.")
+        help="GMT configuration of y axis.")
     
     parser.add_argument(
         "--xy_add",
@@ -199,8 +178,9 @@ def main():
         titles = args.titles
     
     gmt = GMT(ps_file, R=xy_range)
-    x, y = gmt.multiplot(len(idx), args.proj, right=args.right, top=args.top,
-                         left=args.left)
+    x, y = gmt.multiplot(len(idx), args.proj, nrows=args.nrows,
+                         right=args.right, top=args.top, left=args.left,
+                         xpad=args.hpad, ypad=args.ypad)
     
     gmt.makecpt("tmp.cpt", C=args.cpt, Z=True, T=z_range)
     

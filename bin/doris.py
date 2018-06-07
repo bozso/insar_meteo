@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
 
+import argparse as ap
+import os
+import os.path as pth
+import errno
+import shutil as sh
+import glob as gl
+from contextlib import contextmanager
+
+import inmet.cwrap as cw
+
+_steps = ["import", ""]
+
 # To be translated into python
 
 """
@@ -75,53 +87,66 @@ judge them to be adquate, continue.
 After this: mt_prep
 """
 
-# arg1: data path
-# arg2: processing path
-# arg3: master date
-# arg4: envi/ers/...
-# arg5: DEM header path
+# $1: data path
+# $2: processing path
+# $3: master date
+# $4: envi/ers/...
+# $5: DEM header path
 
-if [[ $# -ne 5 ]]; then
-    echo -e "* !!!"
-    echo -e "*"
-    echo -e "* WARNING: 5 arguments are required! Usage:\n* insar_preproc1"\
-    "data_path processing_path master_date envi/ers/... DEM_file_path"
-    echo -e "*"
-    echo -e "* !!!\n"
-    exit 1
-fi
+@contextmanager
+def cd(newdir):
+    prevdir = os.getcwd()
+    os.chdir(os.path.expanduser(newdir))
+    try:
+        yield
+    finally:
+        os.chdir(prevdir)
 
-# if workdir does not exists
-if [ ! -d $2 ]; then
-    mkdir $2
-fi
+def create_dir(path):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise        
 
-cd $2
-link_raw $1 $2
-cd $2/SLC/$3
+def data_import(data_path, proc_path, master_date, sat_type):
+    
+    create_dir(proc_path)
+    
+    cw.cmd("link_raw", data_path, proc_path)
+    
+    with cd(pth.join(proc_path, "SLC", master_date)):
+        cw.cmd("step_slc_{}".format(sat_type))
+    
+    my_scr = pth.expandvars("$MY_SCR")
+    
+    sh.copy(pth.join(my_scr, "master_crop.in"), ".")
 
-step_slc_$4
-
-cp $MY_SCR/master_crop.in .
-
-cd $2/SLC/$3
-step_master_setup
-cd $2/SLC
-make_slcs_$4
-
-cd $2
-
-if [ ! -d DEM ]; then
-    mkdir DEM
-fi
-
-dem_header_path="$5.hdr"
-
-cd $2/DEM
-cp $5* .
-dem_path=$(ls -S $2/DEM | head -1)
-dem_path=$2/DEM/$dem_path
-
+#            $2          $3          $4         $5
+def step2(proc_path, master_date, sat_type, dem_header):
+    
+    with cd(pth.join(proc_path, "SLC", master_date)):
+        cw.cmd("step_master_setup")
+    
+    with cd(pth.join(proc_path, "SLC")):
+        cw.cmd("make_slcs_{}".format(sat_type))
+    
+    with cd(proc_path):
+        create_dir("DEM")
+        dem_header_path="{}.hdr".format(dem_header)
+    
+    with cd(pth.join(proc_path, "DEM")):
+        for elem in gl.glob(pth.join(dem_header + "*")):
+            sh.copy(elem, ".")
+    
+    # select the largest one
+    dem_path = sorted(gl.glob(pth.join(proc_path, "DEM")),
+                      key=os.path.getsize))[0]
+    dem_path = pth.join(proc_path, "DEM", dem_path)
+    
+    with open(dem_header, "r") as f:
+        lines = f.readlines()
+    
 readarray array < $dem_header_path
 var1=(${array[1]})
 
@@ -142,6 +167,32 @@ step_master_orbit_ODR
 step_master_timing > timing.output
 echo "Do these images look similar?"
 eog master_sim_*.ras $1/SLC/$2/$2_crop.ras 
+
+
+def parse_arguments():
+    parser = ap.ArgumentParser(description=_daisy__doc__,
+            formatter_class=ap.ArgumentDefaultsHelpFormatter,
+            parent=[cw.gen_step_parser(_steps)])
+    
+    return parser.parse_args()
+
+
+def main():
+    
+    args = parse_arguments()
+    
+    start, stop = cw.parse_steps(args, _steps)
+    
+    data_path   = args.data_path
+    proc_path   = args.proc_path
+    master_data = args.master_date
+    sat_type    = args.sat_type
+    dem_header  = args.dem_header
+    
+    
+
+
+
 
 cd $2/INSAR_$3
 

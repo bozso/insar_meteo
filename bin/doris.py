@@ -119,7 +119,6 @@ def data_import(data_path, proc_path, master_date, sat_type):
         cw.cmd("step_slc_{}".format(sat_type))
     
     my_scr = pth.expandvars("$MY_SCR")
-    
     sh.copy(pth.join(my_scr, "master_crop.in"), ".")
 
 #            $2          $3          $4         $5
@@ -147,11 +146,13 @@ def step2(proc_path, master_date, sat_type, dem_header):
     with open(dem_header, "r") as f:
         lines = f.readlines()
     
-readarray array < $dem_header_path
-var1=(${array[1]})
+    with cd(pth.join(proc_path, "INSAR_{}".format(master_date)):
+        doris_scr = pth.expandvars("$DORIS_SCR")
+        sh.copy(pth.join(doris_scr, "timing.dorisin"), ".")
 
-cd $2/INSAR_$3
-cp $DORIS_SCR/timing.dorisin .
+        with open("timing.dorisin", "r") as f:
+            timing = f.readlines()
+        
 awk 'NR<29' timing.dorisin > temp
 printf "${array[0]}" >> temp
 printf "${var1[0]}\t\t $dem_path\n" >> temp

@@ -16,7 +16,7 @@ def gmt(module, *args, rout=False, **kwargs):
     if not module.startswith("gmt") and get_version() > _gmt_five:
         module = "gmt " + module
     
-    Cmd = module " " + " ".join(str(arg) for arg in *args)
+    Cmd = module + " " + " ".join(str(arg) for arg in args)
 
     if len(kwargs) > 0:
         Cmd += " " + " ".join(["-{}{}".format(key, proc_flag(flag))

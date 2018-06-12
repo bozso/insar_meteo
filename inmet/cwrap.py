@@ -16,7 +16,7 @@ def parse_steps(args, steps):
         last = steps.index(args.stop)
         return first, last
 
-def gen_step_parser(choices):
+def gen_step_parser(steps):
     
     parser = ArgumentParser(add_help=False)
     
@@ -47,6 +47,26 @@ def gen_step_parser(choices):
         help="Last processing step to be executed.")
     
     return parser
+
+def get_key(line, sep):
+    return line.split(sep)[0].strip()
+
+def get_value(line, comment, sep):
+    line = line.split(sep)[1].split(comment)[0].strip()
+    return "".join(line)
+
+def parse_config_file(filepath, comment="#", sep=":"):
+
+    with open(filepath, "r") as f:
+        params = {get_key(line, sep): get_value(line, comment, sep)
+                  for line in f
+                  if sep in line and not line.startswith(comment)}
+
+    return params
+
+def set_default(params, key, keys, default=None):    
+    if key not in keys:
+        params[key] = default
 
 def cmd(Cmd, *args, rout=False):
     """

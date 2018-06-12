@@ -10,10 +10,11 @@ from contextlib import contextmanager
 
 import inmet.cwrap as cw
 
-_steps = ["import", ""]
+_steps = ["import", "make_slcs"]
 
 # To be translated into python
 
+_doris__doc__=\
 """
 ./insar_prepoc1.sh "data_path" "processing_path" "master_date" "envi/ers/..."
 
@@ -109,20 +110,36 @@ def create_dir(path):
         if e.errno != errno.EEXIST:
             raise        
 
-def data_import(data_path, proc_path, master_date, sat_type):
+def data_import(params):
+    
+    data_path = params.get("data_path")
+    proc_path = params.get("proc_path", ".")
+    master_date = params.get("master_date")
+    sat_type = params.get("sat_type")
+    
+    if data_path is None:
+        raise ValueError("data_path is undefined!")
+    if master_date is None:
+        raise ValueError("master_date is undefined!")
+    if sat_type is None:
+        raise ValueError("sattelite_type is undefined!")
     
     create_dir(proc_path)
     
+    print("Creating symbolic links.")
     cw.cmd("link_raw", data_path, proc_path)
     
+    print("Running step_slc in master date directory.")
     with cd(pth.join(proc_path, "SLC", master_date)):
         cw.cmd("step_slc_{}".format(sat_type))
     
     my_scr = pth.expandvars("$MY_SCR")
     sh.copy(pth.join(my_scr, "master_crop.in"), ".")
-
-#            $2          $3          $4         $5
-def step2(proc_path, master_date, sat_type, dem_header):
+    
+    print("Configure master_crop.in file then continue.")
+    
+#               $2          $3          $4         $5
+def make_slcs(proc_path, master_date, sat_type, dem_header):
     
     with cd(pth.join(proc_path, "SLC", master_date)):
         cw.cmd("step_master_setup")
@@ -140,147 +157,156 @@ def step2(proc_path, master_date, sat_type, dem_header):
     
     # select the largest one
     dem_path = sorted(gl.glob(pth.join(proc_path, "DEM")),
-                      key=os.path.getsize))[0]
+                      key=os.path.getsize)[0]
     dem_path = pth.join(proc_path, "DEM", dem_path)
     
     with open(dem_header, "r") as f:
         lines = f.readlines()
     
-    with cd(pth.join(proc_path, "INSAR_{}".format(master_date)):
+    with cd(pth.join(proc_path, "INSAR_{}".format(master_date))):
         doris_scr = pth.expandvars("$DORIS_SCR")
         sh.copy(pth.join(doris_scr, "timing.dorisin"), ".")
 
+        return
+        
         with open("timing.dorisin", "r") as f:
             timing = f.readlines()
         
-awk 'NR<29' timing.dorisin > temp
-printf "${array[0]}" >> temp
-printf "${var1[0]}\t\t $dem_path\n" >> temp
-printf "${array[2]}" >> temp
-printf "${array[3]}" >> temp
-printf "${array[4]}" >> temp
-printf "${array[5]}" >> temp
-awk 'NR>34' timing.dorisin >> temp
-sed 's/\r$//' temp > timing.dorisin
-rm temp
+        with open("timing.dorisin", "w") as f:
+            f.write("\n".join(timing))
+            f.write("\n")
+            
+#awk 'NR<29' timing.dorisin > temp
+#printf "${array[0]}" >> temp
+#printf "${var1[0]}\t\t $dem_path\n" >> temp
+#printf "${array[2]}" >> temp
+#printf "${array[3]}" >> temp
+#printf "${array[4]}" >> temp
+#printf "${array[5]}" >> temp
+#awk 'NR>34' timing.dorisin >> temp
+#sed 's/\r$//' temp > timing.dorisin
+#rm temp
 
-step_master_orbit_ODR
-step_master_timing > timing.output
-echo "Do these images look similar?"
-eog master_sim_*.ras $1/SLC/$2/$2_crop.ras 
+#step_master_orbit_ODR
+#step_master_timing > timing.output
+#echo "Do these images look similar?"
+#eog master_sim_*.ras $1/SLC/$2/$2_crop.ras 
 
+#cd $2/INSAR_$3
+
+#make_orbits
+#out=$(show_porbits | awk '$2==0 {print $0}')
+
+#if [[ $out ]]; then
+    #echo "Delete the SLC or check the ODR path in the DORIS input file in the \
+        #slave directory of the following dates:\n"
+    #echo "$out"
+    #return 1
+#else
+    #echo "make_orbits done"
+#fi
+
+## did the awk script print one of the date of a slave image?
+## yes -- delete that SLC or check ODR path in the DORIS input file in the 
+## slave directory
+## no  -- nothing to be done
+
+#cd $2/INSAR_$3
+#make_coarse > make_coarse.output
+
+#make_coreg &
+#make_dems &
+#wait
+
+#cd coreg
+#out=$(ls -l CPM_Data* |awk '$5<1000 {print $0}')
+
+#if [[ $out ]]; then
+    #echo "make_dems done"
+    #rm 
+    #echo "Delete the SLC of the following date(s):\n"
+    #echo "$out"
+    #echo "After that run update_coreg in INSAR_$2/coreg!"
+    #return 1
+#else
+    #echo "make_coreg and make_dems done"
+#fi
+
+#cd $2/INSAR_$3
+
+#make_resample
+#RET=$(ls -l */*.slc | gawk 'BEGIN {RET = 0}; NR==1 {SIZE = $5}; $5 != SIZE \
+    #{RET = 1; print $0}; END {print RET}')
+
+#if [ $RET -eq 1 ]; then
+	#echo "One or more slc files, listed above, have different size."
+	#return 1
+#fi
+
+#make_ifgs
+#eog */*dem_*l.ras
+
+## SELECT MASTER
+
+## arg1: processing path
+## arg2: master date
+## arg3: envi/ers/...
+## arg4: DEM header path
+
+#cd $1/SLC
+#make_slcs_$3
+
+#cd $1/INSAR_$2
+#step_master_orbit_ODR
+
+#cp $DORIS_SCR/timing.dorisin .
+#awk 'NR<29' timing.dorisin > temp
+#cat $4 >> temp
+#awk 'NR>34' timing.dorisin >> temp
+#sed 's/\r$//' temp > timing.dorisin
+#rm temp
+
+#step_master_timing > timing.output
+#make_orbits
+
+#out=$(show_porbits | awk '$2==0 {print $0}')
+#if [[ $out ]]; then
+    #echo "Delete the SLC or check the ODR path in the DORIS input file in the \
+        #slave directory of the following dates:\n"
+    #echo "$out"
+    #return 1
+#else
+    #echo "make_orbits done"
+#fi
+
+#master_select > master_select.out
+#grep Bperp */coreg.out > bperp.out
 
 def parse_arguments():
-    parser = ap.ArgumentParser(description=_daisy__doc__,
+    parser = ap.ArgumentParser(description=_doris__doc__,
             formatter_class=ap.ArgumentDefaultsHelpFormatter,
-            parent=[cw.gen_step_parser(_steps)])
+            parents=[cw.gen_step_parser(_steps)])
+    
+    parser.add_argument(
+        "-c", "--conf",
+        nargs="?",
+        default="doris.conf",
+        type=str,
+        help="Config file with processing parameters.")
     
     return parser.parse_args()
-
 
 def main():
     
     args = parse_arguments()
-    
     start, stop = cw.parse_steps(args, _steps)
+    params = cw.parse_config_file(args.conf)
     
-    data_path   = args.data_path
-    proc_path   = args.proc_path
-    master_data = args.master_date
-    sat_type    = args.sat_type
-    dem_header  = args.dem_header
+    if start == 0:
+        data_import(params)
     
-    
+    if start <= 1 and stop >= 1:
+        make_slcs(params)
 
-
-
-
-cd $2/INSAR_$3
-
-make_orbits
-out=$(show_porbits | awk '$2==0 {print $0}')
-
-if [[ $out ]]; then
-    echo "Delete the SLC or check the ODR path in the DORIS input file in the \
-        slave directory of the following dates:\n"
-    echo "$out"
-    return 1
-else
-    echo "make_orbits done"
-fi
-
-# did the awk script print one of the date of a slave image?
-# yes -- delete that SLC or check ODR path in the DORIS input file in the 
-# slave directory
-# no  -- nothing to be done
-
-cd $2/INSAR_$3
-make_coarse > make_coarse.output
-
-make_coreg &
-make_dems &
-wait
-
-cd coreg
-out=$(ls -l CPM_Data* |awk '$5<1000 {print $0}')
-
-if [[ $out ]]; then
-    echo "make_dems done"
-    rm 
-    echo "Delete the SLC of the following date(s):\n"
-    echo "$out"
-    echo "After that run update_coreg in INSAR_$2/coreg!"
-    return 1
-else
-    echo "make_coreg and make_dems done"
-fi
-
-cd $2/INSAR_$3
-
-make_resample
-RET=$(ls -l */*.slc | gawk 'BEGIN {RET = 0}; NR==1 {SIZE = $5}; $5 != SIZE \
-    {RET = 1; print $0}; END {print RET}')
-
-if [ $RET -eq 1 ]; then
-	echo "One or more slc files, listed above, have different size."
-	return 1
-fi
-
-make_ifgs
-eog */*dem_*l.ras
-
-# SELECT MASTER
-
-# arg1: processing path
-# arg2: master date
-# arg3: envi/ers/...
-# arg4: DEM header path
-
-cd $1/SLC
-make_slcs_$3
-
-cd $1/INSAR_$2
-step_master_orbit_ODR
-
-cp $DORIS_SCR/timing.dorisin .
-awk 'NR<29' timing.dorisin > temp
-cat $4 >> temp
-awk 'NR>34' timing.dorisin >> temp
-sed 's/\r$//' temp > timing.dorisin
-rm temp
-
-step_master_timing > timing.output
-make_orbits
-
-out=$(show_porbits | awk '$2==0 {print $0}')
-if [[ $out ]]; then
-    echo "Delete the SLC or check the ODR path in the DORIS input file in the \
-        slave directory of the following dates:\n"
-    echo "$out"
-    return 1
-else
-    echo "make_orbits done"
-fi
-
-master_select > master_select.out
-grep Bperp */coreg.out > bperp.out
+if __name__ == "__main__":
+    main()

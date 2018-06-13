@@ -3,10 +3,10 @@ from distutils.ccompiler import new_compiler
 from sys import argv
 
 c_file = [argv[1]]
-#libs = ["m"]
-libs=None
-flags = ["-std=c++14"]
+libs = ["m", "gsl"]
+flags = ["-std=c99"]
 inc_dir = ["/home/istvan/miniconda3/include"]
+lib_dirs = ["/home/istvan/miniconda3/lib"]
 
 def main():
     c_basename = c_file[0].split(".")[0]
@@ -16,7 +16,7 @@ def main():
     
     ccomp.link_executable([c_basename + ".o"],
                           pjoin("..", "bin", c_basename),
-                          libraries=libs,
+                          libraries=libs, library_dirs=lib_dirs,
                           extra_postargs=flags)
     
 if __name__ == "__main__":

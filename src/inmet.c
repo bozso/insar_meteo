@@ -2,6 +2,7 @@
 #include <tgmath.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gsl/gsl_matrix_double.h>
 
 #include "aux_macros.h"
 
@@ -54,6 +55,7 @@ static int read_fit(const char * path, orbit_fit * orb)
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
+
     FOR(ii, 0, 3 * (deg + 1))
         aux_read(fit_file, "%lf", orb->coeffs + ii);
     

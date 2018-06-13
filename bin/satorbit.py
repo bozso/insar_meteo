@@ -17,29 +17,44 @@ def parse_arguments():
     parser = ap.ArgumentParser(description=_daisy__doc__,
             formatter_class=ap.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("orbit_data", help="Text file that contains the orbit "
-                        "data.")
+    parser.add_argument(
+    "orbit_data",
+    help="Text file that contains the orbit data.")
 
-    parser.add_argument("preproc", help="Type doris or gamma, the program that "
-                        "was used in the preprocessing of SAR images.")
+    parser.add_argument(
+        "preproc",
+        help="Type doris or gamma, the program that was used in the "
+             "preprocessing of SAR images.")
     
-    parser.add_argument("coords_file", help="Binary file that contains "
-                        "either WGS-84 x,y,z or lon., lat., height coordinates "
-                        "in double precision (float64).")
+    parser.add_argument(
+        "coords_file",
+        help="Binary file that contains either WGS-84 x,y,z or lon., lat., "
+             "height coordinates in double precision (float64).")
     
-    parser.add_argument("mode", help="Type xyz for WGS-84 x,y,z or llh for "
-                        "WGS-84 lon., lat., height coordinates.")
+    parser.add_argument(
+        "mode",
+        help="Type xyz for WGS-84 x,y,z or llh for WGS-84 lon., lat., "
+             "height coordinates.")
     
-    parser.add_argument("outfile", help="Azimuths and inlcination angles in "
-                        "degrees will be saved into this file in binary format.")
+    parser.add_argument(
+        "outfile",
+        help="Azimuths and inlcination angles in degrees will be saved "
+             "into this file in binary format.")
     
-    parser.add_argument("-d", "--deg", help="Degree of the polynom fitted to "
-                        "satellite orbit coordinates.", nargs="?", type=int,
-                        default=3)
+    parser.add_argument(
+        "-d", "--deg",
+        nargs="?",
+        default=3,
+        type=int,
+        help="Degree of the polynom fitted to satellite orbit coordinates.")
 
-    parser.add_argument("-m", "--max_iter", help="Maximum iteration number of"
-                        "the closest approache method", nargs="?", type=int,
-                        default=1000)
+    parser.add_argument(
+        "-m", "--max_iter",
+        nargs="?",
+        default=1000,
+        type=int,
+        help="Maximum iteration number of the closest approache method")
+    
     """
     parser.add_argument("--logile", help="logfile name ", nargs="?",
                         type=str, default="daisy.log")
@@ -52,10 +67,8 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    print(shunt("(ABS(1) + SIND(2)) & (3 / ASEC(4))^(5 + 6)"))
-    return
     cw.fit_orbit(args.orbit_data, args.preproc, "orbit.fit", deg=args.deg)
-
+    return
     cw.azi_inc("orbit.fit", args.coords_file, args.mode, args.outfile,
                max_iter=args.max_iter)
 

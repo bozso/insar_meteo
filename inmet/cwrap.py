@@ -4,7 +4,7 @@ from shlex import split
 import os.path as pth
 from argparse import ArgumentParser
 
-from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands
+from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands, GMT
 
 def parse_steps(args, steps):
     if args.step is not None:
@@ -68,7 +68,7 @@ def set_default(params, key, keys, default=None):
     if key not in keys:
         params[key] = default
 
-def cmd(Cmd, *args, rout=False):
+def cmd(Cmd, *args, ret=False):
     """
     Calls a C module. Arbitrary number of arguments can be passed through
     `*args`. See documentation of modules for arguments.
@@ -105,7 +105,7 @@ def cmd(Cmd, *args, rout=False):
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
-    if rout:
+    if ret:
         return cmd_out
 
 # *****************
@@ -135,7 +135,7 @@ def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
 def azi_inc(fit_file, coords, mode, outfile, max_iter=1000, **kwargs):
     cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile, **kwargs)
 
-def fit_orbit(path, preproc, savefile, deg=3):
+def fit_orbit(path, preproc, savefile, fit_plot=None, deg=3):
     
     if not pth.isfile(path):
         raise IOError("{} is not a file.".format(path))
@@ -183,18 +183,14 @@ def fit_orbit(path, preproc, savefile, deg=3):
     ver = get_version()
     
     if ver > _gmt_five:
-        Cmd = "gmt trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
+        cmd_fit = "gmt trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
+        cmd_plot = "gmt trend1d coords.txyz -Np{}r -Fxm -i0,{}"
     else:
-        Cmd = "trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
+        cmd_fit = "trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
+        cmd_plot = "trend1d coords.txyz -Np{}r -Fxm -i0,{}"
     
-    #out = "\n".join(gmt("trend1d", "coords.txyz", rout=True,
-                        #N="p{}r".format(deg + 1),
-                        #F="p", V=True, i="0,{}".format(ii + 1)).decode()
-                        #for ii in range(3))
-                        
-    
-    out = "\n".join(cmd(Cmd.format(deg + 1, ii + 1), rout=True).decode()
-                    for ii in range(3))
+    out = "\n".join(cmd(cmd_fit.format(deg, ii), ret=True).decode()
+                    for ii in range(1, 4))
     
     m = (line.split(":")[2].strip() for ii, line in enumerate(out.split("\n"))
          if "trend1d: Model Coefficients  (Chebyshev):" in line)
@@ -203,7 +199,20 @@ def fit_orbit(path, preproc, savefile, deg=3):
         f.write("deg: {}\n".format(deg))
         f.write("\n".join(elem.strip()for elem in m) + "\n\n")
         f.write(out)
+
+    for ii in range(1, 4):
+        out = cmd(cmd_plot.format(deg + 1, ii), ret=True)
+        
+        with open("tmp{}.txt".format(ii), "wb") as f:
+            f.write(out)
     
+    
+    
+    if fit_plot is not None:
+        gmt = GMT(fit_plot)
+        
+        
+        
 def get_par(parameter, search, sep=":"):
 
     if isinstance(search, list):

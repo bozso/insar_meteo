@@ -249,8 +249,29 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
  * Main functions - calleble from command line *
  ***********************************************/
 
+mk_doc(fit_orbit,
+"\n Usage: inmet fit_orbit coords deg is_centered\
+ \n \
+ \n coords   - ascii file with (t,x,y,z) coordinates\
+ \n deg      - degree of fitted polynom\
+ \n is_centered - 1 to subtract mean time and coordinates from time points and \
+                  coordinates\
+ \n\n");
+
+int fit_orbit(int argc, char **argv)
+{
+    aux_checkarg(fit_orbit, 3);
+    
+    FILE *incoords = sfopen(argv[2], "r");
+    
+    
+    fclose(incoords);
+    
+    return 0;
+}
+
 mk_doc(azi_inc,
-"\n Usage: inmet_utils azi_inc fit_file coords mode max_iter outfile\
+"\n Usage: inmet azi_inc fit_file coords mode max_iter outfile\
  \n \
  \n fit_file - ascii file with fit parameters\
  \n coords   - inputfile with coordinates\

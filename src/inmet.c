@@ -26,32 +26,15 @@ typedef struct {
  * Auxilliary functions *
  * **********************/
 
-static void * malloc_or_exit(size_t nbytes, const char * file, int line)
-{
-    /* Extended malloc function. */	
-    void *x;
-	
-    if ((x = malloc(nbytes)) == NULL) {
-        errorln("%s:line %d: malloc() of %zu bytes failed",
-                file, line, nbytes);
-        exit(err_alloc);
-    }
-    else
-        return x;
-}
-
 static int read_fit(const char * path, orbit_fit * orb)
 {
     FILE * fit_file = NULL;
     uint deg;
     
-    if ((fit_file = fopen(path, "r")) == NULL) {
-        errorln("Failed to open file %s!", path);
-        perror("read_fit");
-        return 1;
-    }
+    aux_fopen(fit_file, path, "r", read_fit);
+    
     aux_read(fit_file, "deg: %d\n", &deg);
-    orb->coeffs = aux_malloc(double, 3 * (deg + 1));
+    aux_malloc(orb->coeffs, double, 3 * (deg + 1));
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
@@ -63,6 +46,10 @@ static int read_fit(const char * path, orbit_fit * orb)
     
     fclose(fit_file);
     return 0;
+fail:
+    fclose(fit_file);
+    aux_free(orb->coeffs);
+    return 1;
 }
 
 static void ell_cart (cdouble lon, cdouble lat, cdouble h,
@@ -262,7 +249,7 @@ int fit_orbit(int argc, char **argv)
 {
     aux_checkarg(fit_orbit, 3);
     
-    FILE *incoords = sfopen(argv[2], "r");
+    FILE *incoords = fopen(argv[2], "r");
     
     
     fclose(incoords);
@@ -302,8 +289,8 @@ int azi_inc(int argc, char **argv)
         return err_io;
     }
     
-    aux_fopen(infile, argv[3], "rb");
-    aux_fopen(outfile, argv[6], "wb");
+    aux_fopen(infile, argv[3], "rb", azi_inc);
+    aux_fopen(outfile, argv[6], "wb", azi_inc);
     
     // infile contains lon, lat, h
     if (str_isequal(argv[4], "llh")) {
@@ -417,6 +404,11 @@ int azi_inc(int argc, char **argv)
     fclose(infile);
     fclose(outfile);
     return 0;
+
+fail:
+    fclose(infile);
+    fclose(outfile);
+    return 1;
 }
 
 int main(int argc, char **argv)

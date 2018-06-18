@@ -3,8 +3,9 @@ from distutils.ccompiler import new_compiler
 from sys import argv
 
 c_file = [argv[1]]
-libs = ["m", "gsl"]
-flags = ["-std=c99"]
+libs = ["m", "gsl", "gslcblas"]
+flags = ["-std=c99", "-static"]
+macros = [("HAVE_HYPOT", None)]
 inc_dir = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]
 
@@ -12,7 +13,8 @@ def main():
     c_basename = c_file[0].split(".")[0]
     
     ccomp = new_compiler()
-    ccomp.compile(c_file, extra_postargs=flags, include_dirs=inc_dir)
+    ccomp.compile(c_file, extra_postargs=flags, include_dirs=inc_dir,
+                  macros=macros)
     
     ccomp.link_executable([c_basename + ".o"],
                           pjoin("..", "bin", c_basename),

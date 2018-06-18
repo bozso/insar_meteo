@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gsl/gsl_matrix_double.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_linalg.h>
 
 #include "aux_macros.h"
 
@@ -13,12 +15,16 @@
 
 #define BUFSIZE 10
 
+#ifndef HAVE_HYPOT
+#define hypot gsl_hypot
+#endif
+
 typedef unsigned int uint;
 typedef const double cdouble;
 
 typedef struct { double x, y, z; } cart; // Cartesian coordinates
 typedef struct { double lon, lat, h; } llh; // Cartesian coordinates
-typedef struct { double t, x, y, z } orbit;
+typedef struct { double t, x, y, z; } orbit;
 
 typedef struct {
     uint deg;
@@ -264,20 +270,19 @@ int fit_orbit(int argc, char **argv)
     
     aux_malloc(orbits, orbit, BUFSIZE);
     
-    double * times,         // vector for times
-             t_mean = 0.0,  // mean value of times
-             t, x, y, z,    // temp storage variables
-             x_mean = 0.0,  // x, y, z mean values
-             y_mean = 0.0,
-             z_mean = 0.0;
+    double t_mean = 0.0,  // mean value of times
+           t, x, y, z,    // temp storage variables
+           x_mean = 0.0,  // x, y, z mean values
+           y_mean = 0.0,
+           z_mean = 0.0;
     
     // vector for orbit coordinates
-    gsl_vector *obs_x, *obs_y, *obs_z;
-
-    // design matrix
-    gsl_matrix * design;
+    gsl_vector *tau;
     
-    aux_malloc(times, double, ndata);
+    // design matrix
+    gsl_matrix *design, *obs, *fit, *residual;
+    
+    gsl_vector_view fitv, resv;
     
     if (is_centered) {
         while(fscanf(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
@@ -300,6 +305,13 @@ int fit_orbit(int argc, char **argv)
                 max_idx = 2 * idx - 1;
             }
         }
+
+        if (ndata < (deg + 1)) {
+            errorln ("Underdetermined system, we have less data points (%d) than\
+                      \n unknowns (%d).", ndata, deg + 1);
+            goto fail;
+        }
+
         // calculate means
         t_mean /= (double) ndata;
     
@@ -307,8 +319,27 @@ int fit_orbit(int argc, char **argv)
         y_mean /= (double) ndata;
         z_mean /= (double) ndata;
         
+        obs = gsl_matrix_alloc(ndata, 3);
+        fit = gsl_matrix_alloc(deg + 1, 3);
+        residual = gsl_matrix_alloc(ndata, 3);
+        
+        design = gsl_matrix_alloc(ndata, deg + 1);
+        
+        tau = gsl_vector_alloc(GSL_MIN(ndata, deg + 1));
+        
         FOR(ii, 0, ndata) {
+            Mset(obs, ii, 0, orbits[ii].x - x_mean);
+            Mset(obs, ii, 1, orbits[ii].y - y_mean);
+            Mset(obs, ii, 2, orbits[ii].z - z_mean);
             
+            Mset(design, ii, 0, 1.0);
+            Mset(design, ii, 1, orbits[ii].t - t_mean);
+        }
+        FOR(ii, 0, ndata)
+            FOR(jj, 2, deg)
+                *Mptr(design, ii, jj) =   Mget(design, ii, jj - 1)
+                                        * orbits[ii].t - t_mean;
+
     }
     else {
         while(fscanf(incoords, "%lf %lf %lf %lf\n",
@@ -322,32 +353,63 @@ int fit_orbit(int argc, char **argv)
                 max_idx = 2 * idx - 1;
             }
         }
-    }
 
-    FOR(ii, 0, ndata)
-        Mset(design, ii, 0, 1.0);
+        if (ndata < (deg + 1)) {
+            errorln ("Underdetermined system, we have less data points (%d) than\
+                      \n unknowns (%d).", ndata, deg + 1);
+            goto fail;
+        }
+
+        obs = gsl_matrix_alloc(ndata, 3);
+        fit = gsl_matrix_alloc(deg + 1, 3);
+        residual = gsl_matrix_alloc(ndata, 3);
+        
+        design = gsl_matrix_alloc(ndata, deg + 1);
+        
+        FOR(ii, 0, ndata) {
+            Mset(obs, ii, 0, orbits[ii].x);
+            Mset(obs, ii, 1, orbits[ii].y);
+            Mset(obs, ii, 2, orbits[ii].z);
+            
+            Mset(design, ii, 0, 0.0);
+            Mset(design, ii, 1, orbits[ii].t);
+        }
+        FOR(ii, 0, ndata)
+            FOR(jj, 2, deg)
+                *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * orbits[ii].t;
+    }
     
-    /*
-    FOR(ii, 0, ndata)
-        FOR(jj, 0, deg)
-    */
+    if (gsl_linalg_QR_decomp(design, tau)) {
+        error("QR decomposition failed.\n");
+        goto fail;
+    }
     
-    gsl_vector_free(obs_x);
-    gsl_vector_free(obs_y);
-    gsl_vector_free(obs_z);
+    FOR(ii, 0, 3) {
+        fitv = gsl_matrix_column(fit, ii);
+        resv = gsl_matrix_column(residual, ii);
+        gsl_vector_const_view coord = gsl_matrix_const_column(obs, ii);
+        
+        if (gsl_linalg_QR_lssolve(design, tau, &coord.vector, &fitv.vector,
+                                  &resv.vector)) {
+            error("Solving of linear system failed!\n");
+            goto fail;
+        }
+    }
+    
     gsl_matrix_free(design);
+    gsl_matrix_free(obs);
+    gsl_matrix_free(fit);
+    gsl_matrix_free(residual);
     
-    free(times);
     fclose(incoords);
     
     return 0;
 fail:
-    gsl_vector_free(obs_x);
-    gsl_vector_free(obs_y);
-    gsl_vector_free(obs_z);
     gsl_matrix_free(design);
+    gsl_matrix_free(obs);
+    gsl_matrix_free(fit);
+    gsl_matrix_free(residual);
     
-    aux_free(time);
     aux_close(incoords);
     
     return 1;

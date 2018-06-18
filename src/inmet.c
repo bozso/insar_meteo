@@ -15,16 +15,12 @@
 
 #define BUFSIZE 10
 
-#ifndef HAVE_HYPOT
-#define hypot gsl_hypot
-#endif
-
 typedef unsigned int uint;
 typedef const double cdouble;
 
-typedef struct { double x, y, z; } cart; // Cartesian coordinates
-typedef struct { double lon, lat, h; } llh; // Cartesian coordinates
-typedef struct { double t, x, y, z; } orbit;
+typedef struct cart_struct { double x, y, z; } cart; // Cartesian coordinates
+typedef struct llh_struct { double lon, lat, h; } llh; // Cartesian coordinates
+typedef struct orbit_struct { double t, x, y, z; } orbit;
 
 typedef struct {
     uint deg;
@@ -248,10 +244,10 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
 mk_doc(fit_orbit,
 "\n Usage: inmet fit_orbit coords deg is_centered\
  \n \
- \n coords   - ascii file with (t,x,y,z) coordinates\
- \n deg      - degree of fitted polynom\
+ \n coords      - ascii file with (t,x,y,z) coordinates\
+ \n deg         - degree of fitted polynom\
  \n is_centered - 1 to subtract mean time and coordinates from time points and \
-                  coordinates\
+ \n               coordinates\
  \n\n");
 
 int fit_orbit(int argc, char **argv)
@@ -320,7 +316,7 @@ int fit_orbit(int argc, char **argv)
         z_mean /= (double) ndata;
         
         obs = gsl_matrix_alloc(ndata, 3);
-        fit = gsl_matrix_alloc(deg + 1, 3);
+        fit = gsl_matrix_alloc(3, deg + 1);
         residual = gsl_matrix_alloc(ndata, 3);
         
         design = gsl_matrix_alloc(ndata, deg + 1);
@@ -336,9 +332,9 @@ int fit_orbit(int argc, char **argv)
             Mset(design, ii, 1, orbits[ii].t - t_mean);
         }
         FOR(ii, 0, ndata)
-            FOR(jj, 2, deg)
+            FOR(jj, 2, deg + 1)
                 *Mptr(design, ii, jj) =   Mget(design, ii, jj - 1)
-                                        * orbits[ii].t - t_mean;
+                                        * (orbits[ii].t - t_mean);
 
     }
     else {
@@ -361,21 +357,23 @@ int fit_orbit(int argc, char **argv)
         }
 
         obs = gsl_matrix_alloc(ndata, 3);
-        fit = gsl_matrix_alloc(deg + 1, 3);
+        fit = gsl_matrix_alloc(3, deg + 1);
         residual = gsl_matrix_alloc(ndata, 3);
         
         design = gsl_matrix_alloc(ndata, deg + 1);
+        
+        tau = gsl_vector_alloc(GSL_MIN(ndata, deg + 1));
         
         FOR(ii, 0, ndata) {
             Mset(obs, ii, 0, orbits[ii].x);
             Mset(obs, ii, 1, orbits[ii].y);
             Mset(obs, ii, 2, orbits[ii].z);
             
-            Mset(design, ii, 0, 0.0);
+            Mset(design, ii, 0, 1.0);
             Mset(design, ii, 1, orbits[ii].t);
         }
         FOR(ii, 0, ndata)
-            FOR(jj, 2, deg)
+            FOR(jj, 2, deg + 1)
                 *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * orbits[ii].t;
     }
     
@@ -385,7 +383,7 @@ int fit_orbit(int argc, char **argv)
     }
     
     FOR(ii, 0, 3) {
-        fitv = gsl_matrix_column(fit, ii);
+        fitv = gsl_matrix_row(fit, ii);
         resv = gsl_matrix_column(residual, ii);
         gsl_vector_const_view coord = gsl_matrix_const_column(obs, ii);
         
@@ -395,6 +393,8 @@ int fit_orbit(int argc, char **argv)
             goto fail;
         }
     }
+    
+    println("%zu %zu", residual->size1, residual->size2);
     
     gsl_matrix_free(design);
     gsl_matrix_free(obs);
@@ -581,8 +581,8 @@ int main(int argc, char **argv)
     if (module_select("azi_inc") || module_select("AZI_INC"))
         return azi_inc(argc, argv);
     
-    //else if (Module_Select("dominant") || Module_Select("DOMINANT"))
-    //    return dominant(argc, argv);
+    else if (module_select("fit_orbit") || module_select("FIT_ORBIT"))
+        return fit_orbit(argc, argv);
 
     else {
         errorln("Unrecognized module: %s", argv[1]);

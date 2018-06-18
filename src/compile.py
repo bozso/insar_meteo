@@ -4,10 +4,13 @@ from sys import argv
 
 c_file = [argv[1]]
 libs = ["m", "gsl", "gslcblas"]
-flags = ["-std=c99", "-static"]
+flags = ["-std=c99"]
 macros = [("HAVE_HYPOT", None)]
+#macros = None
 inc_dir = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]
+#inc_dir = ["/home/istvan/progs/gsl/include"]
+#lib_dirs = ["/home/istvan/progs/gsl/lib"]
 
 def main():
     c_basename = c_file[0].split(".")[0]

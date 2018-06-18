@@ -11,11 +11,14 @@
 
 #define norm(x, y, z) sqrt((x) * (x) + (y) * (y) + (z) * (z))
 
+#define BUFSIZE 10
+
 typedef unsigned int uint;
 typedef const double cdouble;
 
 typedef struct { double x, y, z; } cart; // Cartesian coordinates
 typedef struct { double lon, lat, h; } llh; // Cartesian coordinates
+typedef struct { double t, x, y, z } orbit;
 
 typedef struct {
     uint deg;
@@ -31,7 +34,7 @@ static int read_fit(const char * path, orbit_fit * orb)
     FILE * fit_file = NULL;
     uint deg;
     
-    aux_fopen(fit_file, path, "r", read_fit);
+    aux_open(fit_file, path, "r");
     
     aux_read(fit_file, "deg: %d\n", &deg);
     aux_malloc(orb->coeffs, double, 3 * (deg + 1));
@@ -47,7 +50,7 @@ static int read_fit(const char * path, orbit_fit * orb)
     fclose(fit_file);
     return 0;
 fail:
-    fclose(fit_file);
+    aux_close(fit_file);
     aux_free(orb->coeffs);
     return 1;
 }
@@ -248,13 +251,106 @@ mk_doc(fit_orbit,
 int fit_orbit(int argc, char **argv)
 {
     aux_checkarg(fit_orbit, 3);
+
+    FILE *incoords;
+    uint deg = (uint) atoi(argv[3]);
+    uint is_centered = (uint) atoi(argv[4]);
+    uint idx = 0, ndata = 0;
+    uint max_idx = BUFSIZE - 1;
     
-    FILE *incoords = fopen(argv[2], "r");
+    aux_open(incoords, argv[2], "r");
     
+    orbit * orbits;
     
+    aux_malloc(orbits, orbit, BUFSIZE);
+    
+    double * times,         // vector for times
+             t_mean = 0.0,  // mean value of times
+             t, x, y, z,    // temp storage variables
+             x_mean = 0.0,  // x, y, z mean values
+             y_mean = 0.0,
+             z_mean = 0.0;
+    
+    // vector for orbit coordinates
+    gsl_vector *obs_x, *obs_y, *obs_z;
+
+    // design matrix
+    gsl_matrix * design;
+    
+    aux_malloc(times, double, ndata);
+    
+    if (is_centered) {
+        while(fscanf(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
+            ndata++;
+            
+            t_mean += t;
+            x_mean += x;
+            y_mean += y;
+            z_mean += z;
+            
+            orbits[idx].t = t;
+            orbits[idx].x = x;
+            orbits[idx].y = y;
+            orbits[idx].z = z;
+
+            idx++;
+            
+            if (idx >= max_idx) {
+                aux_realloc(orbits, orbit, 2 * idx);
+                max_idx = 2 * idx - 1;
+            }
+        }
+        // calculate means
+        t_mean /= (double) ndata;
+    
+        x_mean /= (double) ndata;
+        y_mean /= (double) ndata;
+        z_mean /= (double) ndata;
+        
+        FOR(ii, 0, ndata) {
+            
+    }
+    else {
+        while(fscanf(incoords, "%lf %lf %lf %lf\n",
+                     &orbits[idx].t, &orbits[idx].x, &orbits[idx].y,
+                     &orbits[idx].z) > 0) {
+            idx++;
+            ndata++;
+            
+            if (idx >= max_idx) {
+                aux_realloc(orbits, orbit, 2 * idx);
+                max_idx = 2 * idx - 1;
+            }
+        }
+    }
+
+    FOR(ii, 0, ndata)
+        Mset(design, ii, 0, 1.0);
+    
+    /*
+    FOR(ii, 0, ndata)
+        FOR(jj, 0, deg)
+    */
+    
+    gsl_vector_free(obs_x);
+    gsl_vector_free(obs_y);
+    gsl_vector_free(obs_z);
+    gsl_matrix_free(design);
+    
+    free(times);
     fclose(incoords);
     
     return 0;
+fail:
+    gsl_vector_free(obs_x);
+    gsl_vector_free(obs_y);
+    gsl_vector_free(obs_z);
+    gsl_matrix_free(design);
+    
+    aux_free(time);
+    aux_close(incoords);
+    
+    return 1;
 }
 
 mk_doc(azi_inc,
@@ -289,8 +385,8 @@ int azi_inc(int argc, char **argv)
         return err_io;
     }
     
-    aux_fopen(infile, argv[3], "rb", azi_inc);
-    aux_fopen(outfile, argv[6], "wb", azi_inc);
+    aux_open(infile, argv[3], "rb");
+    aux_open(outfile, argv[6], "wb");
     
     // infile contains lon, lat, h
     if (str_isequal(argv[4], "llh")) {
@@ -406,8 +502,8 @@ int azi_inc(int argc, char **argv)
     return 0;
 
 fail:
-    fclose(infile);
-    fclose(outfile);
+    aux_close(infile);
+    aux_close(outfile);
     return 1;
 }
 

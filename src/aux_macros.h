@@ -65,21 +65,25 @@
  * ALLOCATION MACROS *
  *********************/
 
-/*#define aux_malloc(type, num) (type *) \
-                        malloc_or_exit((num) * sizeof(type), __FILE__, __LINE__)*/
-
 #define aux_malloc(ptr, type, num)\
 ({\
     if (NULL == ((ptr) = malloc(sizeof(type) * (num))))\
     {\
-        fprintf(stderr, "%s:line %d: malloc() of %s failed",\
+        fprintf(stderr, "%s: line %d: malloc of %s failed",\
                 __FILE__, __LINE__, #ptr);\
         goto fail;\
     }\
 })
         
-#define aux_free(pointer) ({ free(pointer); pointer = NULL; })
-	
+#define aux_free(pointer)\
+({\
+    if ((pointer) != NULL)\
+    {\
+        free((pointer));\
+        pointer = NULL;\
+    }\
+})
+
 #define aux_alloc(type, num) (type *) calloc((num) * sizeof(type))	
 #define aux_realloc(pointer, type, size) (pointer) = (type *) \
                                      realloc(pointer, (size) * sizeof(type))	
@@ -108,14 +112,20 @@
 
 #define Log printf("%s\t%d\n", __FILE__, __LINE__)
 
-#define aux_fopen(file, path, mode, fun)\
+#define aux_open(file, path, mode)\
 ({\
     if (((file) = fopen((path), (mode))) == NULL)\
     {\
-        errorln("Failed to open file %s!", path);\
-        perror(#fun);\
+        errorln("%s line: %d: Failed to open file %s!", __FILE__, __LINE__, path);\
+        perror("Error");\
         goto fail;\
     }\
+})
+
+#define aux_close(file)\
+({\
+    if ((file) != NULL)\
+        fclose((file));\
 })
 
 

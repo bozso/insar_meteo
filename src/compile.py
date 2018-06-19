@@ -3,14 +3,16 @@ from distutils.ccompiler import new_compiler
 from sys import argv
 
 c_file = [argv[1]]
-libs = ["m", "gsl", "gslcblas"]
-flags = ["-std=c99"]
-macros = [("HAVE_HYPOT", None)]
-#macros = None
+libs = ["m", "stdc++"]
+flags = ["-std=c++14"]
+macros = None
 inc_dir = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]
-#inc_dir = ["/home/istvan/progs/gsl/include"]
-#lib_dirs = ["/home/istvan/progs/gsl/lib"]
+
+#libs = ["m", "gsl", "gslcblas"]
+#macros = [("HAVE_HYPOT", None), ("HAVE_INLINE", None),
+#          ("GSL_RANGE_CHECK_OFF", None)]
+
 
 def main():
     c_basename = c_file[0].split(".")[0]

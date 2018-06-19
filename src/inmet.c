@@ -330,12 +330,12 @@ int fit_orbit(int argc, char **argv)
             
             Mset(design, ii, 0, 1.0);
             Mset(design, ii, 1, orbits[ii].t - t_mean);
-        }
-        FOR(ii, 0, ndata)
-            FOR(jj, 2, deg + 1)
+
+            FOR(jj, 2, deg + 1) {
                 *Mptr(design, ii, jj) =   Mget(design, ii, jj - 1)
                                         * (orbits[ii].t - t_mean);
-
+            }
+        }
     }
     else {
         while(fscanf(incoords, "%lf %lf %lf %lf\n",
@@ -371,10 +371,10 @@ int fit_orbit(int argc, char **argv)
             
             Mset(design, ii, 0, 1.0);
             Mset(design, ii, 1, orbits[ii].t);
-        }
-        FOR(ii, 0, ndata)
+
             FOR(jj, 2, deg + 1)
                 *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * orbits[ii].t;
+        }
     }
     
     if (gsl_linalg_QR_decomp(design, tau)) {
@@ -394,7 +394,7 @@ int fit_orbit(int argc, char **argv)
         }
     }
     
-    println("%zu %zu", residual->size1, residual->size2);
+    gsl_matrix_fprintf(stdout, fit, "%g");
     
     gsl_matrix_free(design);
     gsl_matrix_free(obs);
@@ -404,6 +404,7 @@ int fit_orbit(int argc, char **argv)
     fclose(incoords);
     
     return 0;
+
 fail:
     gsl_matrix_free(design);
     gsl_matrix_free(obs);

@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <tgmath.h>
 #include <string.h>
 #include <stdlib.h>
 #include <gsl/gsl_matrix_double.h>
@@ -8,7 +6,7 @@
 
 #include "aux_macros.h"
 
-#define Modules "azi_inc"
+#define Modules "azi_inc fit_orbit"
 #define min_arg 2
 
 #define norm(x, y, z) sqrt((x) * (x) + (y) * (y) + (z) * (z))
@@ -18,14 +16,17 @@
 typedef unsigned int uint;
 typedef const double cdouble;
 
-typedef struct cart_struct { double x, y, z; } cart; // Cartesian coordinates
-typedef struct llh_struct { double lon, lat, h; } llh; // Cartesian coordinates
+// Cartesian coordinates
+typedef struct cart_struct { double x, y, z; } cart; 
+
+// WGS-84 surface coordinates
+typedef struct llh_struct { double lon, lat, h; } llh; 
+
+// Orbit records
 typedef struct orbit_struct { double t, x, y, z; } orbit;
 
-typedef struct {
-    uint deg;
-    double * coeffs;
-} orbit_fit;
+// Fitted orbit polynoms structure
+typedef struct orbit_fit_struct { uint deg; double * coeffs; } orbit_fit;
 
 /************************
  * Auxilliary functions *

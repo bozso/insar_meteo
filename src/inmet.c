@@ -273,13 +273,14 @@ int fit_orbit(int argc, char **argv)
            y_mean = 0.0,
            z_mean = 0.0;
     
-    // vector for orbit coordinates
+    // vector for QR decompisition
     gsl_vector *tau;
     
-    // design matrix
-    gsl_matrix *design, *obs, *fit, *residual;
+    // matrices
+    gsl_matrix *design, *design_copy, *obs, *fit, *residual;
     
-    gsl_vector_view fitv, resv;
+    // vector views of matrix columns and rows
+    gsl_vector_view fit_view, res_view;
     
     if (is_centered) {
         while(fscanf(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
@@ -331,11 +332,11 @@ int fit_orbit(int argc, char **argv)
             
             Mset(design, ii, 0, 1.0);
             Mset(design, ii, 1, orbits[ii].t - t_mean);
+            
+            t = orbits[ii].t - t_mean;
 
-            FOR(jj, 2, deg + 1) {
-                *Mptr(design, ii, jj) =   Mget(design, ii, jj - 1)
-                                        * (orbits[ii].t - t_mean);
-            }
+            FOR(jj, 2, deg + 1)
+                *Mptr(design, ii, jj) =   Mget(design, ii, jj - 1) * t;
         }
     }
     else {
@@ -373,10 +374,14 @@ int fit_orbit(int argc, char **argv)
             Mset(design, ii, 0, 1.0);
             Mset(design, ii, 1, orbits[ii].t);
 
+            t = orbits[ii].t;
+
             FOR(jj, 2, deg + 1)
-                *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * orbits[ii].t;
+                *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * t;
         }
     }
+    
+    gsl_matrix_memcpy(design_copy, design);
     
     if (gsl_linalg_QR_decomp(design, tau)) {
         error("QR decomposition failed.\n");
@@ -384,12 +389,12 @@ int fit_orbit(int argc, char **argv)
     }
     
     FOR(ii, 0, 3) {
-        fitv = gsl_matrix_row(fit, ii);
-        resv = gsl_matrix_column(residual, ii);
+        fit_view = gsl_matrix_row(fit, ii);
+        res_view = gsl_matrix_column(residual, ii);
         gsl_vector_const_view coord = gsl_matrix_const_column(obs, ii);
         
-        if (gsl_linalg_QR_lssolve(design, tau, &coord.vector, &fitv.vector,
-                                  &resv.vector)) {
+        if (gsl_linalg_QR_lssolve(design, tau, &coord.vector, &fit_view.vector,
+                                  &res_view.vector)) {
             error("Solving of linear system failed!\n");
             goto fail;
         }

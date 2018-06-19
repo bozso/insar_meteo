@@ -8,7 +8,7 @@ class Gnuplot(object):
         self.is_persist = persist
         self.is_multi = False
         self.is_exec = False
-        self.debug = False
+        self.debug = debug
         
         if out:
             self.commands.append("set out '{}'".format(out).encode())
@@ -21,8 +21,8 @@ class Gnuplot(object):
         
         if t_cmd == list:
             temp = [" ".join(str(elem) for elem in elems)
-                    for elems in zip(*command)]
-            self.commands.extend([temp.encode(), "e".encode()])
+                            for elems in zip(*command)]
+            self.commands.extend([("\n".join(temp)).encode(), "e".encode()])
             del temp
         elif t_cmd == np.ndarray:
             self.commands.append(command.tobytes())
@@ -204,7 +204,7 @@ class Gnuplot(object):
         
     def __del__(self):
         
-        if self.debug
+        if self.debug:
             print((b"\n".join(self.commands)).decode())
         
         if not self.is_exec:
@@ -410,7 +410,7 @@ def pplot(data, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
     
     if binary is not None:
         if array is not None:
-            text += " binary array={} format='{}' "
+            text += " binary array={} format='{}' "\
                     "endian={}".format(array, binary, endian)
         else:
             text += " binary format='{}' endian={}".format(binary, endian)

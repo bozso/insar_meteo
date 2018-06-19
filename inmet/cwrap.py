@@ -132,10 +132,10 @@ def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
 # * INMET Modules *
 # *****************
 
-def azi_inc(fit_file, coords, mode, outfile, max_iter=1000, **kwargs):
-    cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile, **kwargs)
+def azi_inc(fit_file, coords, mode, outfile, max_iter=1000):
+    cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile)
 
-def fit_orbit(path, preproc, savefile, fit_plot=None, deg=3):
+def fit_orbit(path, preproc, fit_file, fit_plot=None, deg=3, centered=True):
     
     if not pth.isfile(path):
         raise IOError("{} is not a file.".format(path))
@@ -180,39 +180,15 @@ def fit_orbit(path, preproc, savefile, fit_plot=None, deg=3):
         raise ValueError('preproc should be either "doris" or "gamma" '
                          'not {}'.format(preproc))
     
+    if centered:
+        cmd("inmet fit_orbit", "coords.txyz", deg, 1, fit_file)
+    else:
+        cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file)
+    
     ver = get_version()
     
-    if ver > _gmt_five:
-        cmd_fit = "gmt trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
-        cmd_plot = "gmt trend1d coords.txyz -Np{}r -Fxm -i0,{}"
-    else:
-        cmd_fit = "trend1d coords.txyz -Np{}r -Fp -V -i0,{}"
-        cmd_plot = "trend1d coords.txyz -Np{}r -Fxm -i0,{}"
+    # cmd("inmet eval_poly", fit_file, 
     
-    out = "\n".join(cmd(cmd_fit.format(deg, ii), ret=True).decode()
-                    for ii in range(1, 4))
-    
-    m = (line.split(":")[2].strip() for ii, line in enumerate(out.split("\n"))
-         if "trend1d: Model Coefficients  (Chebyshev):" in line)
-    
-    with open(savefile, "w") as f:
-        f.write("deg: {}\n".format(deg))
-        f.write("\n".join(elem.strip()for elem in m) + "\n\n")
-        f.write(out)
-
-    for ii in range(1, 4):
-        out = cmd(cmd_plot.format(deg + 1, ii), ret=True)
-        
-        with open("tmp{}.txt".format(ii), "wb") as f:
-            f.write(out)
-    
-    
-    
-    if fit_plot is not None:
-        gmt = GMT(fit_plot)
-        
-        
-        
 def get_par(parameter, search, sep=":"):
 
     if isinstance(search, list):

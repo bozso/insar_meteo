@@ -243,19 +243,20 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
  ***********************************************/
 
 mk_doc(fit_orbit,
-"\n Usage: inmet fit_orbit coords deg is_centered\
+"\n Usage: inmet fit_orbit coords deg is_centered fit_file\
  \n \
  \n coords      - ascii file with (t,x,y,z) coordinates\
  \n deg         - degree of fitted polynom\
  \n is_centered - 1 to subtract mean time and coordinates from time points and \
  \n               coordinates\
+ \n fit_file    - ascii fit output will be written into this file\
  \n\n");
 
 int fit_orbit(int argc, char **argv)
 {
-    aux_checkarg(fit_orbit, 3);
+    aux_checkarg(fit_orbit, 4);
 
-    FILE *incoords;
+    FILE *incoords, *fit_file;
     uint deg = (uint) atoi(argv[3]);
     uint is_centered = (uint) atoi(argv[4]);
     uint idx = 0, ndata = 0;
@@ -277,7 +278,7 @@ int fit_orbit(int argc, char **argv)
     gsl_vector *tau;
     
     // matrices
-    gsl_matrix *design, *design_copy, *obs, *fit, *residual;
+    gsl_matrix *design, *obs, *fit, *residual;
     
     // vector views of matrix columns and rows
     gsl_vector_view fit_view, res_view;
@@ -304,40 +305,12 @@ int fit_orbit(int argc, char **argv)
             }
         }
 
-        if (ndata < (deg + 1)) {
-            errorln ("Underdetermined system, we have less data points (%d) than\
-                      \n unknowns (%d).", ndata, deg + 1);
-            goto fail;
-        }
-
         // calculate means
         t_mean /= (double) ndata;
     
         x_mean /= (double) ndata;
         y_mean /= (double) ndata;
         z_mean /= (double) ndata;
-        
-        obs = gsl_matrix_alloc(ndata, 3);
-        fit = gsl_matrix_alloc(3, deg + 1);
-        residual = gsl_matrix_alloc(ndata, 3);
-        
-        design = gsl_matrix_alloc(ndata, deg + 1);
-        
-        tau = gsl_vector_alloc(GSL_MIN(ndata, deg + 1));
-        
-        FOR(ii, 0, ndata) {
-            Mset(obs, ii, 0, orbits[ii].x - x_mean);
-            Mset(obs, ii, 1, orbits[ii].y - y_mean);
-            Mset(obs, ii, 2, orbits[ii].z - z_mean);
-            
-            Mset(design, ii, 0, 1.0);
-            Mset(design, ii, 1, orbits[ii].t - t_mean);
-            
-            t = orbits[ii].t - t_mean;
-
-            FOR(jj, 2, deg + 1)
-                *Mptr(design, ii, jj) =   Mget(design, ii, jj - 1) * t;
-        }
     }
     else {
         while(fscanf(incoords, "%lf %lf %lf %lf\n",
@@ -351,43 +324,42 @@ int fit_orbit(int argc, char **argv)
                 max_idx = 2 * idx - 1;
             }
         }
-
-        if (ndata < (deg + 1)) {
-            errorln ("Underdetermined system, we have less data points (%d) than\
-                      \n unknowns (%d).", ndata, deg + 1);
-            goto fail;
-        }
-
-        obs = gsl_matrix_alloc(ndata, 3);
-        fit = gsl_matrix_alloc(3, deg + 1);
-        residual = gsl_matrix_alloc(ndata, 3);
-        
-        design = gsl_matrix_alloc(ndata, deg + 1);
-        
-        tau = gsl_vector_alloc(GSL_MIN(ndata, deg + 1));
-        
-        FOR(ii, 0, ndata) {
-            Mset(obs, ii, 0, orbits[ii].x);
-            Mset(obs, ii, 1, orbits[ii].y);
-            Mset(obs, ii, 2, orbits[ii].z);
-            
-            Mset(design, ii, 0, 1.0);
-            Mset(design, ii, 1, orbits[ii].t);
-
-            t = orbits[ii].t;
-
-            FOR(jj, 2, deg + 1)
-                *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * t;
-        }
     }
     
-    gsl_matrix_memcpy(design_copy, design);
+    if (ndata < (deg + 1)) {
+        errorln ("Underdetermined system, we have less data points (%d) than\
+                  \nunknowns (%d).", ndata, deg + 1);
+        goto fail;
+    }
+
+    obs = gsl_matrix_alloc(ndata, 3);
+    fit = gsl_matrix_alloc(3, deg + 1);
+    residual = gsl_matrix_alloc(ndata, 3);
+    
+    design = gsl_matrix_alloc(ndata, deg + 1);
+    
+    tau = gsl_vector_alloc(deg + 1);
+    
+    FOR(ii, 0, ndata) {
+        Mset(obs, ii, 0, orbits[ii].x - x_mean);
+        Mset(obs, ii, 1, orbits[ii].y - y_mean);
+        Mset(obs, ii, 2, orbits[ii].z - z_mean);
+        
+        t = orbits[ii].t - t_mean;
+        
+        Mset(design, ii, 0, 1.0);
+        Mset(design, ii, 1, t);
+
+        FOR(jj, 2, deg + 1)
+            *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * t;
+    }
     
     if (gsl_linalg_QR_decomp(design, tau)) {
         error("QR decomposition failed.\n");
         goto fail;
     }
     
+    // do the fit for x, y, z
     FOR(ii, 0, 3) {
         fit_view = gsl_matrix_row(fit, ii);
         res_view = gsl_matrix_column(residual, ii);
@@ -400,6 +372,22 @@ int fit_orbit(int argc, char **argv)
         }
     }
     
+    aux_open(fit_file, argv[5], "w");
+    
+    fprintf(fit_file, "centered: %u\n", is_centered);
+    
+    if (is_centered)
+        fprintf(fit_file, "mean_coords: %lf %lf %lf\n", x_mean, y_mean, z_mean);
+    
+    fprintf(fit_file, "deg: %u\n", deg);
+    fprintf(fit_file, "coeffs: ");
+    
+    FOR(ii, 0, 3)
+        FOR(jj, 0, deg + 1)
+            fprintf(fit_file, "%lf ", Mget(fit, ii, jj));
+    
+    fprintf(fit_file, "\n");
+    
     gsl_matrix_fprintf(stdout, fit, "%g");
     
     gsl_matrix_free(design);
@@ -407,7 +395,12 @@ int fit_orbit(int argc, char **argv)
     gsl_matrix_free(fit);
     gsl_matrix_free(residual);
     
+    gsl_vector_free(tau);
+    
+    aux_free(orbits);
+    
     fclose(incoords);
+    fclose(fit_file);
     
     return 0;
 
@@ -417,7 +410,12 @@ fail:
     gsl_matrix_free(fit);
     gsl_matrix_free(residual);
     
+    gsl_vector_free(tau);
+    
+    aux_free(orbits);
+    
     aux_close(incoords);
+    aux_close(fit_file);
     
     return 1;
 }

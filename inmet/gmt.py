@@ -30,7 +30,9 @@ def gmt(module, *args, rout=False, **kwargs):
         print("RETURNCODE was: {}".format(e.returncode))
     
     if rout:
-        return cmd_out
+        # filter out gmt messages
+        return " ".join(elem for elem in cmd_outs.decode().split("\n")
+                        if not elem.startswith("gmt:"))
     
 def gen_tuple(cast):
     """
@@ -494,25 +496,8 @@ class GMT(object):
     # end GMT
     
 def info(data, **flags):
-    gmt_flags = ""
-    
-    if isinstance(data, string_types) and pth.isfile(data):
-        gmt_flags += "{} ".format(data)
-        data = None
-    else:
-        raise ValueError("`data` is not a path to an existing file.")
 
-    # if we have flags parse them
-    if len(flags) > 0:
-        gmt_flags += " ".join(["-{}{}".format(key, proc_flag(flag))
-                               for key, flag in flags.items()])
-    
-    if get_version() > _gmt_five:
-        Cmd = "gmt info " + gmt_flags
-    else:
-        Cmd = "gmtinfo " + gmt_flags
-    
-    return cmd(Cmd, ret_out=True).decode()
+    return gmt("info", data, **flags)
 
 def get_ranges(data, binary=None, xy_add=None, z_add=None):
     

@@ -26,7 +26,11 @@ typedef struct llh_struct { double lon, lat, h; } llh;
 typedef struct orbit_struct { double t, x, y, z; } orbit;
 
 // Fitted orbit polynoms structure
-typedef struct orbit_fit_struct { uint deg; double * coeffs; } orbit_fit;
+typedef struct orbit_fit_struct {
+    uint deg, centered;
+    double t_min, t_max, t_mean;
+    double *coeffs, coords_mean[3];
+} orbit_fit;
 
 /************************
  * Auxilliary functions *
@@ -35,20 +39,39 @@ typedef struct orbit_fit_struct { uint deg; double * coeffs; } orbit_fit;
 static int read_fit(const char * path, orbit_fit * orb)
 {
     FILE * fit_file = NULL;
-    uint deg;
+    uint deg, centered;
     
     aux_open(fit_file, path, "r");
     
-    aux_read(fit_file, "deg: %d\n", &deg);
+    aux_read(fit_file, "centered: %u\n", &centered);
+    
+    if (centered) {
+        aux_read(fit_file, "t_mean: %lf\n", &(orb->t_mean));
+        aux_read(fit_file, "coords_mean: %lf %lf %lf\n",
+                                        &(orb->coords_mean[0]),
+                                        &(orb->coords_mean[1]),
+                                        &(orb->coords_mean[2]));
+    } else {
+        orb->t_mean = 0.0;
+        orb->coords_mean[0] = 0.0;
+        orb->coords_mean[1] = 0.0;
+        orb->coords_mean[2] = 0.0;
+    }
+    
+    aux_read(fit_file, "t_min: %lf\n", &orb->t_min);
+    aux_read(fit_file, "t_max: %lf\n", &orb->t_max);
+    aux_read(fit_file, "deg: %u\ncoeffs: ", &deg);
+
     aux_malloc(orb->coeffs, double, 3 * (deg + 1));
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
-     * every row contains the coefficients for the fitted x,y,z polynoms. */
-
-    FOR(ii, 0, 3 * (deg + 1))
-        aux_read(fit_file, "%lf", orb->coeffs + ii);
+     * every row contains the coefficients for the fitted x,y,z polynoms. */    
+    FOR(ii, 0, 3)
+        FOR(jj, 0, deg + 1)
+            aux_read(fit_file, "%lf ", orb->coeffs + ii);
     
     orb->deg = deg;
+    orb->centered = centered;
     
     fclose(fit_file);
     return 0;
@@ -100,7 +123,8 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
     /* Calculate satellite position based on fitted polynomial orbits
      * at `time`. */
     
-    uint n_poly = orb->deg + 1, deg = orb->deg;
+    uint n_poly   = orb->deg + 1,
+         deg      = orb->deg;
     double x = 0.0, y = 0.0, z = 0.0;
     
     cdouble *coeffs = orb->coeffs;
@@ -128,7 +152,16 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
         z += coeffs[2 * n_poly];
     }
     
-    pos->x = x; pos->y = y; pos->z = z;
+    if (orb->centered) {
+        pos->x = x + orb->coords_mean[0];
+        pos->y = y + orb->coords_mean[1];
+        pos->z = z + orb->coords_mean[2];
+    }
+    else {
+        pos->x = x;
+        pos->y = y;
+        pos->z = z;
+    }
 } // end calc_pos
 
 static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
@@ -186,6 +219,13 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
             vel_z += ii * coeffs[2 * n_poly + ii] * pow(time, power);
         }
     }
+
+    if (orb->centered) {
+        sat_x += orb->coords_mean[0];
+        sat_y += orb->coords_mean[1];
+        sat_z += orb->coords_mean[2];
+    }
+
     // satellite coordinates - GNSS coordinates
     dx = sat_x - X;
     dy = sat_y - Y;
@@ -194,6 +234,7 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     // product of inverse norms
     inorm = (1.0 / norm(dx, dy, dz)) * (1.0 / norm(vel_x, vel_y, vel_z));
     
+    // scalar product of delta vector and velocities
     return (vel_x * dx  + vel_y * dy  + vel_z * dz) * inorm;
 }
 // end dot_product
@@ -204,10 +245,14 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     /* Compute the sat position using closest approche. */
     
     // first, last and middle time
-    // domain of t is [-1.0, 1.0]
-    double t_start = -1.0000001,
-           t_stop  =  1.0000001,
+    double t_min = orb->t_min,
+           t_max = orb->t_max,
            t_middle;
+    
+    if (orb->centered) {
+        t_min -= orb->t_mean;
+        t_max -= orb->t_mean;
+    }
     
     // dot products
     double dot_start, dot_middle = 1.0;
@@ -215,21 +260,21 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     // iteration counter
     uint itr = 0;
     
-    dot_start = dot_product(orb, X, Y, Z, t_start);
+    dot_start = dot_product(orb, X, Y, Z, t_min);
     
     while( fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
-        t_middle = (t_start + t_stop) / 2.0;
+        t_middle = (t_min + t_max) / 2.0;
 
         dot_middle = dot_product(orb, X, Y, Z, t_middle);
         
         // change start for middle
         if ((dot_start * dot_middle) > 0.0) {
-            t_start = t_middle;
+            t_min = t_middle;
             dot_start = dot_middle;
         }
         // change  end  for middle
         else
-            t_stop = t_middle;
+            t_max = t_middle;
 
         itr++;
     }
@@ -274,7 +319,8 @@ int fit_orbit(int argc, char **argv)
            t, x, y, z,    // temp storage variables
            x_mean = 0.0,  // x, y, z mean values
            y_mean = 0.0,
-           z_mean = 0.0;
+           z_mean = 0.0,
+           t_min, t_max;
     
     gsl_vector *tau, // vector for QR decompisition
                *res; // vector for holding residual values
@@ -326,6 +372,24 @@ int fit_orbit(int argc, char **argv)
                 max_idx = 2 * idx - 1;
             }
         }
+    }
+    
+    t_min = orbits[0].t;
+    
+    FOR(ii, 1, ndata) {
+        t = orbits[ii].t;
+        
+        if (t < t_min)
+            t_min = t;
+    }
+
+    t_max = orbits[0].t;
+    
+    FOR(ii, 1, ndata) {
+        t = orbits[ii].t;
+        
+        if (t > t_max)
+            t_max = t;
     }
     
     if (ndata < (deg + 1)) {
@@ -389,9 +453,14 @@ int fit_orbit(int argc, char **argv)
     
     fprintf(fit_file, "centered: %u\n", is_centered);
     
-    if (is_centered)
-        fprintf(fit_file, "mean_coords: %lf %lf %lf\n", x_mean, y_mean, z_mean);
+    if (is_centered) {
+        fprintf(fit_file, "t_mean: %lf\n", t_mean);
+        fprintf(fit_file, "coords_mean: %lf %lf %lf\n",
+                                        x_mean, y_mean, z_mean);
+    }
     
+    fprintf(fit_file, "t_min: %lf\n", t_min);
+    fprintf(fit_file, "t_max: %lf\n", t_max);
     fprintf(fit_file, "deg: %u\n", deg);
     fprintf(fit_file, "coeffs: ");
     
@@ -430,6 +499,64 @@ fail:
     
     aux_close(incoords);
     aux_close(fit_file);
+    
+    return 1;
+}
+
+mk_doc(eval_orbit,
+"\n Usage: inmet eval_orbit fit_file steps outfile\
+ \n \
+ \n fit_file    - ascii file that contains fitted orbit polynom parameters\
+ \n nstep       - evaluate x, y, z coordinates at nstep number of steps\
+ \n               between the range of t_min and t_max\
+ \n outfile     - coordinates and time values will be written to this ascii file\
+ \n\n");
+
+int eval_orbit(int argc, char **argv)
+{
+    aux_checkarg(eval_orbit, 3);
+    
+    FILE *outfile;
+    orbit_fit orb;
+    uint nstep;
+    double t_min, t_mean, dstep, t;
+    cart pos;
+    
+    if (read_fit(argv[2], &orb)) {
+        errorln("Could not read orbit fit file %s. Exiting!", argv[2]);
+        return err_io;
+    }
+    
+    t_min = orb.t_min;
+    nstep = (uint) atoi(argv[3]);
+    
+    dstep = (orb.t_max - t_min) / (double) nstep;
+    
+    aux_open(outfile, argv[4], "w");
+    
+    if (orb.centered) {
+        t_mean = orb.t_mean;
+        
+        FOR(ii, 0, nstep + 1) {
+            t = t_min - t_mean + ii * dstep;
+            calc_pos(&orb, t, &pos);
+            fprintf(outfile, "%lf %lf %lf %lf\n", t + t_mean, pos.x, pos.y, pos.z);
+        }
+    } else {
+        FOR(ii, 0, nstep + 1) {
+            t = t_min + ii * dstep;
+            calc_pos(&orb, t, &pos);
+            fprintf(outfile, "%lf %lf %lf %lf\n", t, pos.x, pos.y, pos.z);
+        }
+    }
+    
+    fclose(outfile);
+    
+    return 0;
+
+fail:
+    
+    aux_close(outfile);
     
     return 1;
 }
@@ -593,6 +720,9 @@ int main(int argc, char **argv)
     
     else if (module_select("fit_orbit") || module_select("FIT_ORBIT"))
         return fit_orbit(argc, argv);
+
+    else if (module_select("eval_orbit") || module_select("EVAL_ORBIT"))
+        return eval_orbit(argc, argv);
 
     else {
         errorln("Unrecognized module: %s", argv[1]);

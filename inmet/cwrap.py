@@ -4,7 +4,7 @@ from shlex import split
 import os.path as pth
 from argparse import ArgumentParser
 
-from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands, GMT
+from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands, GMT, info
 
 def parse_steps(args, steps):
     if args.step is not None:
@@ -135,8 +135,28 @@ def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
 def azi_inc(fit_file, coords, mode, outfile, max_iter=1000):
     cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile)
 
-def fit_orbit(path, preproc, fit_file, fit_plot=None, deg=3, centered=True):
+def fit_orbit(path, preproc, fit_file, centered=True, deg=3,
+              fit_plot=None, steps=100):
     
+    extract_coords(path, preproc, "coords.txyz")
+    
+    if centered:
+        cmd("inmet fit_orbit", "coords.txyz", deg, 1, fit_file)
+    else:
+        cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file)
+    
+    if fit_plot is not None:
+        cmd("inmet eval_orbit", fit_file, steps, "fit.txyz")
+        
+        print(info("fit.txyz", rout=True))
+        
+        # gmt = GMT(fit_plot, )
+    
+    os.remove("coords.txyz")
+    os.remove("fit.txyz")
+
+def extract_coords(path, preproc, coordsfile):
+
     if not pth.isfile(path):
         raise IOError("{} is not a file.".format(path))
 
@@ -171,7 +191,7 @@ def fit_orbit(path, preproc, fit_file, fit_plot=None, deg=3, centered=True):
         t_first = float(lines[idx + 1].split(":")[1].split()[0])
         t_step  = float(lines[idx + 2].split(":")[1].split()[0])
         
-        with open("coords.txyz", "w") as f:
+        with open(coordsfile, "w") as f:
             for ii in range(data_num):
                 coords = get_par("state_vector_position_{}".format(ii + 1), lines)
                 f.write("{} {}\n".format(t_first + ii * t_step,
@@ -179,16 +199,7 @@ def fit_orbit(path, preproc, fit_file, fit_plot=None, deg=3, centered=True):
     else:
         raise ValueError('preproc should be either "doris" or "gamma" '
                          'not {}'.format(preproc))
-    
-    if centered:
-        cmd("inmet fit_orbit", "coords.txyz", deg, 1, fit_file)
-    else:
-        cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file)
-    
-    ver = get_version()
-    
-    # cmd("inmet eval_poly", fit_file, 
-    
+
 def get_par(parameter, search, sep=":"):
 
     if isinstance(search, list):

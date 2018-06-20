@@ -5,8 +5,7 @@ from sys import argv
 c_file = [argv[1]]
 libs = ["m", "gsl", "gslcblas"]
 flags = ["-std=c99"]
-macros = [("HAVE_HYPOT", None), ("HAVE_INLINE", None),
-          ("GSL_RANGE_CHECK_OFF", None)]
+macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
 inc_dir = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]
 

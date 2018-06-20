@@ -96,7 +96,7 @@
 #define Vset(vector, ii, data) gsl_vector_set((vector), (ii), (data))
 
 #define Mget(matrix, ii, jj) gsl_matrix_get((matrix), (ii), (jj))
-#define Vget(vector, ii, data) gsl_vector_get((vector), (ii))
+#define Vget(vector, ii) gsl_vector_get((vector), (ii))
 
 #define Mptr(matrix, ii, jj) gsl_matrix_ptr((matrix), (ii), (jj))
 #define Vptr(vector, ii) gsl_vector_ptr((vector), (ii))
@@ -124,8 +124,10 @@
 
 #define aux_close(file)\
 ({\
-    if ((file) != NULL)\
+    if ((file) != NULL) {\
         fclose((file));\
+        (file) = NULL;\
+    }\
 })
 
 

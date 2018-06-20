@@ -262,6 +262,8 @@ int fit_orbit(int argc, char **argv)
     uint idx = 0, ndata = 0;
     uint max_idx = BUFSIZE - 1;
     
+    double residual[] = {0.0, 0.0, 0.0};
+    
     aux_open(incoords, argv[2], "r");
     
     orbit * orbits;
@@ -274,14 +276,14 @@ int fit_orbit(int argc, char **argv)
            y_mean = 0.0,
            z_mean = 0.0;
     
-    // vector for QR decompisition
-    gsl_vector *tau;
+    gsl_vector *tau, // vector for QR decompisition
+               *res; // vector for holding residual values
     
     // matrices
-    gsl_matrix *design, *obs, *fit, *residual;
+    gsl_matrix *design, *obs, *fit;
     
     // vector views of matrix columns and rows
-    gsl_vector_view fit_view, res_view;
+    gsl_vector_view fit_view;
     
     if (is_centered) {
         while(fscanf(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
@@ -327,33 +329,40 @@ int fit_orbit(int argc, char **argv)
     }
     
     if (ndata < (deg + 1)) {
-        errorln ("Underdetermined system, we have less data points (%d) than\
-                  \nunknowns (%d).", ndata, deg + 1);
+        errorln("Underdetermined system, we have less data points (%d) than\
+                 \nunknowns (%d)!", ndata, deg + 1);
         goto fail;
     }
 
     obs = gsl_matrix_alloc(ndata, 3);
     fit = gsl_matrix_alloc(3, deg + 1);
-    residual = gsl_matrix_alloc(ndata, 3);
-    
+
     design = gsl_matrix_alloc(ndata, deg + 1);
     
     tau = gsl_vector_alloc(deg + 1);
+    res = gsl_vector_alloc(ndata);
     
     FOR(ii, 0, ndata) {
+        // fill up matrix that contains coordinate values
         Mset(obs, ii, 0, orbits[ii].x - x_mean);
         Mset(obs, ii, 1, orbits[ii].y - y_mean);
         Mset(obs, ii, 2, orbits[ii].z - z_mean);
         
         t = orbits[ii].t - t_mean;
         
+        // fill up design matrix
+        
+        // first column is ones
         Mset(design, ii, 0, 1.0);
+        // second column is t values
         Mset(design, ii, 1, t);
-
+        
+        // further columns contain the power of t values
         FOR(jj, 2, deg + 1)
             *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * t;
     }
     
+    // factorize design matrix
     if (gsl_linalg_QR_decomp(design, tau)) {
         error("QR decomposition failed.\n");
         goto fail;
@@ -362,14 +371,18 @@ int fit_orbit(int argc, char **argv)
     // do the fit for x, y, z
     FOR(ii, 0, 3) {
         fit_view = gsl_matrix_row(fit, ii);
-        res_view = gsl_matrix_column(residual, ii);
         gsl_vector_const_view coord = gsl_matrix_const_column(obs, ii);
         
         if (gsl_linalg_QR_lssolve(design, tau, &coord.vector, &fit_view.vector,
-                                  &res_view.vector)) {
+                                  res)) {
             error("Solving of linear system failed!\n");
             goto fail;
         }
+        
+        // calculate RMS of residual values
+        FOR(jj, 0, ndata)
+            residual[ii] += Vget(res, jj) * Vget(res, jj);
+        residual[ii] = sqrt(residual[ii] / ndata);
     }
     
     aux_open(fit_file, argv[5], "w");
@@ -385,17 +398,18 @@ int fit_orbit(int argc, char **argv)
     FOR(ii, 0, 3)
         FOR(jj, 0, deg + 1)
             fprintf(fit_file, "%lf ", Mget(fit, ii, jj));
+
+    fprintf(fit_file, "\nRMS of residuals (x, y, z) [m]: (%lf, %lf, %lf)\n",
+                      residual[0], residual[1], residual[2]);
     
     fprintf(fit_file, "\n");
-    
-    gsl_matrix_fprintf(stdout, fit, "%g");
     
     gsl_matrix_free(design);
     gsl_matrix_free(obs);
     gsl_matrix_free(fit);
-    gsl_matrix_free(residual);
     
     gsl_vector_free(tau);
+    gsl_vector_free(res);
     
     aux_free(orbits);
     
@@ -408,9 +422,9 @@ fail:
     gsl_matrix_free(design);
     gsl_matrix_free(obs);
     gsl_matrix_free(fit);
-    gsl_matrix_free(residual);
     
     gsl_vector_free(tau);
+    gsl_vector_free(res);
     
     aux_free(orbits);
     
@@ -435,7 +449,7 @@ int azi_inc(int argc, char **argv)
     aux_checkarg(azi_inc, 5);
     
     FILE *infile, *outfile;
-    uint is_lonlat, max_iter = atoi(argv[5]), ndata = 0;
+    uint is_lonlat, max_iter = atoi(argv[5]);
     cart sat;
     double coords[3];
     orbit_fit orb;
@@ -502,10 +516,6 @@ int azi_inc(int argc, char **argv)
             
             fwrite(&azi, sizeof(double), 1, outfile);
             fwrite(&inc, sizeof(double), 1, outfile);
-            ndata++;
-            
-            if (!(ndata % 1000))
-                println("Processed %d points.", ndata);
         } // end while
     }
     // infile contains X, Y, Z
@@ -552,17 +562,12 @@ int azi_inc(int argc, char **argv)
             
             fwrite(&azi, sizeof(double), 1, outfile);
             fwrite(&inc, sizeof(double), 1, outfile);
-            ndata++;
-            
-            if (!(ndata % 1000))
-                println("Processed %d points.", ndata);
-
         } // end while
     } // end else if
     else {
         errorln("Third argument should be either llh or xyz not %s!",
                 argv[4]);
-        return err_arg;
+        goto fail;
     }
     fclose(infile);
     fclose(outfile);

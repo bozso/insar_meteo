@@ -147,11 +147,13 @@ def fit_orbit(path, preproc, fit_file, centered=True, deg=3,
 
     os.remove("coords.txyz")
 
-def plot_orbit(path, preproc, fit_file, **kwargs,right, top, left, hpad, vpad):
+def plot_orbit(path, preproc, fit_file, div=1e3, **kwargs):
 
     extract_coords(path, preproc, "coords.txyz")
 
-    cmd("inmet eval_orbit", fit_file, steps, "fit.txyz")
+    cmd("inmet eval_orbit", fit_file, steps, div, "fit.txyz")
+    
+    print(gmt("info", "fit.txyz", C=True, ret=True)); return
     
     ranges = (float(elem)
               for elem in gmt("info", "fit.txyz", C=True, ret=True).split())
@@ -162,7 +164,17 @@ def plot_orbit(path, preproc, fit_file, **kwargs,right, top, left, hpad, vpad):
     
     gmt = GMT(fit_plot)
     x, y = gmt.multiplot(3, "x", **kwargs)
-
+    
+    titles = ("X", "Y", "Z")
+    
+    for ii in range(3):
+        inp_fmt = "0,{}".format(ii + 1)
+        
+        gmt.psbasemap(Xf="{}p".format(x[ii]), Yf="{}p".format(y[ii]),
+                                  B="WSen+t{}".format(titles[ii]),
+                                  Bx=x_axis, By=y_axis)        
+    
+    
     os.remove("coords.txyz")
     os.remove("fit.txyz")
 

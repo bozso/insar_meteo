@@ -509,22 +509,23 @@ fail:
 }
 
 mk_doc(eval_orbit,
-"\n Usage: inmet eval_orbit fit_file steps outfile\
+"\n Usage: inmet eval_orbit fit_file steps divide outfile\
  \n \
  \n fit_file    - ascii file that contains fitted orbit polynom parameters\
  \n nstep       - evaluate x, y, z coordinates at nstep number of steps\
  \n               between the range of t_min and t_max\
+ \n divide      - calculated coordinate values will be devided by this number\
  \n outfile     - coordinates and time values will be written to this ascii file\
  \n\n");
 
 int eval_orbit(int argc, char **argv)
 {
-    aux_checkarg(eval_orbit, 3);
+    aux_checkarg(eval_orbit, 4);
     
     FILE *outfile;
     orbit_fit orb;
     uint nstep;
-    double t_min, t_mean, dstep, t;
+    double t_min, t_mean, dstep, t, rdiv =  1 / atof(argv[4]);
     cart pos;
     
     if (read_fit(argv[2], &orb)) {
@@ -537,7 +538,7 @@ int eval_orbit(int argc, char **argv)
     
     dstep = (orb.t_max - t_min) / (double) nstep;
     
-    aux_open(outfile, argv[4], "w");
+    aux_open(outfile, argv[5], "w");
     
     if (orb.centered) {
         t_mean = orb.t_mean;
@@ -545,20 +546,24 @@ int eval_orbit(int argc, char **argv)
         FOR(ii, 0, nstep + 1) {
             t = t_min - t_mean + ii * dstep;
             calc_pos(&orb, t, &pos);
-            fprintf(outfile, "%lf %lf %lf %lf\n", t + t_mean, pos.x, pos.y, pos.z);
+            fprintf(outfile, "%lf %lf %lf %lf\n", t + t_mean, pos.x * rdiv,
+                                                              pos.y * rdiv,
+                                                              pos.z * rdiv);
         }
     } else {
         FOR(ii, 0, nstep + 1) {
             t = t_min + ii * dstep;
             calc_pos(&orb, t, &pos);
-            fprintf(outfile, "%lf %lf %lf %lf\n", t, pos.x, pos.y, pos.z);
+            fprintf(outfile, "%lf %lf %lf %lf\n", t, pos.x * rdiv,
+                                                     pos.y * rdiv,
+                                                     pos.z * rdiv);
         }
     }
     
     fclose(outfile);
     return 0;
 
-fail:    
+fail:
     aux_close(outfile);
     return 1;
 }

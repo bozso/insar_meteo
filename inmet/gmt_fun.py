@@ -3,7 +3,7 @@ from inmet.gmt import GMT, _gmt_five, get_version, gmt
 def plot_scatter(infile, ncols, out=None, xy_range=None, z_range=None,
                  idx=None, titles=None, cpt="drywet", x_axis="a0.5g0.25f0.25",
                  y_axis="a0.25g0.25f0.25", mode="v", offset=25.0, step=None,
-                 proj="J", tryaxis=False, **kwargs):
+                 proj="M", tryaxis=False, **kwargs):
 
     # default is "${infile}.png"
     if out is None:

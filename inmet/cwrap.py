@@ -147,7 +147,7 @@ def fit_orbit(path, preproc, fit_file, centered=True, deg=3,
 
     os.remove("coords.txyz")
 
-def plot_orbit(path, preproc, fit_file, right, top, left, hpad, vpad):
+def plot_orbit(path, preproc, fit_file, **kwargs,right, top, left, hpad, vpad):
 
     extract_coords(path, preproc, "coords.txyz")
 
@@ -161,10 +161,7 @@ def plot_orbit(path, preproc, fit_file, right, top, left, hpad, vpad):
     x_range = (ranges[0] - x_add, ranges[1] + x_add)
     
     gmt = GMT(fit_plot)
-
-    x, y = gmt.multiplot(3, "x", nrows=3,
-                         right=args.right, top=args.top, left=args.left,
-                         xpad=args.hpad, ypad=args.vpad)
+    x, y = gmt.multiplot(3, "x", **kwargs)
 
     os.remove("coords.txyz")
     os.remove("fit.txyz")

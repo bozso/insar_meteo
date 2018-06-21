@@ -1,4 +1,4 @@
-from inmet.gmt import GMT
+from inmet.gmt import GMT, _gmt_five, get_version, gmt
 
 def plot_scatter(infile, ncols, out=None, xy_range=None, z_range=None,
                  idx=None, titles=None, cpt="drywet", x_axis="a0.5g0.25f0.25",
@@ -20,8 +20,7 @@ def plot_scatter(infile, ncols, out=None, xy_range=None, z_range=None,
     bindef = "{}d".format(ncols + 2)
     
     if xy_range is None or z_range is None:
-        _xy_range, _z_range = get_ranges(data=infile, binary=bindef,
-                                         xy_add=args.xy_add, z_add=args.z_add)
+        _xy_range, _z_range = get_ranges(data=infile, binary=bindef)
     
     if xy_range is None:
         xy_range = _xy_range
@@ -96,7 +95,7 @@ def hist(data, ps_file, binwidth=0.1, config=None, binary=None,
 
     del gmt
 
-def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
+def make_ncfile(self, header_path, ncfile, endian="small"):
     fmt = get_par("SAM_IN_FORMAT", header_path)
     dempath = get_par("SAM_IN_DEM", header_path)
     nodata = get_par("SAM_IN_NODATA", header_path)

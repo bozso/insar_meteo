@@ -172,9 +172,10 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
-    uint n_poly = orb->deg + 1, deg = orb->deg;
+    uint n_poly = orb->deg + 1,
+         deg = orb->deg;
     
-    const double *coeffs = orb->coeffs;
+    cdouble *coeffs = orb->coeffs;
     
     // linear case 
     if(n_poly == 2) {
@@ -262,7 +263,7 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     
     dot_start = dot_product(orb, X, Y, Z, t_min);
     
-    while( fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
+    while (fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
         t_middle = (t_min + t_max) / 2.0;
 
         dot_middle = dot_product(orb, X, Y, Z, t_middle);
@@ -320,7 +321,7 @@ int fit_orbit(int argc, char **argv)
            x_mean = 0.0,  // x, y, z mean values
            y_mean = 0.0,
            z_mean = 0.0,
-           t_min, t_max;
+           t_min, t_max, res_tmp;
     
     gsl_vector *tau, // vector for QR decompisition
                *res; // vector for holding residual values
@@ -418,6 +419,7 @@ int fit_orbit(int argc, char **argv)
         
         // first column is ones
         Mset(design, ii, 0, 1.0);
+        
         // second column is t values
         Mset(design, ii, 1, t);
         
@@ -443,10 +445,13 @@ int fit_orbit(int argc, char **argv)
             goto fail;
         }
         
+        res_tmp = 0.0;
+        
         // calculate RMS of residual values
         FOR(jj, 0, ndata)
-            residual[ii] += Vget(res, jj) * Vget(res, jj);
-        residual[ii] = sqrt(residual[ii] / ndata);
+            res_tmp += Vget(res, jj) * Vget(res, jj);
+        
+        residual[ii] = sqrt(res_tmp / ndata);
     }
     
     aux_open(fit_file, argv[5], "w");
@@ -551,13 +556,10 @@ int eval_orbit(int argc, char **argv)
     }
     
     fclose(outfile);
-    
     return 0;
 
-fail:
-    
+fail:    
     aux_close(outfile);
-    
     return 1;
 }
 

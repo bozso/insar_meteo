@@ -9,8 +9,42 @@ from argparse import ArgumentParser
 
 import glob
 
-def gmt(module, *args, rout=False, **kwargs):
-    if module not in _gmt_commands:
+# plotting functions that will use the common output filename, flags and
+# the -K and -O flags
+_plotters = ("grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
+             "psclip", "pscoast", "pscontour", "pshistogram", "psimage",
+             "pslegend", "psmask", "psrose", "psscale", "pstext", "pswiggle",
+             "psxy", "psxyz", "gmtlogo")
+
+_gmt_commands = ('grdcontour', 'grdimage', 'grdvector', 'grdview', 
+'psbasemap', 'psclip', 'pscoast', 'pscontour', 'pshistogram', 'psimage', 
+'pslegend', 'psmask', 'psrose', 'psscale', 'pstext', 'pswiggle', 'psxy', 
+'psxyz', 'gmtlogo', 'blockmean', 'blockmedian', 'blockmode', 'filter1d', 
+'fitcircle', 'gmt2kml', 'gmt5syntax', 'gmtconnect', 'gmtconvert', 
+'gmtdefaults', 'gmtget', 'gmtinfo', 'gmtlogo', 'gmtmath', 'gmtregress', 
+'gmtselect', 'gmtset', 'gmtsimplify', 'gmtspatial', 'gmtvector', 'gmtwhich',
+'grd2cpt', 'grd2rgb', 'grd2xyz', 'grdblend', 'grdclip', 'grdcontour', 
+'grdconvert', 'grdcut', 'grdedit', 'grdfft', 'grdfilter', 'grdgradient', 
+'grdhisteq', 'grdimage', 'grdinfo', 'grdlandmask', 'grdmask', 'grdmath', 
+'grdpaste', 'grdproject', 'grdraster', 'grdsample', 'grdtrack', 'grdtrend', 
+'grdvector', 'grdview', 'grdvolume', 'greenspline', 'kml2gmt', 'mapproject',
+'nearneighbor', 'project', 'sample1d', 'spectrum1d', 'sph2grd', 
+'sphdistance', 'sphinterpolate', 'sphtriangulate', 'splitxyz', 'surface', 
+'trend1d', 'trend2d', 'triangulate', 'xyz2grd')
+
+_ps2raster = {
+".bmp" : "b",
+".eps" : "e",
+".pdf" : "f",
+".jpeg": "j",
+".png" : "g",
+".ppm" : "m",
+".tiff": "t",
+}
+
+def gmt(module, *args, ret=False, **kwargs):
+    
+    if module not in _gmt_commands and "gmt" + module not in _gmt_commands:
         raise ValueError("Unrecognized gmt module: {}".format(module))
     
     if not module.startswith("gmt") and get_version() > _gmt_five:
@@ -29,9 +63,9 @@ def gmt(module, *args, rout=False, **kwargs):
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
-    if rout:
+    if ret:
         # filter out gmt messages
-        return " ".join(elem for elem in cmd_outs.decode().split("\n")
+        return " ".join(elem for elem in cmd_out.decode().split("\n")
                         if not elem.startswith("gmt:"))
     
 def gen_tuple(cast):
@@ -103,14 +137,14 @@ multi_parser.add_argument(
 multi_parser.add_argument(
     "--left",
     nargs="?",
-    default=25,
+    default=50,
     type=float,
     help="Left margin in point units.")
 
 multi_parser.add_argument(
     "--right",
     nargs="?",
-    default=50,
+    default=125,
     type=float,
     help="Right margin in point units.")
 
@@ -124,7 +158,7 @@ multi_parser.add_argument(
 multi_parser.add_argument(
     "--vpad",
     nargs="?",
-    default=55,
+    default=100,
     type=float,
     help="Vertical padding between plots in point units.")
 
@@ -135,38 +169,6 @@ _gmt_five_two = StrictVersion('5.2')
 # python 2/3 compatibility
 from six import string_types
 
-# plotting functions that will use the common output filename, flags and
-# the -K and -O flags
-_plotters = ("grdcontour", "grdimage", "grdvector", "grdview", "psbasemap",
-             "psclip", "pscoast", "pscontour", "pshistogram", "psimage",
-             "pslegend", "psmask", "psrose", "psscale", "pstext", "pswiggle",
-             "psxy", "psxyz", "gmtlogo")
-
-_gmt_commands = ('grdcontour', 'grdimage', 'grdvector', 'grdview', 
-'psbasemap', 'psclip', 'pscoast', 'pscontour', 'pshistogram', 'psimage', 
-'pslegend', 'psmask', 'psrose', 'psscale', 'pstext', 'pswiggle', 'psxy', 
-'psxyz', 'gmtlogo', 'blockmean', 'blockmedian', 'blockmode', 'filter1d', 
-'fitcircle', 'gmt2kml', 'gmt5syntax', 'gmtconnect', 'gmtconvert', 
-'gmtdefaults', 'gmtget', 'gmtinfo', 'gmtlogo', 'gmtmath', 'gmtregress', 
-'gmtselect', 'gmtset', 'gmtsimplify', 'gmtspatial', 'gmtvector', 'gmtwhich',
-'grd2cpt', 'grd2rgb', 'grd2xyz', 'grdblend', 'grdclip', 'grdcontour', 
-'grdconvert', 'grdcut', 'grdedit', 'grdfft', 'grdfilter', 'grdgradient', 
-'grdhisteq', 'grdimage', 'grdinfo', 'grdlandmask', 'grdmask', 'grdmath', 
-'grdpaste', 'grdproject', 'grdraster', 'grdsample', 'grdtrack', 'grdtrend', 
-'grdvector', 'grdview', 'grdvolume', 'greenspline', 'kml2gmt', 'mapproject',
-'nearneighbor', 'project', 'sample1d', 'spectrum1d', 'sph2grd', 
-'sphdistance', 'sphinterpolate', 'sphtriangulate', 'splitxyz', 'surface', 
-'trend1d', 'trend2d', 'triangulate', 'xyz2grd')
-
-_ps2raster = {
-".bmp" : "b",
-".eps" : "e",
-".pdf" : "f",
-".jpeg": "j",
-".png" : "g",
-".ppm" : "m",
-".tiff": "t",
-}
 
 class GMT(object):
     def __init__(self, out, debug=False, config=None, **common_flags):
@@ -269,8 +271,14 @@ class GMT(object):
         if pth.isfile("gmt.history"): os.remove("gmt.history")
         os.remove("gmt.conf")
 
-    def raster(self, out, dpi=200, gray=False, portrait=False,
-               with_pagesize=False, multi_page=False, transparent=False):
+    def raster(self, out, **kwargs):
+        
+        dpi           = float(kwargs.pop("dpi", 200))
+        gray          = bool(kwargs.pop("gray", False))
+        portrait      = bool(kwargs.pop("portrait", False))
+        with_pagesize = bool(kwargs.pop("with_pagesize", False))
+        multi_page    = bool(kwargs.pop("multi_page", False))
+        transparent   = bool(kwargs.pop("transparent", False))
         
         name, ext = pth.splitext(out)
         
@@ -376,43 +384,42 @@ class GMT(object):
         
         if self.is_gmt5:
             Cmd = "gmt mapproject {} -Dp".format(self.common)
-            version = cmd("gmt --version", ret_out=True)
+            version = get_version()
         else:
             Cmd = "mapproject {} -Dp".format(self.common)
         
         if not self.version >= _gmt_five_two:
             # before version 5.2
             Cmd += " {} -V".format(os.devnull)
-            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
+            out = [line for line in cmd(Cmd, ret=True).split("\n")
                    if "Transform" in line]
             return float(out[0].split("/")[4])
         else:
             Cmd += " -Ww"
-            return float(cmd(Cmd, ret_out=True))
+            return float(cmd(Cmd, ret=True))
 
     def get_height(self):
         
         if self.is_gmt5:
             Cmd = "gmt mapproject {} -Dp".format(self.common)
-            version = cmd("gmt --version", ret_out=True)
+            version = get_version()
         else:
             Cmd = "mapproject {} -Dp".format(self.common)
         
         if not self.version >= _gmt_five_two:
             # before version 5.2
             Cmd += " {} -V".format(os.devnull)
-            out = [line for line in cmd(Cmd, ret_out=True).decode().split("\n")
+            out = [line for line in cmd(Cmd, ret=True).split("\n")
                    if "Transform" in line]
             return float(out[0].split("/")[6].split()[0])
         else:
             Cmd += " -Wh"
-            return float(cmd(Cmd, ret_out=True))
+            return float(cmd(Cmd, ret=True))
         
     def get_common_flag(self, flag):
         return self.common.split(flag)[1].split()[0]
     
-    def multiplot(self, nplots, proj, nrows=None, top=0, left=25, right=50,
-                  x_pad=55, y_pad=75):
+    def multiplot(self, nplots, proj, nrows=None, **kwargs):
         """
              |       top           |    
         -----+---------------------+----
@@ -424,6 +431,12 @@ class GMT(object):
         -----+---------------------+----
              |       bottom        |    
         """
+        xpad  = float(kwargs.pop("hpad", 55))
+        ypad  = float(kwargs.pop("hpad", 75))
+        top   = float(kwargs.pop("top", 0))
+        left  = float(kwargs.pop("left", 0))
+        right = float(kwargs.pop("right", 0))
+
         if nrows is None:
             nrows = ceil(sqrt(nplots) - 1)
             nrows = max([1, nrows])
@@ -438,7 +451,7 @@ class GMT(object):
         awidth = width - (left + right)
         
         # width of a single plot
-        pwidth  = float(awidth - (ncols - 1) * x_pad) / ncols
+        pwidth  = float(awidth - (ncols - 1) * xpad) / ncols
         
         self.common += " -J{}{}p".format(proj, pwidth)
         
@@ -446,10 +459,10 @@ class GMT(object):
         pheight = self.get_height()
         
         # calculate psbasemap shifts in x and y directions
-        x = (left + ii * (pwidth + x_pad) for jj in range(nrows)
+        x = (left + ii * (pwidth + xpad) for jj in range(nrows)
                                           for ii in range(ncols))
         
-        y = (height - top - ii * (pheight + y_pad)
+        y = (height - top - ii * (pheight + ypad)
              for ii in range(1, nrows + 1)
              for jj in range(ncols))
         
@@ -495,41 +508,9 @@ class GMT(object):
 
     # end GMT
     
-def info(data, **flags):
-
-    return gmt("info", data, **flags)
-
-def get_ranges(data, binary=None, xy_add=None, z_add=None):
-    
-    if binary is not None:
-        info_str = info(data, bi=binary, C=True).split()
-    else:
-        info_str = info(data, C=True).split()
-    
-    ranges = tuple(float(data) for data in info_str)
-    
-    if xy_add is not None:
-        X = (ranges[1] - ranges[0]) * xy_add
-        Y = (ranges[3] - ranges[2]) * xy_add
-        xy_range = (ranges[0] - xy_add, ranges[1] + xy_add,
-                    ranges[2] - xy_add, ranges[3] + xy_add)
-    else:
-        xy_range = ranges[0:4]
-
-    non_xy = ranges[4:]
-    
-    if z_add is not None:
-        min_z, max_z = min(non_xy), max(non_xy)
-        Z = (max_z - min_z) * z_add
-        z_range = (min_z - z_add, max_z + z_add)
-    else:
-        z_range = (min(non_xy), max(non_xy))
-        
-    return xy_range, z_range
-
 def get_version():
     """ Get the version of the installed GMT as a Strict Version object. """
-    return StrictVersion(cmd("gmt --version", ret_out=True).decode().strip())
+    return StrictVersion(cmd("gmt --version", ret=True).strip())
 
 def get_paper_size(paper, is_portrait=False):
     """ Get paper width and height. """
@@ -574,10 +555,10 @@ def execute_gmt_cmd(Cmd, ret_out=False):
     if ret_out:
         return cmd_out
 
-def cmd(Cmd, ret_out=False):
+def cmd(Cmd, ret=False):
     """
     Execute terminal command defined by `cmd`, optionally return the
-    output of the executed command if `ret_out` is set to True.
+    output of the executed command if `ret` is set to True.
     """
     try:
         cmd_out = subp.check_output(split(Cmd), stderr=subp.STDOUT)
@@ -586,8 +567,10 @@ def cmd(Cmd, ret_out=False):
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
-    if ret_out:
-        return cmd_out
+    if ret:
+        # filter out gmt messages
+        return " ".join(elem for elem in cmd_out.decode().split("\n")
+                        if not elem.startswith("gmt:"))
 
 dem_dtypes = {
     "r4":"f"
@@ -613,56 +596,6 @@ def get_par(parameter, search):
             break
 
     return parameter_value
-
-def make_ncfile(self, header_path, ncfile, endian="small", gmt5=True):
-    fmt = get_par("SAM_IN_FORMAT", header_path)
-    dempath = get_par("SAM_IN_DEM", header_path)
-    nodata = get_par("SAM_IN_NODATA", header_path)
-    
-    rows, cols = get_par("SAM_IN_SIZE", header_path).split()
-    delta_lat, delta_lon = get_par("SAM_IN_DELTA", header_path).split()
-    origin_lat, origin_lon = get_par("SAM_IN_UL", header_path).split()
-    
-    xmin = float(origin_lon)
-    xmax = xmin + float(cols) * float(delta_lon)
-
-    ymax = float(origin_lat)
-    ymin = ymax - float(rows) * float(delta_lat)
-    
-    lonlat_range = "{}/{}/{}/{}".format(xmin ,xmax, ymin, ymax)
-    
-    increments = "{}/{}".format(self.delta_lon, self.delta_lat)
-    
-    Cmd = "xyz2grd {infile} -ZTL{dtype} -R{ll_range} -I{inc} -r -G{nc}"\
-          .format(infile=dempath, dtype=dem_dtypes[fmt], ll_range=lonlat_range,
-                  inc=increments, nc=ncfile)
-    
-    if get_version() > _gmt_five:
-        Cmd = "gmt " + Cmd
-    
-    cmd(Cmd)
-    
-def hist(data, ps_file, binwidth=0.1, config=None, binary=None, 
-         left=50, right=25, top=25, bottom=50, **flags):
-    
-    ranges = tuple(float(elem)
-                   for elem in info(data, bi=binary, C=True).split())
-    
-    min_r, max_r = min(ranges), max(ranges)
-    binwidth = (max_r - min_r) * binwidth
-    
-    width, height = get_paper_size(config.pop("PS_MEDIA", "A4"))
-    
-    proj="X{}p/{}p".format(width - left - right, height - top - bottom)
-    
-    gmt = GMT(ps_file, config=config, R=(min_r, max_r, 0.0, 100.0), J=proj)
-    
-    gmt.psbasemap(Bx="a{}".format(round(binwidth)), By=5,
-                  Xf=str(left) + "p", Yf=str(bottom) + "p")
-    
-    gmt.pshistogram(data=data, W=binwidth, G="blue", bi=binary, Z=1)
-
-    del gmt
 
 _gmt_defaults_header = \
 r'''#

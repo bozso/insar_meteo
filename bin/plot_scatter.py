@@ -116,27 +116,32 @@ def parse_arguments():
     parser.add_argument(
         "--label",
         nargs="?",
-        default="",
+        default=None,
         type=str,
         help="Colorbar label. Input of the -B flag of psscale.")
         
     parser.add_argument(
         "--offset",
         nargs="?",
-        default=0.0,
+        default=25.0,
         type=float,
         help="Colorbar offset towards the margins.")
+
+    parser.add_argument(
+        "--step",
+        nargs="?",
+        default=None,
+        type=float,
+        help="Step of colorbar ticks.")
     
     return parser.parse_args()
     
 def main():
     args = parse_arguments()
     
-    # print(args); return 0
-    
     infile = args.infile
     
-    # default is "infile".png
+    # default is "${infile}.png"
     if args.out is None:
         out = pth.basename(args.infile).split(".")[0] + ".png"
     else:
@@ -165,7 +170,8 @@ def main():
         z_range = _z_range
     else:
         z_range = args.z_range
-        
+    
+
     if args.idx is None:
         idx = range(args.ncols)
     else:
@@ -180,7 +186,7 @@ def main():
     gmt = GMT(ps_file, R=xy_range)
     x, y = gmt.multiplot(len(idx), args.proj, nrows=args.nrows,
                          right=args.right, top=args.top, left=args.left,
-                         xpad=args.hpad, ypad=args.ypad)
+                         xpad=args.hpad, ypad=args.vpad)
     
     gmt.makecpt("tmp.cpt", C=args.cpt, Z=True, T=z_range)
     
@@ -201,12 +207,16 @@ def main():
 
             gmt.psxy(data=infile, i=input_format, bi=bindef, S="c0.025c",
                      C="tmp.cpt")
-    
-    if args.label == "":
-        gmt.colorbar(mode=args.mode, offset=args.offset, C="tmp.cpt")
+
+    if args.step is None:
+        label = "5"
     else:
-        gmt.colorbar(mode=args.mode, offset=args.offset, B=args.label,
-                     C="tmp.cpt")
+        label = str(args.step)
+    
+    if args.label is not None:
+        label += args.label
+    
+    gmt.colorbar(mode=args.mode, offset=args.offset, B=label, C="tmp.cpt")
     
     if ext != ".ps":
         gmt.raster(out, dpi=args.dpi, gray=args.gray, portrait=args.portrait,
@@ -217,8 +227,3 @@ def main():
     os.remove("tmp.cpt")
     
     del gmt
-    
-    return 0
-    
-if __name__ == "__main__":
-    main()

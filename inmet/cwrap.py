@@ -4,7 +4,7 @@ from shlex import split
 import os.path as pth
 from argparse import ArgumentParser
 
-from inmet.gmt import get_version, _gmt_five, proc_flag, _gmt_commands, GMT, info
+from inmet.gmt import get_version, _gmt_five, GMT, gmt, get_ranges
 
 def parse_steps(args, steps):
     if args.step is not None:
@@ -144,14 +144,28 @@ def fit_orbit(path, preproc, fit_file, centered=True, deg=3,
         cmd("inmet fit_orbit", "coords.txyz", deg, 1, fit_file)
     else:
         cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file)
+
+    os.remove("coords.txyz")
+
+def plot_orbit(path, preproc, fit_file, right, top, left, hpad, vpad):
+
+    extract_coords(path, preproc, "coords.txyz")
+
+    cmd("inmet eval_orbit", fit_file, steps, "fit.txyz")
     
-    if fit_plot is not None:
-        cmd("inmet eval_orbit", fit_file, steps, "fit.txyz")
-        
-        print(info("fit.txyz", rout=True))
-        
-        # gmt = GMT(fit_plot, )
+    ranges = (float(elem)
+              for elem in gmt("info", "fit.txyz", C=True, ret=True).split())
     
+    # extend time range by 5 percent
+    x_add = (ranges[1] - ranges[0]) * 0.05
+    x_range = (ranges[0] - x_add, ranges[1] + x_add)
+    
+    gmt = GMT(fit_plot)
+
+    x, y = gmt.multiplot(3, "x", nrows=3,
+                         right=args.right, top=args.top, left=args.left,
+                         xpad=args.hpad, ypad=args.vpad)
+
     os.remove("coords.txyz")
     os.remove("fit.txyz")
 

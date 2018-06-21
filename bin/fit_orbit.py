@@ -7,10 +7,12 @@
 import argparse as ap
 
 import inmet.cwrap as cw
+from inmet.gmt import multi_parser, raster_parser
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=__doc__,
-            formatter_class=ap.ArgumentDefaultsHelpFormatter)
+            formatter_class=ap.ArgumentDefaultsHelpFormatter,
+            parents=[raster_parser, multi_parser])
 
     parser.add_argument(
         "orbit_data",
@@ -32,6 +34,21 @@ def parse_arguments():
         type=int,
         help="Degree of the polynom fitted to satellite orbit coordinates.")
 
+    parser.add_argument(
+        "--plot",
+        nargs="?",
+        default=None,
+        type=str,
+        help="GMT will plot the original and fitted coordinates to this file.")
+
+    parser.add_argument(
+        "--nstep",
+        nargs="?",
+        default=100,
+        type=int,
+        help="Evaluate fitted x, y, z coordinates at nstep number of steps "
+             "between the range of t_min and t_max.")
+
     """
     parser.add_argument("--logile", help="logfile name ", nargs="?",
                         type=str, default="daisy.log")
@@ -44,7 +61,8 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    cw.fit_orbit(args.orbit_data, args.preproc, args.fit_file, deg=args.deg)
+    cw.fit_orbit(args.orbit_data, args.preproc, args.fit_file, deg=args.deg,
+                 fit_plot=args.plot, steps=args.nstep)
 
     return 0
     

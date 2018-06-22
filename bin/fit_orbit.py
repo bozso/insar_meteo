@@ -7,12 +7,10 @@
 import argparse as ap
 
 import inmet.cwrap as cw
-from inmet.gmt import multi_parser, raster_parser
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=__doc__,
-            formatter_class=ap.ArgumentDefaultsHelpFormatter,
-            parents=[raster_parser, multi_parser])
+            formatter_class=ap.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "orbit_data",

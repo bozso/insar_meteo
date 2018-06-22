@@ -168,14 +168,19 @@ def plot_orbit(path, preproc, fit_file, fit_plot, mult=1, nstep=100, **kwargs):
 
     cmd("inmet eval_orbit", fit_file, nstep, mult, "fit.txyz")
     
-    gpt = Gnuplot(out=fit_plot, term="pngcairo font ',10'")
+    gpt = Gnuplot(out=fit_plot, term="pngcairo font ',8'")
     gpt.multiplot(3, title="3D orbit coordinates and fitted polynoms",
                   portrait=True)
     
     titles = ("X", "Y", "Z")
     
     for ii in range(2, 5):
+        # convert meters to kilometers
         incols = "1:(${} / 1e3)".format(ii)
+        
+        gpt.title("{} coordinate".format(titles[ii - 2]))
+        gpt.xlabel("Time [s]")
+        gpt.ylabel("Coordinate [km]")
         gpt.plot(pplot("coords.txyz", using=incols, pt_type="empty_circle", title="Coordinates"),
                  pplot("fit.txyz", using=incols, line_type="black", title="Fitted polynom"))
         

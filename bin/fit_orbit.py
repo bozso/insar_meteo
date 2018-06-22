@@ -61,9 +61,11 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    cw.fit_orbit(args.orbit_data, args.preproc, args.fit_file, deg=args.deg,
-                 fit_plot=args.plot, steps=args.nstep)
-
+    cw.fit_orbit(args.orbit_data, args.preproc, args.fit_file, deg=args.deg)
+    
+    if args.plot is not None:
+        cw.plot_orbit(args.orbit_data, args.preproc, args.fit_file, args.plot)
+    
     return 0
     
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 from inmet.gmt import GMT, _gmt_five, get_version, gmt
+import inmet.cwrap as cw
 
 def plot_scatter(infile, ncols, out=None, xy_range=None, z_range=None,
                  idx=None, titles=None, cpt="drywet", x_axis="a0.5g0.25f0.25",
@@ -96,13 +97,13 @@ def hist(data, ps_file, binwidth=0.1, config=None, binary=None,
     del gmt
 
 def make_ncfile(self, header_path, ncfile, endian="small"):
-    fmt = get_par("SAM_IN_FORMAT", header_path)
-    dempath = get_par("SAM_IN_DEM", header_path)
-    nodata = get_par("SAM_IN_NODATA", header_path)
+    fmt     = cw.get_par("SAM_IN_FORMAT", header_path)
+    dempath = cw.get_par("SAM_IN_DEM", header_path)
+    nodata  = cw.get_par("SAM_IN_NODATA", header_path)
     
-    rows, cols = get_par("SAM_IN_SIZE", header_path).split()
-    delta_lat, delta_lon = get_par("SAM_IN_DELTA", header_path).split()
-    origin_lat, origin_lon = get_par("SAM_IN_UL", header_path).split()
+    rows, cols              = cw.get_par("SAM_IN_SIZE", header_path).split()
+    delta_lat, delta_lon    = cw.get_par("SAM_IN_DELTA", header_path).split()
+    origin_lat, origin_lon  = cw.get_par("SAM_IN_UL", header_path).split()
     
     xmin = float(origin_lon)
     xmax = xmin + float(cols) * float(delta_lon)

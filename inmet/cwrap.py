@@ -4,7 +4,7 @@ from shlex import split
 import os.path as pth
 from argparse import ArgumentParser
 
-from inmet.gmt import get_version, _gmt_five, GMT, gmt, get_ranges
+from inmet.gnuplot import Gnuplot, pplot
 
 def parse_steps(args, steps):
     if args.step is not None:
@@ -64,9 +64,25 @@ def parse_config_file(filepath, comment="#", sep=":"):
 
     return params
 
-def set_default(params, key, keys, default=None):    
-    if key not in keys:
-        params[key] = default
+def get_par(parameter, search, sep=":"):
+
+    if isinstance(search, list):
+        searchfile = search
+    elif pth.isfile(search):
+        with open(search, "r") as f:
+            searchfile = f.readlines()
+    else:
+        raise ValueError("search should be either a list or a string that "
+                         "describes a path to the parameter file.")
+    
+    parameter_value = None
+    
+    for line in searchfile:
+        if parameter in line:
+            parameter_value = " ".join(line.split(sep)[1:]).strip()
+            break
+
+    return parameter_value
 
 def cmd(Cmd, *args, ret=False):
     """
@@ -135,8 +151,7 @@ def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
 def azi_inc(fit_file, coords, mode, outfile, max_iter=1000):
     cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile)
 
-def fit_orbit(path, preproc, fit_file, centered=True, deg=3,
-              fit_plot=None, steps=100):
+def fit_orbit(path, preproc, fit_file, centered=True, deg=3):
     
     extract_coords(path, preproc, "coords.txyz")
     
@@ -147,33 +162,24 @@ def fit_orbit(path, preproc, fit_file, centered=True, deg=3,
 
     os.remove("coords.txyz")
 
-def plot_orbit(path, preproc, fit_file, div=1e3, **kwargs):
+def plot_orbit(path, preproc, fit_file, fit_plot, mult=1, nstep=100, **kwargs):
 
     extract_coords(path, preproc, "coords.txyz")
 
-    cmd("inmet eval_orbit", fit_file, steps, div, "fit.txyz")
+    cmd("inmet eval_orbit", fit_file, nstep, mult, "fit.txyz")
     
-    print(gmt("info", "fit.txyz", C=True, ret=True)); return
-    
-    ranges = (float(elem)
-              for elem in gmt("info", "fit.txyz", C=True, ret=True).split())
-    
-    # extend time range by 5 percent
-    x_add = (ranges[1] - ranges[0]) * 0.05
-    x_range = (ranges[0] - x_add, ranges[1] + x_add)
-    
-    gmt = GMT(fit_plot)
-    x, y = gmt.multiplot(3, "x", **kwargs)
+    gpt = Gnuplot(out=fit_plot, term="pngcairo font ',10'")
+    gpt.multiplot(3, title="3D orbit coordinates and fitted polynoms",
+                  portrait=True)
     
     titles = ("X", "Y", "Z")
     
-    for ii in range(3):
-        inp_fmt = "0,{}".format(ii + 1)
+    for ii in range(2, 5):
+        incols = "1:(${} / 1e3)".format(ii)
+        gpt.plot(pplot("coords.txyz", using=incols, pt_type="empty_circle", title="Coordinates"),
+                 pplot("fit.txyz", using=incols, line_type="black", title="Fitted polynom"))
         
-        gmt.psbasemap(Xf="{}p".format(x[ii]), Yf="{}p".format(y[ii]),
-                                  B="WSen+t{}".format(titles[ii]),
-                                  Bx=x_axis, By=y_axis)        
-    
+    del gpt
     
     os.remove("coords.txyz")
     os.remove("fit.txyz")
@@ -222,23 +228,3 @@ def extract_coords(path, preproc, coordsfile):
     else:
         raise ValueError('preproc should be either "doris" or "gamma" '
                          'not {}'.format(preproc))
-
-def get_par(parameter, search, sep=":"):
-
-    if isinstance(search, list):
-        searchfile = search
-    elif pth.isfile(search):
-        with open(search, "r") as f:
-            searchfile = f.readlines()
-    else:
-        raise ValueError("search should be either a list or a string that "
-                         "describes a path to the parameter file.")
-    
-    parameter_value = None
-    
-    for line in searchfile:
-        if parameter in line:
-            parameter_value = " ".join(line.split(sep)[1:]).strip()
-            break
-
-    return parameter_value

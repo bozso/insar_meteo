@@ -227,7 +227,7 @@ class GMT(object):
             self.common = " ".join(["-{}{}".format(key, proc_flag(flag))
                                     for key, flag in common_flags.items()])
         else:
-            self.common = None
+            self.common = ""
         
     def __del__(self):
         commands = self.commands
@@ -436,7 +436,7 @@ class GMT(object):
         top   = float(kwargs.pop("top", 0))
         left  = float(kwargs.pop("left", 0))
         right = float(kwargs.pop("right", 0))
-
+        
         if nrows is None:
             nrows = ceil(sqrt(nplots) - 1)
             nrows = max([1, nrows])
@@ -460,7 +460,7 @@ class GMT(object):
         
         # calculate psbasemap shifts in x and y directions
         x = (left + ii * (pwidth + xpad) for jj in range(nrows)
-                                          for ii in range(ncols))
+                                         for ii in range(ncols))
         
         y = (height - top - ii * (pheight + ypad)
              for ii in range(1, nrows + 1)

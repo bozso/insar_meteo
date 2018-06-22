@@ -1,6 +1,6 @@
 import subprocess as sub
-import numpy as np
 import os.path as pth
+from math import ceil, sqrt
 
 class Gnuplot(object):
     def __init__(self, out=None, term="xterm", persist=False, debug=False):
@@ -24,59 +24,34 @@ class Gnuplot(object):
                             for elems in zip(*command)]
             self.commands.extend([("\n".join(temp)).encode(), "e".encode()])
             del temp
-        elif t_cmd == np.ndarray:
-            self.commands.append(command.tobytes())
         else:
             self.commands.append("{}".format(command).encode())
     
-    def list2str(self, *command):
-        """
-        Convert multiple "arrays" stored in separate lists
-        to string format, for multiple plotting.
-        
-        Parameters
-        ----------
-        command : list
-            Contains iterable objects with the same number of elements.
-        
-        Returns
-        -------
-        str
-            Stringified version of lists.
-        """
-    
-        temp = [" ".join(str(elem) for elem in elems)
-                for elems in zip(command)]
-        temp.append("e")
-        
-        return "\n".join(temp)
-    
-    def np2str(self, command):
-        """
-        Convert multiple numpy array to string format, for multiple plotting.
-        
-        Parameters
-        ----------
-        command : array_like
-            Numpy array to be converted to string.
-        
-        Returns
-        -------
-        str
-            Stringified version numpy array.
-        """
-        
-        temp = [" ".join(item) for item in command.astype(str)]
-        temp.append("e")
-        
-        return "\n".join(temp)
-
     # SETTERS
     
     def plot(self, *args):
-        self.commands.append((",".join(text for text in args)).encode())
+        self.commands.append(b"plot " + (", ".join(text for text in args)).encode())
         
-    def multiplot(self, layout, title="", rowsfirst=True):
+    def multiplot(self, nplot, title="", nrows=None, rowsfirst=True,
+                  portrait=False):
+
+        if nrows is None:
+            nrows = ceil(sqrt(nplot) - 1)
+            nrows = max([1, nrows])
+
+        ncols = ceil(nplot / nrows)
+        
+        if portrait and ncols > nrows:
+            tmp = nrows
+            nrows = ncols
+            ncols = tmp
+            del tmp
+        elif nrows > ncols:
+            tmp = nrows
+            nrows = ncols
+            ncols = tmp
+            del tmp
+        
         self.is_multi = True
         
         if rowsfirst:
@@ -85,7 +60,7 @@ class Gnuplot(object):
             first = "colsfirst"
         
         self.commands.append("set multiplot layout {},{} {} title '{}'"
-                             .format(layout[0], layout[1], first, title)
+                             .format(nrows, ncols, first, title)
                              .encode())
 
     def unset_multi(self):
@@ -347,9 +322,9 @@ def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
     
     return array, text
 
-def pplot(data, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
-         linestyle=None, rgb=None, matrix=None, title=None, binary=None,
-         array=None, endian="default", **kwargs):
+def pplot(data, pt_type=None, pt_size=1.0, line_type=None, line_width=1.0,
+          linestyle=None, rgb=None, matrix=None, title=None, binary=None,
+          array=None, endian="default", **kwargs):
     """
     Sets the text to be used for the 'plot' command of gnuplot for
     plotting (x,y) data pairs of file.
@@ -396,17 +371,37 @@ def pplot(data, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
     keys = kwargs.keys()
 
     pt_type_dict = {
-        "circ": 7
+        
+        "dot": 0,
+        "+": 1,
+        "x": 2,
+        "+x": 3,
+        "empty_square": 4,
+        "filed_square": 5,
+        "empty_circle": 6,
+        "filled_circle": 7,
+        "empty_up_triangle": 8,
+        "filled_up_triangle": 9,
+        "empty_down_triangle": 10,
+        "filled_down_triangle": 11,
+        "empty_rombus": 12,
+        "filled_rombus": 13,
     }
 
     line_type_dict = {
-        "circ": 7
+        "black": -1,
+        "dashed": 0,
+        "red": 1,
+        "green": 2,
+        "blue": 3,
+        "purple": 4,
+        "teal": 5,
     }
     
     if not isinstance(data, str) or not pth.isfile(data):
-        raise ValueError("data should be a string path to a data file")
+        raise ValueError("data should be a string path to a data file!")
     
-    text = data
+    text = "'{}'".format(data)
     
     if binary is not None:
         if array is not None:
@@ -426,10 +421,10 @@ def pplot(data, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
                 text += " with points pt {} ps {}".format(pt_type_dict[pt_type],
                                                           pt_size)
             elif line_type is not None:
-                text += "with lines lt {} lw {}".format(line_type_dict[line_type],
+                text += " with lines lt {} lw {}".format(line_type_dict[line_type],
                                                         line_width)
             elif rgb is not None:
-                text += "with lines lt {} lw {}".format(rgb, line_width)
+                text += " with lines lt {} lw {}".format(rgb, line_width)
             else:
                 raise Exception("Options line_type and rgb are mutually exclusive.")
         
@@ -439,3 +434,25 @@ def pplot(data, pt_type="circ", pt_size=1.0, line_type=None, line_width=1.0,
         text += " notitle"
     
     return text
+
+def list2str(self, *command):
+    """
+    Convert multiple "arrays" stored in separate lists
+    to string format, for multiple plotting.
+    
+    Parameters
+    ----------
+    command : list
+        Contains iterable objects with the same number of elements.
+    
+    Returns
+    -------
+    str
+        Stringified version of lists.
+    """
+
+    temp = [" ".join(str(elem) for elem in elems)
+            for elems in zip(command)]
+    temp.append("e")
+    
+    return "\n".join(temp)

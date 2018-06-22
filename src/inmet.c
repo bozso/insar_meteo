@@ -66,9 +66,8 @@ static int read_fit(const char * path, orbit_fit * orb)
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */    
-    FOR(ii, 0, 3)
-        FOR(jj, 0, deg + 1)
-            aux_read(fit_file, "%lf ", orb->coeffs + ii);
+    FOR(ii, 0, 3 * (deg + 1))
+        aux_read(fit_file, "%lf ", orb->coeffs + ii);
     
     orb->deg = deg;
     orb->centered = centered;
@@ -509,12 +508,12 @@ fail:
 }
 
 mk_doc(eval_orbit,
-"\n Usage: inmet eval_orbit fit_file steps divide outfile\
+"\n Usage: inmet eval_orbit fit_file steps multiply outfile\
  \n \
  \n fit_file    - ascii file that contains fitted orbit polynom parameters\
  \n nstep       - evaluate x, y, z coordinates at nstep number of steps\
  \n               between the range of t_min and t_max\
- \n divide      - calculated coordinate values will be devided by this number\
+ \n multiply    - calculated coordinate values will be multiplied by this number\
  \n outfile     - coordinates and time values will be written to this ascii file\
  \n\n");
 
@@ -525,7 +524,7 @@ int eval_orbit(int argc, char **argv)
     FILE *outfile;
     orbit_fit orb;
     uint nstep;
-    double t_min, t_mean, dstep, t, rdiv =  1 / atof(argv[4]);
+    double t_min, t_mean, dstep, t, mult =  atof(argv[4]);
     cart pos;
     
     if (read_fit(argv[2], &orb)) {
@@ -546,17 +545,17 @@ int eval_orbit(int argc, char **argv)
         FOR(ii, 0, nstep + 1) {
             t = t_min - t_mean + ii * dstep;
             calc_pos(&orb, t, &pos);
-            fprintf(outfile, "%lf %lf %lf %lf\n", t + t_mean, pos.x * rdiv,
-                                                              pos.y * rdiv,
-                                                              pos.z * rdiv);
+            fprintf(outfile, "%lf %lf %lf %lf\n", t + t_mean, pos.x * mult,
+                                                              pos.y * mult,
+                                                              pos.z * mult);
         }
     } else {
         FOR(ii, 0, nstep + 1) {
             t = t_min + ii * dstep;
             calc_pos(&orb, t, &pos);
-            fprintf(outfile, "%lf %lf %lf %lf\n", t, pos.x * rdiv,
-                                                     pos.y * rdiv,
-                                                     pos.z * rdiv);
+            fprintf(outfile, "%lf %lf %lf %lf\n", t, pos.x * mult,
+                                                     pos.y * mult,
+                                                     pos.z * mult);
         }
     }
     

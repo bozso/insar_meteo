@@ -121,7 +121,7 @@ class Gnuplot(object):
         self.commands.append("set xlabel '{}'".format(x).encode())
         self.commands.append("set ylabel '{}'".format(y).encode())
         
-        if z:
+        if z is not None:
             self.commands.append("set zlabel '{}'".format(z).encode())
 
     def xlabel(self, xlabel="x"):
@@ -371,7 +371,6 @@ def pplot(data, pt_type=None, pt_size=1.0, line_type=None, line_width=1.0,
     keys = kwargs.keys()
 
     pt_type_dict = {
-        
         "dot": 0,
         "+": 1,
         "x": 2,
@@ -398,7 +397,7 @@ def pplot(data, pt_type=None, pt_size=1.0, line_type=None, line_width=1.0,
         "teal": 5,
     }
     
-    if not isinstance(data, str) or not pth.isfile(data):
+    if not isinstance(data, str) and not pth.isfile(data):
         raise ValueError("data should be a string path to a data file!")
     
     text = "'{}'".format(data)

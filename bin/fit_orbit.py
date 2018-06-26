@@ -37,7 +37,7 @@ def parse_arguments():
         nargs="?",
         default=None,
         type=str,
-        help="GMT will plot the original and fitted coordinates to this file.")
+        help="Gnuplot will plot the original and fitted coordinates to this file.")
 
     parser.add_argument(
         "--nstep",

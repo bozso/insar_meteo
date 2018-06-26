@@ -103,7 +103,7 @@ def cmd(Cmd, *args, ret=False):
     Returns
     -------
     ret_out : byte-string
-        Output of called module returned if rout=True.
+        Output of called module returned if ret=True.
     
     Raises
     ------
@@ -162,11 +162,11 @@ def fit_orbit(path, preproc, fit_file, centered=True, deg=3):
 
     os.remove("coords.txyz")
 
-def plot_orbit(path, preproc, fit_file, fit_plot, mult=1, nstep=100, **kwargs):
+def plot_orbit(path, preproc, fit_file, fit_plot, nstep=100, **kwargs):
 
     extract_coords(path, preproc, "coords.txyz")
 
-    cmd("inmet eval_orbit", fit_file, nstep, mult, "fit.txyz")
+    cmd("inmet eval_orbit", fit_file, nstep, 1, "fit.txyz")
     
     gpt = Gnuplot(out=fit_plot, term="pngcairo font ',8'")
     gpt.multiplot(3, title="3D orbit coordinates and fitted polynoms",
@@ -178,11 +178,13 @@ def plot_orbit(path, preproc, fit_file, fit_plot, mult=1, nstep=100, **kwargs):
         # convert meters to kilometers
         incols = "1:(${} / 1e3)".format(ii)
         
-        gpt.title("{} coordinate".format(titles[ii - 2]))
+        gpt.ylabel("{} [km]".format(titles[ii - 2]))
         gpt.xlabel("Time [s]")
-        gpt.ylabel("Coordinate [km]")
-        gpt.plot(pplot("coords.txyz", using=incols, pt_type="empty_circle", title="Coordinates"),
-                 pplot("fit.txyz", using=incols, line_type="black", title="Fitted polynom"))
+        gpt.plot(
+        pplot("coords.txyz", using=incols, pt_type="empty_circle",
+                             title="Coordinates"),
+        pplot("fit.txyz", using=incols, line_type="black",
+                          title="Fitted polynom"))
         
     del gpt
     

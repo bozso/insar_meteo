@@ -26,19 +26,25 @@ class Gnuplot(object):
             del temp
         else:
             self.commands.append("{}".format(command).encode())
+
+    def plot(self, *args):
+        self.commands.append(b"plot " + (", ".join(text for text in args)).encode())
     
     # SETTERS
     
-    def plot(self, *args):
-        self.commands.append(b"plot " + (", ".join(text for text in args)).encode())
-        
+    def palette(self, pal):
+        self.commands.append("set palette {}".format(pal).encode())
+    
+    def binary(self, definition):
+        self.commands.append("set datafile binary {}".format(definition).encode())
+    
     def multiplot(self, nplot, title="", nrows=None, rowsfirst=True,
                   portrait=False):
 
         if nrows is None:
             nrows = ceil(sqrt(nplot) - 1)
             nrows = max([1, nrows])
-
+        
         ncols = ceil(nplot / nrows)
         
         if portrait and ncols > nrows:
@@ -62,7 +68,18 @@ class Gnuplot(object):
         self.commands.append("set multiplot layout {},{} {} title '{}'"
                              .format(nrows, ncols, first, title)
                              .encode())
-
+    
+    def colorbar(self, cbrange=None, cbtics=None, cbformat=None):
+        if cbrange is not None:
+            self.commands.append("set cbrange [{}:{}]"
+                                 .format(cbrange[0], cbrange[1]).encode())
+        
+        if cbtics is not None:
+            self.commands.append("set cbtics {}".format(cbtics).encode())
+        
+        if cbformat is not None:
+            self.commands.append("set format cb '{}'".format(cbformat).encode())
+        
     def unset_multi(self):
         self.commands.append("unset multiplot".encode())
         self.is_multi = False
@@ -324,7 +341,7 @@ def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
 
 def pplot(data, pt_type=None, pt_size=1.0, line_type=None, line_width=1.0,
           linestyle=None, rgb=None, matrix=None, title=None, binary=None,
-          array=None, endian="default", **kwargs):
+          array=None, endian="default", palette=False, **kwargs):
     """
     Sets the text to be used for the 'plot' command of gnuplot for
     plotting (x,y) data pairs of file.
@@ -402,17 +419,20 @@ def pplot(data, pt_type=None, pt_size=1.0, line_type=None, line_width=1.0,
     
     text = "'{}'".format(data)
     
-    if binary is not None:
+    if binary is not None and not isinstance(binary, bool):
         if array is not None:
             text += " binary array={} format='{}' "\
                     "endian={}".format(array, binary, endian)
         else:
             text += " binary format='{}' endian={}".format(binary, endian)
+    elif binary:
+        text += " binary"
+    
     
     text += " " + " ".join(["{} {}".format(key, kwargs[key])
                            for key in add_keys if key in keys])
     
-    if array is None:
+    if array is None and not palette:
         if linestyle is not None:
             text += " with linestyle {}".format(linestyle)
         else:
@@ -424,14 +444,18 @@ def pplot(data, pt_type=None, pt_size=1.0, line_type=None, line_width=1.0,
                                                         line_width)
             elif rgb is not None:
                 text += " with lines lt {} lw {}".format(rgb, line_width)
-            else:
-                raise Exception("Options line_type and rgb are mutually exclusive.")
+    elif palette:
+        if pt_type is not None:
+            text += " with points pt {} ps {} palette"\
+                    .format(pt_type_dict[pt_type], pt_size)
+        else:
+            text += " with {} palette".format(palette)
         
     if title is not None:
         text += " title '{}'".format(title)
     else:
         text += " notitle"
-    
+        
     return text
 
 def list2str(self, *command):

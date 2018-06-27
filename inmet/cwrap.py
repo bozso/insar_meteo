@@ -180,11 +180,13 @@ def plot_orbit(path, preproc, fit_file, fit_plot, nstep=100, **kwargs):
         
         gpt.ylabel("{} [km]".format(titles[ii - 2]))
         gpt.xlabel("Time [s]")
-        gpt.plot(
-        pplot("coords.txyz", using=incols, pt_type="empty_circle",
-                             title="Coordinates"),
-        pplot("fit.txyz", using=incols, line_type="black",
-                          title="Fitted polynom"))
+        
+        gpt.plot("coords.txyz", using=incols, pt_type="empty_circle",
+                 title="Coordinates"),
+        gpt.plot("fit.txyz", using=incols, line_type="black",
+                 title="Fitted polynom")
+        
+        gpt.end_plot()
         
     del gpt
     

@@ -24,16 +24,14 @@ class Gnuplot(object):
         
         term_cmd = "set term {} font '{},{}'".format(term, font, fontsize)
         
-        #if size is not None:
-        #    term_cmd += 
+        if size is not None:
+            term_cmd += " size {},{}".format(size[0], size[1])
         
         self.commands.append(term_cmd.encode())
         
     def __call__(self, command):
         
-        t_cmd = type(command)
-        
-        if t_cmd == list:
+        if type(command) == list:
             temp = [" ".join(str(elem) for elem in elems)
                             for elems in zip(*command)]
             self.commands.extend([("\n".join(temp)).encode(), "e".encode()])
@@ -162,8 +160,25 @@ class Gnuplot(object):
                              for text in self.plot_cmds)).encode())
         self.plot_cmds = []
     
-    # SETTERS
+    # ***********
+    # * SETTERS *
+    # ***********
     
+    def size(self, scale, square=False, ratio=None):
+        Cmd = "set size"
+        
+        if sqaure:
+            Cmd += " square"
+        else:
+            Cmd += " no square"
+        
+        if ratio is not None:
+            Cmd += " ratio {}".format(ratio)
+        
+        Cmd += " {},{}".format(scale[0], scale[1])
+        
+        self.commands.append(Cmd.encode())
+        
     def palette(self, pal):
         self.commands.append("set palette {}".format(pal).encode())
     

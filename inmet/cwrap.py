@@ -4,7 +4,7 @@ from shlex import split
 import os.path as pth
 from argparse import ArgumentParser
 
-from inmet.gnuplot import Gnuplot, pplot
+from inmet.gnuplot import Gnuplot
 
 def parse_steps(args, steps):
     if args.step is not None:
@@ -102,7 +102,7 @@ def cmd(Cmd, *args, ret=False):
     
     Returns
     -------
-    ret_out : byte-string
+    ret : byte-string
         Output of called module returned if ret=True.
     
     Raises
@@ -110,6 +110,12 @@ def cmd(Cmd, *args, ret=False):
     CalledProcessError
         If something went wrong with the calling of the module, e.g.
         non zero returncode.
+
+    Examples
+    --------
+    
+    >>> from inmet.cwrap import cmd
+    >>> cmd("ls", "*.png")
     """
     
     Cmd = "{} {}".format(Cmd, " ".join(str(arg) for arg in args))
@@ -168,7 +174,7 @@ def plot_orbit(path, preproc, fit_file, fit_plot, nstep=100, **kwargs):
 
     cmd("inmet eval_orbit", fit_file, nstep, 1, "fit.txyz")
     
-    gpt = Gnuplot(out=fit_plot, term="pngcairo font ',8'")
+    gpt = Gnuplot(out=fit_plot, term="pngcairo")
     gpt.multiplot(3, title="3D orbit coordinates and fitted polynoms",
                   portrait=True)
     

@@ -4,7 +4,14 @@ from math import ceil, sqrt
 from builtins import str
 
 class Gnuplot(object):
-    def __init__(self, out=None, term="xterm", persist=False, debug=False):
+    def __init__(self, out=None, persist=False, debug=False, **kwargs):
+        
+        term = str(kwargs.get("term", "xterm"))
+        font = str(kwargs.get("font", "Verdena"))
+        fontsize = int(kwargs.get("fontsize", 8))
+        
+        size = kwargs.get("size")
+        
         self.commands = []
         self.is_persist = persist
         self.is_multi = False
@@ -15,7 +22,12 @@ class Gnuplot(object):
         if out:
             self.commands.append("set out '{}'".format(out).encode())
         
-        self.commands.append("set term {}".format(term).encode())
+        term_cmd = "set term {} font '{},{}'".format(term, font, fontsize)
+        
+        #if size is not None:
+        #    term_cmd += 
+        
+        self.commands.append(term_cmd.encode())
         
     def __call__(self, command):
         
@@ -32,7 +44,7 @@ class Gnuplot(object):
     def plot(self, data, pt_type=None, pt_size=1.0, line_type=None,
              line_width=1.0, linestyle=None, rgb=None, matrix=None,
              title=None, binary=None, array=None, endian="default",
-             palette=False, **kwargs):
+             vith=None, **kwargs):
         """
         Sets the text to be used for the 'plot' command of Gnuplot for
         plotting (x,y) data pairs of a file.
@@ -69,12 +81,14 @@ class Gnuplot(object):
         Examples
         --------
         
-        >>> from gnuplot import Gnuplot, pplot
+        >>> from gnuplot import Gnuplot
         >>> g = Gnuplot(is_persist=True)
-        >>> g.plot(pplot("data1.txt", title="Example plot 1"),
-                   pplot("data2.txt", title="Example plot 2"))
+        >>> g.plot("data1.txt", title="Example plot 1")
+        >>> g.plot("data2.txt", title="Example plot 2")
+        >>> del g
         
         """
+        
         add_keys = ["index", "every", "using", "smooth", "axes"]
         keys = kwargs.keys()
     
@@ -119,28 +133,22 @@ class Gnuplot(object):
         elif binary:
             text += " binary"
         
-        
         text += " " + " ".join(["{} {}".format(key, kwargs[key])
                                for key in add_keys if key in keys])
         
-        if array is None and not palette:
-            if linestyle is not None:
-                text += " with linestyle {}".format(linestyle)
-            else:
-                if pt_type is not None:
-                    text += " with points pt {} ps {}".format(pt_type_dict[pt_type],
-                                                              pt_size)
-                elif line_type is not None:
-                    text += " with lines lt {} lw {}".format(line_type_dict[line_type],
-                                                            line_width)
-                elif rgb is not None:
-                    text += " with lines lt {} lw {}".format(rgb, line_width)
-        elif palette:
-            if pt_type is not None:
-                text += " with points pt {} ps {} palette"\
-                        .format(pt_type_dict[pt_type], pt_size)
-            else:
-                text += " with {} palette".format(palette)
+        if linestyle is not None:
+            text += " with linestyle {}".format(linestyle)
+        elif pt_type is not None:
+            text += " with points pt {} ps {}"\
+                    .format(pt_type_dict[pt_type], pt_size)
+        elif line_type is not None:
+            text += " with lines lt {} lw {}"\
+                    .format(line_type_dict[line_type], line_width)
+        elif rgb is not None:
+            text += " with lines lt {} lw {}".format(rgb, line_width)
+
+        if vith is not None:        
+            text += " {}".format(vith)
             
         if title is not None:
             text += " title '{}'".format(title)
@@ -173,8 +181,9 @@ class Gnuplot(object):
             if key in ("lmargin", "rmargin", "tmargin", "bmargin"):
                 self.commands.append(fmt.format(key, value).encode())
     
-    def multiplot(self, nplot, title="", nrows=None, rowsfirst=True,
+    def multiplot(self, nplot, title="", nrows=None, order="rowsfirst",
                   portrait=False, **kwargs):
+
         if nrows is None:
             nrows = ceil(sqrt(nplot) - 1)
             nrows = max([1, nrows])
@@ -194,13 +203,8 @@ class Gnuplot(object):
         
         self.is_multi = True
         
-        if rowsfirst:
-            first = "rowsfirst"
-        else:
-            first = "colsfirst"
-        
         self.commands.append("set multiplot layout {},{} {} title '{}'"
-                             .format(nrows, ncols, first, title)
+                             .format(nrows, ncols, order, title)
                              .encode())
     
     def colorbar(self, cbrange=None, cbtics=None, cbformat=None):
@@ -247,8 +251,8 @@ class Gnuplot(object):
     def axis_time(self, axis):
         self.commands.append("set {}data time".format(axis).encode())
     
-    def timefmt(self, timeformat):
-        self.commands.append("set timefmt '{}'".format(timeformat).encode())
+    def timefmt(self, fmt):
+        self.commands.append("set timefmt '{}'".format(fmt).encode())
     
     def output(self, outfile, term="pngcairo"):
         self.commands.append("set out '{}'".format(outfile).encode())
@@ -317,6 +321,10 @@ class Gnuplot(object):
     def execute(self):
         if self.is_exec:
             pass
+
+        if self.plot_cmds:
+            self.commands.append(b"plot " + (", ".join(text
+                                 for text in self.plot_cmds)).encode())
         
         self.is_exec = True
         
@@ -479,8 +487,6 @@ def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
         text += " notitle"
     
     return array, text
-
-    
 
 def list2str(self, *command):
     """

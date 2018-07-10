@@ -121,7 +121,18 @@ def cmd(Cmd, *args, ret=False):
     Cmd = "{} {}".format(Cmd, " ".join(str(arg) for arg in args))
     
     try:
+        #process = sub.Popen(split(Cmd), stdout=sub.PIPE, stderr=sub.STDOUT)
         cmd_out = sub.check_output(split(Cmd), stderr=sub.STDOUT)
+        
+        #while True:
+            #output = process.stdout.readline()
+            #if output == '' and process.poll() is not None:
+                #break
+            #if output:
+                #print(output.strip())
+
+        #cmd_out = process.poll()
+
     except sub.CalledProcessError as e:
         print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))

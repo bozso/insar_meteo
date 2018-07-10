@@ -1,10 +1,12 @@
 #include <string.h>
 #include <stdlib.h>
+#include <tgmath.h>
 #include <gsl/gsl_matrix_double.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_linalg.h>
 
 #include "aux_macros.h"
+#include "matrix.h"
 
 #define Modules "azi_inc fit_orbit"
 #define min_arg 2
@@ -13,7 +15,6 @@
 
 #define BUFSIZE 10
 
-typedef unsigned int uint;
 typedef const double cdouble;
 
 // Cartesian coordinates
@@ -712,14 +713,55 @@ fail:
     return 1;
 }
 
+static void test_matrix1(void)
+{
+    matrix * mtx;
+    init_matrix(mtx, 10000, 10000, double);
+    
+    FOR(ii, 0, 10000)
+        FOR(jj, 0, 10000)
+            melem(mtx, ii, jj, double) = 1.0;
+    
+    FOR(ii, 0, 10000)
+        FOR(jj, 0, 10000)
+            melem(mtx, ii, jj, double) += 1;
+    
+    free_matrix(mtx);
+fail:
+    free_matrix(mtx);
+}
+
+static void test_matrix2(void)
+{
+    gsl_matrix * mtx = gsl_matrix_alloc(10000, 10000);
+    
+    FOR(ii, 0, 10000)
+        FOR(jj, 0, 10000)
+            Mset(mtx, ii, jj, 1.0);
+    
+    FOR(ii, 0, 10000)
+        FOR(jj, 0, 10000)
+            *(Mptr(mtx, ii, jj)) += 1;
+    
+    //FOR(ii, 0, 10)
+      //  FOR(jj, 0, 10)
+        //    println("%lf", Mget(mtx, ii, jj));
+    
+    gsl_matrix_free(mtx);
+}
+
 int main(int argc, char **argv)
 {
+    test_matrix1();
+    return 0;
+    
     if (argc < 2) {
         errorln("At least one argument (module name) is required.\
                  \nModules to choose from: %s.", Modules);
         printf("Use --help or -h as the first argument to print the help message.\n");
         return err_arg;
     }
+    
     
     if (module_select("azi_inc") || module_select("AZI_INC"))
         return azi_inc(argc, argv);

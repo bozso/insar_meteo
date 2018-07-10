@@ -1,6 +1,8 @@
 #ifndef AUX_MACROS_H
 #define AUX_MACROS_H
 
+#define _log printf("Line: %d\n", __LINE__)
+
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
  *******************************/

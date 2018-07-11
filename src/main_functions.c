@@ -448,6 +448,8 @@ int fit_orbit(int argc, char **argv)
         FOR(jj, 2, deg + 1)
             *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * t;
     }
+
+    free(orbits); orbits = NULL;
     
     // factorize design matrix
     if (gsl_linalg_QR_decomp(design, tau)) {
@@ -505,9 +507,7 @@ int fit_orbit(int argc, char **argv)
     
     gsl_vector_free(tau);
     gsl_vector_free(res);
-    
-    free(orbits);
-    
+        
     fclose(incoords);
     fclose(fit_file);
     

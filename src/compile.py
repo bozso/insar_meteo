@@ -10,7 +10,7 @@ inc_dirs = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]
 
 #libs = ["m", "stdc++"]
-#flags = ["-std=c++14"]
+#flags = ["-std=c++11"]
 #macros = None
 
 def main():

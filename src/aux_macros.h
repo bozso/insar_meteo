@@ -1,8 +1,6 @@
 #ifndef AUX_MACROS_H
 #define AUX_MACROS_H
 
-#define _log printf("Line: %d\n", __LINE__)
-
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
  *******************************/
@@ -32,7 +30,7 @@
 #define AND &&
 
 /**************************
- * FOR MACROS             *
+ * for macros             *
  * REQUIRES C99 standard! *
  **************************/
 
@@ -57,14 +55,14 @@
 })
 
 /*****************************
- * SWITCHING BETWEEN MODULES *
+ * Switching between modules *
  *****************************/
 
 #define str_isequal(string1, string2) (strcmp((string1), (string2)) == 0)
 #define module_select(string) str_isequal(argv[1], string)
 
 /*********************
- * ALLOCATION MACROS *
+ * Allocation macros *
  *********************/
 
 #define aux_malloc(ptr, type, num)\
@@ -104,7 +102,7 @@
 #define Vptr(vector, ii) gsl_vector_ptr((vector), (ii))
 
 /*************
- * IO MACROS *
+ * IO macros *
  *************/
 
 #define error(string) fprintf(stderr, string)

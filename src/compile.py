@@ -17,12 +17,12 @@ def main():
     c_basename = c_file[0].split(".")[0]
     
     ccomp = new_compiler()
-    ccomp.compile(c_file, extra_postargs=flags, include_dirs=inc_dir,
-                  macros=macros)
-    ccomp.compile(["matrix.c"], extra_postargs=flags, include_dirs=inc_dir,
-                  macros=macros)
+    ccomp.compile(c_file, extra_postargs=flags)
+    #ccomp.compile(["matrix.c"], extra_postargs=flags, macros=macros)
+    ccomp.compile(["main_functions.c"], extra_postargs=flags,
+                  include_dirs=inc_dir, macros=macros)
     
-    ccomp.link_executable([c_basename + ".o", "matrix.o"],
+    ccomp.link_executable([c_basename + ".o", "main_functions.o"],
                           pjoin("..", "bin", c_basename),
                           libraries=libs, library_dirs=lib_dirs,
                           extra_postargs=flags)

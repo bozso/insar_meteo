@@ -71,7 +71,7 @@
 ({\
     if (NULL == ((ptr) = malloc(sizeof(type) * (num))))\
     {\
-        fprintf(stderr, "%s: line %d: malloc of %s failed",\
+        fprintf(stderr, "FILE: %s, LINE: %d :: Malloc of %s failed",\
                 __FILE__, __LINE__, #ptr);\
         goto fail;\
     }\
@@ -94,13 +94,13 @@
  * GSL convenience macros *
  **************************/
 
-#define Mset(matrix, ii, jj, data) gsl_matrix_set((matrix), (ii), (jj), (data))
+#define Mset(mtx, ii, jj, data) gsl_matrix_set((mtx), (ii), (jj), (data))
 #define Vset(vector, ii, data) gsl_vector_set((vector), (ii), (data))
 
-#define Mget(matrix, ii, jj) gsl_matrix_get((matrix), (ii), (jj))
+#define Mget(mtx, ii, jj) gsl_matrix_get((mtx), (ii), (jj))
 #define Vget(vector, ii) gsl_vector_get((vector), (ii))
 
-#define Mptr(matrix, ii, jj) gsl_matrix_ptr((matrix), (ii), (jj))
+#define Mptr(mtx, ii, jj) gsl_matrix_ptr((mtx), (ii), (jj))
 #define Vptr(vector, ii) gsl_vector_ptr((vector), (ii))
 
 /*************
@@ -118,7 +118,7 @@
 ({\
     if (((file) = fopen((path), (mode))) == NULL)\
     {\
-        errorln("%s line: %d: Failed to open file %s!", __FILE__, __LINE__, path);\
+        errorln("FILE: %s, LINE: %d :: Failed to open file %s!", __FILE__, __LINE__, path);\
         perror("Error");\
         goto fail;\
     }\

@@ -1,4 +1,4 @@
-__precompile__()
+#__precompile__()
 
 module SatOrbit
 
@@ -89,7 +89,7 @@ function fit_orbit(path::AbstractString, preproc::AbstractString,
     close(f)
 end
 
-function load_fit(fit_file::AbstractString, print=false::Bool)
+function load_fit(fit_file::AbstractString, display=false::Bool)
     
     f = open(fit_file, "r")
     
@@ -103,7 +103,9 @@ function load_fit(fit_file::AbstractString, print=false::Bool)
     deg = read(f, UInt64)
     fit = read(f, Float64, 3, deg + 1)
     
-    if info
+    close(f)
+    
+    if display
         if centered
             @printf "t_mean: %d\n" t_mean
             @printf "coords_mean: %s\n" string(coords_mean)
@@ -112,8 +114,6 @@ function load_fit(fit_file::AbstractString, print=false::Bool)
         @printf "fit: %s\n" string(fit)
         return
     end
-    
-    close(f)
 end
 
 #function azi_inc(fit_file::AbstractString, coords::Array{T, 2},

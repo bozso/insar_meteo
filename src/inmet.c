@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <string.h>
-#include "aux_macros.h"
 #include "main_functions.h"
 
 #define Modules "azi_inc fit_orbit eval_orbit"
 
 int main(int argc, char **argv)
 {
+    test_matrix();
+    return 0;
+    
     if (argc < 2) {
         errorln("At least one argument (module name) is required.\
                  \nModules to choose from: %s.", Modules);

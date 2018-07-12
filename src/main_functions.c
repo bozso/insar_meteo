@@ -5,7 +5,7 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_linalg.h>
 
-#include "aux_macros.h"
+#include "matrix.h"
 #include "main_functions.h"
 
 /************************
@@ -14,7 +14,7 @@
 
 static int read_fit(const char * path, orbit_fit * orb)
 {
-    FILE * fit_file = NULL;
+    FILE * fit_file;
     uint deg, centered;
     
     aux_open(fit_file, path, "r");
@@ -545,8 +545,7 @@ int eval_orbit(int argc, char **argv)
     
     FILE *outfile;
     orbit_fit orb;
-    uint nstep;
-    double t_min, t_mean, dstep, t, mult =  atof(argv[4]);
+    double t_min, t_mean, dstep, t, nstep, mult =  atof(argv[4]);
     cart pos;
     
     if (read_fit(argv[2], &orb)) {
@@ -555,9 +554,9 @@ int eval_orbit(int argc, char **argv)
     }
     
     t_min = orb.t_min;
-    nstep = (uint) atoi(argv[3]);
+    nstep = atof(argv[3]);
     
-    dstep = (orb.t_max - t_min) / (double) nstep;
+    dstep = (orb.t_max - t_min) / nstep;
     
     aux_open(outfile, argv[5], "w");
     
@@ -566,7 +565,7 @@ int eval_orbit(int argc, char **argv)
     else
         t_mean = 0.0;
 
-    FOR(ii, 0, nstep + 1) {
+    FOR(ii, 0, ((uint) nstep) + 1) {
         t = t_min - t_mean + ii * dstep;
         calc_pos(&orb, t, &pos);
         fprintf(outfile, "%lf %lf %lf %lf\n", t + t_mean, pos.x * mult,
@@ -658,4 +657,30 @@ fail:
     aux_close(infile);
     aux_close(outfile);
     return 1;
+}
+
+int test_matrix(void)
+{
+    matrix * mtx;
+    matrix_double(mtx, 4, 2);
+    
+    
+    FOR(ii, 0, 4) {
+        FOR(jj, 0, 2) {
+            delem(mtx, ii, jj) = (double) ii + jj;
+            printf("%lf ", (double) ii + jj);
+        }
+    }
+    
+    printf("\n");
+    
+    FOR(ii, 0, 4)
+        FOR(jj, 0, 2)
+            printf("%lf ", delem(mtx, ii, jj));
+    
+    printf("\n\n");
+    
+    
+fail:
+    matrix_safe_free(mtx);
 }

@@ -5,7 +5,6 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_linalg.h>
 
-#include "matrix.h"
 #include "main_functions.h"
 
 /************************
@@ -657,30 +656,4 @@ fail:
     aux_close(infile);
     aux_close(outfile);
     return 1;
-}
-
-int test_matrix(void)
-{
-    matrix * mtx;
-    matrix_double(mtx, 4, 2);
-    
-    
-    FOR(ii, 0, 4) {
-        FOR(jj, 0, 2) {
-            delem(mtx, ii, jj) = (double) ii + jj;
-            printf("%lf ", (double) ii + jj);
-        }
-    }
-    
-    printf("\n");
-    
-    FOR(ii, 0, 4)
-        FOR(jj, 0, 2)
-            printf("%lf ", delem(mtx, ii, jj));
-    
-    printf("\n\n");
-    
-    
-fail:
-    matrix_safe_free(mtx);
 }

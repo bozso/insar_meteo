@@ -23,7 +23,7 @@ matrix * mtx_allocate(uint rows, uint cols, size_t elem_size, data_type type,
     return mtx;
 
 fail:
-    fprintf(stderr, "FILE: %s, LINE: %d :: Allocation of gmatrix %s failed!\n",
+    fprintf(stderr, "FILE: %s, LINE: %d :: Allocation of matrix %s failed!\n",
                     file, line, matrix_name);
     aux_free(mtx);
     return NULL;

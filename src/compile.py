@@ -4,7 +4,7 @@ from sys import argv
 
 c_file = ["inmet.c"]
 libs = ["m", "gsl", "gslcblas"]
-flags = ["-std=c99", "-O4"]
+flags = ["-std=c99", "-Ofast"]
 macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
 inc_dirs = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]
@@ -20,11 +20,11 @@ def main():
     
     ccomp = new_compiler()
     ccomp.compile(c_file, extra_postargs=flags, include_dirs=inc_dirs)
-    #ccomp.compile(["matrix.c"], extra_postargs=flags, macros=macros)
+    ccomp.compile(["matrix.c"], extra_postargs=flags, macros=macros)
     ccomp.compile(["main_functions.c"], extra_postargs=flags,
                   include_dirs=inc_dirs, macros=macros)
     
-    ccomp.link_executable([c_basename + ".o", "main_functions.o"],
+    ccomp.link_executable([c_basename + ".o", "main_functions.o", "matrix.o"],
                           pjoin("..", "bin", c_basename),
                           libraries=libs, library_dirs=lib_dirs,
                           extra_postargs=flags)

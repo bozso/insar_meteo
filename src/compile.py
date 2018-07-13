@@ -4,7 +4,7 @@ from sys import argv
 
 c_file = ["inmet.c"]
 libs = ["m", "gsl", "gslcblas"]
-flags = ["-std=c99", "-O3"]
+flags = ["-std=c99", "-O4"]
 macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
 inc_dirs = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]

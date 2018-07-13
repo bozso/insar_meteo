@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "matrix.h"
 
-extern inline void * get_element(matrix * mtx, uint row, uint col);
+extern inline char * get_element(matrix * mtx, uint row, uint col);
 
-matrix * mtx_allocate(uint rows, uint cols, size_t elem_size, mtx_type type,
+matrix * mtx_allocate(uint rows, uint cols, size_t elem_size, data_type type,
                       char * file, int line, char * matrix_name)
 {
     matrix * mtx = (matrix *) malloc(sizeof(matrix));
@@ -15,7 +15,7 @@ matrix * mtx_allocate(uint rows, uint cols, size_t elem_size, mtx_type type,
     mtx->cols = cols;
     mtx->type = type;
     mtx->elem_size = elem_size;
-    mtx->data = malloc(rows * cols * elem_size);
+    mtx->data = (char *) malloc(rows * cols * elem_size);
     
     if (mtx->data == NULL)
         goto fail;

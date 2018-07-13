@@ -177,5 +177,7 @@ typedef struct orbit_fit_struct {
 int fit_orbit(int argc, char **argv);
 int azi_inc(int argc, char **argv);
 int eval_orbit(int argc, char **argv);
+int test_matrix1(void);
+int test_matrix2(void);
 
 #endif

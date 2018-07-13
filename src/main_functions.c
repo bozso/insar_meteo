@@ -6,6 +6,7 @@
 #include <gsl/gsl_linalg.h>
 
 #include "main_functions.h"
+#include "matrix.h"
 
 /************************
  * Auxilliary functions *
@@ -657,3 +658,50 @@ fail:
     aux_close(outfile);
     return 1;
 }
+
+#if 0
+
+#define SIZE 25000
+
+int test_matrix1(void)
+{
+    matrix * mtx;
+    mtx_double(mtx, SIZE, SIZE);
+    
+    if (mtx->type == vtype_double) {
+        FOR(ii, 0, SIZE) {
+            FOR(jj, 0, SIZE) {
+                dmtx(mtx, ii, jj) = (double) ii + jj;
+            }
+        }
+    }
+    else if(mtx->type == vtype_float) {
+        FOR(ii, 0, SIZE) {
+            FOR(jj, 0, SIZE) {
+                fmtx(mtx, ii, jj) = (float) ii + jj;
+            }
+        }
+    }
+    
+    mtx_free(mtx);
+    return 0;
+fail:
+    mtx_safe_free(mtx);
+    return 1;
+}
+
+int test_matrix2(void)
+{
+    gsl_matrix * mtx = gsl_matrix_alloc(SIZE, SIZE);
+    
+    FOR(ii, 0, SIZE) {
+        FOR(jj, 0, SIZE) {
+            Mset(mtx, ii, jj, (double) ii + jj);
+        }
+    }
+    
+    gsl_matrix_free(mtx);
+    return 0;
+}
+
+#endif

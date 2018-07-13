@@ -1,4 +1,8 @@
+#include <stddef.h>
+#include <stdlib.h>
 #include <stdio.h>
+
+#include "main_functions.h"
 #include "matrix.h"
 
 extern inline char * get_element(matrix * mtx, uint row, uint col);

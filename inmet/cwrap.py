@@ -8,13 +8,11 @@ from inmet.gnuplot import Gnuplot
 
 def parse_steps(args, steps):
     if args.step is not None:
-        first = steps.index(args.step)
-        last = steps.index(args.step)
-        return first, last
+        return [args.step]
     else:
         first = steps.index(args.start)
         last = steps.index(args.stop)
-        return first, last
+        return steps[first:last + 1]
 
 def gen_step_parser(steps):
     

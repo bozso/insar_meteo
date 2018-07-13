@@ -1,10 +1,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <stddef.h>
-#include <stdlib.h>
-#include "main_functions.h"
-
 typedef enum data_type_t {
     data_double,
     data_float,

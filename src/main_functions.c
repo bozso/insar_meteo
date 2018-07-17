@@ -668,18 +668,9 @@ int test_matrix1(void)
     matrix * mtx;
     mtx_double(mtx, SIZE, SIZE);
     
-    if (mtx->type == data_double) {
-        FOR(ii, 0, SIZE) {
-            FOR(jj, 0, SIZE) {
-                dmtx(mtx, ii, jj) = (double) ii + jj;
-            }
-        }
-    }
-    else if(mtx->type == data_float) {
-        FOR(ii, 0, SIZE) {
-            FOR(jj, 0, SIZE) {
-                fmtx(mtx, ii, jj) = (float) ii + jj;
-            }
+    FOR(ii, 0, SIZE) {
+        FOR(jj, 0, SIZE) {
+            dmtx(mtx, ii, jj) = (double) ii + jj;
         }
     }
     

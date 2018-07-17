@@ -14,6 +14,7 @@
 
 static int read_fit(const char * path, orbit_fit * orb)
 {
+    int error = err_succes;
     FILE * fit_file;
     uint deg, centered;
     
@@ -49,11 +50,11 @@ static int read_fit(const char * path, orbit_fit * orb)
     orb->centered = centered;
     
     fclose(fit_file);
-    return 0;
+    return error;
 fail:
     aux_close(fit_file);
     aux_free(orb->coeffs);
-    return 1;
+    return error;
 }
 
 static void ell_cart (cdouble lon, cdouble lat, cdouble h,
@@ -322,7 +323,7 @@ mk_doc(fit_orbit,
 
 int fit_orbit(int argc, char **argv)
 {
-    aux_checkarg(fit_orbit, 4);
+    int error = err_succes;
 
     FILE *incoords, *fit_file;
     uint deg = (uint) atoi(argv[3]);
@@ -331,6 +332,8 @@ int fit_orbit(int argc, char **argv)
     uint max_idx = BUFSIZE - 1;
     
     double residual[] = {0.0, 0.0, 0.0};
+
+    aux_checkarg(fit_orbit, 4);
     
     aux_open(incoords, argv[2], "r");
     
@@ -454,6 +457,7 @@ int fit_orbit(int argc, char **argv)
     // factorize design matrix
     if (gsl_linalg_QR_decomp(design, tau)) {
         error("QR decomposition failed.\n");
+        
         goto fail;
     }
     
@@ -541,12 +545,14 @@ mk_doc(eval_orbit,
 
 int eval_orbit(int argc, char **argv)
 {
-    aux_checkarg(eval_orbit, 4);
-    
+    int error;
     FILE *outfile;
     orbit_fit orb;
     double t_min, t_mean, dstep, t, nstep, mult =  atof(argv[4]);
     cart pos;
+
+    aux_checkarg(eval_orbit, 4);
+    
     
     if (read_fit(argv[2], &orb)) {
         errorln("Could not read orbit fit file %s. Exiting!", argv[2]);
@@ -593,12 +599,13 @@ mk_doc(azi_inc,
 
 int azi_inc(int argc, char **argv)
 {
-    aux_checkarg(azi_inc, 5);
-    
+    int error;
     FILE *infile, *outfile;
     uint is_lonlat, max_iter = atoi(argv[5]);
     double coords[3];
     orbit_fit orb;
+
+    aux_checkarg(azi_inc, 5);
     
     // topocentric parameters in PS local system
     double X, Y, Z,

@@ -50,7 +50,8 @@
         errorln("\n Required number of arguments is %d, current number of arguments: %d!",\
                  (num), argc - min_arg);\
         print_doc(fun_name);\
-        return err_arg;\
+        error = err_arg;\
+        goto fail;\
     }\
 })
 
@@ -71,6 +72,7 @@
     {\
         fprintf(stderr, "FILE: %s, LINE: %d :: Malloc of %s failed",\
                 __FILE__, __LINE__, #ptr);\
+        error = err_alloc;\
         goto fail;\
     }\
 })
@@ -118,6 +120,7 @@
     {\
         errorln("FILE: %s, LINE: %d :: Failed to open file %s!", __FILE__, __LINE__, path);\
         perror("Error");\
+        error = errno;\
         goto fail;\
     }\
 })
@@ -133,18 +136,34 @@
 
 #define aux_read(file, format, ...)\
 ({\
-    if (fscanf(file, format, __VA_ARGS__) <= 0)\
+    if (fscanf(file, format, __VA_ARGS__) <= 0) {\
+        error = err_io;\
         goto fail;\
+    }\
 })
 
 /***************
- * ERROR CODES *
+ * Error codes *
  ***************/
 
-#define err_io -1
-#define err_alloc -2
-#define err_num -3
-#define err_arg -4
+typedef enum err_code_t {
+    err_succes = 0,
+    err_io = -1,
+    err_alloc = -2,
+    err_num = -3,
+    err_arg = -4
+} err_code;
+
+struct _errdsc {
+    int code;
+    char * message;
+} errdsc[] = {
+    { err_succes, "No error encountered."},
+    { err_io, "IO error encountered!" },
+    { err_alloc, "Allocation error encountered!" },
+    { err_num, "Numerical error encountered!" },
+    { err_arg, "Command line argument error encountered!" }
+};
 
 // Idx -- column major order
 #define Idx(ii, jj, nrows) (ii) + (jj) * (nrows)

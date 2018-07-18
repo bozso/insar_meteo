@@ -20,7 +20,8 @@ def main():
     
     ccomp = new_compiler()
     ccomp.compile(c_file, extra_postargs=flags, include_dirs=inc_dirs)
-    ccomp.compile(["matrix.c"], extra_postargs=flags, macros=macros)
+    ccomp.compile(["matrix.c"], extra_postargs=flags, include_dirs=inc_dirs,
+                  macros=macros)
     ccomp.compile(["main_functions.c"], extra_postargs=flags,
                   include_dirs=inc_dirs, macros=macros)
     

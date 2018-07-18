@@ -20,11 +20,11 @@ static int read_fit(const char * path, orbit_fit * orb)
     
     aux_open(fit_file, path, "r");
     
-    aux_read(fit_file, "centered: %u\n", &centered);
+    aux_fscanf(fit_file, "centered: %u\n", &centered);
     
     if (centered) {
-        aux_read(fit_file, "t_mean: %lf\n", &(orb->t_mean));
-        aux_read(fit_file, "coords_mean: %lf %lf %lf\n",
+        aux_fscanf(fit_file, "t_mean: %lf\n", &(orb->t_mean));
+        aux_fscanf(fit_file, "coords_mean: %lf %lf %lf\n",
                                         &(orb->coords_mean[0]),
                                         &(orb->coords_mean[1]),
                                         &(orb->coords_mean[2]));
@@ -35,16 +35,16 @@ static int read_fit(const char * path, orbit_fit * orb)
         orb->coords_mean[2] = 0.0;
     }
     
-    aux_read(fit_file, "t_min: %lf\n", &orb->t_min);
-    aux_read(fit_file, "t_max: %lf\n", &orb->t_max);
-    aux_read(fit_file, "deg: %u\ncoeffs: ", &deg);
+    aux_fscanf(fit_file, "t_min: %lf\n", &orb->t_min);
+    aux_fscanf(fit_file, "t_max: %lf\n", &orb->t_max);
+    aux_fscanf(fit_file, "deg: %u\ncoeffs: ", &deg);
 
     aux_malloc(orb->coeffs, double, 3 * (deg + 1));
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */    
     FOR(ii, 0, 3 * (deg + 1))
-        aux_read(fit_file, "%lf ", orb->coeffs + ii);
+        aux_fscanf(fit_file, "%lf ", orb->coeffs + ii);
     
     orb->deg = deg;
     orb->centered = centered;
@@ -420,6 +420,7 @@ int fit_orbit(int argc, char **argv)
     if (ndata < (deg + 1)) {
         errorln("Underdetermined system, we have less data points (%d) than\
                  \nunknowns (%d)!", ndata, deg + 1);
+        error = err_num;
         goto fail;
     }
 
@@ -457,7 +458,7 @@ int fit_orbit(int argc, char **argv)
     // factorize design matrix
     if (gsl_linalg_QR_decomp(design, tau)) {
         error("QR decomposition failed.\n");
-        
+        error = err_num;
         goto fail;
     }
     
@@ -469,6 +470,7 @@ int fit_orbit(int argc, char **argv)
         if (gsl_linalg_QR_lssolve(design, tau, &coord.vector, &fit_view.vector,
                                   res)) {
             error("Solving of linear system failed!\n");
+            error = err_num;
             goto fail;
         }
         
@@ -515,7 +517,7 @@ int fit_orbit(int argc, char **argv)
     fclose(incoords);
     fclose(fit_file);
     
-    return 0;
+    return error;
 
 fail:
     gsl_matrix_free(design);
@@ -530,7 +532,7 @@ fail:
     aux_close(incoords);
     aux_close(fit_file);
     
-    return 1;
+    return error;
 }
 
 mk_doc(eval_orbit,
@@ -554,9 +556,9 @@ int eval_orbit(int argc, char **argv)
     aux_checkarg(eval_orbit, 4);
     
     
-    if (read_fit(argv[2], &orb)) {
+    if ((error = read_fit(argv[2], &orb))) {
         errorln("Could not read orbit fit file %s. Exiting!", argv[2]);
-        return err_io;
+        return error;
     }
     
     t_min = orb.t_min;
@@ -580,11 +582,11 @@ int eval_orbit(int argc, char **argv)
     }
 
     fclose(outfile);
-    return 0;
+    return error;
 
 fail:
     aux_close(outfile);
-    return 1;
+    return error;
 }
 
 mk_doc(azi_inc,
@@ -612,9 +614,9 @@ int azi_inc(int argc, char **argv)
            lon, lat, h,
            azi, inc;
     
-    if (read_fit(argv[2], &orb)) {
+    if ((error = read_fit(argv[2], &orb))) {
         errorln("Could not read orbit fit file %s. Exiting!", argv[2]);
-        return err_io;
+        return error;
     }
     
     aux_open(infile, argv[3], "rb");
@@ -653,20 +655,21 @@ int azi_inc(int argc, char **argv)
     else {
         errorln("Third argument should be either llh or xyz not %s!",
                 argv[4]);
+        error = err_arg;
         goto fail;
     }
 
     fclose(infile);
     fclose(outfile);
-    return 0;
+    return error;
 
 fail:
     aux_close(infile);
     aux_close(outfile);
-    return 1;
+    return error;
 }
 
-#if 1
+#if 0
 
 #define SIZE 25000
 

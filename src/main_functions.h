@@ -68,7 +68,7 @@
 
 #define aux_malloc(ptr, type, num)\
 ({\
-    if (NULL == ((ptr) = malloc(sizeof(type) * (num))))\
+    if (NULL == ((ptr) = (type *) malloc(sizeof(type) * (num))))\
     {\
         fprintf(stderr, "FILE: %s, LINE: %d :: Malloc of %s failed",\
                 __FILE__, __LINE__, #ptr);\
@@ -76,7 +76,7 @@
         goto fail;\
     }\
 })
-        
+
 #define aux_free(pointer)\
 ({\
     if ((pointer) != NULL)\
@@ -134,7 +134,7 @@
 })
 
 
-#define aux_read(file, format, ...)\
+#define aux_fscanf(file, format, ...)\
 ({\
     if (fscanf(file, format, __VA_ARGS__) <= 0) {\
         error = err_io;\
@@ -154,6 +154,8 @@ typedef enum err_code_t {
     err_arg = -4
 } err_code;
 
+#if 0
+
 struct _errdsc {
     int code;
     char * message;
@@ -164,6 +166,8 @@ struct _errdsc {
     { err_num, "Numerical error encountered!" },
     { err_arg, "Command line argument error encountered!" }
 };
+
+#endif
 
 // Idx -- column major order
 #define Idx(ii, jj, nrows) (ii) + (jj) * (nrows)

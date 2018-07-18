@@ -1,12 +1,88 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
+
 typedef enum data_type_t {
+    data_complex_long_double,
+    data_complex_double,
+    data_complex_float,
+    
+    data_long_double,
     data_double,
     data_float,
+    
+    data_ulong,
+    data_long,
+
+    data_uint,
     data_int,
+    
+    data_ushort,
+    data_short,
+    
+    data_uchar,
+    data_char,
+    
     data_other
 } data_type;
+
+typedef union gsl_ge_matrix_ptr_t {
+    gsl_matrix_complex_long_double  * matrix_complex_long_double;
+    gsl_matrix_complex              * matrix_complex_double;
+    gsl_matrix_complex_float        * matrix_complex_float;
+    
+    gsl_matrix_long_double  * matrix_long_double;
+    gsl_matrix              * matrix_double;
+    gsl_matrix_float        * matrix_float;
+    
+    gsl_matrix_ulong    * matrix_ulong;
+    gsl_matrix_long     * matrix_long;
+    
+    gsl_matrix_uint * matrix_uint;
+    gsl_matrix_int  * matrix_int;
+    
+    gsl_matrix_ushort   * matrix_ushort;
+    gsl_matrix_short    * matrix_short;
+    
+    gsl_matrix_uchar    * matrix_uchar;
+    gsl_matrix_char     * matrix_char;
+} gsl_ge_matrix_ptr;
+
+typedef struct gsl_ge_matrix_t {
+    data_type dtype;
+    gsl_ge_matrix_ptr matrix_prt;
+} gsl_ge_matrix;
+
+typedef union gsl_ge_vector_ptr_t {
+    gsl_vector_complex_long_double  * vector_complex_long_double;
+    gsl_vector_complex              * vector_complex_double;
+    gsl_vector_complex_float        * vector_complex_float;
+    
+    gsl_vector_long_double  * vector_long_double;
+    gsl_vector              * vector_double;
+    gsl_vector_float        * vector_float;
+    
+    gsl_vector_ulong    * vector_ulong;
+    gsl_vector_long     * vector_long;
+    
+    gsl_vector_uint * vector_uint;
+    gsl_vector_int  * vector_int;
+    
+    gsl_vector_ushort   * vector_ushort;
+    gsl_vector_short    * vector_short;
+    
+    gsl_vector_uchar    * vector_uchar;
+    gsl_vector_char     * vector_char;
+} gsl_ge_vector_ptr;
+
+typedef struct gsl_ge_vector_t {
+    data_type dtype;
+    gsl_ge_vector_ptr vector_prt;
+} gsl_ge_vector;
+
+#if 0
 
 typedef struct matrix_t {
     uint rows, cols;
@@ -16,13 +92,14 @@ typedef struct matrix_t {
 } matrix;
 
 
-matrix * mtx_allocate(uint rows, uint cols, size_t elem_size, data_type type,
-                      char * file, int line, char * matrix_name);
+matrix * mtx_allocate(const uint rows, const uint cols, const size_t elem_size,
+                      const data_type type, const char * file, const int line,
+                      const char * matrix_name);
 
 void mtx_safe_free(matrix * mtx);
 void mtx_free(matrix * mtx);
 
-inline char * get_element(matrix * mtx, uint row, uint col)
+inline char * get_element(const matrix * mtx, const uint row, const uint col)
 {
     return mtx->data + (col + row * mtx->cols) * mtx->elem_size;
 }
@@ -53,5 +130,7 @@ inline char * get_element(matrix * mtx, uint row, uint col)
     *((int *) get_element(mtx, row, col))
 
 #define mtxe(array, row, col, cols) array[col + row * cols]
+
+#endif
 
 #endif

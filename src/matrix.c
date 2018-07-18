@@ -5,10 +5,13 @@
 #include "main_functions.h"
 #include "matrix.h"
 
-extern inline char * get_element(matrix * mtx, uint row, uint col);
+#if 0
 
-matrix * mtx_allocate(uint rows, uint cols, size_t elem_size, data_type type,
-                      char * file, int line, char * matrix_name)
+extern inline char * get_element(const matrix * mtx, const uint row, const uint col);
+
+matrix * mtx_allocate(const uint rows, const uint cols, const size_t elem_size,
+                      const data_type type, const char * file, const int line,
+                      const char * matrix_name)
 {
     matrix * mtx = (matrix *) malloc(sizeof(matrix));
     
@@ -47,3 +50,5 @@ void mtx_free(matrix * mtx)
         free(mtx->data);
         free(mtx);
 }
+
+#endif

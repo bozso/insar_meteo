@@ -45,7 +45,7 @@ typedef enum data_type_t {
     data_other
 } data_type;
 
-typedef union gsl_ge_matrix_ptr_t {
+typedef union gsl_ge_matrix_un_t {
     gsl_matrix_complex_long_double  * matrix_complex_long_double;
     gsl_matrix_complex              * matrix_complex_double;
     gsl_matrix_complex_float        * matrix_complex_float;
@@ -65,14 +65,14 @@ typedef union gsl_ge_matrix_ptr_t {
     
     gsl_matrix_uchar    * matrix_uchar;
     gsl_matrix_char     * matrix_char;
-} gsl_ge_matrix_ptr;
+} gsl_ge_matrix_un;
 
-typedef struct gsl_ge_matrix_t {
+typedef struct matrix_t {
     data_type dtype;
-    gsl_ge_matrix_ptr matrix_prt;
-} gsl_ge_matrix;
+    gsl_ge_matrix_un matrix_un;
+} matrix;
 
-typedef union gsl_ge_vector_ptr_t {
+typedef union gsl_ge_vector_un_t {
     gsl_vector_complex_long_double  * vector_complex_long_double;
     gsl_vector_complex              * vector_complex_double;
     gsl_vector_complex_float        * vector_complex_float;
@@ -92,12 +92,36 @@ typedef union gsl_ge_vector_ptr_t {
     
     gsl_vector_uchar    * vector_uchar;
     gsl_vector_char     * vector_char;
-} gsl_ge_vector_ptr;
+} gsl_ge_vector_un;
 
-typedef struct gsl_ge_vector_t {
+typedef struct vector_t {
     data_type dtype;
-    gsl_ge_vector_ptr vector_prt;
-} gsl_ge_vector;
+    gsl_ge_vector_un vector_un;
+} vector;
+
+#define mtx_init(mtx, rows, cols, dtype)\
+({\
+    if (((mtx) = mtx_allocate(rows, cols, dtype, __FILE__, __LINE__, #mtx)) \
+                == NULL)\
+        error = err_alloc;\
+        goto fail;\
+})
+
+#define vec_init(vec, elems, dtype)\
+({\
+    if (((vec) = vec_allocate(elems, dtype, __FILE__, __LINE__, #vec)) \
+                == NULL)\
+        error = err_alloc;\
+        goto fail;\
+})
+
+matrix * mtx_allocate(const size_t rows, const size_t cols,
+                      const data_type dtype, const char * file, const int line,
+                      const char * matrix_name);
+
+vector * vec_allocate(const size_t elems,const data_type dtype,
+                      const char * file, const int line,
+                      const char * vector_name);
 
 #if 0
 

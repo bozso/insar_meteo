@@ -16,7 +16,9 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "main_functions.h"
+#include "aux_macros.h"
 
 #define Modules "azi_inc, fit_orbit, eval_orbit"
 

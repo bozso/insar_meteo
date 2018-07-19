@@ -19,6 +19,7 @@
 
 #include "main_functions.h"
 #include "matrix.h"
+#include "aux_macros.h"
 
 extern inline char * get_element(const matrix * mtx, const uint row, const uint col);
 
@@ -47,6 +48,13 @@ fail:
                     file, line, matrix_name);
     aux_free(mtx);
     return NULL;
+}
+
+matrix * mtx_read(const char * file, io_type type, data_type dtype)
+{
+    
+    
+    
 }
 
 void mtx_safe_free(matrix * mtx)

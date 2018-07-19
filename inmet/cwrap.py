@@ -100,15 +100,15 @@ def get_par(parameter, search, sep=":"):
 
 def cmd(Cmd, *args, ret=False):
     """
-    Calls a C module. Arbitrary number of arguments can be passed through
-    `*args`. See documentation of modules for arguments.
+    Calls a command line program. Arbitrary number of arguments can be passed
+    through `*args`. See documentation of modules for arguments.
     The passed arguments will be converted to string joined together and
     appended to the command.
     
     Parameters
     ----------
-    module : str
-        Name of the C module to be called.
+    Cmd : str
+        Name of the program to be called.
     
     *args
         Arbitrary number of arguments, that can be converted to string, i.e.
@@ -129,7 +129,7 @@ def cmd(Cmd, *args, ret=False):
     --------
     
     >>> from inmet.cwrap import cmd
-    >>> cmd("ls", "*.png")
+    >>> cmd("ls", "*.png", "*.txt")
     """
     
     Cmd = "{} {}".format(Cmd, " ".join(str(arg) for arg in args))
@@ -159,30 +159,43 @@ def cmd(Cmd, *args, ret=False):
 # * DAISY Modules *
 # *****************
 
-def data_select(in_asc, in_dsc, ps_sep=100.0, **kwargs):
-    cmd("daisy data_select", in_asc, in_dsc, ps_sep, **kwargs)
+def data_select(in_asc, in_dsc, ps_sep=100.0):
+    
+    cmd("daisy data_select", in_asc, in_dsc, ps_sep)
 
-def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0,
-             **kwargs):
-    cmd("daisy dominant", in_asc, in_dsc, ps_sep, **kwargs)
+def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0):
+    
+    cmd("daisy dominant", in_asc, in_dsc, ps_sep)
 
-def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4,
-               **kwargs):
-    cmd("daisy poly_orbit", asc_orbit, deg, **kwargs)
-    cmd("daisy poly_orbit", dsc_orbit, deg, **kwargs)
+def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4):
+    
+    cmd("daisy poly_orbit", asc_orbit, deg)
+    cmd("daisy poly_orbit", dsc_orbit, deg)
 
 def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
-              dsc_fit_orbit="dsc_master.porb", **kwargs):
-    cmd("daisy integrate", dominant, asc_fit_orbit, dsc_fit_orbit, **kwargs)
+              dsc_fit_orbit="dsc_master.porb"):
+    cmd("daisy integrate", dominant, asc_fit_orbit, dsc_fit_orbit)
 
 # *****************
 # * INMET Modules *
 # *****************
 
 def azi_inc(fit_file, coords, mode, outfile, max_iter=1000):
+
     cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile)
 
-def fit_orbit(path, preproc, fit_file, centered=True, deg=3):
+def fit_orbit(coords, fit_file, deg=3, centered=True):
+
+    if centered:
+        cmd("inmet fit_orbit", coords, deg, 1, fit_file)
+    else:
+        cmd("inmet fit_orbit", coords, deg, 0, fit_file)
+
+def eval_orbit(fit_file, outfile, nstep=100, multiply=1):
+
+    cmd("inmet eval_orbit", fit_file, nstep, multiply, outfile)
+
+def orbit_fit(path, preproc, fit_file, centered=True, deg=3):
     
     extract_coords(path, preproc, "coords.txyz")
     
@@ -266,5 +279,5 @@ def extract_coords(path, preproc, coordsfile):
                 f.write("{} {}\n".format(t_first + ii * t_step,
                                          coords.split("m")[0]))
     else:
-        raise ValueError('preproc should be either "doris" or "gamma" '
-                         'not {}'.format(preproc))
+        raise ValueError("preproc should be either \"doris\" or \"gamma\" "
+                         "not {}".format(preproc))

@@ -41,6 +41,11 @@ typedef enum data_type_t {
     data_other
 } data_type;
 
+typedef enum io_type_t {
+    io_ascii,
+    io_binary
+} io_type;
+
 typedef struct matrix_t {
     size_t rows, cols, elem_size;
     data_type type;

@@ -24,6 +24,10 @@
 
 #include "main_functions.h"
 #include "matrix.h"
+#include "aux_macros.h"
+
+#define min_arg 2
+#define BUFSIZE 10
 
 /************************
  * Auxilliary functions *
@@ -328,19 +332,19 @@ static inline void calc_azi_inc(const orbit_fit * orb,
  * Main functions - calleble from command line *
  ***********************************************/
 
-mk_doc(fit_orbit,
-"\n Usage: inmet fit_orbit coords deg is_centered fit_file\
- \n \
- \n coords      - ascii file with (t,x,y,z) coordinates\
- \n deg         - degree of fitted polynom\
- \n is_centered - 1 to subtract mean time and coordinates from time points and \
- \n               coordinates\
- \n fit_file    - ascii fit output will be written into this file\
- \n\n");
-
 int fit_orbit(int argc, char **argv)
 {
     int error = err_succes;
+    
+    aux_checkarg(4,
+    "\n Usage: inmet fit_orbit [coords] [deg] [is_centered] [fit_file]\
+     \n \
+     \n coords      - (ascii, in) file with (t,x,y,z) coordinates\
+     \n deg         - degree of fitted polynom\
+     \n is_centered - 1 = subtract mean time and coordinates from time points and \
+     \n               coordinates, 0 = no centering\
+     \n fit_file    - (ascii, out) contains fitted orbit polynom parameters\
+     \n\n");
 
     FILE *incoords, *fit_file;
     uint deg = (uint) atoi(argv[3]);
@@ -350,8 +354,6 @@ int fit_orbit(int argc, char **argv)
     
     double residual[] = {0.0, 0.0, 0.0};
 
-    aux_checkarg(fit_orbit, 4);
-    
     aux_open(incoords, argv[2], "r");
     
     orbit * orbits;
@@ -552,26 +554,26 @@ fail:
     return error;
 }
 
-mk_doc(eval_orbit,
-"\n Usage: inmet eval_orbit fit_file steps multiply outfile\
- \n \
- \n fit_file    - ascii file that contains fitted orbit polynom parameters\
- \n nstep       - evaluate x, y, z coordinates at nstep number of steps\
- \n               between the range of t_min and t_max\
- \n multiply    - calculated coordinate values will be multiplied by this number\
- \n outfile     - coordinates and time values will be written to this ascii file\
- \n\n");
 
 int eval_orbit(int argc, char **argv)
 {
-    int error;
+    int error = err_succes;
+
+    aux_checkarg(4,
+    "\n Usage: inmet eval_orbit [fit_file] [steps] [multiply] [outfile]\
+     \n \
+     \n fit_file    - (ascii, in) contains fitted orbit polynom parameters\
+     \n nstep       - evaluate x, y, z coordinates at nstep number of steps\
+     \n               between the range of t_min and t_max\
+     \n multiply    - calculated coordinate values will be multiplied by this number\
+     \n outfile     - (ascii, out) coordinates and time values will be written \
+     \n               to this file\
+     \n\n");
+
     FILE *outfile;
     orbit_fit orb;
     double t_min, t_mean, dstep, t, nstep, mult =  atof(argv[4]);
     cart pos;
-
-    aux_checkarg(eval_orbit, 4);
-    
     
     if ((error = read_fit(argv[2], &orb))) {
         errorln("Could not read orbit fit file %s. Exiting!", argv[2]);
@@ -606,26 +608,25 @@ fail:
     return error;
 }
 
-mk_doc(azi_inc,
-"\n Usage: inmet azi_inc fit_file coords mode max_iter outfile\
- \n \
- \n fit_file - ascii file with fit parameters\
- \n coords   - inputfile with coordinates\
- \n mode     - xyz for WGS-84 coordinates, llh for WGS-84 lon., lat., height\
- \n max_iter - maximum number of iterations when calculating closest approache\
- \n outfile  - binary output will be printed to this file\
- \n\n");
-
 int azi_inc(int argc, char **argv)
 {
-    int error;
+    int error = err_succes;
+    
+    aux_checkarg(5,
+    "\n Usage: inmet azi_inc [fit_file] [coords] [mode] [max_iter] [outfile]\
+     \n \
+     \n fit_file - (ascii, in) contains fitted orbit polynom parameters\
+     \n coords   - (binary, in) inputfile with coordinates\
+     \n mode     - xyz for WGS-84 coordinates, llh for WGS-84 lon., lat., height\
+     \n max_iter - maximum number of iterations when calculating closest approache\
+     \n outfile  - (binary, out) azi, inc pairs will be printed to this file\
+     \n\n");
+
     FILE *infile, *outfile;
     uint is_lonlat, max_iter = atoi(argv[5]);
     double coords[3];
     orbit_fit orb;
 
-    aux_checkarg(azi_inc, 5);
-    
     // topocentric parameters in PS local system
     double X, Y, Z,
            lon, lat, h,

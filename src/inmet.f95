@@ -14,6 +14,8 @@
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 program inmet
-    write(0, *) "Error!"
+    use utils, only: erru
+
+    write(erru, *) "Error! Asd!"
     stop 9
 end program inmet

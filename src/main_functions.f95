@@ -14,13 +14,15 @@
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module main_functions
+use utils, only: sp, dp, nl
 implicit none
-    
-    character(1), parameter :: nl = char(10)
+
+private
+public hello
 
 contains
-    subroutine hello()
-        print *, "Hello World!"
-    end subroutine hello
+subroutine hello()
+    print *, "Hello World!"
+end subroutine hello
 
 end module main_functions

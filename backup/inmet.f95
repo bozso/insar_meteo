@@ -16,11 +16,15 @@
 program inmet
     use utils, only: dp
     
-    real(dp) :: a(25000,25000)
+    real(dp), allocatable :: a(:,:), b(:,:)
+    
+    allocate(a(25000,25000))
+    allocate(b(25000,25000))
     
     do ii = 1, 25000
         do jj = 1, 25000
-            a(jj,ii) = real(jj, dp) + ii
+            a(jj,ii) = real(jj + ii, dp)
+            b(jj,ii) = real(ii + jj, dp)
         end do
     end do
     

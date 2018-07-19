@@ -3,7 +3,7 @@ from distutils.ccompiler import new_compiler
 
 c_file = ["inmet.c"]
 libs = ["m", "gsl", "gslcblas"]
-flags = ["-std=c99", "-Ofast", "-march=native", "-ffast-math"]
+flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
 inc_dirs = ["/home/istvan/miniconda3/include"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]

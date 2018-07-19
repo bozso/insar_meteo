@@ -18,10 +18,10 @@ from inmet.cwrap import cmd
 from distutils.ccompiler import new_compiler
 
 f_file = "inmet.f95"
-libs = [":libgfortran.so.3"]
+libs = [":libgfortran.so.3", "blas"]
 lib_dirs = ["/home/istvan/miniconda3/lib"]
-#flags = ["-std=c99", "-Ofast", "-march=native", "-ffast-math"]
-flags = None
+flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
+#flags = None
 
 def main():
     

@@ -21,6 +21,7 @@
 #include <gsl/gsl_matrix_double.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_blas.h>
 
 #include "main_functions.h"
 #include "matrix.h"
@@ -710,15 +711,18 @@ fail:
 
 int test_matrix2(void)
 {
-    gsl_matrix * mtx = gsl_matrix_alloc(SIZE, SIZE);
+    gsl_matrix * mtx1 = gsl_matrix_alloc(SIZE, SIZE);
+    gsl_matrix * mtx2 = gsl_matrix_alloc(SIZE, SIZE);
     
     FOR(ii, 0, SIZE) {
         FOR(jj, 0, SIZE) {
-            Mset(mtx, ii, jj, (double) ii + jj);
+            Mset(mtx1, ii, jj, (double) ii + jj);
+            Mset(mtx2, ii, jj, (double) jj + ii);
         }
     }
     
-    gsl_matrix_free(mtx);
+    gsl_matrix_free(mtx1);
+    gsl_matrix_free(mtx2);
     return 0;
 }
 

@@ -14,8 +14,16 @@
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 program inmet
-    use utils, only: erru
-
-    write(erru, *) "Error! Asd!"
-    stop 9
+    use utils, only: dp
+    
+    real(dp) :: a(25000,25000)
+    
+    do ii = 1, 25000
+        do jj = 1, 25000
+            a(jj,ii) = ii + jj
+        end do
+    end do
+    
+    !write(erru, *) "Error! Asd!"
+    !stop 9
 end program inmet

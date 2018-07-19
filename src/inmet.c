@@ -1,5 +1,4 @@
-/* INMET
- * Copyright (C) 2018  MTA CSFK GGI
+/* Copyright (C) 2018  István Bozsó
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +22,6 @@
 
 int main(int argc, char **argv)
 {
-    test_matrix1();
-    return 0;
     if (argc < 2) {
         errorln("At least one argument, the module name, is required.\
                  \nModules to choose from: %s.", Modules);

@@ -20,7 +20,7 @@ program inmet
     
     do ii = 1, 25000
         do jj = 1, 25000
-            a(jj,ii) = ii + jj
+            a(jj,ii) = real(jj, dp) + ii
         end do
     end do
     

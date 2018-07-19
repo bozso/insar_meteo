@@ -686,7 +686,7 @@ fail:
     return error;
 }
 
-#if 0
+#if 1
 
 #define SIZE 25000
 

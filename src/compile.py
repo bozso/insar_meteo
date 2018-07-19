@@ -1,6 +1,5 @@
 from os.path import join as pjoin, isfile
 from distutils.ccompiler import new_compiler
-from sys import argv
 
 c_file = ["inmet.c"]
 libs = ["m", "gsl", "gslcblas"]

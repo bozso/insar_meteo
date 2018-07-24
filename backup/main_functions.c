@@ -689,7 +689,7 @@ fail:
 
 #if 1
 
-#define SIZE 25000
+#define SIZE 2500
 
 int test_matrix1(void)
 {
@@ -711,8 +711,10 @@ fail:
 
 int test_matrix2(void)
 {
+    
     gsl_matrix * mtx1 = gsl_matrix_alloc(SIZE, SIZE);
     gsl_matrix * mtx2 = gsl_matrix_alloc(SIZE, SIZE);
+    gsl_matrix * mtx3 = gsl_matrix_alloc(SIZE, SIZE);
     
     FOR(ii, 0, SIZE) {
         FOR(jj, 0, SIZE) {
@@ -721,8 +723,16 @@ int test_matrix2(void)
         }
     }
     
+    gsl_blas_dgemm(CblasTrans, CblasTrans, 1.0, mtx1, mtx2, 0.0, mtx3);
+    
+    FOR(ii, 0, 10)
+        printf("%lf ", Mget(mtx3, 0, ii));
+    
+    printf("\n");
+    
     gsl_matrix_free(mtx1);
     gsl_matrix_free(mtx2);
+    gsl_matrix_free(mtx3);
     return 0;
 }
 

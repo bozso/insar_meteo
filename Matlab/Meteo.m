@@ -649,28 +649,22 @@ classdef Meteo
                 aps_weather_model_nan_check(Temp_after, e_after, geop_after, P, ...
                                             longrid, latgrid);
                 
-                T =   Temp_before(:,:,1) * f_before(d) ...
-                    + Temp_after(:,:,1)  * f_after(d);
+                %T =   Temp_before(:,:,1) * f_before(d) ...
+                %    + Temp_after(:,:,1)  * f_after(d);
                 
                 e = e_before * f_before(d) + e_after * e_after(d);
-                Z = Meteo.geopot2h(  geop_before * f_before(d) ...
-                                   + geop_after * f_after(d), latgrid);
+                %Z = Meteo.geopot2h(  geop_before * f_before(d) ...
+                %                   + geop_after * f_after(d), latgrid);
                 
-                Ts(:,d) = interp2(longrid(:,:,1), latgrid(:,:,1), ...
-                                  T, lon, lat);
+                %Ts(:,d) = interp2(longrid(:,:,1), latgrid(:,:,1), ...
+                %                  T, lon, lat);
                 
-                [nrow, ncol, ~] = size(e);
-                iwv = zeros(nrow, ncol);
+                g =   9.80616 .* (1 - 0.002637 .* cosd(2 .* latgrid) ...
+                    + 0.0000059 .* (cosd(2 .* latgrid)).^2);
                 
-                for jj = 1:ncol
-                    for ii = 1:nrow
-                        %figure; hist(squeeze(e(ii,jj,:)) ./ 100); return
-                        iwv(ii, jj) = trapz(squeeze(e(ii,jj,:)));
-                                            %squeeze(e(ii,jj,:)) ./ 100);
-                        
-                    end
-                end
-                %figure; imagesc(iwv); colorbar; return
+                iwv = e(:,:,1) ./ g(:,:,1);
+                figure; imagesc(iwv); colorbar; return
+                return
             end
             clear temp Temp_before Temp_after e Geopot P longrid latgrid;
             

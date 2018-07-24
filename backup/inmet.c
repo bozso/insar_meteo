@@ -24,6 +24,17 @@
 
 int main(int argc, char **argv)
 {
+    if (module_select("1")) {
+        test_matrix1();
+        return 0;
+    }
+    else if (module_select("2")) {
+        test_matrix2();
+        return 0;
+    }
+    else
+        return 1;
+    
     if (argc < 2) {
         errorln("At least one argument, the module name, is required.\
                  \nModules to choose from: %s.", Modules);

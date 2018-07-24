@@ -18,8 +18,8 @@ from distutils.ccompiler import new_compiler
 
 c_file = "inmet.c"
 libs = ["m", "gsl", "gslcblas"]
-#flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-flags = ["-std=c99"]
+flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
+#flags = ["-std=c99"]
 macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
 inc_dirs = ["/home/istvan/progs/gsl/include"]
 lib_dirs = ["/home/istvan/progs/gsl/lib"]

@@ -16,25 +16,24 @@
 from os.path import join as pjoin, isfile
 from distutils.ccompiler import new_compiler
 
-c_file = "inmet.cpp"
-#libs = ["m", "gsl", "gslcblas"]
-#flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-##flags = ["-std=c99"]
-#macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
-#inc_dirs = ["/home/istvan/progs/gsl/include"]
-#lib_dirs = ["/home/istvan/progs/gsl/lib"]
+c_file = "inmet.c"
+libs = ["m", "gsl", "gslcblas"]
+flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
+#flags = ["-std=c99"]
+macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
+inc_dirs = ["/home/istvan/progs/gsl/include"]
+lib_dirs = ["/home/istvan/progs/gsl/lib"]
 
-libs = ["m", "stdc++"]
+#libs = ["m", "stdc++"]
 #flags = ["-std=c++11"]
-flags = None
-inc_dirs = ["/home/istvan/miniconda3/include/eigen3"]
-lib_dirs = None
-macros = None
+#inc_dirs = ["/home/istvan/progs/flens"]
+#lib_dirs = None
+#macros = None
 
 def main():
     c_basename = c_file.split(".")[0]
 
-    sources = ["main_functions.cpp", c_file]
+    sources = ["matrix.c", "main_functions.c", c_file]
     
     ccomp = new_compiler()
     obj = [ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,

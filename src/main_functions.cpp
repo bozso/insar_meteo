@@ -14,34 +14,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <tgmath.h>
-#include <gsl/gsl_matrix_double.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_cblas.h>
+#include <iostream>
+#include <fstream>
+//#include <math>
 
-#include "main_functions.h"
-#include "matrix.h"
-#include "aux_macros.h"
+#include "main_functions.hpp"
 
-#define min_arg 2
+using namespace std;
+
 #define BUFSIZE 10
 
 /************************
  * Auxilliary functions *
  * **********************/
+#if 0
 
-static int read_fit(const char * path, orbit_fit * orb)
+static void read_fit(const char * input, orbit_fit &orb)
 {
-    int error = err_succes;
-    FILE * fit_file;
+    ifstream fit_file(input, ios::in);
     uint deg, centered;
     
-    aux_open(fit_file, path, "r");
-    
+    fit_file >> "centered: " >> centered >> endl;
+    cout << centered;
     aux_fscanf(fit_file, "centered: %u\n", &centered);
     
     if (centered) {
@@ -328,15 +322,13 @@ static inline void calc_azi_inc(const orbit_fit * orb,
     *azi = temp_azi;
 }
 
-
+#endif
 /***********************************************
  * Main functions - calleble from command line *
  ***********************************************/
 
 int fit_orbit(int argc, char **argv)
 {
-    int error = err_succes;
-    
     aux_checkarg(4,
     "\n Usage: inmet fit_orbit [coords] [deg] [is_centered] [fit_file]\
      \n \
@@ -346,6 +338,18 @@ int fit_orbit(int argc, char **argv)
      \n               coordinates, 0 = no centering\
      \n fit_file    - (ascii, out) contains fitted orbit polynom parameters\
      \n\n");
+
+    ifstream fit_file(argv[2], ios::in);
+    
+    string str;
+    uint deg, centered;
+    
+    fit_file >> str >> centered;
+    cout << centered << endl;
+
+    return 0;
+}
+#if 0
 
     FILE *incoords, *fit_file;
     uint deg = (uint) atoi(argv[3]);
@@ -555,7 +559,6 @@ fail:
     return error;
 }
 
-
 int eval_orbit(int argc, char **argv)
 {
     int error = err_succes;
@@ -611,8 +614,6 @@ fail:
 
 int azi_inc(int argc, char **argv)
 {
-    int error = err_succes;
-    
     aux_checkarg(5,
     "\n Usage: inmet azi_inc [fit_file] [coords] [mode] [max_iter] [outfile]\
      \n \
@@ -686,70 +687,6 @@ fail:
     aux_close(infile);
     aux_close(outfile);
     return error;
-}
-
-#if 1
-
-#define SIZE 2500
-
-int test_matrix1(void)
-{
-    matrix * mtx1, *mtx2, *mtx3;
-    mtx_double(mtx1, SIZE, SIZE);
-    mtx_double(mtx2, SIZE, SIZE);
-    mtx_double(mtx3, SIZE, SIZE);
-    
-    FOR(ii, 0, SIZE) {
-        FOR(jj, 0, SIZE) {
-            dmtx(mtx1, ii, jj) = (double) ii + jj;
-            dmtx(mtx2, ii, jj) = (double) jj + ii;
-        }
-    }
-
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasTrans, SIZE, SIZE, SIZE, 1.0, (double *)mtx1->data, SIZE, (double *)mtx2->data, SIZE, 0.0, (double *)mtx3->data, SIZE);
-
-    FOR(ii, 0, 10)
-        printf("%lf ", dmtx(mtx3, 0, ii));
-    
-    printf("\n");
-
-    
-    mtx_free(mtx1);
-    mtx_free(mtx2);
-    mtx_free(mtx3);
-    return 0;
-fail:
-    mtx_safe_free(mtx1);
-    mtx_safe_free(mtx2);
-    mtx_safe_free(mtx3);
-    return 1;
-}
-
-int test_matrix2(void)
-{
-    
-    gsl_matrix * mtx1 = gsl_matrix_alloc(SIZE, SIZE);
-    gsl_matrix * mtx2 = gsl_matrix_alloc(SIZE, SIZE);
-    gsl_matrix * mtx3 = gsl_matrix_alloc(SIZE, SIZE);
-    
-    FOR(ii, 0, SIZE) {
-        FOR(jj, 0, SIZE) {
-            Mset(mtx1, ii, jj, (double) ii + jj);
-            Mset(mtx2, ii, jj, (double) jj + ii);
-        }
-    }
-    
-    gsl_blas_dgemm(CblasTrans, CblasTrans, 1.0, mtx1, mtx2, 0.0, mtx3);
-    
-    FOR(ii, 0, 10)
-        printf("%lf ", Mget(mtx3, 0, ii));
-    
-    printf("\n");
-    
-    gsl_matrix_free(mtx1);
-    gsl_matrix_free(mtx2);
-    gsl_matrix_free(mtx3);
-    return 0;
 }
 
 #endif

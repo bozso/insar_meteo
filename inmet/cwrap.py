@@ -98,7 +98,7 @@ def get_par(parameter, search, sep=":"):
 
     return parameter_value
 
-def cmd(Cmd, *args, ret=False):
+def cmd(Cmd, *args, ret=False, prt=False):
     """
     Calls a command line program. Arbitrary number of arguments can be passed
     through `*args`. See documentation of modules for arguments.
@@ -152,6 +152,9 @@ def cmd(Cmd, *args, ret=False):
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
     
+    if prt:
+        print(cmd_out)
+    
     if ret:
         return cmd_out
 
@@ -200,9 +203,9 @@ def orbit_fit(path, preproc, fit_file, centered=True, deg=3):
     extract_coords(path, preproc, "coords.txyz")
     
     if centered:
-        cmd("inmet fit_orbit", "coords.txyz", deg, 1, fit_file)
+        cmd("inmet fit_orbit", "coords.txyz", deg, 1, fit_file, prt=True)
     else:
-        cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file)
+        cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file, prt=True)
 
     os.remove("coords.txyz")
 

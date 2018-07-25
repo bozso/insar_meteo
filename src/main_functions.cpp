@@ -16,26 +16,29 @@
 
 #include <iostream>
 #include <fstream>
+#include <stdexcept>
+#include <vector>
+
 //#include <math>
+//#include <Eigen/Dense>
 
 #include "main_functions.hpp"
+#include "aux_functions.hpp"
 
 using namespace std;
-
-#define BUFSIZE 10
 
 /************************
  * Auxilliary functions *
  * **********************/
 #if 0
 
-static void read_fit(const char * input, orbit_fit &orb)
+static orbit_fit read_fit(const char * input)
 {
     ifstream fit_file(input, ios::in);
     uint deg, centered;
     
-    fit_file >> "centered: " >> centered >> endl;
-    cout << centered;
+    bool centered = get_parameter<bool>(fit_file, "centered");
+
     aux_fscanf(fit_file, "centered: %u\n", &centered);
     
     if (centered) {
@@ -338,15 +341,50 @@ int fit_orbit(int argc, char **argv)
      \n               coordinates, 0 = no centering\
      \n fit_file    - (ascii, out) contains fitted orbit polynom parameters\
      \n\n");
-
-    ifstream fit_file(argv[2], ios::in);
     
-    string str;
-    uint deg, centered;
+    ifstream incoords(argv[2], ios::in);
     
-    fit_file >> str >> centered;
-    cout << centered << endl;
+    uint deg = get_cmd_arg<uint>(argv[3]);
+    bool centered = get_cmd_arg<bool>(argv[4]);
+    double t, x, y, z, t_mean = 0.0, x_mean = 0.0, y_mean = 0.0, z_mean = 0.0;
+    
+    vector<orbit> orbits;
+    
+    if (centered) {
+        while(incoords >> t >> x >> y >> z) {
+            t_mean += t;
+            
+            x_mean += x;
+            y_mean += y;
+            z_mean += z;
+            
+            orbits.push_back({t, x, y, z});
+        }
+        double ndata = static_cast<double>(orbits.size());
+        t_mean /= ndata;
+        
+        x_mean /= ndata;
+        y_mean /= ndata;
+        z_mean /= ndata;
+        
+    }
+    else {
+        while(incoords >> t >> x >> y >> z)
+            orbits.push_back({t, x, y, z});
+    }
+    
+    incoords.close();
+    
+    cout << t_mean << " " << x_mean << " " << y_mean << " " << z_mean << endl;
+    
+    
+    
+    
+    ofstream fit_file(argv[5], ios::out);
 
+    
+    fit_file.close();
+    
     return 0;
 }
 #if 0

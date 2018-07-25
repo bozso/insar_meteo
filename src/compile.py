@@ -25,8 +25,8 @@ c_file = "inmet.cpp"
 #lib_dirs = ["/home/istvan/progs/gsl/lib"]
 
 libs = ["m", "stdc++"]
-#flags = ["-std=c++11"]
-flags = None
+flags = ["-std=c++11"]
+#flags = None
 inc_dirs = ["/home/istvan/miniconda3/include/eigen3"]
 lib_dirs = None
 macros = None

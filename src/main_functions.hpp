@@ -17,6 +17,10 @@
 #ifndef MAIN_FUN_H
 #define MAIN_FUN_H
 
+#include <iostream>
+
+using namespace std;
+
 #define min_arg 2
 
 #define aux_checkarg(num, doc)\
@@ -30,7 +34,7 @@
 })
 
 /*******************************
- * WGS-84 ELLIPSOID PARAMETERS *
+ * WGS-84 ellipsoid parameters *
  *******************************/
 
 // RADIUS OF EARTH
@@ -43,7 +47,7 @@
 #define E2  6.694380e-03
 
 /************************
- * DEGREES, RADIANS, PI *
+ * degrees, radians, pi *
  ************************/
 
 #ifndef M_PI
@@ -52,11 +56,6 @@
 
 #define DEG2RAD 1.745329e-02
 #define RAD2DEG 5.729578e+01
-
-template<class T>
-T distance(const T& x, const T& y, const T& z) {
-    return sqrt(x * x + y * y + z * z);
-}
 
 /***************
  * Error codes *

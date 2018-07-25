@@ -75,10 +75,10 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    #cw.fit_orbit(args.orbit_data, args.preproc, args.fit_file, deg=args.deg)
+    cw.orbit_fit(args.orbit_data, args.preproc, args.fit_file, deg=args.deg, centered=False)
     
-    if args.plot is not None:
-        cw.plot_orbit(args.orbit_data, args.preproc, args.fit_file, args.plot)
+    #if args.plot is not None:
+        #cw.plot_orbit(args.orbit_data, args.preproc, args.fit_file, args.plot)
     
     return 0
     

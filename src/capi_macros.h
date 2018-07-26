@@ -109,7 +109,7 @@
  ****************************/
 
 #define np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
-#define np_ptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
+#define np_gptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
 #define np_dim(obj, idx) PyArray_DIM((obj), (idx))
 #define np_ndim(obj, idx) PyArray_NDIM((obj), (idx))
 #define np_delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))

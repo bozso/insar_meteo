@@ -14,7 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy.distutils.core import Extension, setup
-from os.path import join
+from os.path import join, isfile
+from os import remove
 from shutil import move
 from glob import iglob
 
@@ -24,7 +25,18 @@ macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 ext_insar = Extension(name="insar_aux", sources=["insar_auxmodule.c"],
                       define_macros=macros, extra_compile_args=comp_args)
 
-setup(ext_modules=[ext_insar])
+def main():
+    setup(ext_modules=[ext_insar])
+    
+    for so in iglob("*.so"):
+        
+        dst = join("..", "inmet", so)
+        
+        if isfile(dst):
+            remove(dst)
+        move(so, dst)
 
-for so in iglob("*.so"):
-    move(so, join("..", "inmet"))
+if __name__ == "__main__":
+    main()
+
+

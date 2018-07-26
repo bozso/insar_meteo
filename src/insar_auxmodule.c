@@ -18,8 +18,9 @@
 #include <tgmath.h>
 
 #include "Python.h"
-#include "capi_macros.h"
 #include "numpy/arrayobject.h"
+
+#include "capi_macros.h"
 
 /************************
  * Structs and typedefs *
@@ -46,7 +47,7 @@ typedef struct cart_t { double x, y, z; } cart;
  * Auxilliary functions *
  * **********************/
 
-static double norm(cdouble x, cdouble y, cdouble z)
+static inline double norm(cdouble x, cdouble y, cdouble z)
 {
     // vector norm
     return sqrt(x * x + y * y + z * z);
@@ -240,6 +241,52 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     calc_pos(orb, t_middle, sat_pos);
 } // end closest_appr
 
+static inline void calc_azi_inc(const orbit_fit * orb,
+                                cdouble X, cdouble Y, cdouble Z,
+                                cdouble lon, cdouble lat,
+                                const uint max_iter, double * azi,
+                                double * inc)
+{
+    double xf, yf, zf, xl, yl, zl, t0, temp_azi;
+    cart sat;
+    // satellite closest approache cooridantes
+    closest_appr(orb, X, Y, Z, max_iter, &sat);
+    
+    xf = sat.x - X;
+    yf = sat.y - Y;
+    zf = sat.z - Z;
+    
+    // estiamtion of azimuth and inclination
+    xl = - sin(lat) * cos(lon) * xf
+         - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
+    
+    yl = - sin(lon) * xf + cos(lon) * yf;
+    
+    zl = + cos(lat) * cos(lon) * xf
+         + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
+    
+    t0 = norm(xl, yl, zl);
+    
+    *inc = acos(zl / t0) * RAD2DEG;
+    
+    if(xl == 0.0) xl = 0.000000001;
+    
+    temp_azi = atan(fabs(yl / xl));
+    
+    if( (xl < 0.0) && (yl > 0.0) ) temp_azi = M_PI - temp_azi;
+    if( (xl < 0.0) && (yl < 0.0) ) temp_azi = M_PI + temp_azi;
+    if( (xl > 0.0) && (yl < 0.0) ) temp_azi = 2.0 * M_PI - temp_azi;
+    
+    temp_azi *= RAD2DEG;
+    
+    if(temp_azi > 180.0)
+        temp_azi -= 180.0;
+    else
+        temp_azi += 180.0;
+    
+    *azi = temp_azi;
+}
+
 /*****************************************
  * Main functions - calleble from Python *
  *****************************************/
@@ -318,43 +365,10 @@ py_ptr azi_inc (PyFun_Varargs)
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, &X, &Y, &Z);
             
-            // satellite closest approache cooridantes
-            closest_appr(&orb, X, Y, Z, max_iter, &sat);
+            calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
+                         (double *) np_gptr(azi_inc, ii, 0),
+                         (double *) np_gptr(azi_inc, ii, 1));
             
-            xf = sat.x - X;
-            yf = sat.y - Y;
-            zf = sat.z - Z;
-            
-            // estiamtion of azimuth and inclination
-            xl = - sin(lat) * cos(lon) * xf
-                 - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
-        
-            yl = - sin(lon) * xf + cos(lon) * yf;
-        
-            zl = + cos(lat) * cos(lon) * xf
-                 + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
-        
-            t0 = norm(xl, yl, zl);
-        
-            inc = acos(zl / t0) * RAD2DEG;
-        
-            if(xl == 0.0) xl = 0.000000001;
-        
-            azi = atan(abs(yl / xl));
-        
-            if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
-            if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
-            if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
-        
-            azi *= RAD2DEG;
-        
-            if(azi > 180.0)
-                azi -= 180.0;
-            else
-                azi +=180.0;
-            
-            np_delem(azi_inc, ii, 0) = azi;
-            np_delem(azi_inc, ii, 1) = inc;
         }
         // end for
     }
@@ -368,44 +382,9 @@ py_ptr azi_inc (PyFun_Varargs)
             // calulate surface WGS-84 geodetic coordinates
             cart_ell(X, Y, Z, &lon, &lat, &h);
         
-            // satellite closest approache cooridantes
-            closest_appr(&orb, X, Y, Z, max_iter, &sat);
-            
-            xf = sat.x - X;
-            yf = sat.y - Y;
-            zf = sat.z - Z;
-            
-            // estiamtion of azimuth and inclination
-            
-            xl = - sin(lat) * cos(lon) * xf
-                 - sin(lat) * sin(lon) * yf + cos(lat) * zf ;
-        
-            yl = - sin(lon) * xf + cos(lon) * yf;
-        
-            zl = + cos(lat) * cos(lon) * xf
-                 + cos(lat) * sin(lon) * yf + sin(lat) * zf ;
-        
-            t0 = norm(xl, yl, zl);
-        
-            inc = acos(zl / t0) * RAD2DEG;
-        
-            if(xl == 0.0) xl = 0.000000001;
-        
-            azi = atan(abs(yl / xl));
-        
-            if( (xl < 0.0) && (yl > 0.0) ) azi = M_PI - azi;
-            if( (xl < 0.0) && (yl < 0.0) ) azi = M_PI + azi;
-            if( (xl > 0.0) && (yl < 0.0) ) azi = 2.0 * M_PI - azi;
-        
-            azi *= RAD2DEG;
-        
-            if(azi > 180.0)
-                azi -= 180.0;
-            else
-                azi +=180.0;
-            
-            np_delem(azi_inc, ii, 0) = azi;
-            np_delem(azi_inc, ii, 1) = inc;
+            calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
+                         (double *) np_gptr(azi_inc, ii, 0),
+                         (double *) np_gptr(azi_inc, ii, 1));
         }
         // end for
     }

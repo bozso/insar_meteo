@@ -1,4 +1,3 @@
-# INMET
 # Copyright (C) 2018  MTA CSFK GGI
 # 
 # This program is free software: you can redistribute it and/or modify
@@ -207,7 +206,7 @@ def orbit_fit(path, preproc, fit_file, centered=True, deg=3):
     else:
         cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file, prt=True)
 
-    os.remove("coords.txyz")
+    #os.remove("coords.txyz")
 
 def plot_orbit(path, preproc, fit_file, fit_plot, nstep=100, **kwargs):
 

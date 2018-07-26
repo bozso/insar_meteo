@@ -1,3 +1,19 @@
+/* Copyright (C) 2018  István Bozsó
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <tgmath.h>
 
@@ -24,7 +40,7 @@ typedef struct {
 } orbit_fit;
 
 // cartesian coordinate
-typedef struct { double x, y, z; } cart;
+typedef struct cart_t { double x, y, z; } cart;
 
 /************************
  * Auxilliary functions *
@@ -35,7 +51,6 @@ static double norm(cdouble x, cdouble y, cdouble z)
     // vector norm
     return sqrt(x * x + y * y + z * z);
 }
-
 
 static void ell_cart (cdouble lon, cdouble lat, cdouble h,
                       double *x, double *y, double *z)
@@ -74,21 +89,6 @@ static void cart_ell (cdouble x, cdouble y, cdouble z,
     *h = p / co - n;
 }
 // end of cart_ell
-
-
-static FILE * sfopen(const char * path, const char * mode)
-{
-    // safely open file
-    
-    FILE * file = fopen(path, mode);
-
-    if (!file) {
-        errorln("Could not open file \"%s\"", path);
-        perror("fopen");
-        return NULL;
-    }
-    return(file);
-}
 
 static void calc_pos(const orbit_fit * orb, double time, cart * pos)
 {
@@ -270,35 +270,35 @@ py_ptr azi_inc (PyFun_Varargs)
                         &max_iter, &is_lonlat);
 
     // Importing arrays
-    Np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    Np_import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    Np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    np_import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
     
-    Np_check_ndim(a_coeffs, 2);
-    Np_check_dim(a_coeffs, 0, 3);
-    Np_check_dim(a_coeffs, 1, deg + 1);
+    np_check_ndim(a_coeffs, 2);
+    np_check_dim(a_coeffs, 0, 3);
+    np_check_dim(a_coeffs, 1, deg + 1);
     
     // should be nx3 matrix
-    Np_check_ndim(a_coords, 2);
-    Np_check_dim(a_coords, 1, 3);
+    np_check_ndim(a_coords, 2);
+    np_check_dim(a_coords, 1, 3);
     
-    n_coords = Np_dim(a_coords, 0);
+    n_coords = np_dim(a_coords, 0);
     
     // should be a 3 element vector
-    Np_check_ndim(a_meancoords, 1);
-    Np_check_dim(a_meancoords, 0, 3);
+    np_check_ndim(a_meancoords, 1);
+    np_check_dim(a_meancoords, 0, 3);
     
     azi_inc_shape[0] = n_coords;
     azi_inc_shape[1] = 2;
     
     // matrix holding azimuth and inclinations values
-    Np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
+    np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
     
     // Set up orbit polynomial structure
-    orb.coeffs = (double *) Np_data(a_coeffs);
+    orb.coeffs = (double *) np_data(a_coeffs);
     orb.deg = deg;
     orb.is_centered = is_centered;
     
@@ -306,14 +306,14 @@ py_ptr azi_inc (PyFun_Varargs)
     orb.stop_t = stop_t;
     orb.mean_t = mean_t;
     
-    orb.mean_coords = (double *) Np_data(a_meancoords);
+    orb.mean_coords = (double *) np_data(a_meancoords);
     
     // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, 0, n_coords) {
-            lon = Np_delem(a_coords, ii, 0) * DEG2RAD;
-            lat = Np_delem(a_coords, ii, 1) * DEG2RAD;
-            h   = Np_delem(a_coords, ii, 2);
+            lon = np_delem(a_coords, ii, 0) * DEG2RAD;
+            lat = np_delem(a_coords, ii, 1) * DEG2RAD;
+            h   = np_delem(a_coords, ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, &X, &Y, &Z);
@@ -353,17 +353,17 @@ py_ptr azi_inc (PyFun_Varargs)
             else
                 azi +=180.0;
             
-            Np_delem(azi_inc, ii, 0) = azi;
-            Np_delem(azi_inc, ii, 1) = inc;
+            np_delem(azi_inc, ii, 0) = azi;
+            np_delem(azi_inc, ii, 1) = inc;
         }
         // end for
     }
     // coords contains X, Y, Z
     else {
         FOR(ii, 0, n_coords) {
-            X = Np_delem(a_coords, ii, 0);
-            Y = Np_delem(a_coords, ii, 1);
-            Z = Np_delem(a_coords, ii, 2);
+            X = np_delem(a_coords, ii, 0);
+            Y = np_delem(a_coords, ii, 1);
+            Z = np_delem(a_coords, ii, 2);
             
             // calulate surface WGS-84 geodetic coordinates
             cart_ell(X, Y, Z, &lon, &lat, &h);
@@ -404,8 +404,8 @@ py_ptr azi_inc (PyFun_Varargs)
             else
                 azi +=180.0;
             
-            Np_delem(azi_inc, ii, 0) = azi;
-            Np_delem(azi_inc, ii, 1) = inc;
+            np_delem(azi_inc, ii, 0) = azi;
+            np_delem(azi_inc, ii, 1) = inc;
         }
         // end for
     }
@@ -449,22 +449,22 @@ py_ptr asc_dsc_select(PyFun_Keywords)
     println("Maximum separation: %6.3lf meters => approx. %E degrees",
             max_sep, max_sep_deg);
     
-    Np_import(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    Np_import(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    np_import(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    np_import(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     
-    n_arr1 = Np_dim(arr1, 0);
-    n_arr2 = Np_dim(arr2, 0);
+    n_arr1 = np_dim(arr1, 0);
+    n_arr2 = np_dim(arr2, 0);
     
     np_ptr idx = (np_ptr) PyArray_ZEROS(1, &n_arr1, NPY_BOOL, 0);
     
     FOR(ii, 0, n_arr1) {
         FOR(jj, 0, n_arr2) {
-            dlon = Np_delem(arr1, ii, 0) - Np_delem(arr2, jj, 0);
-            dlat = Np_delem(arr1, ii, 1) - Np_delem(arr2, jj, 1);
+            dlon = np_delem(arr1, ii, 0) - np_delem(arr2, jj, 0);
+            dlat = np_delem(arr1, ii, 1) - np_delem(arr2, jj, 1);
             
             if ( dlon * dlon + dlat * dlat < max_sep) {
-                //*( (npy_bool *) Np_ptr1(idx, ii) ) = 1;
-                Np_belem1(idx, ii) = 1;
+                //*( (npy_bool *) np_ptr1(idx, ii) ) = 1;
+                np_belem1(idx, ii) = 1;
                 n_found++;
                 break;
             }

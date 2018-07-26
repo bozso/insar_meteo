@@ -1,4 +1,3 @@
-# INMET
 # Copyright (C) 2018  MTA CSFK GGI
 # 
 # This program is free software: you can redistribute it and/or modify

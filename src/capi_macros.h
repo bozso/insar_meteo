@@ -1,3 +1,19 @@
+/* Copyright (C) 2018  István Bozsó
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
@@ -92,34 +108,34 @@
  * NUMPY CONVENIENCE MACROS *
  ****************************/
 
-#define Np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
-#define Np_ptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
-#define Np_dim(obj, idx) PyArray_DIM((obj), (idx))
-#define Np_ndim(obj, idx) PyArray_NDIM((obj), (idx))
-#define Np_delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
-#define Np_belem1(obj, ii) *((npy_bool *) PyArray_GETPTR1((obj), (ii)))
+#define np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
+#define np_ptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
+#define np_dim(obj, idx) PyArray_DIM((obj), (idx))
+#define np_ndim(obj, idx) PyArray_NDIM((obj), (idx))
+#define np_delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
+#define np_belem1(obj, ii) *((npy_bool *) PyArray_GETPTR1((obj), (ii)))
 
-#define Np_data(obj) PyArray_DATA((obj))
+#define np_data(obj) PyArray_DATA((obj))
 
 /* based on
  * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples
  * /src/C/NumPy_macros.h */
 
-#define Np_import(array_out, array_to_convert, typenum, requirements)\
+#define np_import(array_out, array_to_convert, typenum, requirements)\
 ({\
     (array_out) = (np_ptr) PyArray_FROM_OTF((array_to_convert), (typenum),\
                                               (requirements));\
     if ((array_out) == NULL) goto fail;\
 })
 
-#define Np_empty(array_out, ndim, shape, typenum, is_fortran)\
+#define np_empty(array_out, ndim, shape, typenum, is_fortran)\
 ({\
     (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum), \
                                           (is_fortran));\
     if ((array_out) == NULL) goto fail;\
 })
 
-#define Np_check_ndim(a, expected_ndim)\
+#define np_check_ndim(a, expected_ndim)\
 ({\
   if (PyArray_NDIM((a)) != (expected_ndim)) {\
     PyErr_Format(PyExc_ValueError,\
@@ -129,7 +145,7 @@
   }\
 })
 
-#define Np_check_dim(a, dim, expected_length)\
+#define np_check_dim(a, dim, expected_length)\
 ({\
   if ((dim) > PyArray_NDIM((a))) {\
     PyErr_Format(PyExc_ValueError,\
@@ -145,7 +161,7 @@
   }\
 })
 
-#define Np_check_type(a, tp)\
+#define np_check_type(a, tp)\
 ({\
   if (PyArray_TYPE(a) != (tp)) {\
     PyErr_Format(PyExc_TypeError,\
@@ -154,7 +170,7 @@
   }\
 })
 
-#define Np_check_callable(func)\
+#define np_check_callable(func)\
 ({\
   if (!PyCallable_Check(func)) {\
     PyErr_Format(PyExc_TypeError,\

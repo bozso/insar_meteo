@@ -14,22 +14,29 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy.distutils.core import Extension, setup
+from distutils.ccompiler import new_compiler
+
 from os.path import join, isfile
 from os import remove
 from shutil import move
 from glob import iglob
+import sys
 
-comp_args = ["-std=c99", "-O3"]
+
+libs = [":libgfortran.so.3"]
+lib_dirs = ["/home/istvan/miniconda3/lib"]
+flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
-ext_insar = Extension(name="insar_aux", sources=["insar_auxmodule.c"],
-                      define_macros=macros, extra_compile_args=comp_args)
+ext_modules = [
+    Extension(name="insar_aux", sources=["insar_aux.f95"],
+              define_macros=macros)
+]
 
 def main():
-    setup(ext_modules=[ext_insar])
+    setup(ext_modules=ext_modules)
     
     for so in iglob("*.so"):
-        
         dst = join("..", "inmet", so)
         
         if isfile(dst):

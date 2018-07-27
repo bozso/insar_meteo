@@ -47,20 +47,22 @@ def fit_orbit(path, preproc, savefile, centered=True, deg=3):
     try:
         coeffs = np.linalg.lstsq(design, to_fit, rcond=None)
     except LinAlgError:
-        print("Something went wrong in the fitting of the orbit polynom.")
+        print("Something went wrong in the fitting of the orbit polynom!")
     
     with open(savefile, "w") as f:
         f.write(cent)
         
+        f.write("Start and stop times.")
         f.write("t_start:\t{}\n".format(t_start))
         f.write("t_stop:\t{}\n".format(t_stop))
+        f.write("Degree of fitted polynom")
         f.write("deg:\t{}\n".format(deg))
         
         f.write("(x, y, z) residuals: ({})\n"
                 .format(", ".join(str(elem) for elem in coeffs[1].astype(str))))
-        
+
         f.write("\nCoeffcients are written in a single line from highest to\
-                \nlowest power. First for x than for y and finally for z.\n\n")
+                 \nlowest power. First for x than for y and finally for z.\n\n")
         f.write("coefficients:\t{}\n"
                 .format(" ".join(str(elem)
                             for elem in coeffs[0].T.reshape(-1).astype(str))))

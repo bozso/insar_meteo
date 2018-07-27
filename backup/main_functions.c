@@ -34,51 +34,6 @@
  * Auxilliary functions *
  * **********************/
 
-static int read_fit(const char * path, orbit_fit * orb)
-{
-    int error = err_succes;
-    FILE * fit_file;
-    uint deg, centered;
-    
-    aux_open(fit_file, path, "r");
-    
-    aux_fscanf(fit_file, "centered: %u\n", &centered);
-    
-    if (centered) {
-        aux_fscanf(fit_file, "t_mean: %lf\n", &(orb->t_mean));
-        aux_fscanf(fit_file, "coords_mean: %lf %lf %lf\n",
-                                        &(orb->coords_mean[0]),
-                                        &(orb->coords_mean[1]),
-                                        &(orb->coords_mean[2]));
-    } else {
-        orb->t_mean = 0.0;
-        orb->coords_mean[0] = 0.0;
-        orb->coords_mean[1] = 0.0;
-        orb->coords_mean[2] = 0.0;
-    }
-    
-    aux_fscanf(fit_file, "t_min: %lf\n", &orb->t_min);
-    aux_fscanf(fit_file, "t_max: %lf\n", &orb->t_max);
-    aux_fscanf(fit_file, "deg: %u\ncoeffs: ", &deg);
-
-    aux_malloc(orb->coeffs, double, 3 * (deg + 1));
-
-    /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
-     * every row contains the coefficients for the fitted x,y,z polynoms. */    
-    FOR(ii, 0, 3 * (deg + 1))
-        aux_fscanf(fit_file, "%lf ", orb->coeffs + ii);
-    
-    orb->deg = deg;
-    orb->centered = centered;
-    
-    fclose(fit_file);
-    return error;
-fail:
-    aux_close(fit_file);
-    aux_free(orb->coeffs);
-    return error;
-}
-
 static void ell_cart (cdouble lon, cdouble lat, cdouble h,
                       double *x, double *y, double *z)
 {

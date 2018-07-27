@@ -291,6 +291,26 @@ static inline void calc_azi_inc(const orbit_fit * orb,
  * Main functions - calleble from Python *
  *****************************************/
 
+PyFun_Doc(test, "test");
+
+py_ptr test(void)
+{
+    double x, y, z, lon, lat, height;
+    lon = 45.0 * DEG2RAD; lat = 25.0 * DEG2RAD; height = 63900.0;
+
+    FOR(ii, 0, 10000000) {
+        ell_cart(lon, lat, height, &x, &y, &z);
+        //println("%lf %lf %lf\n", lon, lat, height);
+        cart_ell(x, y, z, &lon, &lat, &height);
+    }
+    
+    println("%lf %lf %lf\n", lon * RAD2DEG, lat * RAD2DEG, height);
+    
+    Py_RETURN_NONE;
+}
+
+#if 0
+
 PyFun_Doc(azi_inc, "azi_inc");
 
 py_ptr azi_inc (PyFun_Varargs)
@@ -461,13 +481,16 @@ fail:
 }
 // end asc_dsc_select
 
+#endif
+
 /**********************
  * Python boilerplate *
  **********************/
 
 static PyMethodDef InsarMethods[] = {
-    PyFun_Method_Varargs(azi_inc),
-    PyFun_Method_Keywords(asc_dsc_select),
+    //PyFun_Method_Varargs(azi_inc),
+    PyFun_Method_Noargs(test),
+    //PyFun_Method_Keywords(asc_dsc_select),
     {NULL, NULL, 0, NULL}
 };
 

@@ -488,24 +488,48 @@ init_module(insar_aux, "INSAR_AUX",
             pymeth_varargs(azi_inc));
 
 #if 0
-static PyMethodDef InsarMethods[] = {
-    //PyFun_Method_Varargs(azi_inc),
-    pyfun_noargs(test),
-    //PyFun_Method_Keywords(asc_dsc_select),
-    {NULL, NULL, 0, NULL}
-};
+do {
+    static PyMethodDef insar_aux_methods[] = {
+        {"test", (PyCFunction) test, 0x0004, test__doc__},
+        {"azi_inc", (PyCFunction) azi_inc, 0x0001, azi_inc__doc__},
+        {"error_out", (PyCFunction)error_out, 0x0004, ((void *)0)},
+        {((void *)0), ((void *)0), 0, ((void *)0)}
+    };
+    
+    static struct PyModuleDef insar_aux_moduledef = {
+        { { 1, ((void *)0) }, ((void *)0), 0, ((void *)0), },
+        "insar_aux", ("INSAR_AUX"), sizeof(struct module_state),
+        insar_aux_methods,
+        ((void *)0),
+        extension_traverse,
+        extension_clear,
+        ((void *)0)
+    };
+    
+    PyObject* PyInit_insar_aux(void)
+    {
+        {if (_import_array() < 0) {
+            PyErr_Print();
+            PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import");
+            return ((void *)0); }
+        };
+        PyObject *module = PyModule_Create2(&(insar_aux_moduledef), 1013);
+        if (module == ((void *)0))
+            return ((void *)0);
+        
+        struct module_state *st = ((struct module_state*)PyModule_GetState(module));
+        st->error = PyErr_NewException("insar_aux"".Error", ((void *)0), ((void *)0));
+        
+        if (st->error == ((void *)0)) {
+            do { PyObject *_py_decref_tmp = (PyObject *)(module);
+                if ( --(_py_decref_tmp)->ob_refcnt != 0) ;
+                else ( (*(((PyObject*)(_py_decref_tmp))->ob_type)->tp_dealloc)((PyObject *)(_py_decref_tmp)));
+            } while (0);
+            return ((void *)0);
+        } return module;
+    }
+} while(0)
 
-pyfun_doc(insar_aux,
-"INSAR_AUX");
-
-static struct PyModuleDef insarmodule = {
-    PyModuleDef_HEAD_INIT, "insar_aux", insar_aux__doc__, -1, InsarMethods
-};
-
-PyMODINIT_FUNC
-PyInit_insar_aux(void)
-{
-    import_array();
-    return PyModule_Create(&insarmodule);
-}
 #endif
+
+

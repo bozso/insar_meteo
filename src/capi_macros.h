@@ -57,18 +57,18 @@ static int extension_clear(PyObject *m)
     return 0;
 }
 
+// for some reason only works without: do { ... } while(0)
 #define init_module(module_name, module_doc, ...)\
-do {\
     static PyMethodDef module_name ## _methods[] = {\
-    __VA_ARGS__,\
-    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
-    {NULL, NULL, 0, NULL}\
+        __VA_ARGS__,\
+        {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
+        {NULL, NULL, 0, NULL}\
     };\
     \
     static struct PyModuleDef module_name ## _moduledef = {\
         PyModuleDef_HEAD_INIT,\
         QUOTE(module_name),\
-        module_doc,\
+        (module_doc),\
         sizeof(struct module_state),\
         module_name ## _methods,\
         NULL,\
@@ -94,7 +94,6 @@ do {\
         \
         return module;\
     }\
-} while(0)
 
 /************
  * Python 2 *
@@ -116,6 +115,7 @@ error_out(PyObject *m) {
     return NULL;
 }
 
+// for some reason only works without: do { ... } while(0)
 #define init_module(module_name, ...)\
 do {\
     static  PyMethodDef module_name ## _methods[] = {\
@@ -173,7 +173,7 @@ do {\
 #define AND &&
 
 /**************************
- * FOR MACROS             *
+ * for macros             *
  * REQUIRES C99 standard! *
  **************************/
 
@@ -181,7 +181,7 @@ do {\
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
 /*************
- * IO MACROS *
+ * IO macros *
  *************/
 
 #define error(text) PySys_WriteStderr(text)
@@ -193,7 +193,7 @@ do {\
 #define Log print("File: %s line: %d", __FILE__, __LINE__)
 
 /******************************
- * FUNCTION DEFINITION MACROS *
+ * Function definition macros *
  ******************************/
 
 #define py_varargs PyObject * self, PyObject * args

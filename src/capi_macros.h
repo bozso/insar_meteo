@@ -17,6 +17,43 @@
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
+/***************************
+ * Python2/3 Compatibility *
+ ***************************/
+
+#if PY_MAJOR_VERSION >= 3
+#define IS_PY3K
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
+
+static PyObject *
+error_out(PyObject *m) {
+    struct module_state *st = GETSTATE(m);
+    PyErr_SetString(st->error, "something bad happened");
+    return NULL;
+}
+
+#if PY_MAJOR_VERSION >= 3
+
+static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int myextension_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+#endif
+
+#define make_module_def(
+
 // turn s into string "s"
 #define QUOTE(s) # s   
 
@@ -178,6 +215,16 @@
     goto fail;\
   }\
 })
+
+#define make_module_table(module, ...)\
+({\
+    static  PyMethodDef module_ ## methods[] {\
+    __VA_ARGS__\
+    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
+    {NULL, NULL, 0, NULL}\
+    };\
+})
+
 
 /***************
  * ERROR CODES *

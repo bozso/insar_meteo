@@ -487,6 +487,12 @@ fail:
  * Python boilerplate *
  **********************/
 
+make_module_table(insar_aux,
+    PyFun_Method_Noargs(test))
+
+init_module(insar_aux)
+
+#if 0
 static PyMethodDef InsarMethods[] = {
     //PyFun_Method_Varargs(azi_inc),
     PyFun_Method_Noargs(test),
@@ -507,3 +513,4 @@ PyInit_insar_aux(void)
     import_array();
     return PyModule_Create(&insarmodule);
 }
+#endif

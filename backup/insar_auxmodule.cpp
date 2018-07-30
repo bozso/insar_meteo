@@ -300,4 +300,5 @@ PYBIND11_MODULE(insar_aux, m) {
     m.doc() = "pybind11 example plugin"; // optional module docstring
 
     m.def("test", &test, "test");
+    m.def("azi_inc", &azi_inc, "azi_inc");
 }

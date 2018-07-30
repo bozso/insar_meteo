@@ -291,7 +291,7 @@ static inline void calc_azi_inc(const orbit_fit * orb,
  * Main functions - calleble from Python *
  *****************************************/
 
-PyFun_Doc(test, "test");
+pyfun_doc(test, "test");
 
 py_ptr test(void)
 {
@@ -309,11 +309,9 @@ py_ptr test(void)
     Py_RETURN_NONE;
 }
 
-#if 0
+pyfun_doc(azi_inc, "azi_inc");
 
-PyFun_Doc(azi_inc, "azi_inc");
-
-py_ptr azi_inc (PyFun_Varargs)
+py_ptr azi_inc (py_varargs)
 {
     double start_t, stop_t, mean_t;
     py_ptr coeffs, coords, mean_coords;
@@ -332,7 +330,7 @@ py_ptr azi_inc (PyFun_Varargs)
            t0, lon, lat, h,
            azi, inc;
     
-    PyFun_Parse_Varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
+    pyfun_parse_varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
                         &max_iter, &is_lonlat);
 
@@ -424,10 +422,10 @@ fail:
     return NULL;
 } // end azim_inc
 
-PyFun_Doc(asc_dsc_select,
+pyfun_doc(asc_dsc_select,
 "asc_dsc_select");
 
-py_ptr asc_dsc_select(PyFun_Keywords)
+py_ptr asc_dsc_select(py_keywords)
 {
     py_ptr in_arr1 = NULL, in_arr2 = NULL;
     np_ptr arr1 = NULL, arr2 = NULL;
@@ -439,7 +437,7 @@ py_ptr asc_dsc_select(PyFun_Keywords)
     
     char * keywords[] = {"asc", "dsc", "max_sep", NULL};
     
-    PyFun_Parse_Keywords(keywords, "OO|d:asc_dsc_select", &in_arr1, &in_arr2,
+    pyfun_parse_keywords(keywords, "OO|d:asc_dsc_select", &in_arr1, &in_arr2,
                                                           &max_sep);
     
     max_sep /= R_earth;
@@ -481,26 +479,23 @@ fail:
 }
 // end asc_dsc_select
 
-#endif
-
 /**********************
  * Python boilerplate *
  **********************/
 
-make_module_table(insar_aux,
-    PyFun_Method_Noargs(test))
-
-init_module(insar_aux)
+init_module(insar_aux, "INSAR_AUX",
+            pymeth_noargs(test),
+            pymeth_varargs(azi_inc));
 
 #if 0
 static PyMethodDef InsarMethods[] = {
     //PyFun_Method_Varargs(azi_inc),
-    PyFun_Method_Noargs(test),
+    pyfun_noargs(test),
     //PyFun_Method_Keywords(asc_dsc_select),
     {NULL, NULL, 0, NULL}
 };
 
-PyFun_Doc(insar_aux,
+pyfun_doc(insar_aux,
 "INSAR_AUX");
 
 static struct PyModuleDef insarmodule = {

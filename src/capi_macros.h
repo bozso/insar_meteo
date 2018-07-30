@@ -17,20 +17,97 @@
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
-/***************************
- * Python2/3 Compatibility *
- ***************************/
+// turn s into string "s"
+#define QUOTE(s) # s
 
+/****************************
+ * Python 2/3 Compatibility *
+ ****************************/
+
+
+/************
+ * Python 3 *
+ ************/
 #if PY_MAJOR_VERSION >= 3
+
 #define IS_PY3K
-#endif
 
-#if PY_MAJOR_VERSION >= 3
 #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+
+struct module_state {
+    PyObject *error;
+};
+
+static PyObject * error_out(PyObject *m)
+{
+    struct module_state *st = GETSTATE(m);
+    PyErr_SetString(st->error, "something bad happened");
+    return NULL;
+}
+
+static int extension_traverse(PyObject *m, visitproc visit, void *arg)
+{
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int extension_clear(PyObject *m)
+{
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+#define init_module(module_name, module_doc, ...)\
+do {\
+    static PyMethodDef module_name ## _methods[] = {\
+    __VA_ARGS__,\
+    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
+    {NULL, NULL, 0, NULL}\
+    };\
+    \
+    static struct PyModuleDef module_name ## _moduledef = {\
+        PyModuleDef_HEAD_INIT,\
+        QUOTE(module_name),\
+        module_doc,\
+        sizeof(struct module_state),\
+        module_name ## _methods,\
+        NULL,\
+        extension_traverse,\
+        extension_clear,\
+        NULL\
+    };\
+    \
+    PyMODINIT_FUNC PyInit_ ## module_name(void)\
+    {\
+        import_array();\
+        PyObject *module = PyModule_Create(&(module_name ## _moduledef));\
+        \
+        if (module == NULL)\
+            return NULL;\
+        struct module_state *st = GETSTATE(module);\
+        \
+        st->error = PyErr_NewException(QUOTE(module_name)".Error", NULL, NULL);\
+        if (st->error == NULL) {\
+            Py_DECREF(module);\
+            return NULL;\
+        }\
+        \
+        return module;\
+    }\
+} while(0)
+
+/************
+ * Python 2 *
+ ************/
 #else
+
 #define GETSTATE(m) (&_state)
+
+struct module_state {
+    PyObject *error;
+};
+
 static struct module_state _state;
-#endif
 
 static PyObject *
 error_out(PyObject *m) {
@@ -39,23 +116,31 @@ error_out(PyObject *m) {
     return NULL;
 }
 
-#if PY_MAJOR_VERSION >= 3
+#define init_module(module_name, ...)\
+do {\
+    static  PyMethodDef module_name ## _methods[] = {\
+    __VA_ARGS__,\
+    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
+    {NULL, NULL, 0, NULL}\
+    };\
 
-static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
-    Py_VISIT(GETSTATE(m)->error);
-    return 0;
-}
+    void init ## module_name(void)\
+    {\
+        import_array();
+        PyObject *module = Py_InitModule(QUOTE(module_name), module_name ## _methods);\
+        if (module == NULL)\
+            return;\
+        struct module_state *st = GETSTATE(module);\
+        \
+        st->error = PyErr_NewException(QUOTE(module_name)".Error", NULL, NULL);\
+        if (st->error == NULL) {\
+            Py_DECREF(module);\
+            return;\
+        }\
+    }\
+} while(0)
 
-static int myextension_clear(PyObject *m) {
-    Py_CLEAR(GETSTATE(m)->error);
-    return 0;
-}
 #endif
-
-#define make_module_def(
-
-// turn s into string "s"
-#define QUOTE(s) # s   
 
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
@@ -111,35 +196,35 @@ static int myextension_clear(PyObject *m) {
  * FUNCTION DEFINITION MACROS *
  ******************************/
 
-#define PyFun_Varargs PyObject * self, PyObject * args
-#define PyFun_Keywords PyObject * self, PyObject * args, PyObject * kwargs
+#define py_varargs PyObject * self, PyObject * args
+#define py_keywords PyObject * self, PyObject * args, PyObject * kwargs
 
 //----------------------------------------------------------------------
 
-#define PyFun_Method_Noargs(fun_name) \
+#define pymeth_noargs(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_NOARGS, fun_name ## __doc__}
 
-#define PyFun_Method_Varargs(fun_name) \
+#define pymeth_varargs(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_VARARGS, fun_name ## __doc__}
 
-#define PyFun_Method_Keywords(fun_name) \
+#define pymeth_keywrods(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_VARARGS | METH_KEYWORDS, \
  fun_name ## __doc__}
 
-#define PyFun_Doc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
+#define pyfun_doc(fun_name, doc) PyDoc_VAR( fun_name ## __doc__) = PyDoc_STR(doc)
 
-#define PyFun_Parse_Keywords(keywords, format, ...) \
-({\
+#define pyfun_parse_keywords(keywords, format, ...) \
+do {\
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords,\
                                      __VA_ARGS__))\
         return NULL;\
-})
+} while(0)
 
-#define PyFun_Parse_Varargs(format, ...) \
-({\
+#define pyfun_parse_varargs(format, ...) \
+do {\
     if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\
         return NULL;\
-})
+} while(0)
 
 /****************************
  * NUMPY CONVENIENCE MACROS *
@@ -159,31 +244,31 @@ static int myextension_clear(PyObject *m) {
  * /src/C/NumPy_macros.h */
 
 #define np_import(array_out, array_to_convert, typenum, requirements)\
-({\
+do {\
     (array_out) = (np_ptr) PyArray_FROM_OTF((array_to_convert), (typenum),\
                                               (requirements));\
     if ((array_out) == NULL) goto fail;\
-})
+} while(0)
 
 #define np_empty(array_out, ndim, shape, typenum, is_fortran)\
-({\
+do {\
     (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum), \
                                           (is_fortran));\
     if ((array_out) == NULL) goto fail;\
-})
+} while(0)
 
 #define np_check_ndim(a, expected_ndim)\
-({\
+do {\
   if (PyArray_NDIM((a)) != (expected_ndim)) {\
     PyErr_Format(PyExc_ValueError,\
     "%s array is %d-dimensional, but expected to be %d-dimensional",\
 		 QUOTE(a), PyArray_NDIM(a), (expected_ndim));\
     goto fail;\
   }\
-})
+} while(0)
 
 #define np_check_dim(a, dim, expected_length)\
-({\
+do {\
   if ((dim) > PyArray_NDIM((a))) {\
     PyErr_Format(PyExc_ValueError,\
     "%s array has no %d dimension (max dim. is %d)", QUOTE(a), (dim),\
@@ -196,35 +281,25 @@ static int myextension_clear(PyObject *m) {
     PyArray_DIM(a, (dim)), (expected_length));\
     goto fail;\
   }\
-})
+} while(0)
 
 #define np_check_type(a, tp)\
-({\
+do {\
   if (PyArray_TYPE(a) != (tp)) {\
     PyErr_Format(PyExc_TypeError,\
     "%s array is not of correct type (%d)", QUOTE(a), (tp));\
     goto fail;\
   }\
-})
+} while(0)
 
 #define np_check_callable(func)\
-({\
+do {\
   if (!PyCallable_Check(func)) {\
     PyErr_Format(PyExc_TypeError,\
     "%s is not a callable function", QUOTE(func));\
     goto fail;\
   }\
-})
-
-#define make_module_table(module, ...)\
-({\
-    static  PyMethodDef module_ ## methods[] {\
-    __VA_ARGS__\
-    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
-    {NULL, NULL, 0, NULL}\
-    };\
-})
-
+} while(0)
 
 /***************
  * ERROR CODES *

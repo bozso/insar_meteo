@@ -1,15 +1,15 @@
 # Copyright (C) 2018  MTA CSFK GGI
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -18,46 +18,152 @@ from builtins import str
 
 import subprocess as sub
 import os.path as pth
+from os import remove, popen
 from math import ceil, sqrt
 import numpy as np
+import tempfile
+
+_pt_type_dict = {
+    "dot": 0,
+    "+": 1,
+    "x": 2,
+    "+x": 3,
+    "empty_square": 4,
+    "filed_square": 5,
+    "empty_circle": 6,
+    "filled_circle": 7,
+    "empty_up_triangle": 8,
+    "filled_up_triangle": 9,
+    "empty_down_triangle": 10,
+    "filled_down_triangle": 11,
+    "empty_rombus": 12,
+    "filled_rombus": 13,
+}
+
+_line_type_dict = {
+    "black": -1,
+    "dashed": 0,
+    "red": 1,
+    "green": 2,
+    "blue": 3,
+    "purple": 4,
+    "teal": 5,
+}
 
 class Gnuplot(object):
     def __init__(self, out=None, persist=False, debug=False, **kwargs):
-        
+
         term = str(kwargs.get("term", "xterm"))
         font = str(kwargs.get("font", "Verdena"))
         fontsize = int(kwargs.get("fontsize", 8))
         
         size = kwargs.get("size")
         
-        self.commands = []
-        self.is_persist = persist
-        self.is_multi = False
-        self.is_exec = False
+        if persist:
+            #cmd = ["gnuplot", "--persist"]
+            cmd = "gnuplot --persist"
+        else:
+            #cmd = ["gnuplot"]
+            cmd = "gnuplot"
+        
+        #self.process = sub.Popen(cmd, stderr=sub.STDOUT, stdin=sub.PIPE)
+        self.process = popen(cmd, mode="w")
+        
+        self.write = self.process.write
+        self.flush = self.process.flush
+        self.persist = persist
+        self.multi = False
+        self.closed = False
         self.debug = debug
-        self.plot_cmds = []
+        self.temp_names = []
+        
+        return
         
         if out:
-            self.commands.append("set out '{}'".format(out).encode())
-        
+            self("set out '{}'".format(out))
+
         term_cmd = "set term {} font '{},{}'".format(term, font, fontsize)
-        
+
         if size is not None:
             term_cmd += " size {},{}".format(size[0], size[1])
-        
-        self.commands.append(term_cmd.encode())
-        
+
+        self(term_cmd)
+
+    def close(self):
+        if self.process is not None:
+            self.process.close()
+            self.process = None
+
+
     def __call__(self, command):
+
+        if self.debug:
+            stderr.write("gnuplot> %s\n".format(command))
         
         if type(command) == list:
-            temp = [" ".join(str(elem) for elem in elems)
-                            for elems in zip(*command)]
-            self.commands.extend([("\n".join(temp)).encode(), "e".encode()])
+            temp = (" ".join(str(elem) for elem in elems)
+                    for elems in zip(*command))
+            command += "\n".join(temp) + "e"
             del temp
+        
+        self.write(command + "\n")
+        self.flush()        
+        
+    def data(self, x, y, pt_type=None, pt_size=1.0, line_type=None,
+             line_width=1.0, linestyle=None, rgb=None, title=None,
+             tempfile=False):
+
+        try:
+            x = np.array(x)
+            y = np.array(y)
+        except:
+            raise ValueError("x and y should be a convertible to numpy array!")
+        
+        data = np.stack((x,y), axis=-1)
+        
+        content = data.tobytes()
+        
+        # based on gnuplot-py
+        if tempfile:
+            if hasattr(tempfile, 'mkstemp'):
+                # Use the new secure method of creating temporary files:
+                fd, filename, = tempfile.mkstemp(text=True)
+                f = os.fdopen(fd, mode)
+            else:
+                # for backwards compatibility to pre-2.3:
+                filename = tempfile.mktemp()
+                f = open(filename, mode)
+
+            f.write(content)
+            f.close()
+            
+            self.temp_names.append(filename)
+        
+            text = "'{}' ".format(filename) + arr_bin(data)
+            array = None
         else:
-            self.commands.append("{}".format(command).encode())
+            text = "'-' " + arr_bin(data)
+            array = content
+
+        if linestyle is not None:
+            text += " with linestyle {}".format(linestyle)
+        elif pt_type is not None:
+            text += " with points pt {} ps {}"\
+                    .format(_pt_type_dict[pt_type], pt_size)
+        elif line_type is not None:
+            text += " with lines lt {} lw {}"\
+                    .format(_line_type_dict[line_type], line_width)
+        elif rgb is not None:
+            text += " with lines lt {} lw {}".format(rgb, line_width)
+
+        if title is not None:
+            text += " title '{}'".format(title)
+        else:
+            text += " notitle"
+
+        return Plotd(array, text)
     
-    def data(self, data, pt_type=None, pt_size=1.0, line_type=None,
+    def file(self, data, pt_type=None, pt_size=1.0, line_type=None,
              line_width=1.0, linestyle=None, rgb=None, matrix=None,
              title=None, binary=None, array=None, endian="default",
              vith=None, **kwargs):
@@ -76,19 +182,22 @@ class Gnuplot(object):
         pt_size : float, optional
             Size of the plotted symbols. Default value 1.0 .
         line_type : str, optional
-            The line type used to plot (x,y) data pairs. Default is "circ" (filled
-            circles). Selectable values:
+            The line type used to plot (x,y) data pairs. Default is "circ"
+            (filled circles). Selectable values:
                 - "circ": filled circles
         line_width : float, optional
             Width of the plotted lines. Default value 1.0 .
         line_style : int, optional
             Selects a previously defined linestyle for plotting the (x,y) data
-            pairs. You can define linestyle with gnuplot.style . Default is None.
+            pairs. You can define linestyle with gnuplot.style .
+            Default is None.
         title : str, optional
-            Title of the plotted datapoints. None (= no title given) by default.
+            Title of the plotted datapoints. None (= no title given)
+            by default.
         **kwargs
-            Additional arguments: index, every, using, smooth, axes. See Gnuplot
-            docuemntation for the descritpion of these parameters.
+            Additional arguments: index, every, using, smooth, axes.
+            See Gnuplot docuemntation for the descritpion of these
+            parameters.
         
         Returns
         -------
@@ -106,60 +215,25 @@ class Gnuplot(object):
         """
         
         add_keys = ["index", "every", "using", "smooth", "axes"]
-        keys = kwargs.keys()
-    
-        pt_type_dict = {
-            "dot": 0,
-            "+": 1,
-            "x": 2,
-            "+x": 3,
-            "empty_square": 4,
-            "filed_square": 5,
-            "empty_circle": 6,
-            "filled_circle": 7,
-            "empty_up_triangle": 8,
-            "filled_up_triangle": 9,
-            "empty_down_triangle": 10,
-            "filled_down_triangle": 11,
-            "empty_rombus": 12,
-            "filled_rombus": 13,
-        }
-    
-        line_type_dict = {
-            "black": -1,
-            "dashed": 0,
-            "red": 1,
-            "green": 2,
-            "blue": 3,
-            "purple": 4,
-            "teal": 5,
-        }
+        keys = kwargs.keys()    
         
-        if isinstance(data, str):
-            text = "'{}'".format(data)
+        if not isinstance(data, str) and not pth.isfile(data):
+            raise ValueError("data should be a string path to a data file!")
+        
+        text = "'{}'".format(data)
 
-            if binary is not None and not isinstance(binary, bool):
-                if array is not None:
-                    text += " binary array={} format='{}' "\
-                            "endian={}".format(array, binary, endian)
-                else:
-                    text += " binary format='{}' endian={}".format(binary, endian)
-            elif binary:
-                text += " binary"
+        if binary is not None and not isinstance(binary, bool):
+            if array is not None:
+                text += " binary array={} format='{}' "\
+                        "endian={}".format(array, binary, endian)
+            else:
+                text += " binary format='{}' endian={}"\
+                        .format(binary, endian)
+        elif binary:
+            text += " binary"
+        
+        array = None
             
-            array = None
-            
-        else:
-            try:
-                data = np.array(data)
-            except:
-                raise ValueError("data should be a string path to a data file "
-                                 "or numpy array!")
-
-            text = "'-'" + arr_bin(data)
-            
-            array = data.tobytes()
-
         text += " " + " ".join(["{} {}".format(key, kwargs[key])
                                for key in add_keys if key in keys])
         
@@ -167,10 +241,10 @@ class Gnuplot(object):
             text += " with linestyle {}".format(linestyle)
         elif pt_type is not None:
             text += " with points pt {} ps {}"\
-                    .format(pt_type_dict[pt_type], pt_size)
+                    .format(_pt_type_dict[pt_type], pt_size)
         elif line_type is not None:
             text += " with lines lt {} lw {}"\
-                    .format(line_type_dict[line_type], line_width)
+                    .format(_line_type_dict[line_type], line_width)
         elif rgb is not None:
             text += " with lines lt {} lw {}".format(rgb, line_width)
 
@@ -182,15 +256,21 @@ class Gnuplot(object):
         else:
             text += " notitle"
             
-        self.plot_cmds.append((text, array))
+        return Plot(array, text)
 
-    def end_plot(self):
-        self.commands.append(b"plot " + (", ".join(text
-                             for text, _ in self.plot_cmds)).encode())
-        self.commands.append(b"".join(array for _, array in self.plot_cmds
-                                            if array is not None))
+    def plot(self, *plot_objects):
         
-        self.plot_cmds = []
+        plot_cmd = ", ".join(plot.command for plot in plot_objects)
+        
+        if self.debug:
+            stderr.write("gnuplot> %s\n".format(command))
+
+
+        self.write("plot " + plot_cmd + "\n")
+        self.write("".join(plot.data for plot in plot_objects
+                                     if plot.data is not None) + "\n")
+        
+        self.flush()
     
     # ***********
     # * SETTERS *
@@ -209,13 +289,13 @@ class Gnuplot(object):
         
         Cmd += " {},{}".format(scale[0], scale[1])
         
-        self.commands.append(Cmd.encode())
+        self(Cmd)
         
     def palette(self, pal):
-        self.commands.append("set palette {}".format(pal).encode())
+        self("set palette {}".format(pal))
     
     def binary(self, definition):
-        self.commands.append("set datafile binary {}".format(definition).encode())
+        self("set datafile binary {}".format(definition))
 
     def margins(self, screen=False, **kwargs):
         
@@ -226,7 +306,7 @@ class Gnuplot(object):
         
         for key, value in kwargs.items():
             if key in ("lmargin", "rmargin", "tmargin", "bmargin"):
-                self.commands.append(fmt.format(key, value).encode())
+                self(fmt.format(key, value))
     
     def multiplot(self, nplot, title="", nrows=None, order="rowsfirst",
                   portrait=False, **kwargs):
@@ -250,120 +330,120 @@ class Gnuplot(object):
         
         self.is_multi = True
         
-        self.commands.append("set multiplot layout {},{} {} title '{}'"
+        self("set multiplot layout {},{} {} title '{}'"
                              .format(nrows, ncols, order, title)
-                             .encode())
+                             )
     
     def colorbar(self, cbrange=None, cbtics=None, cbformat=None):
         if cbrange is not None:
-            self.commands.append("set cbrange [{}:{}]"
-                                 .format(cbrange[0], cbrange[1]).encode())
+            self("set cbrange [{}:{}]"
+                                 .format(cbrange[0], cbrange[1]))
         
         if cbtics is not None:
-            self.commands.append("set cbtics {}".format(cbtics).encode())
+            self("set cbtics {}".format(cbtics))
         
         if cbformat is not None:
-            self.commands.append("set format cb '{}'".format(cbformat).encode())
+            self("set format cb '{}'".format(cbformat))
         
     def unset_multi(self):
-        self.commands.append("unset multiplot".encode())
+        self("unset multiplot")
         self.is_multi = False
     
     def reset(self):
-        self.commands.append("reset".encode())
+        self("reset")
     
     def xtics(self, *args):
-        self.commands.append("set xtics {}".format(parse_range(*args)).encode())
+        self("set xtics {}".format(parse_range(*args)))
 
     def ytics(self, *args):
-        self.commands.append("set ytics {}".format(parse_range(*args)).encode())
+        self("set ytics {}".format(parse_range(*args)))
 
     def ztics(self, *args):
-        self.commands.append("set ztics {}".format(parse_range(*args)).encode())
+        self("set ztics {}".format(parse_range(*args)))
     
     def style(self, stylenum, styledef):
         """
         Parameters
         ----------
         """
-        self.commands.append("set style line {} {}"
-                             .format(stylenum, styledef).encode())
+        self("set style line {} {}"
+                             .format(stylenum, styledef))
     
     def autoscale(self):
-        self.commands.append("set autoscale".encode())
+        self("set autoscale")
     
     def axis_format(self, axis, fmt):
-        self.commands.append("set format {} '{}'".format(axis, fmt).encode())
+        self("set format {} '{}'".format(axis, fmt))
     
     def axis_time(self, axis):
-        self.commands.append("set {}data time".format(axis).encode())
+        self("set {}data time".format(axis))
     
     def timefmt(self, fmt):
-        self.commands.append("set timefmt '{}'".format(fmt).encode())
+        self("set timefmt '{}'".format(fmt))
     
     def output(self, outfile, term="pngcairo"):
-        self.commands.append("set out '{}'".format(outfile).encode())
-        self.commands.append("set term {}".format(term).encode())
+        self("set out '{}'".format(outfile))
+        self("set term {}".format(term))
 
     def title(self, title):
-        self.commands.append("set title '{}'".format(title).encode())
+        self("set title '{}'".format(title))
 
     def term(self, term="wxt"):
-        self.commands.append("set term '{}'".format(term).encode())
+        self("set term '{}'".format(term))
 
     def out(self, out_path):
-        self.commands.append("set out '{}'".format(out_path).encode())
+        self("set out '{}'".format(out_path))
 
     def set(self, var):
-        self.commands.append("set {}".format(var).encode())
+        self("set {}".format(var))
 
     def unset(self, var):
-        self.commands.append("unset {}".format(var).encode())
+        self("unset {}".format(var))
 
     # LABELS
 
     def labels(self, x="x", y="y", z=None):
-        self.commands.append("set xlabel '{}'".format(x).encode())
-        self.commands.append("set ylabel '{}'".format(y).encode())
+        self("set xlabel '{}'".format(x))
+        self("set ylabel '{}'".format(y))
         
         if z is not None:
-            self.commands.append("set zlabel '{}'".format(z).encode())
+            self("set zlabel '{}'".format(z))
 
     def xlabel(self, xlabel="x"):
-        self.commands.append("set xlabel '{}'".format(xlabel).encode())
+        self("set xlabel '{}'".format(xlabel))
 
     def ylabel(self, ylabel="y"):
-        self.commands.append("set ylabel '{}'".format(ylabel).encode())
+        self("set ylabel '{}'".format(ylabel))
 
     def zlabel(self, zlabel="z"):
-        self.commands.append("set zlabel '{}'".format(zlabel).encode())
+        self("set zlabel '{}'".format(zlabel))
 
     # RANGES
 
     def ranges(self, x=None, y=None, z=None):
         if x is not None and len(x) == 2:
-            self.commands.append("set xrange [{}:{}]"
-                                  .format(x[0], x[1]).encode())
+            self("set xrange [{}:{}]"
+                                  .format(x[0], x[1]))
 
         if y is not None and len(y) == 2:
-            self.commands.append("set yrange [{}:{}]"
-                                  .format(y[0], y[1]).encode())
+            self("set yrange [{}:{}]"
+                                  .format(y[0], y[1]))
 
         if z is not None and len(z) == 2:
-            self.commands.append("set zrange [{}:{}]"
-                                  .format(z[0], z[1]).encode())
+            self("set zrange [{}:{}]"
+                                  .format(z[0], z[1]))
 
     def xrange(self, xmin, xmax):
-        self.commands.append("set xrange [{}:{}]".format(xmin, xmax).encode())
+        self("set xrange [{}:{}]".format(xmin, xmax))
 
     def yrange(self, ymin, ymax):
-        self.commands.append("set yrange [{}:{}]".format(ymin, ymax).encode())
+        self("set yrange [{}:{}]".format(ymin, ymax))
 
     def zrange(self, zmin, zmax):
-        self.commands.append("set zrange [{}:{}]".format(zmin, zmax).encode())
+        self("set zrange [{}:{}]".format(zmin, zmax))
 
     def replot(self):
-        self.commands.append("replot".encode())
+        self("replot")
 
     def execute(self):
         if self.is_exec:
@@ -380,30 +460,23 @@ class Gnuplot(object):
             g_cmd = "gnuplot"
         
         if self.is_multi:
-            self.commands.append("unset multiplot".encode())
+            self("unset multiplot")
         
         sub.run(g_cmd, stderr=sub.STDOUT, input=b"\n".join(self.commands),
                 check=True)
         
     def __del__(self):
+        self.close()
         
-        if self.plot_cmds:
-            self.end_plot()
+        for tempfile in self.temp_names:
+            remove(tempfile)
 
-        if self.debug:
-            print("\n".join("gnuplot> " + cmd.decode() for cmd in self.commands if not isinstance(cmd, bytes)))
-        
-        if not self.is_exec:
-            if self.is_persist:
-                g_cmd = ["gnuplot", "--persist"]
-            else:
-                g_cmd = "gnuplot"
-            
-            if self.is_multi:
-                self.commands.append("unset multiplot".encode())
-            
-            sub.run(g_cmd, stderr=sub.STDOUT, input=b"\n".join(self.commands),
-                    check=True)
+
+class Plotd(object):
+    def __init__(self, data, command):
+        self.data = data
+        self.command = command
+    
         
 #-------------------------------------------------------------------
 # Convenience functions
@@ -491,7 +564,7 @@ def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
     if isinstance(arr_type, list):
         # convert list to string
         temp = [" ".join(str(elem) for elem in elems) for elems in zip(*inarray)]
-        temp.append("e".encode())
+        temp.append("e")
         
         array = temp
         del temp

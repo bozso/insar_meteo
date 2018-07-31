@@ -27,15 +27,9 @@ inc_dirs = ["/home/istvan/progs/pybind11/include"]
 flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
-#ext_modules = [
-    #Extension(name="insar_aux", sources=["insar_auxmodule.cpp"],
-              #define_macros=macros, include_dirs=inc_dirs,
-              #extra_compile_args=["-std=c++11"])
-#]
-
 ext_modules = [
     Extension(name="insar_aux", sources=["insar_auxmodule.c"],
-              define_macros=macros, extra_compile_args=["-std=c99", "-save-temps"])
+              define_macros=macros, extra_compile_args=["-std=c99"])
 ]
 
 def main():

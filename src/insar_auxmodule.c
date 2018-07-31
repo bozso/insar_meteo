@@ -487,6 +487,8 @@ init_module(insar_aux, "INSAR_AUX",
             pymeth_noargs(test),
             pymeth_varargs(azi_inc));
 
+// init_module expands into this, without the do { ... } while(0)
+
 #if 0
 do {
     static PyMethodDef insar_aux_methods[] = {
@@ -531,5 +533,3 @@ do {
 } while(0)
 
 #endif
-
-

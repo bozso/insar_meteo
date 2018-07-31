@@ -61,7 +61,7 @@ static int extension_clear(PyObject *m)
 #define init_module(module_name, module_doc, ...)\
     static PyMethodDef module_name ## _methods[] = {\
         __VA_ARGS__,\
-        {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
+        {"_error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
         {NULL, NULL, 0, NULL}\
     };\
     \
@@ -207,7 +207,7 @@ do {\
 #define pymeth_varargs(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_VARARGS, fun_name ## __doc__}
 
-#define pymeth_keywrods(fun_name) \
+#define pymeth_keywords(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_VARARGS | METH_KEYWORDS, \
  fun_name ## __doc__}
 

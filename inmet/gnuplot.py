@@ -13,10 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+from builtins import str
+
 import subprocess as sub
 import os.path as pth
 from math import ceil, sqrt
-from builtins import str
+import numpy as np
 
 class Gnuplot(object):
     def __init__(self, out=None, persist=False, debug=False, **kwargs):
@@ -53,8 +56,8 @@ class Gnuplot(object):
             del temp
         else:
             self.commands.append("{}".format(command).encode())
-
-    def plot(self, data, pt_type=None, pt_size=1.0, line_type=None,
+    
+    def data(self, data, pt_type=None, pt_size=1.0, line_type=None,
              line_width=1.0, linestyle=None, rgb=None, matrix=None,
              title=None, binary=None, array=None, endian="default",
              vith=None, **kwargs):
@@ -64,8 +67,8 @@ class Gnuplot(object):
         
         Parameters
         ----------
-        data : str
-            Path to data file.
+        data : str or array_like
+            Path to data file or numpy array.
         pt_type : str, optional
             The symbol used to plot (x,y) data pairs. Default is "circ" (filled
             circles). Selectable values:
@@ -95,7 +98,7 @@ class Gnuplot(object):
         --------
         
         >>> from gnuplot import Gnuplot
-        >>> g = Gnuplot(is_persist=True)
+        >>> g = Gnuplot(persist=True)
         >>> g.plot("data1.txt", title="Example plot 1")
         >>> g.plot("data2.txt", title="Example plot 2")
         >>> del g
@@ -132,20 +135,31 @@ class Gnuplot(object):
             "teal": 5,
         }
         
-        if not isinstance(data, str) and not pth.isfile(data):
-            raise ValueError("data should be a string path to a data file!")
-        
-        text = "'{}'".format(data)
-        
-        if binary is not None and not isinstance(binary, bool):
-            if array is not None:
-                text += " binary array={} format='{}' "\
-                        "endian={}".format(array, binary, endian)
-            else:
-                text += " binary format='{}' endian={}".format(binary, endian)
-        elif binary:
-            text += " binary"
-        
+        if isinstance(data, str):
+            text = "'{}'".format(data)
+
+            if binary is not None and not isinstance(binary, bool):
+                if array is not None:
+                    text += " binary array={} format='{}' "\
+                            "endian={}".format(array, binary, endian)
+                else:
+                    text += " binary format='{}' endian={}".format(binary, endian)
+            elif binary:
+                text += " binary"
+            
+            array = None
+            
+        else:
+            try:
+                data = np.array(data)
+            except:
+                raise ValueError("data should be a string path to a data file "
+                                 "or numpy array!")
+
+            text = "'-'" + arr_bin(data)
+            
+            array = data.tobytes()
+
         text += " " + " ".join(["{} {}".format(key, kwargs[key])
                                for key in add_keys if key in keys])
         
@@ -168,11 +182,14 @@ class Gnuplot(object):
         else:
             text += " notitle"
             
-        self.plot_cmds.append(text)
+        self.plot_cmds.append((text, array))
 
     def end_plot(self):
         self.commands.append(b"plot " + (", ".join(text
-                             for text in self.plot_cmds)).encode())
+                             for text, _ in self.plot_cmds)).encode())
+        self.commands.append(b"".join(array for _, array in self.plot_cmds
+                                            if array is not None))
+        
         self.plot_cmds = []
     
     # ***********
@@ -353,8 +370,7 @@ class Gnuplot(object):
             pass
 
         if self.plot_cmds:
-            self.commands.append(b"plot " + (", ".join(text
-                                 for text in self.plot_cmds)).encode())
+            self.end_plot()
         
         self.is_exec = True
         
@@ -372,11 +388,10 @@ class Gnuplot(object):
     def __del__(self):
         
         if self.plot_cmds:
-            self.commands.append(b"plot " + (", ".join(text
-                                 for text in self.plot_cmds)).encode())
+            self.end_plot()
 
         if self.debug:
-            print((b"\n".join(self.commands)).decode())
+            print("\n".join("gnuplot> " + cmd.decode() for cmd in self.commands if not isinstance(cmd, bytes)))
         
         if not self.is_exec:
             if self.is_persist:
@@ -395,16 +410,16 @@ class Gnuplot(object):
 #-------------------------------------------------------------------
 
 def arr_bin(array, image=False):
-    
-    array = np.array(array)
-    
+
     fmt_dict = {
         np.dtype("float64"): "%float64",
     }
-
-    fmt = array.shape[1] * fmt_dict[array.dtype]
     
-    return "binary record={} format='{}'".format(array.shape[0], fmt)
+    if array.ndim == 1:
+        return "binary format='{}'".format(len(array) * fmt_dict[array.dtype])
+    elif array.ndim == 2:
+        fmt = array.shape[1] * fmt_dict[array.dtype]
+        return "binary record={} format='{}'".format(array.shape[0], fmt)
 
 def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
              line_width=1.0, linestyle=None, rgb=None, matrix=None, title=None,

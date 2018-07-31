@@ -437,11 +437,11 @@ py_ptr asc_dsc_select(py_keywords)
     
     char * keywords[] = {"asc", "dsc", "max_sep", NULL};
     
-    pyfun_parse_keywords(keywords, "OO|d:asc_dsc_select", &in_arr1, &in_arr2,
-                                                          &max_sep);
+    pyfun_parse_keywords(keywords, "OO|d:asc_dsc_select",
+                         &in_arr1, &in_arr2, &max_sep);
     
-    max_sep /= R_earth;
-    max_sep_deg = max_sep * max_sep * RAD2DEG * RAD2DEG;
+    max_sep_deg = max_sep / R_earth;
+    max_sep_deg = max_sep_deg * max_sep_deg * RAD2DEG * RAD2DEG;
 
     println("Maximum separation: %6.3lf meters => approx. %E degrees",
             max_sep, max_sep_deg);
@@ -485,7 +485,8 @@ fail:
 
 init_module(insar_aux, "INSAR_AUX",
             pymeth_noargs(test),
-            pymeth_varargs(azi_inc));
+            pymeth_varargs(azi_inc),
+            pymeth_keywords(asc_dsc_select));
 
 // init_module expands into this, without the do { ... } while(0)
 

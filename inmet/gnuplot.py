@@ -53,7 +53,8 @@ _line_type_dict = {
 }
 
 class Gnuplot(object):
-    def __init__(self, out=None, persist=False, debug=False, **kwargs):
+    def __init__(self, out=None, persist=False, debug=False, silent=False,
+                 **kwargs):
 
         term = str(kwargs.get("term", "wxt"))
         font = str(kwargs.get("font", "Verdena"))
@@ -77,6 +78,8 @@ class Gnuplot(object):
         self.multi = False
         self.closed = False
         self.debug = debug
+        self.silent = silent
+        self.plot_items = []
         
         if out:
             self("set out '{}'".format(out))
@@ -93,7 +96,6 @@ class Gnuplot(object):
             self.process.close()
             self.process = None
 
-
     def __call__(self, command):
 
         if self.debug:
@@ -101,184 +103,41 @@ class Gnuplot(object):
         
         self.write(command + "\n")
         self.flush()        
-        
-    def xydata(self, x, y, pt_type=None, pt_size=1.0, line_type=None,
-               line_width=1.0, linestyle=None, rgb=None, title=None,
-               temp=False, binary=False):
-        
-        if not temp and binary:
-            raise OptionError("Inline binary format is not supported!")
-        
-        try:
-            x = np.array(x)
-            y = np.array(y)
-        except:
-            raise ValueError("x and y should be a convertible to numpy array!")
-        
-        data = np.stack((x,y), axis=-1)
-        
-        if binary:
-            content = data.tobytes()
-        else:
-            content = np2str(data)
-        
-        if binary:
-            mode = "wb"
-        else:
-            mode = "w"
-        
-        # based on gnuplot-py
-        if temp:
-            if hasattr(tempfile, 'mkstemp'):
-                # Use the new secure method of creating temporary files:
-                fd, filename, = tempfile.mkstemp(text=True)
-                f = fdopen(fd, mode)
-            else:
-                # for backwards compatibility to pre-2.3:
-                filename = tempfile.mktemp()
-                f = open(filename, mode)
-
-            f.write(content)
-            f.close()
-            
-            tempname = filename
-            
-            text = "'{}' ".format(filename)
-            array = None
-        else:
-            text = "'-' "
-            array = content
-            tempname = None
-        
-        if binary:
-            text += arr_bin(data)
-        
-        if linestyle is not None:
-            text += " with linestyle {}".format(linestyle)
-        elif pt_type is not None:
-            text += " with points pt {} ps {}"\
-                    .format(_pt_type_dict[pt_type], pt_size)
-        elif line_type is not None:
-            text += " with lines lt {} lw {}"\
-                    .format(_line_type_dict[line_type], line_width)
-        elif rgb is not None:
-            text += " with lines lt {} lw {}".format(rgb, line_width)
-
-        if title is not None:
-            text += " title '{}'".format(title)
-        else:
-            text += " notitle"
-
-        return PlotDescription(array, text, tempname)
     
-    def file(self, data, pt_type=None, pt_size=1.0, line_type=None,
-             line_width=1.0, linestyle=None, rgb=None, matrix=None,
-             title=None, binary=None, array=None, endian="default",
-             vith=None, **kwargs):
-        """
-        Sets the text to be used for the 'plot' command of Gnuplot for
-        plotting (x,y) data pairs of a file.
+    def refresh(self):
+        plot_cmd = self.plot_cmd
+        plot_objects = self.plot_items
         
-        Parameters
-        ----------
-        data : str or array_like
-            Path to data file or numpy array.
-        pt_type : str, optional
-            The symbol used to plot (x,y) data pairs. Default is "circ" (filled
-            circles). Selectable values:
-                - "circ": filled circles
-        pt_size : float, optional
-            Size of the plotted symbols. Default value 1.0 .
-        line_type : str, optional
-            The line type used to plot (x,y) data pairs. Default is "circ"
-            (filled circles). Selectable values:
-                - "circ": filled circles
-        line_width : float, optional
-            Width of the plotted lines. Default value 1.0 .
-        line_style : int, optional
-            Selects a previously defined linestyle for plotting the (x,y) data
-            pairs. You can define linestyle with gnuplot.style .
-            Default is None.
-        title : str, optional
-            Title of the plotted datapoints. None (= no title given)
-            by default.
-        **kwargs
-            Additional arguments: index, every, using, smooth, axes.
-            See Gnuplot docuemntation for the descritpion of these
-            parameters.
-        
-        Returns
-        -------
-        cmd: str
-        
-        Examples
-        --------
-        
-        >>> from gnuplot import Gnuplot
-        >>> g = Gnuplot(persist=True)
-        >>> g.plot("data1.txt", title="Example plot 1")
-        >>> g.plot("data2.txt", title="Example plot 2")
-        >>> del g
-        
-        """
-        
-        add_keys = ["index", "every", "using", "smooth", "axes"]
-        keys = kwargs.keys()    
-        
-        if not isinstance(data, str) and not pth.isfile(data):
-            raise ValueError("data should be a string path to a data file!")
-        
-        text = "'{}'".format(data)
-
-        if binary is not None and not isinstance(binary, bool):
-            if array is not None:
-                text += " binary array={} format='{}' "\
-                        "endian={}".format(array, binary, endian)
-            else:
-                text += " binary format='{}' endian={}"\
-                        .format(binary, endian)
-        elif binary:
-            text += " binary"
-        
-        array = None
-            
-        text += " " + " ".join(["{} {}".format(key, kwargs[key])
-                               for key in add_keys if key in keys])
-        
-        if linestyle is not None:
-            text += " with linestyle {}".format(linestyle)
-        elif pt_type is not None:
-            text += " with points pt {} ps {}"\
-                    .format(_pt_type_dict[pt_type], pt_size)
-        elif line_type is not None:
-            text += " with lines lt {} lw {}"\
-                    .format(_line_type_dict[line_type], line_width)
-        elif rgb is not None:
-            text += " with lines lt {} lw {}".format(rgb, line_width)
-
-        if vith is not None:        
-            text += " {}".format(vith)
-            
-        if title is not None:
-            text += " title '{}'".format(title)
-        else:
-            text += " notitle"
-            
-        return PlotDescription(array, text)
-
-    def plot(self, *plot_objects):
-        
-        plot_cmd = ", ".join(plot.command for plot in plot_objects)
+        plot_cmds = ", ".join(plot.command for plot in plot_objects)
         
         if self.debug:
-            stderr.write("gnuplot> %s\n".format(command))
+            stderr.write("gnuplot> {} {}\n".format(plot_cmd, plot_cmds))
 
-
-        self.write("plot " + plot_cmd + "\n")
-        self.write("".join(plot.data for plot in plot_objects
-                                     if plot.data is not None) + "\n")
+        self.write(plot_cmd + " " + plot_cmds + "\n")
+        
+        data = tuple(plot.data for plot in plot_objects if plot.data is not None)
+        
+        if data:
+            self.write("e".join(data) + "\ne\n")
         
         self.flush()
+        
+    
+    def plot(self, *plot_objects):
+        
+        self.plot_items = plot_objects
+        self.plot_cmd = "plot"
+        
+        if not self.silent:
+            self.refresh()
+
+    def splot(self, *plot_objects):
+        
+        self.plot_items = plot_objects
+        self.plot_cmd = "splot"
+        
+        if not self.silent:
+            self.refresh()
     
     # ***********
     # * SETTERS *
@@ -317,7 +176,7 @@ class Gnuplot(object):
                 self(fmt.format(key, value))
     
     def multiplot(self, nplot, title="", nrows=None, order="rowsfirst",
-                  portrait=False, **kwargs):
+                  portrait=False):
 
         if nrows is None:
             nrows = ceil(sqrt(nplot) - 1)
@@ -446,12 +305,198 @@ class Gnuplot(object):
 
     def replot(self):
         self("replot")
+    
+    def save(self, outfile, term="pngcairo", font="Verdena", fontsize=12,
+             enhanced=False):
+        
+        if enhanced:
+            term += " enhanced"
+        
+        self("set term {} font '{},{}'".format(term, font, fontsize))
+        self("set output '{}'".format(outfile))
+        
+        self.refresh()
+        
+        self("set term wxt")
+        self("set output")
 
     def __del__(self):
         if self.multi:
             self("unset multiplot")
-        print("Close gnuplot.")
+        
         self.close()
+
+def xyzdata(x, y, z=None, pt_type=None, pt_size=1.0, line_type=None,
+            line_width=1.0, linestyle=None, rgb=None, title=None, temp=False,
+            binary=False):
+    
+    threeD = z is not None
+    
+    if not temp and binary:
+        raise OptionError("Inline binary format is not supported!")
+    
+    try:
+        x = np.array(x)
+        y = np.array(y)
+        
+        if threeD:
+            z = np.array(z)
+    except:
+        raise ValueError("x and y should be a convertible to numpy array!")
+    
+    if threeD:
+        data = np.stack((x,y,z), axis=-1)
+    else:
+        data = np.stack((x,y), axis=-1)
+    
+    if binary:
+        content = data.tobytes()
+    else:
+        content = np2str(data)
+    
+    if binary:
+        mode = "wb"
+    else:
+        mode = "w"
+    
+    # based on gnuplot-py
+    if temp:
+        if hasattr(tempfile, 'mkstemp'):
+            # Use the new secure method of creating temporary files:
+            fd, filename, = tempfile.mkstemp(text=True)
+            f = fdopen(fd, mode)
+        else:
+            # for backwards compatibility to pre-2.3:
+            filename = tempfile.mktemp()
+            f = open(filename, mode)
+
+        f.write(content)
+        f.close()
+        
+        tempname = filename
+        
+        text = "'{}'".format(filename)
+        array = None
+    else:
+        text = "'-'"
+        array = content
+        tempname = None
+    
+    if binary:
+        text += arr_bin(data)
+    
+    if linestyle is not None:
+        text += " with linestyle {}".format(linestyle)
+    elif pt_type is not None:
+        text += " with points pt {} ps {}"\
+                .format(_pt_type_dict[pt_type], pt_size)
+    elif line_type is not None:
+        text += " with lines lt {} lw {}"\
+                .format(_line_type_dict[line_type], line_width)
+    elif rgb is not None:
+        text += " with lines lt {} lw {}".format(rgb, line_width)
+
+    if title is not None:
+        text += " title '{}'".format(title)
+    else:
+        text += " notitle"
+
+    return PlotDescription(array, text, tempname)
+
+def file(self, data, pt_type=None, pt_size=1.0, line_type=None,
+         line_width=1.0, linestyle=None, rgb=None, matrix=None,
+         title=None, binary=None, array=None, endian="default",
+         vith=None, **kwargs):
+    """
+    Sets the text to be used for the 'plot' command of Gnuplot for
+    plotting (x,y) data pairs of a file.
+    
+    Parameters
+    ----------
+    data : str
+        Path to data file.
+    pt_type : str, optional
+        The symbol used to plot (x,y) data pairs. Default is "circ" (filled
+        circles). Selectable values:
+            - "circ": filled circles
+    pt_size : float, optional
+        Size of the plotted symbols. Default value 1.0 .
+    line_type : str, optional
+        The line type used to plot (x,y) data pairs. Default is "circ"
+        (filled circles). Selectable values:
+            - "circ": filled circles
+    line_width : float, optional
+        Width of the plotted lines. Default value 1.0 .
+    line_style : int, optional
+        Selects a previously defined linestyle for plotting the (x,y) data
+        pairs. You can define linestyle with gnuplot.style .
+        Default is None.
+    title : str, optional
+        Title of the plotted datapoints. None (= no title given)
+        by default.
+    **kwargs
+        Additional arguments: index, every, using, smooth, axes.
+        See Gnuplot docuemntation for the descritpion of these
+        parameters.
+    
+    Returns
+    -------
+    cmd: str
+    
+    Examples
+    --------
+    
+    >>> from gnuplot import Gnuplot
+    >>> g = Gnuplot(persist=True)
+    >>> g.plot("data1.txt", title="Example plot 1")
+    >>> g.plot("data2.txt", title="Example plot 2")
+    >>> del g
+    
+    """
+    
+    add_keys = ["index", "every", "using", "smooth", "axes"]
+    keys = kwargs.keys()    
+    
+    if not isinstance(data, str) and not pth.isfile(data):
+        raise ValueError("data should be a string path to a data file!")
+    
+    text = "'{}'".format(data)
+
+    if binary is not None and not isinstance(binary, bool):
+        if array is not None:
+            text += " binary array={} format='{}' "\
+                    "endian={}".format(array, binary, endian)
+        else:
+            text += " binary format='{}' endian={}"\
+                    .format(binary, endian)
+    elif binary:
+        text += " binary"
+    
+    array = None
+        
+    text += " " + " ".join(["{} {}".format(key, kwargs[key])
+                           for key in add_keys if key in keys])
+    
+    if linestyle is not None:
+        text += " with linestyle {}".format(linestyle)
+    elif pt_type is not None:
+        text += " with points pt {} ps {}"\
+                .format(_pt_type_dict[pt_type], pt_size)
+    elif line_type is not None:
+        text += " with lines lt {} lw {}"\
+                .format(_line_type_dict[line_type], line_width)
+    elif rgb is not None:
+        text += " with lines lt {} lw {}".format(rgb, line_width)
+
+    if vith is not None:        
+        text += " {}".format(vith)
+        
+    if title is not None:
+        text += " title '{}'".format(title)
+    else:
+        text += " notitle"
+        
+    return PlotDescription(array, text)
 
 
 class PlotDescription(object):
@@ -461,10 +506,16 @@ class PlotDescription(object):
         self.tempname = tempname
     
     def __del__(self):
-        print("Delete tempfile.")
         if self.tempname is not None:
             remove(self.tempname)
-        
+    
+    def __str__(self):
+        if self.tempname is None:
+            return "\nData:\n{}\nCommand: {}\n".format(self.data, self.command)
+        else:
+            return "\nData:\n{}\nCommand: {}\nTempfile: {}\n"\
+                  .format(self.data, self.command, self.tempname)
+
 # *************************
 # * Convenience functions *
 # *************************
@@ -476,10 +527,10 @@ def arr_bin(array, image=False):
     }
     
     if array.ndim == 1:
-        return "binary format='{}'".format(len(array) * fmt_dict[array.dtype])
+        return " binary format='{}'".format(len(array) * fmt_dict[array.dtype])
     elif array.ndim == 2:
         fmt = array.shape[1] * fmt_dict[array.dtype]
-        return "binary record={} format='{}'".format(array.shape[0], fmt)
+        return " binary record={} format='{}'".format(array.shape[0], fmt)
 
 def np2str(array):
     arr_str = np.array2string(array).replace("[", "").replace("]", "")

@@ -18,10 +18,12 @@ from builtins import str
 
 import subprocess as sub
 import os.path as pth
-from os import remove, popen
-from math import ceil, sqrt
 import numpy as np
 import tempfile
+
+from os import remove, popen, fdopen
+from math import ceil, sqrt
+from sys import stderr
 
 _pt_type_dict = {
     "dot": 0,
@@ -53,7 +55,7 @@ _line_type_dict = {
 class Gnuplot(object):
     def __init__(self, out=None, persist=False, debug=False, **kwargs):
 
-        term = str(kwargs.get("term", "xterm"))
+        term = str(kwargs.get("term", "wxt"))
         font = str(kwargs.get("font", "Verdena"))
         fontsize = int(kwargs.get("fontsize", 8))
         
@@ -97,20 +99,14 @@ class Gnuplot(object):
         if self.debug:
             stderr.write("gnuplot> {}\n".format(command))
         
-        if type(command) == list:
-            temp = (" ".join(str(elem) for elem in elems)
-                    for elems in zip(*command))
-            command += "\n".join(temp) + "e"
-            del temp
-        
         self.write(command + "\n")
         self.flush()        
         
     def xydata(self, x, y, pt_type=None, pt_size=1.0, line_type=None,
                line_width=1.0, linestyle=None, rgb=None, title=None,
-               tempfile=False, binary=False):
+               temp=False, binary=False):
         
-        if not tempfile and binary:
+        if not temp and binary:
             raise OptionError("Inline binary format is not supported!")
         
         try:
@@ -132,11 +128,11 @@ class Gnuplot(object):
             mode = "w"
         
         # based on gnuplot-py
-        if tempfile:
+        if temp:
             if hasattr(tempfile, 'mkstemp'):
                 # Use the new secure method of creating temporary files:
                 fd, filename, = tempfile.mkstemp(text=True)
-                f = os.fdopen(fd, mode)
+                f = fdopen(fd, mode)
             else:
                 # for backwards compatibility to pre-2.3:
                 filename = tempfile.mktemp()
@@ -147,8 +143,6 @@ class Gnuplot(object):
             
             tempname = filename
             
-            self.temp_names.append(filename)
-        
             text = "'{}' ".format(filename)
             array = None
         else:
@@ -175,7 +169,7 @@ class Gnuplot(object):
         else:
             text += " notitle"
 
-        return Plotd(array, text, tempname)
+        return PlotDescription(array, text, tempname)
     
     def file(self, data, pt_type=None, pt_size=1.0, line_type=None,
              line_width=1.0, linestyle=None, rgb=None, matrix=None,
@@ -270,7 +264,7 @@ class Gnuplot(object):
         else:
             text += " notitle"
             
-        return Plot(array, text)
+        return PlotDescription(array, text)
 
     def plot(self, *plot_objects):
         
@@ -342,16 +336,14 @@ class Gnuplot(object):
             ncols = tmp
             del tmp
         
-        self.is_multi = True
+        self.multi = True
         
-        self("set multiplot layout {},{} {} title '{}'"
-                             .format(nrows, ncols, order, title)
-                             )
+        self("set multiplot layout {},{} {} title '{}'" .format(nrows, ncols,
+                                                                order, title))
     
     def colorbar(self, cbrange=None, cbtics=None, cbformat=None):
         if cbrange is not None:
-            self("set cbrange [{}:{}]"
-                                 .format(cbrange[0], cbrange[1]))
+            self("set cbrange [{}:{}]" .format(cbrange[0], cbrange[1]))
         
         if cbtics is not None:
             self("set cbtics {}".format(cbtics))
@@ -361,7 +353,7 @@ class Gnuplot(object):
         
     def unset_multi(self):
         self("unset multiplot")
-        self.is_multi = False
+        self.multi = False
     
     def reset(self):
         self("reset")
@@ -380,8 +372,7 @@ class Gnuplot(object):
         Parameters
         ----------
         """
-        self("set style line {} {}"
-                             .format(stylenum, styledef))
+        self("set style line {} {}".format(stylenum, styledef))
     
     def autoscale(self):
         self("set autoscale")
@@ -436,16 +427,13 @@ class Gnuplot(object):
 
     def ranges(self, x=None, y=None, z=None):
         if x is not None and len(x) == 2:
-            self("set xrange [{}:{}]"
-                                  .format(x[0], x[1]))
+            self("set xrange [{}:{}]".format(x[0], x[1]))
 
         if y is not None and len(y) == 2:
-            self("set yrange [{}:{}]"
-                                  .format(y[0], y[1]))
+            self("set yrange [{}:{}]".format(y[0], y[1]))
 
         if z is not None and len(z) == 2:
-            self("set zrange [{}:{}]"
-                                  .format(z[0], z[1]))
+            self("set zrange [{}:{}]".format(z[0], z[1]))
 
     def xrange(self, xmin, xmax):
         self("set xrange [{}:{}]".format(xmin, xmax))
@@ -459,40 +447,21 @@ class Gnuplot(object):
     def replot(self):
         self("replot")
 
-    def execute(self):
-        if self.is_exec:
-            pass
-
-        if self.plot_cmds:
-            self.end_plot()
-        
-        self.is_exec = True
-        
-        if self.persist:
-            g_cmd = ["gnuplot", "--persist"]
-        else:
-            g_cmd = "gnuplot"
-        
-        if self.is_multi:
-            self("unset multiplot")
-        
-        sub.run(g_cmd, stderr=sub.STDOUT, input=b"\n".join(self.commands),
-                check=True)
-        
     def __del__(self):
+        if self.multi:
+            self("unset multiplot")
+        print("Close gnuplot.")
         self.close()
-        
-        for tempfile in self.temp_names:
-            remove(tempfile)
 
 
-class Plotd(object):
+class PlotDescription(object):
     def __init__(self, data, command, tempname=None):
         self.data = data
         self.command = command
         self.tempname = tempname
     
     def __del__(self):
+        print("Delete tempfile.")
         if self.tempname is not None:
             remove(self.tempname)
         
@@ -512,6 +481,10 @@ def arr_bin(array, image=False):
         fmt = array.shape[1] * fmt_dict[array.dtype]
         return "binary record={} format='{}'".format(array.shape[0], fmt)
 
+def np2str(array):
+    arr_str = np.array2string(array).replace("[", "").replace("]", "")
+    
+    return "\n".join(line.strip() for line in arr_str.split("\n"))
 
 def parse_range(*args):
     if len(args) == 1:

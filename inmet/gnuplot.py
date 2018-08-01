@@ -75,9 +75,6 @@ class Gnuplot(object):
         self.multi = False
         self.closed = False
         self.debug = debug
-        self.temp_names = []
-        
-        return
         
         if out:
             self("set out '{}'".format(out))
@@ -98,7 +95,7 @@ class Gnuplot(object):
     def __call__(self, command):
 
         if self.debug:
-            stderr.write("gnuplot> %s\n".format(command))
+            stderr.write("gnuplot> {}\n".format(command))
         
         if type(command) == list:
             temp = (" ".join(str(elem) for elem in elems)
@@ -109,10 +106,13 @@ class Gnuplot(object):
         self.write(command + "\n")
         self.flush()        
         
-    def data(self, x, y, pt_type=None, pt_size=1.0, line_type=None,
-             line_width=1.0, linestyle=None, rgb=None, title=None,
-             tempfile=False):
-
+    def xydata(self, x, y, pt_type=None, pt_size=1.0, line_type=None,
+               line_width=1.0, linestyle=None, rgb=None, title=None,
+               tempfile=False, binary=False):
+        
+        if not tempfile and binary:
+            raise OptionError("Inline binary format is not supported!")
+        
         try:
             x = np.array(x)
             y = np.array(y)
@@ -121,7 +121,15 @@ class Gnuplot(object):
         
         data = np.stack((x,y), axis=-1)
         
-        content = data.tobytes()
+        if binary:
+            content = data.tobytes()
+        else:
+            content = np2str(data)
+        
+        if binary:
+            mode = "wb"
+        else:
+            mode = "w"
         
         # based on gnuplot-py
         if tempfile:
@@ -137,14 +145,20 @@ class Gnuplot(object):
             f.write(content)
             f.close()
             
+            tempname = filename
+            
             self.temp_names.append(filename)
         
-            text = "'{}' ".format(filename) + arr_bin(data)
+            text = "'{}' ".format(filename)
             array = None
         else:
-            text = "'-' " + arr_bin(data)
+            text = "'-' "
             array = content
-
+            tempname = None
+        
+        if binary:
+            text += arr_bin(data)
+        
         if linestyle is not None:
             text += " with linestyle {}".format(linestyle)
         elif pt_type is not None:
@@ -161,7 +175,7 @@ class Gnuplot(object):
         else:
             text += " notitle"
 
-        return Plotd(array, text)
+        return Plotd(array, text, tempname)
     
     def file(self, data, pt_type=None, pt_size=1.0, line_type=None,
              line_width=1.0, linestyle=None, rgb=None, matrix=None,
@@ -473,14 +487,18 @@ class Gnuplot(object):
 
 
 class Plotd(object):
-    def __init__(self, data, command):
+    def __init__(self, data, command, tempname=None):
         self.data = data
         self.command = command
+        self.tempname = tempname
     
+    def __del__(self):
+        if self.tempname is not None:
+            remove(self.tempname)
         
-#-------------------------------------------------------------------
-# Convenience functions
-#-------------------------------------------------------------------
+# *************************
+# * Convenience functions *
+# *************************
 
 def arr_bin(array, image=False):
 
@@ -494,142 +512,21 @@ def arr_bin(array, image=False):
         fmt = array.shape[1] * fmt_dict[array.dtype]
         return "binary record={} format='{}'".format(array.shape[0], fmt)
 
-def arr_plot(inarray, pt_type="circ", pt_size=1.0, line_type=None,
-             line_width=1.0, linestyle=None, rgb=None, matrix=None, title=None,
-             **kwargs):
-    """
-    Sets the text to be used for the 'plot' command of gnuplot for
-    plotting (x,y) data pairs of a numpy array.
-    
-    Parameters
-    ----------
-    inarray : array_like or list or string
-        Input data pairs of the plot. If it is a list, the list elements should
-        contain the same number of elements.
-    pt_type : str, optional
-        The symbol used to plot (x,y) data pairs. Default is "circ" (filled
-        circles). Selectable values:
-            - "circ": filled circles
-    pt_size : float, optional
-        Size of the plotted symbols. Default value 1.0 .
-    line_type : str, optional
-        The line type used to plot (x,y) data pairs. Default is "circ" (filled
-        circles). Selectable values:
-            - "circ": filled circles
-    line_width : float, optional
-        Width of the plotted lines. Default value 1.0 .
-    line_style : int, optional
-        Selects a previously defined linestyle for plotting the (x,y) data
-        pairs. You can define linestyle with gnuplot.style . Default is None.
-    title : str, optional
-        Title of the plotted datapoints. None (= no title given) by default.
-    **kwargs
-        Additional arguments: index, every, using, smooth, axes. See Gnuplot
-        docuemntation for the descritpion of these parameters.
-    
-    
-    Returns
-    -------
-    
-    Examples
-    --------
-    
-    >>> from gnuplot import Gnuplot, arr_plot
-    >>> import numpy as np
-    >>> g = Gnuplot(is_persist=True)
-    >>> array1 = np.array([1, 2], [3, 4]])
-    >>> array2 = [[4, 5, 6], [8, 11, 13]]
-    >>> g.plot(arr_plot(array1, title="Example plot 1"),
-               arr_plot(array2, title="Example plot 2", ))
-    
-    """
-    add_keys = ["index", "every", "using", "smooth", "axes"]
-    keys = kwargs.keys()
-
-    fmt_dict = {
-        np.dtype("float64"): "%float64",
-    }
-
-    pt_type_dict = {
-        "circ": 7
-    }
-
-    line_type_dict = {
-        "circ": 7
-    }
-        
-    arr_type = type(array)
-    text = "'-' "
-    
-    if isinstance(arr_type, list):
-        # convert list to string
-        temp = [" ".join(str(elem) for elem in elems) for elems in zip(*inarray)]
-        temp.append("e")
-        
-        array = temp
-        del temp
-    else:
-        # try to convert it into a numpy array
-        array = np.array(inarray)
-    
-        if matrix is not None:
-            binary = "binary matrix"
-        else:
-            binary = "binary record={} format='{}'".format(array.shape[0],
-                      array.shape[1] * fmt_dict[array.dtype])
-    
-        text += binary
-    
-    add_kwargs = " ".join(["{} {}".format(key, kwargs[key])
-                           for key in add_keys if key in keys])
-    
-    text += " {}".format(add_kwargs)
-    
-    if linestyle is not None:
-        text += " with linestyle {}".format(linestyle)
-    else:
-        if pt_type is not None:
-            text += " with points pt {} ps {}".format(pt_type_dict[pt_type],
-                                                      pt_size)
-        elif line_type is not None:
-            text += "with lines lt {} lw {}".format(line_type_dict[line_type],
-                                                    line_width)
-        elif rgb is not None:
-            text += "with lines lt {} lw {}".format(rgb, line_width)
-        else:
-            raise Exception("Options line_type and rgb are mutually exclusive.")
-        
-    if title is not None:
-        text += " title '{}'".format(title)
-    else:
-        text += " notitle"
-    
-    return array, text
-
-def list2str(self, *command):
-    """
-    Convert multiple "arrays" stored in separate lists
-    to string format, for multiple plotting.
-    
-    Parameters
-    ----------
-    command : list
-        Contains iterable objects with the same number of elements.
-    
-    Returns
-    -------
-    str
-        Stringified version of lists.
-    """
-
-    temp = [" ".join(str(elem) for elem in elems)
-            for elems in zip(command)]
-    temp.append("e")
-    
-    return "\n".join(temp)
 
 def parse_range(*args):
     if len(args) == 1:
         return str(args[0])
     else:
         return "({})".format(", ".join(str(elem) for elem in args))
+
+# **************
+# * Exceptions *
+# **************
+
+class OptionError(Exception):
+    """Raised for unrecognized or wrong option(s)"""
+    pass
+
+class DataError(Exception):
+    """Raised for data in the wrong format"""
+    pass

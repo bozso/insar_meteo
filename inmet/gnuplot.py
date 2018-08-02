@@ -198,10 +198,12 @@ class Gnuplot(object):
         array, text = self._convert_data(grid, grid=True, **kwargs)
         
         return PlotDescription(array, text)
-
+    
+    # TODO: rewrite docs
     def infile(self, data, matrix=None, binary=None, array=None,
                endian="default", **kwargs):
         """
+        DOCUMENTATION NEEDS TO BE REWORKED!
         Sets the text to be used for the 'plot' command of Gnuplot for
         plotting (x,y) data pairs of a file.
         
@@ -461,17 +463,15 @@ class Gnuplot(object):
     def replot(self):
         self("replot")
 
-    def save(self, outfile):
+    def save(self, outfile, **kwargs):
         
+        # terminal and output cannot be changed in multiplotting
+        # if you want to save a multiplot use the output function
+        # before defining multiplot
         if self.multi:
             self.unset_multi()
         
         self.term(**kwargs)
-        
-        if enhanced:
-            term += " enhanced"
-        
-        self("set term {} font '{},{}'".format(term, font, fontsize))
         self("set output '{}'".format(outfile))
         
         self.refresh()

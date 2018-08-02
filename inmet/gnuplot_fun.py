@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from inmet.gnuplot import Gnuplot
+from inmet.gnuplot import Gnuplot, linedef
 
-def plot_scatter(data, ncols, out, title=None, idx=None, titles=None,
+def plot_scatter(data, ncols, out=None, title=None, idx=None, titles=None,
                  palette="rgb", endian="default", portrait=False):
     
     binary = "%double" * (ncols + 2)
@@ -27,8 +27,14 @@ def plot_scatter(data, ncols, out, title=None, idx=None, titles=None,
     if titles is None:
         titles = range(1, ncols + 1)
     
-    gpt = Gnuplot(silent=1)
-    gpt.margins(rmargin=0.1, screen=True)
+    gpt = Gnuplot()
+    
+    # output has to be set before multiplot
+    if out is not None:
+        gpt.output(out)
+    
+    #gpt.margins(rmargin=0.1, screen=True)
+    
     gpt.multiplot(len(idx), title=title, portrait=portrait)
     
     # gpt.binary("format='{}' endian={}".format(binary, endian))
@@ -38,15 +44,12 @@ def plot_scatter(data, ncols, out, title=None, idx=None, titles=None,
     # gpt.palette(palette)
     # gpt.colorbar(cbfomat="%4.2f")
     
-    gpt.unset("colorbox")
+    #gpt.unset("colorbox")
     
     for ii in idx:
         inp_format = "1:2:{}".format(ii + 3)
         
         plotd = gpt.infile(data, binary=binary, endian=endian,
-                           using=inp_format,  vith=linedef(pt_type="dot")
+                           using=inp_format, vith=linedef(pt_type="dot")
                            + " palette")
-        
         gpt.plot(plotd)
-    
-    gpt.save(out)

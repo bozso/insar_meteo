@@ -58,9 +58,6 @@ class Gnuplot(object):
         self.plot_items = []
         self.temps = []
         
-        if out:
-            self("set out '{}'".format(out))
-
         term_cmd = "set term {} font '{},{}'".format(term, font, fontsize)
 
         if size is not None:
@@ -99,7 +96,7 @@ class Gnuplot(object):
             self.write("e".join(data) + "\ne\n")
         
         self.flush()
-
+        
     def _convert_data(self, data, grid=False, **kwargs):
         
         binary = bool(kwargs.get("binary", False))
@@ -266,7 +263,7 @@ class Gnuplot(object):
         elif binary:
             text += " binary"
         
-        text = _parse_plot_arguments(**kwargs)
+        text += _parse_plot_arguments(**kwargs)
         
         return PlotDescription(None, text)
     
@@ -395,16 +392,24 @@ class Gnuplot(object):
     def timefmt(self, fmt):
         self("set timefmt '{}'".format(fmt))
     
-    def output(self, outfile, term="pngcairo"):
+    def output(self, outfile, **kwargs):
+        self.term(**kwargs)
         self("set out '{}'".format(outfile))
-        self("set term {}".format(term))
 
     def title(self, title):
         self("set title '{}'".format(title))
 
-    def term(self, term="wxt"):
-        self("set term '{}'".format(term))
-
+    def term(self, **kwargs):
+        term     = str(kwargs.get("term", "pngcairo"))
+        font     = str(kwargs.get("font", "Verdena"))
+        fontsize = float(kwargs.get("fontsize", 12))
+        enhanced = bool(kwargs.get("enhanced", False))
+    
+        if enhanced:
+            term += " enhanced"
+        
+        self("set term {} font '{},{}'".format(term, font, fontsize))
+        
     def out(self, out_path):
         self("set out '{}'".format(out_path))
 
@@ -455,9 +460,13 @@ class Gnuplot(object):
 
     def replot(self):
         self("replot")
-    
-    def save(self, outfile, term="pngcairo", font="Verdena", fontsize=12,
-             enhanced=False):
+
+    def save(self, outfile):
+        
+        if self.multi:
+            self.unset_multi()
+        
+        self.term(**kwargs)
         
         if enhanced:
             term += " enhanced"

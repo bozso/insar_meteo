@@ -25,33 +25,6 @@ from os import remove, popen, fdopen
 from math import ceil, sqrt
 from sys import stderr
 
-_pt_type_dict = {
-    "dot": 0,
-    "+": 1,
-    "x": 2,
-    "+x": 3,
-    "empty_square": 4,
-    "filed_square": 5,
-    "empty_circle": 6,
-    "filled_circle": 7,
-    "empty_up_triangle": 8,
-    "filled_up_triangle": 9,
-    "empty_down_triangle": 10,
-    "filled_down_triangle": 11,
-    "empty_rombus": 12,
-    "filled_rombus": 13,
-}
-
-_line_type_dict = {
-    "black": -1,
-    "dashed": 0,
-    "red": 1,
-    "green": 2,
-    "blue": 3,
-    "purple": 4,
-    "teal": 5,
-}
-
 class Gnuplot(object):
     def __init__(self, out=None, persist=False, debug=False, silent=False,
                  **kwargs):
@@ -172,12 +145,15 @@ class Gnuplot(object):
         try:
             data = np.array(arrays).T
         except TypeError:
-            raise ValueError("Input arrays should be convertible to a "
+            raise DataError("Input arrays should be convertible to a "
                              "numpy array!")
+        
+        if data.ndim > 2:
+            raise DataError("Only 1 or 2 dimensional arrays can be plotted!")
         
         array, text = self._convert_data(data, **kwargs)
         
-        text += _parse_line_arguments(**kwargs)
+        text += _parse_plot_arguments(**kwargs)
         
         return PlotDescription(array, text)
     
@@ -186,6 +162,9 @@ class Gnuplot(object):
         _check_kwargs(**kwargs)
 
         data = np.asarray(data, np.float32)
+
+        if data.ndim != 2:
+            raise DataError("Only 2 dimensional arrays can be plotted!")
         
         try:
             (rows, cols) = data.shape
@@ -216,12 +195,14 @@ class Gnuplot(object):
         grid[1:,0] = y
         grid[1:,1:] = data.astype(np.float32)
         
+        text = _parse_plot_arguments(**kwargs)
+        
         array, text = self._convert_data(grid, grid=True, **kwargs)
         
         return PlotDescription(array, text)
 
     def infile(self, data, matrix=None, binary=None, array=None,
-               endian="default", vith=None, **kwargs):
+               endian="default", **kwargs):
         """
         Sets the text to be used for the 'plot' command of Gnuplot for
         plotting (x,y) data pairs of a file.
@@ -269,9 +250,6 @@ class Gnuplot(object):
         
         """
         
-        add_keys = ["index", "every", "using", "smooth", "axes"]
-        keys = kwargs.keys()    
-        
         if not isinstance(data, str) and not pth.isfile(data):
             raise ValueError("data should be a string path to a data file!")
         
@@ -287,10 +265,7 @@ class Gnuplot(object):
         elif binary:
             text += " binary"
         
-        text += " " + " ".join(["{} {}".format(key, kwargs[key])
-                               for key in add_keys if key in keys])
-        
-        text += _parse_line_arguments(**kwargs)
+        text = _parse_plot_arguments(**kwargs)
         
         return PlotDescription(None, text)
     
@@ -544,10 +519,32 @@ def _parse_range(*args):
     else:
         return "({})".format(", ".join(str(elem) for elem in args))
 
-def _parse_line_arguments(**kwargs):
+def _parse_plot_arguments(**kwargs):
     
-    linestyle = kwargs.get("linestyle")
-    line_type = kwargs.get("line_type")
+    with_ = kwargs.get("vith")
+    title = kwargs.get("title")
+    
+    text = ""
+
+    text += " " + " ".join(("{} {}".format(key, value)
+                           for key,value in kwargs.items()
+                           if key in _additional_keys))
+    
+    if with_ is not None:
+        text += " with " + with_
+    
+    if title is not None:
+        text += " title '{}'".format(title)
+    else:
+        text += " notitle"
+    
+    return text
+
+def linedef(**kwargs):
+    errorbars = kwargs.get("errorbars", False)
+    
+    linestyle  = kwargs.get("linestyle")
+    line_type  = kwargs.get("line_type")
     line_width = kwargs.get("line_width", 1.0)
 
     pt_type = kwargs.get("pt_type")
@@ -557,12 +554,69 @@ def _parse_line_arguments(**kwargs):
     title = kwargs.get("title")
     
     text = ""
+
+    is_point = pt_type is not None
+    is_line  = line_type is not None
+    
+    if linestyle is not None:
+        text += "linestyle {}".format(linestyle)
+    
+    elif errorbars:
+        if isinstance(errorbars, bool):
+            text += "errorbars"
+        else:
+            text += "{}errorbars".format(errorbars)
+    
+    elif is_point and is_line:
+        text += "linespoints pt {} ps {} lt {} lw {}"\
+                .format(_pt_type_dict[pt_type], pt_size,
+                        _line_type_dict[line_type], line_width)
+    
+    elif is_point:
+        text += "points pt {} ps {}"\
+                .format(_pt_type_dict[pt_type], pt_size)
+    
+    elif is_line:
+        text += "lines lt {} lw {}"\
+                .format(_line_type_dict[line_type], line_width)
+    
+    elif rgb is not None:
+        text += "lines lt rgb {} lw {}".format(rgb, line_width)
+    
+    return text
+    
+# Old function DO NOT USE THIS
+def _parse_line_arguments(**kwargs):
+    
+    errorbars = kwargs.get("errorbars", False)
+    
+    linestyle  = kwargs.get("linestyle")
+    line_type  = kwargs.get("line_type")
+    line_width = kwargs.get("line_width", 1.0)
+
+    pt_type = kwargs.get("pt_type")
+    pt_size = kwargs.get("pt_size", 1.0)
+    
+    rgb = kwargs.get("rgb")
+    title = kwargs.get("title")
+    
+    text = ""
+
+    text += " " + " ".join(("{} {}".format(key, value)
+                           for key,value in kwargs.items()
+                           if key in _additional_keys))
     
     is_point = pt_type is not None
     is_line  = line_type is not None
     
     if linestyle is not None:
         text += " with linestyle {}".format(linestyle)
+    
+    elif errorbars:
+        if isinstance(errorbars, bool):
+            text += " with errorbars"
+        else:
+            text += " with {}errorbars".format(errorbars)
     
     elif is_point and is_line:
         text += " with linespoints pt {} ps {} lt {} lw {}"\
@@ -578,7 +632,7 @@ def _parse_line_arguments(**kwargs):
                 .format(_line_type_dict[line_type], line_width)
     
     elif rgb is not None:
-        text += " with lines lt {} lw {}".format(rgb, line_width)
+        text += " with lines lt rgb {} lw {}".format(rgb, line_width)
 
     if title is not None:
         text += " title '{}'".format(title)
@@ -604,3 +658,37 @@ class OptionError(Exception):
 class DataError(Exception):
     """Raised for data in the wrong format"""
     pass
+
+
+# ************************
+# * Private dictionaries *
+# ************************
+
+_pt_type_dict = {
+    "dot": 0,
+    "+": 1,
+    "x": 2,
+    "+x": 3,
+    "empty_square": 4,
+    "filed_square": 5,
+    "empty_circle": 6,
+    "filled_circle": 7,
+    "empty_up_triangle": 8,
+    "filled_up_triangle": 9,
+    "empty_down_triangle": 10,
+    "filled_down_triangle": 11,
+    "empty_rombus": 12,
+    "filled_rombus": 13,
+}
+
+_line_type_dict = {
+    "black": -1,
+    "dashed": 0,
+    "red": 1,
+    "green": 2,
+    "blue": 3,
+    "purple": 4,
+    "teal": 5,
+}
+
+_additional_keys = frozenset(["index", "every", "using", "smooth", "axes"])

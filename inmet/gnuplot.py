@@ -74,11 +74,14 @@ class Gnuplot(object):
         
         self.write = self.process.write
         self.flush = self.process.flush
+
         self.persist = persist
-        self.multi = False
-        self.closed = False
         self.debug = debug
         self.silent = silent
+
+        self.multi = False
+        self.closed = False
+
         self.plot_items = []
         self.temps = []
         
@@ -122,29 +125,29 @@ class Gnuplot(object):
             self.write("e".join(data) + "\ne\n")
         
         self.flush()
-        
-    def Data(self, *arrays, temp=False, binary=False, **kwargs):
 
-        if not temp and binary:
-            raise OptionError("Inline binary format is not supported!")
+    def _convert_data(self, data, grid=False, **kwargs):
         
-        try:
-            data = np.array(arrays).T
-        except:
-            raise ValueError("Input arrays should be convertible to a "
-                             "numpy array!")
+        binary = bool(kwargs.get("binary", False))
+        temp   = bool(kwargs.get("temp", False))
         
         if binary:
             content = data.tobytes()
+            mode = "wb"
+            
+            if grid:
+                add = " binary matrix"
+            else:
+                add = arr_bin(data)
         else:
             content = np2str(data)
-        
-        if binary:
-            mode = "wb"
-        else:
             mode = "w"
+            
+            if grid:
+                add = " matrix"
+            else:
+                add = ""
         
-        # based on gnuplot-py
         if temp:
             if hasattr(tempfile, 'mkstemp'):
                 # Use the new secure method of creating temporary files:
@@ -160,21 +163,71 @@ class Gnuplot(object):
             
             self.temps.append(filename)
             
-            text = "'{}'".format(filename)
+            text  = "'{}'".format(filename)
             array = None
         else:
-            text = "'-'"
+            text  = "'-'"
             array = content
         
-        if binary:
-            text += arr_bin(data)
+        return array, text + add
+        
+    def data(self, *arrays, **kwargs):
+        
+        _check_kwargs(**kwargs)
+        
+        try:
+            data = np.array(arrays).T
+        except TypeError:
+            raise ValueError("Input arrays should be convertible to a "
+                             "numpy array!")
+        
+        array, text = self._convert_data(data, **kwargs)
         
         text += _parse_line_arguments(**kwargs)
         
         return PlotDescription(array, text)
     
-    def File(self, data, matrix=None, binary=None, array=None,
-             endian="default", vith=None, **kwargs):
+    def grid_data(self, data, x=None, y=None, **kwargs):
+        
+        _check_kwargs(**kwargs)
+
+        data = np.asarray(data, np.float32)
+        
+        try:
+            (rows, cols) = data.shape
+        except ValueError:
+            raise DataError("data array must be two-dimensional!")
+        
+        if x is None:
+            x = np.arange(cols)
+        else:
+            x = np.array(x, dtype=np.float32)
+            
+            if x.shape != (cols,):
+                raise DataError("x should have number of elements equal to "
+                                "the number of columns of data!")
+
+        if y is None:
+            y = np.arange(rows)
+        else:
+            y = np.array(y, dtype=np.float32)
+            
+            if y.shape != (rows,):
+                raise DataError("y should have number of elements equal to "
+                                "the number of rows of data!")
+            
+        grid = np.zeros((rows + 1, cols + 1), np.float32)
+        grid[0,0] = cols
+        grid[0,1:] = x
+        grid[1:,0] = y
+        grid[1:,1:] = data.astype(np.float32)
+        
+        array, text = self._convert_data(grid, grid=True, **kwargs)
+        
+        return PlotDescription(array, text)
+
+    def infile(self, data, matrix=None, binary=None, array=None,
+               endian="default", vith=None, **kwargs):
         """
         Sets the text to be used for the 'plot' command of Gnuplot for
         plotting (x,y) data pairs of a file.
@@ -240,14 +293,12 @@ class Gnuplot(object):
         elif binary:
             text += " binary"
         
-        array = None
-            
         text += " " + " ".join(["{} {}".format(key, kwargs[key])
                                for key in add_keys if key in keys])
         
         text += _parse_line_arguments(**kwargs)
         
-        return PlotDescription(array, text)
+        return PlotDescription(None, text)
     
     def plot(self, *plot_objects):
         
@@ -301,7 +352,7 @@ class Gnuplot(object):
             if key in ("lmargin", "rmargin", "tmargin", "bmargin"):
                 self(fmt.format(key, value))
     
-    def multiplot(self, nplot, title="", nrows=None, order="rowsfirst",
+    def multiplot(self, nplot, title=None, nrows=None, order="rowsfirst",
                   portrait=False):
 
         if nrows is None:
@@ -323,8 +374,11 @@ class Gnuplot(object):
         
         self.multi = True
         
-        self("set multiplot layout {},{} {} title '{}'" .format(nrows, ncols,
-                                                                order, title))
+        if title is not None:
+            self("set multiplot layout {},{} {} title '{}'"\
+                 .format(nrows, ncols, order, title))
+        else:
+            self("set multiplot layout {},{} {}".format(nrows, ncols, order))
     
     def colorbar(self, cbrange=None, cbtics=None, cbformat=None):
         if cbrange is not None:
@@ -516,20 +570,18 @@ def _parse_line_arguments(**kwargs):
     if linestyle is not None:
         text += " with linestyle {}".format(linestyle)
     
-    elif is_point or is_line:
-        
-        if is_point and is_line:
-            text += " with linespoints pt {} ps {} lt {} lw {}"\
-                    .format(_pt_type_dict[pt_type], pt_size,
-                            _line_type_dict[line_type], line_width)
-        
-        elif is_point:
-            text += " with points pt {} ps {}"\
-                    .format(_pt_type_dict[pt_type], pt_size)
-        
-        elif is_line:
-            text += " with lines lt {} lw {}"\
-                    .format(_line_type_dict[line_type], line_width)
+    elif is_point and is_line:
+        text += " with linespoints pt {} ps {} lt {} lw {}"\
+                .format(_pt_type_dict[pt_type], pt_size,
+                        _line_type_dict[line_type], line_width)
+    
+    elif is_point:
+        text += " with points pt {} ps {}"\
+                .format(_pt_type_dict[pt_type], pt_size)
+    
+    elif is_line:
+        text += " with lines lt {} lw {}"\
+                .format(_line_type_dict[line_type], line_width)
     
     elif rgb is not None:
         text += " with lines lt {} lw {}".format(rgb, line_width)
@@ -540,7 +592,13 @@ def _parse_line_arguments(**kwargs):
         text += " notitle"
     
     return text
+
+def _check_kwargs(**kwargs):
+
+    if not kwargs.get("temp", False) and kwargs.get("binary", False):
+        raise OptionError("Inline binary format is not supported!")
     
+
 # **************
 # * Exceptions *
 # **************

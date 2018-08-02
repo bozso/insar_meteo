@@ -19,8 +19,8 @@ from builtins import str
 import subprocess as sub
 import os.path as pth
 import numpy as np
-import tempfile
 
+from tempfile import mkstemp
 from os import remove, popen, fdopen
 from math import ceil, sqrt
 from sys import stderr
@@ -149,15 +149,9 @@ class Gnuplot(object):
                 add = ""
         
         if temp:
-            if hasattr(tempfile, 'mkstemp'):
-                # Use the new secure method of creating temporary files:
-                fd, filename, = tempfile.mkstemp(text=True)
-                f = fdopen(fd, mode)
-            else:
-                # for backwards compatibility to pre-2.3:
-                filename = tempfile.mktemp()
-                f = open(filename, mode)
-    
+            fd, filename, = mkstemp(text=True)
+
+            f = fdopen(fd, mode)
             f.write(content)
             f.close()
             

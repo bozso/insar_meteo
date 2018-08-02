@@ -25,9 +25,9 @@ from os import remove, popen, fdopen
 from math import ceil, sqrt
 from sys import stderr
 
+
 class Gnuplot(object):
-    def __init__(self, out=None, persist=False, debug=False, silent=False,
-                 **kwargs):
+    def __init__(self, persist=False, debug=False, silent=False, **kwargs):
 
         term = str(kwargs.get("term", "wxt"))
         font = str(kwargs.get("font", "Verdena"))
@@ -79,7 +79,7 @@ class Gnuplot(object):
             stderr.write("gnuplot> {}\n".format(command))
         
         self.write(command + "\n")
-        self.flush()        
+        self.flush()
     
     def refresh(self):
         plot_cmd = self.plot_cmd
@@ -92,7 +92,8 @@ class Gnuplot(object):
 
         self.write(plot_cmd + " " + plot_cmds + "\n")
         
-        data = tuple(plot.data for plot in plot_objects if plot.data is not None)
+        data = tuple(plot.data for plot in plot_objects
+                     if plot.data is not None)
         
         if data:
             self.write("e".join(data) + "\ne\n")
@@ -146,7 +147,7 @@ class Gnuplot(object):
             data = np.array(arrays).T
         except TypeError:
             raise DataError("Input arrays should be convertible to a "
-                             "numpy array!")
+                            "numpy array!")
         
         if data.ndim > 2:
             raise DataError("Only 1 or 2 dimensional arrays can be plotted!")
@@ -189,10 +190,10 @@ class Gnuplot(object):
                 raise DataError("y should have number of elements equal to "
                                 "the number of rows of data!")
             
-        grid = np.zeros((rows + 1, cols + 1), np.float32)
-        grid[0,0] = cols
-        grid[0,1:] = x
-        grid[1:,0] = y
+        grid        = np.zeros((rows + 1, cols + 1), np.float32)
+        grid[0,0]   = cols
+        grid[0,1:]  = x
+        grid[1:,0]  = y
         grid[1:,1:] = data.astype(np.float32)
         
         text = _parse_plot_arguments(**kwargs)
@@ -344,7 +345,7 @@ class Gnuplot(object):
         self.multi = True
         
         if title is not None:
-            self("set multiplot layout {},{} {} title '{}'"\
+            self("set multiplot layout {},{} {} title '{}'"
                  .format(nrows, ncols, order, title))
         else:
             self("set multiplot layout {},{} {}".format(nrows, ncols, order))
@@ -484,6 +485,7 @@ class Gnuplot(object):
         for temp in self.temps:
             remove(temp)
 
+
 class PlotDescription(object):
     def __init__(self, data, command):
         self.data = data
@@ -495,6 +497,7 @@ class PlotDescription(object):
 # *************************
 # * Convenience functions *
 # *************************
+
 
 def arr_bin(array, image=False):
 
@@ -508,16 +511,19 @@ def arr_bin(array, image=False):
         fmt = array.shape[1] * fmt_dict[array.dtype]
         return " binary record={} format='{}'".format(array.shape[0], fmt)
 
+
 def np2str(array):
     arr_str = np.array2string(array).replace("[", "").replace("]", "")
     
     return "\n".join(line.strip() for line in arr_str.split("\n"))
+
 
 def _parse_range(*args):
     if len(args) == 1:
         return str(args[0])
     else:
         return "({})".format(", ".join(str(elem) for elem in args))
+
 
 def _parse_plot_arguments(**kwargs):
     
@@ -539,6 +545,7 @@ def _parse_plot_arguments(**kwargs):
         text += " notitle"
     
     return text
+
 
 def linedef(**kwargs):
     errorbars = kwargs.get("errorbars", False)
@@ -585,6 +592,7 @@ def linedef(**kwargs):
     
     return text
     
+
 # Old function DO NOT USE THIS
 def _parse_line_arguments(**kwargs):
     
@@ -603,7 +611,7 @@ def _parse_line_arguments(**kwargs):
     text = ""
 
     text += " " + " ".join(("{} {}".format(key, value)
-                           for key,value in kwargs.items()
+                           for key, value in kwargs.items()
                            if key in _additional_keys))
     
     is_point = pt_type is not None
@@ -641,6 +649,7 @@ def _parse_line_arguments(**kwargs):
     
     return text
 
+
 def _check_kwargs(**kwargs):
 
     if not kwargs.get("temp", False) and kwargs.get("binary", False):
@@ -654,6 +663,7 @@ def _check_kwargs(**kwargs):
 class OptionError(Exception):
     """Raised for unrecognized or wrong option(s)"""
     pass
+
 
 class DataError(Exception):
     """Raised for data in the wrong format"""

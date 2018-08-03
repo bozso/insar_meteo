@@ -1,4 +1,4 @@
-# Copyright (C) 2018  MTA CSFK GGI
+# Copyright (C) 2018  István Bozsó
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,36 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-if sys.platform == "mac":
-    from .gp_mac import GnuplotOpts, GnuplotProcess, test_persist
-elif sys.platform == "win32" or sys.platform == "cli":
-    from .gp_win32 import GnuplotOpts, GnuplotProcess, test_persist
-elif sys.platform == "darwin":
-    from .gp_macosx import GnuplotOpts, GnuplotProcess, test_persist
-elif sys.platform[:4] == "java":
-    from .gp_java import GnuplotOpts, GnuplotProcess, test_persist
-elif sys.platform == "cygwin":
-    from .gp_cygwin import GnuplotOpts, GnuplotProcess, test_persist
-else:
-    from .gp_unix import GnuplotOpts, GnuplotProcess, test_persist
-
-# cygwin win32
-try:
-    from sys import hexversion
-except ImportError:
-    hexversion = 0
-
-# java
-from java.lang import Runtime
-
-# Mac
-# To be added -- from . import gnuplot_Suites
-import Required_Suite
-import aetools
-
-"""
-
 from __future__ import print_function
 from builtins import str
 
@@ -53,7 +23,44 @@ import numpy as np
 from tempfile import mkstemp
 from os import remove, popen, fdopen
 from math import ceil, sqrt
-from sys import stderr
+from sys import stderr, platform
+
+
+if platform == "mac":
+    # TODO: from . import gnuplot_Suites
+    
+    from inmet.gnuplot_platforms import GnuplotProcessMac as gpp
+
+elif platform == "win32" or platform == "cli":
+    try:
+        from sys import hexversion
+    except ImportError:
+        hexversion = 0
+
+    from inmet.gnuplot_platforms import GnuplotProcessWin32 as gpp
+
+elif platform == "darwin":
+
+    from inmet.gnuplot_platforms import GnuplotProcessMacOSX as gpp
+
+elif platform[:4] == "java":
+
+    from java.lang import Runtime
+
+    from inmet.gnuplot_platforms import GnuplotProcessJava as gpp
+
+elif platform == "cygwin":
+
+    try:
+        from sys import hexversion
+    except ImportError:
+        hexversion = 0
+
+
+    from inmet.gnuplot_platforms import GnuplotProcessCygwin as gpp
+
+else:
+    from inmet.gnuplot_platforms import GnuplotProcessUnix as gpp
 
 
 class Gnuplot(object):
@@ -753,446 +760,3 @@ _line_type_dict = {
 }
 
 _additional_keys = frozenset(["index", "every", "using", "smooth", "axes"])
-
-
-class GnuplotProcessUnix:
-    """
-    Unsophisticated interface to a running gnuplot program.
-    This represents a running gnuplot program and the means to
-    communicate with it at a primitive level (i.e., pass it commands
-    or data).  When the object is destroyed, the gnuplot program exits
-    (unless the 'persist' option was set).  The communication is
-    one-way; gnuplot's text output just goes to stdout with no attempt
-    to check it for error messages.
-    Members:
-        'gnuplot' -- the pipe to the gnuplot command.
-    Methods:
-        '__init__' -- start up the program.
-        '__call__' -- pass an arbitrary string to the gnuplot program,
-            followed by a newline.
-        'write' -- pass an arbitrary string to the gnuplot program.
-        'flush' -- cause pending output to be written immediately.
-        'close' -- close the connection to gnuplot.
-    """
-
-    gnuplot_command = "gnuplot"
-    recognizes_persist =  None
-    prefer_persist =  0
-    recognizes_binary_splot =  1
-    prefer_inline_data =  0
-    default_term =  "x11"
-    prefer_enhanced_postscript =  1
-
-    def __init__(self, persist=None):
-        """
-        Start a gnuplot process.
-        Create a 'GnuplotProcess' object.  This starts a gnuplot
-        program and prepares to write commands to it.
-        Keyword arguments:
-          'persist=1' -- start gnuplot with the '-persist' option,
-              (which leaves the plot window on the screen even after
-              the gnuplot program ends, and creates a new plot window
-              each time the terminal type is set to 'x11').  This
-              option is not available on older versions of gnuplot.
-        """
-
-        if persist is None:
-            persist = GnuplotOpts.prefer_persist
-        if persist:
-            if not test_persist():
-                raise ('-persist does not seem to be supported '
-                       'by your version of gnuplot!')
-            self.gnuplot = popen('%s -persist' % GnuplotOpts.gnuplot_command,
-                                 'w')
-        else:
-            self.gnuplot = popen(GnuplotOpts.gnuplot_command, 'w')
-
-        # forward write and flush methods:
-        self.write = self.gnuplot.write
-        self.flush = self.gnuplot.flush
-
-    def close(self):
-        if self.gnuplot is not None:
-            self.gnuplot.close()
-            self.gnuplot = None
-
-    def __del__(self):
-        self.close()
-
-    def __call__(self, s):
-        """Send a command string to gnuplot, followed by newline."""
-
-        self.write(s + '\n')
-        self.flush()
-
-    def test_persist():
-        """
-        Determine whether gnuplot recognizes the option '-persist'.
-        If the configuration variable 'recognizes_persist' is set (i.e.,
-        to something other than 'None'), return that value.  Otherwise,
-        try to determine whether the installed version of gnuplot
-        recognizes the -persist option.  (If it doesn't, it should emit an
-        error message with '-persist' in the first line.)  Then set
-        'recognizes_persist' accordingly for future reference.
-        """
-    
-        if GnuplotOpts.recognizes_persist is None:
-            g = popen('echo | %s -persist 2>&1' % GnuplotOpts.gnuplot_command, 'r')
-            response = g.readlines()
-            g.close()
-            GnuplotOpts.recognizes_persist = not (response and
-                                                  '-persist' in response[0])
-        return GnuplotOpts.recognizes_persist
-
-class GnuplotProcessWin32:
-    """
-    Unsophisticated interface to a running gnuplot program.
-    See gp_unix.py for usage information.
-    """
-
-    gnuplot_command = r"pgnuplot.exe"
-    recognizes_persist = 0
-    recognizes_binary_splot =  1
-    prefer_inline_data =  0
-    default_term =  "windows"
-    prefer_enhanced_postscript =  1
-
-    def __init__(self, persist=0):
-        """
-        Start a gnuplot process.
-        Create a 'GnuplotProcess' object.  This starts a gnuplot
-        program and prepares to write commands to it.
-        Keyword arguments:
-            'persist' -- the '-persist' option is not supported under
-                Windows so this argument must be zero.
-        """
-
-        if persist:
-            raise Errors.OptionError(
-                '-persist is not supported under Windows!')
-
-        self.gnuplot = popen(GnuplotOpts.gnuplot_command, 'w')
-
-        # forward write and flush methods:
-        self.write = self.gnuplot.write
-        self.flush = self.gnuplot.flush
-
-    def close(self):
-        if self.gnuplot is not None:
-            self.gnuplot.close()
-            self.gnuplot = None
-
-    def __del__(self):
-        self.close()
-
-    def __call__(self, s):
-        """Send a command string to gnuplot, followed by newline."""
-
-        self.write(s + '\n')
-        self.flush()
-
-    def test_persist():
-        return 0
-
-class GnuplotProcessMacOSX:
-    """
-    Unsophisticated interface to a running gnuplot program.
-    This represents a running gnuplot program and the means to
-    communicate with it at a primitive level (i.e., pass it commands
-    or data).  When the object is destroyed, the gnuplot program exits
-    (unless the 'persist' option was set).  The communication is
-    one-way; gnuplot's text output just goes to stdout with no attempt
-    to check it for error messages.
-    Members:
-        'gnuplot' -- the pipe to the gnuplot command.
-    Methods:
-        '__init__' -- start up the program.
-        '__call__' -- pass an arbitrary string to the gnuplot program,
-            followed by a newline.
-        'write' -- pass an arbitrary string to the gnuplot program.
-        'flush' -- cause pending output to be written immediately.
-        'close' -- close the connection to gnuplot.
-    """
-
-    gnuplot_command = "gnuplot"
-    recognizes_persist =  None
-    prefer_persist =  0
-    recognizes_binary_splot =  1
-    prefer_inline_data =  0
-    default_term =  "aqua"
-    prefer_enhanced_postscript =  1
-
-    def __init__(self, persist=None):
-        """
-        Start a gnuplot process.
-        Create a 'GnuplotProcess' object.  This starts a gnuplot
-        program and prepares to write commands to it.
-        Keyword arguments:
-          'persist=1' -- start gnuplot with the '-persist' option,
-              (which leaves the plot window on the screen even after
-              the gnuplot program ends, and creates a new plot window
-              each time the terminal type is set to 'x11').  This
-              option is not available on older versions of gnuplot.
-        """
-
-        if persist is None:
-            persist = GnuplotOpts.prefer_persist
-        if persist:
-            if not test_persist():
-                raise ('-persist does not seem to be supported '
-                       'by your version of gnuplot!')
-            self.gnuplot = popen('%s -persist' % GnuplotOpts.gnuplot_command,
-                                 'w')
-        else:
-            self.gnuplot = popen(GnuplotOpts.gnuplot_command, 'w')
-
-        # forward write and flush methods:
-        self.write = self.gnuplot.write
-        self.flush = self.gnuplot.flush
-
-    def close(self):
-        if self.gnuplot is not None:
-            self.gnuplot.close()
-            self.gnuplot = None
-
-    def __del__(self):
-        self.close()
-
-    def __call__(self, s):
-        """Send a command string to gnuplot, followed by newline."""
-
-        self.write(s + '\n')
-        self.flush()
-
-    def test_persist():
-        """
-        Determine whether gnuplot recognizes the option '-persist'.
-        If the configuration variable 'recognizes_persist' is set (i.e.,
-        to something other than 'None'), return that value.  Otherwise,
-        try to determine whether the installed version of gnuplot
-        recognizes the -persist option.  (If it doesn't, it should emit an
-        error message with '-persist' in the first line.)  Then set
-        'recognizes_persist' accordingly for future reference.
-        """
-    
-        if GnuplotOpts.recognizes_persist is None:
-            g = popen('echo | %s -persist 2>&1' % GnuplotOpts.gnuplot_command, 'r')
-            response = g.readlines()
-            g.close()
-            GnuplotOpts.recognizes_persist = not (response and
-                                                  '-persist' in response[0])
-        return GnuplotOpts.recognizes_persist
-
-
-class _GNUPLOT(aetools.TalkTo,
-               Required_Suite.Required_Suite,
-               gnuplot_Suites.gnuplot_Suite,
-               gnuplot_Suites.odds_and_ends,
-               gnuplot_Suites.Standard_Suite,
-               gnuplot_Suites.Miscellaneous_Events):
-    """Start a gnuplot program and emulate a pipe to it."""
-
-    def __init__(self):
-        aetools.TalkTo.__init__(self, '{GP}', start=1)
-
-
-class GnuplotProcessMac:
-    """
-    Unsophisticated interface to a running gnuplot program.
-    See gp_unix.GnuplotProcess for usage information.
-    """
-
-    recognizes_persist = 0
-    recognizes_binary_splot =  1
-    prefer_inline_data =  0
-    default_term =  "pict"
-    prefer_enhanced_postscript =  1
-
-    def __init__(self, persist=0):
-        """
-        Start a gnuplot process.
-        Create a 'GnuplotProcess' object.  This starts a gnuplot
-        program and prepares to write commands to it.
-        Keyword arguments:
-          'persist' -- the '-persist' option is not supported on the
-                       Macintosh so this argument must be zero.
-        """
-
-        if persist:
-            raise Errors.OptionError(
-                '-persist is not supported on the Macintosh!')
-
-        self.gnuplot = _GNUPLOT()
-
-    def close(self):
-        if self.gnuplot is not None:
-            self.gnuplot.quit()
-            self.gnuplot = None
-
-    def __del__(self):
-        self.close()
-
-    def write(self, s):
-        """Mac gnuplot apparently requires '\r' to end statements."""
-
-        self.gnuplot.gnuexec(s.replace('\n', os.linesep))
-
-    def flush(self):
-        pass
-        
-    def __call__(self, s):
-        """Send a command string to gnuplot, for immediate execution."""
-
-        # Apple Script doesn't seem to need the trailing '\n'.
-        self.write(s)
-        self.flush()
-
-    def test_persist():
-        return 0
-
-class GnuplotProcessJava:
-    """
-    Unsophisticated interface to a running gnuplot program.
-    This represents a running gnuplot program and the means to
-    communicate with it at a primitive level (i.e., pass it commands
-    or data).  When the object is destroyed, the gnuplot program exits
-    (unless the 'persist' option was set).  The communication is
-    one-way; gnuplot's text output just goes to stdout with no attempt
-    to check it for error messages.
-    Members:
-    Methods:
-        '__init__' -- start up the program.
-        '__call__' -- pass an arbitrary string to the gnuplot program,
-            followed by a newline.
-        'write' -- pass an arbitrary string to the gnuplot program.
-        'flush' -- cause pending output to be written immediately.
-    """
-    gnuplot_command = "gnuplot"
-    recognizes_persist = 1
-    prefer_persist =  0
-    recognizes_binary_splot =  1
-    prefer_inline_data =  0
-    default_term =  "x11"
-    prefer_enhanced_postscript =  1
-
-    def __init__(self, persist=None):
-        """
-        Start a gnuplot process.
-        Create a 'GnuplotProcess' object.  This starts a gnuplot
-        program and prepares to write commands to it.
-        Keyword arguments:
-          'persist=1' -- start gnuplot with the '-persist' option,
-              (which leaves the plot window on the screen even after
-              the gnuplot program ends, and creates a new plot window
-              each time the terminal type is set to 'x11').  This
-              option is not available on older versions of gnuplot.
-        """
-
-        if persist is None:
-            persist = GnuplotOpts.prefer_persist
-        command = [GnuplotOpts.gnuplot_command]
-        if persist:
-            if not test_persist():
-                raise ('-persist does not seem to be supported '
-                       'by your version of gnuplot!')
-            command.append('-persist')
-
-        # This is a kludge: distutils wants to import everything it
-        # sees when making a distribution, and if we just call exec()
-        # normally that causes a SyntaxError in CPython because "exec"
-        # is a keyword.  Therefore, we call the exec() method
-        # indirectly.
-        #self.process = Runtime.getRuntime().exec(command)
-        exec_method = getattr(Runtime.getRuntime(), 'exec')
-        self.process = exec_method(command)
-
-        self.outprocessor = OutputProcessor(
-            'gnuplot standard output processor',
-            self.process.getInputStream(), sys.stdout
-            )
-        self.outprocessor.start()
-        self.errprocessor = OutputProcessor(
-            'gnuplot standard error processor',
-            self.process.getErrorStream(), sys.stderr
-            )
-        self.errprocessor.start()
-
-        self.gnuplot = self.process.getOutputStream()
-
-    def close(self):
-        # ### Does this close the gnuplot process under Java?
-        if self.gnuplot is not None:
-            self.gnuplot.close()
-            self.gnuplot = None
-
-    def __del__(self):
-        self.close()
-
-    def write(self, s):
-        self.gnuplot.write(s)
-
-    def flush(self):
-        self.gnuplot.flush()
-
-    def __call__(self, s):
-        """Send a command string to gnuplot, followed by newline."""
-
-        self.write(s + '\n')
-        self.flush()
-
-    def test_persist():
-        """
-        Determine whether gnuplot recognizes the option '-persist'.
-        """
-    
-        return gnuplot_options["recognizes_persist"]
-
-
-class GnuplotProcessCygwin:
-    """
-    Unsophisticated interface to a running gnuplot program.
-    See gp_unix.py for usage information.
-    """
-    gnuplot_command = "pgnuplot.exe"
-    recognizes_persist = 0
-    recognizes_binary_splot =  1
-    prefer_inline_data =  1
-    default_term =  "windows"
-    prefer_enhanced_postscript =  1
-
-    def __init__(self, persist=0):
-        """
-        Start a gnuplot process.
-        Create a 'GnuplotProcess' object.  This starts a gnuplot
-        program and prepares to write commands to it.
-        Keyword arguments:
-            'persist' -- the '-persist' option is not supported under
-                Windows so this argument must be zero.
-        """
-
-        if persist:
-            raise Errors.OptionError(
-                '-persist is not supported under Windows!')
-
-        self.gnuplot = popen(GnuplotOpts.gnuplot_command, 'w')
-
-        # forward write and flush methods:
-        self.write = self.gnuplot.write
-        self.flush = self.gnuplot.flush
-
-    def close(self):
-        if self.gnuplot is not None:
-            self.gnuplot.close()
-            self.gnuplot = None
-
-    def __del__(self):
-        self.close()
-
-    def __call__(self, s):
-        """Send a command string to gnuplot, followed by newline."""
-
-        self.write(s + '\n')
-        self.flush()
-    
-    def test_persist():
-        return 0

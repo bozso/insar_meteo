@@ -594,16 +594,23 @@ def linedef(**kwargs):
     linestyle  = kwargs.get("linestyle")
     line_type  = kwargs.get("line_type")
     line_width = kwargs.get("line_width", 1.0)
+    
+    if line_type not in _line_type_dict.keys():
+        raise OptionError("Unrecognized linetype \"{}\"!".format(line_type))
+    
+    point_type = kwargs.get("point_type")
 
-    pt_type = kwargs.get("pt_type")
-    pt_size = kwargs.get("pt_size", 1.0)
+    if point_type not in _point_type_dict.keys():
+        raise OptionError("Unrecognized pointtype \"{}\"!".format(point_type))
+
+    point_size = kwargs.get("point_size", 1.0)
     
     rgb = kwargs.get("rgb")
     title = kwargs.get("title")
     
     text = ""
 
-    is_point = pt_type is not None
+    is_point = point_type is not None
     is_line  = line_type is not None
     
     if linestyle is not None:
@@ -617,12 +624,12 @@ def linedef(**kwargs):
     
     elif is_point and is_line:
         text += "linespoints pt {} ps {} lt {} lw {}"\
-                .format(_pt_type_dict[pt_type], pt_size,
+                .format(_point_type_dict[point_type], point_size,
                         _line_type_dict[line_type], line_width)
     
     elif is_point:
         text += "points pt {} ps {}"\
-                .format(_pt_type_dict[pt_type], pt_size)
+                .format(_point_type_dict[point_type], point_size)
     
     elif is_line:
         text += "lines lt {} lw {}"\
@@ -701,12 +708,15 @@ def _check_kwargs(**kwargs):
 # * Exceptions *
 # **************
 
-class OptionError(Exception):
+class GnuplotError(Exception):
+    pass
+
+class OptionError(GnuplotError):
     """Raised for unrecognized or wrong option(s)"""
     pass
 
 
-class DataError(Exception):
+class DataError(GnuplotError):
     """Raised for data in the wrong format"""
     pass
 
@@ -715,7 +725,7 @@ class DataError(Exception):
 # * Private dictionaries *
 # ************************
 
-_pt_type_dict = {
+_point_type_dict = {
     "dot": 0,
     "+": 1,
     "x": 2,
@@ -744,63 +754,6 @@ _line_type_dict = {
 
 _additional_keys = frozenset(["index", "every", "using", "smooth", "axes"])
 
-_gnuplot_options_unix = {
-    "gnuplot_command" : "gnuplot",
-    "recognizes_persist" : None,
-    "prefer_persist" : 0,
-    "recognizes_binary_splot" : 1,
-    "prefer_inline_data" : 0,
-    "default_term" : "x11",
-    "prefer_enhanced_postscript" : 1
-}
-
-_gnuplot_options_win32 = {
-    "gnuplot_command" : r"pgnuplot.exe",
-    "recognizes_persist" : 0,
-    "prefer_persist" : 0,
-    "recognizes_binary_splot" : 0,
-    "prefer_inline_data" : 0,
-    "default_term" : "windows",
-    "prefer_enhanced_postscript" : 1
-}
-
-_gnuplot_options_macosx = {
-    "gnuplot_command" : "gnuplot",
-    "recognizes_persist" : None,
-    "prefer_persist" : 0,
-    "recognizes_binary_splot" : 1,
-    "prefer_inline_data" : 0,
-    "default_term" : "aqua",
-    "prefer_enhanced_postscript" : 1
-}
-
-_gnuplot_options_mac = {
-    "recognizes_persist" : 0,
-    "recognizes_binary_splot" : 1,
-    "prefer_inline_data" : 0,
-    "default_term" : "pict",
-    "prefer_enhanced_postscript" : 1
-}
-
-_gnuplot_options_java = {
-    "gnuplot_command" : "gnuplot",
-    "recognizes_persist" : 1,
-    "prefer_persist" : 0,
-    "recognizes_binary_splot" : 1,
-    "prefer_inline_data" : 0,
-    "default_term" : "x11",
-    "prefer_enhanced_postscript" : 1
-}
-
-_gnuplot_options_cygwin = {
-    "gnuplot_command" : "pgnuplot.exe",
-    "recognizes_persist" : 0,
-    "recognizes_binary_splot" : 1,
-    "prefer_inline_data" : 1,
-    "default_term" : "windows",
-    "prefer_enhanced_postscript" : 1
-}
-
 
 class GnuplotProcessUnix:
     """
@@ -821,6 +774,14 @@ class GnuplotProcessUnix:
         'flush' -- cause pending output to be written immediately.
         'close' -- close the connection to gnuplot.
     """
+
+    gnuplot_command = "gnuplot"
+    recognizes_persist =  None
+    prefer_persist =  0
+    recognizes_binary_splot =  1
+    prefer_inline_data =  0
+    default_term =  "x11"
+    prefer_enhanced_postscript =  1
 
     def __init__(self, persist=None):
         """
@@ -889,6 +850,13 @@ class GnuplotProcessWin32:
     See gp_unix.py for usage information.
     """
 
+    gnuplot_command = r"pgnuplot.exe"
+    recognizes_persist = 0
+    recognizes_binary_splot =  1
+    prefer_inline_data =  0
+    default_term =  "windows"
+    prefer_enhanced_postscript =  1
+
     def __init__(self, persist=0):
         """
         Start a gnuplot process.
@@ -945,6 +913,14 @@ class GnuplotProcessMacOSX:
         'flush' -- cause pending output to be written immediately.
         'close' -- close the connection to gnuplot.
     """
+
+    gnuplot_command = "gnuplot"
+    recognizes_persist =  None
+    prefer_persist =  0
+    recognizes_binary_splot =  1
+    prefer_inline_data =  0
+    default_term =  "aqua"
+    prefer_enhanced_postscript =  1
 
     def __init__(self, persist=None):
         """
@@ -1026,6 +1002,12 @@ class GnuplotProcessMac:
     See gp_unix.GnuplotProcess for usage information.
     """
 
+    recognizes_persist = 0
+    recognizes_binary_splot =  1
+    prefer_inline_data =  0
+    default_term =  "pict"
+    prefer_enhanced_postscript =  1
+
     def __init__(self, persist=0):
         """
         Start a gnuplot process.
@@ -1085,6 +1067,13 @@ class GnuplotProcessJava:
         'write' -- pass an arbitrary string to the gnuplot program.
         'flush' -- cause pending output to be written immediately.
     """
+    gnuplot_command = "gnuplot"
+    recognizes_persist = 1
+    prefer_persist =  0
+    recognizes_binary_splot =  1
+    prefer_inline_data =  0
+    default_term =  "x11"
+    prefer_enhanced_postscript =  1
 
     def __init__(self, persist=None):
         """
@@ -1164,6 +1153,12 @@ class GnuplotProcessCygwin:
     Unsophisticated interface to a running gnuplot program.
     See gp_unix.py for usage information.
     """
+    gnuplot_command = "pgnuplot.exe"
+    recognizes_persist = 0
+    recognizes_binary_splot =  1
+    prefer_inline_data =  1
+    default_term =  "windows"
+    prefer_enhanced_postscript =  1
 
     def __init__(self, persist=0):
         """

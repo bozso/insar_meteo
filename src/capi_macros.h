@@ -117,7 +117,6 @@ error_out(PyObject *m) {
 
 // for some reason only works without: do { ... } while(0)
 #define init_module(module_name, ...)\
-do {\
     static  PyMethodDef module_name ## _methods[] = {\
     __VA_ARGS__,\
     {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
@@ -138,7 +137,6 @@ do {\
             return;\
         }\
     }\
-} while(0)
 
 #endif
 

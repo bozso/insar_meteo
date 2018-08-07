@@ -21,18 +21,14 @@
 #include "numpy/arrayobject.h"
 
 #include "capi_macros.h"
+#include "params_types.h"
 
 /************************
  * Structs and typedefs *
  ************************/
 
-typedef PyArrayObject* np_ptr;
-typedef PyObject* py_ptr;
-typedef const double cdouble;
-typedef unsigned int uint;
-
 // structure for storing fitted orbit polynom coefficients
-typedef struct {
+typedef struct orbit_fit_t {
     double mean_t;
     double * mean_coords;
     double start_t, stop_t;
@@ -335,25 +331,21 @@ py_ptr azi_inc (py_varargs)
                         &max_iter, &is_lonlat);
 
     // Importing arrays
-    np_import(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    np_import(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    np_import(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    np_import_check(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
+    np_import_check(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
+    np_import_check(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 1);
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
     
-    np_check_ndim(a_coeffs, 2);
-    np_check_dim(a_coeffs, 0, 3);
-    np_check_dim(a_coeffs, 1, deg + 1);
+    np_check_matrix(a_coeffs, 3, deg + 1);
     
     // should be nx3 matrix
-    np_check_ndim(a_coords, 2);
     np_check_dim(a_coords, 1, 3);
     
     n_coords = np_dim(a_coords, 0);
     
     // should be a 3 element vector
-    np_check_ndim(a_meancoords, 1);
     np_check_dim(a_meancoords, 0, 3);
     
     azi_inc_shape[0] = n_coords;

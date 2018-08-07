@@ -17,6 +17,23 @@
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
+#include "params_types.h"
+
+np_ptr _convert_array(const py_ptr to_convert, const int typenum,
+                      const int requirements);
+
+int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
+                         const int requirements, const int ndim);
+
+int _check_matrix(const np_ptr array, const int rows, const int cols,
+                  const char * name);
+
+int _check_ndim(const np_ptr array, const int ndim, const char * name);
+
+
+int _check_dim(const np_ptr array, const int dim, const int expected_length,
+               const char * name);
+
 // turn s into string "s"
 #define QUOTE(s) # s
 
@@ -140,35 +157,6 @@ error_out(PyObject *m) {
 
 #endif
 
-/*******************************
- * WGS-84 ELLIPSOID PARAMETERS *
- *******************************/
-
-// RADIUS OF EARTH
-#define R_earth 6372000
-
-#define WA  6378137.0
-#define WB  6356752.3142
-
-// (WA*WA-WB*WB)/WA/WA
-#define E2  6.694380e-03
-
-
-/************************
- * DEGREES, RADIANS, PI *
- ************************/
-
-#ifndef M_PI
-#define M_PI 3.14159265358979
-#endif
-
-#define DEG2RAD 1.745329e-02
-#define RAD2DEG 5.729578e+01
-
-#define distance(x, y, z) sqrt((y)*(y)+(x)*(x)+(z)*(z))
-
-#define OR ||
-#define AND &&
 
 /**************************
  * for macros             *
@@ -225,7 +213,7 @@ do {\
 } while(0)
 
 /****************************
- * NUMPY CONVENIENCE MACROS *
+ * Numpy convenience macros *
  ****************************/
 
 #define np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
@@ -243,60 +231,69 @@ do {\
 
 #define np_import(array_out, array_to_convert, typenum, requirements)\
 do {\
-    (array_out) = (np_ptr) PyArray_FROM_OTF((array_to_convert), (typenum),\
-                                              (requirements));\
-    if ((array_out) == NULL) goto fail;\
+    (array_out) = _convert_array((array_to_convert), (typenum), (requirements));\
+    if ((array_out) == NULL) {\
+        PyErr_Format(PyExc_ValueError, "Failed to import array %s",\
+                     QUOTE((array_out)));\
+        goto fail;\
+    }\
+} while(0)
+
+#define np_import_check(array_out, array_to_convert, typenum, requirements, ndim)\
+do {\
+    if (_convert_array_check((array_out), (array_to_convert), (typenum),\
+                           (requirements), (ndim))) {\
+        PyErr_Format(PyExc_ValueError, "Failed to import array %s",\
+                     QUOTE((array_out)));\
+        goto fail;\
+    }\
+} while(0)
+
+#define np_check_matrix(array, rows, cols)\
+do {\
+    if (_check_matrix((array), (rows), (cols), QUOTE((array))))\
+        goto fail;\
 } while(0)
 
 #define np_empty(array_out, ndim, shape, typenum, is_fortran)\
 do {\
-    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum), \
+    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum),\
                                           (is_fortran));\
-    if ((array_out) == NULL) goto fail;\
+    if ((array_out) == NULL) {\
+        PyErr_Format(PyExc_ValueError, "Failed to create empty array %s",\
+                     QUOTE((array_out)));\
+        goto fail;\
+    }\
 } while(0)
 
-#define np_check_ndim(a, expected_ndim)\
+#define np_check_ndim(array, ndim)\
 do {\
-  if (PyArray_NDIM((a)) != (expected_ndim)) {\
-    PyErr_Format(PyExc_ValueError,\
-    "%s array is %d-dimensional, but expected to be %d-dimensional",\
-		 QUOTE(a), PyArray_NDIM(a), (expected_ndim));\
-    goto fail;\
-  }\
+    if (_check_ndim((array), (ndim), QUOTE((array))))\
+        goto fail;\
 } while(0)
 
-#define np_check_dim(a, dim, expected_length)\
+#define np_check_dim(array, dim, expected_length)\
 do {\
-  if ((dim) > PyArray_NDIM((a))) {\
-    PyErr_Format(PyExc_ValueError,\
-    "%s array has no %d dimension (max dim. is %d)", QUOTE(a), (dim),\
-    PyArray_NDIM(a));\
-    goto fail;\
-  } \
-  if (PyArray_DIM((a), (dim)) != (expected_length)) {\
-    PyErr_Format(PyExc_ValueError,\
-    "%s array has wrong %d-dimension=%d (expected %d)", QUOTE(a), (dim),\
-    PyArray_DIM(a, (dim)), (expected_length));\
-    goto fail;\
-  }\
+    if (_check_dim((array), (dim), (expected_length), QUOTE((array))))\
+        goto fail;\
 } while(0)
 
-#define np_check_type(a, tp)\
+#define np_check_type(array, tp)\
 do {\
-  if (PyArray_TYPE(a) != (tp)) {\
-    PyErr_Format(PyExc_TypeError,\
-    "%s array is not of correct type (%d)", QUOTE(a), (tp));\
-    goto fail;\
-  }\
+    if (PyArray_TYPE(array) != (tp)) {\
+        PyErr_Format(PyExc_TypeError,\
+        "%s array is not of correct type (%d)", QUOTE(array), (tp));\
+        goto fail;\
+    }\
 } while(0)
 
 #define np_check_callable(func)\
 do {\
-  if (!PyCallable_Check(func)) {\
-    PyErr_Format(PyExc_TypeError,\
-    "%s is not a callable function", QUOTE(func));\
-    goto fail;\
-  }\
+    if (!PyCallable_Check(func)) {\
+        PyErr_Format(PyExc_TypeError,\
+        "%s is not a callable function", QUOTE(func));\
+        goto fail;\
+    }\
 } while(0)
 
 /***************

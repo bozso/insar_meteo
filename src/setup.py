@@ -28,7 +28,7 @@ flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
 ext_modules = [
-    Extension(name="insar_aux", sources=["insar_auxmodule.c"],
+    Extension(name="insar_aux", sources=["insar_auxmodule.c", "capi_functions.c"],
               define_macros=macros, extra_compile_args=["-std=c99"])
 ]
 

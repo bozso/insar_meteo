@@ -23,7 +23,8 @@ np_ptr _convert_array(const py_ptr to_convert, const int typenum,
                       const int requirements);
 
 int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
-                         const int requirements, const int ndim);
+                         const int requirements, const int ndim,
+                         const char * name);
 
 int _check_matrix(const np_ptr array, const int rows, const int cols,
                   const char * name);
@@ -242,9 +243,7 @@ do {\
 #define np_import_check(array_out, array_to_convert, typenum, requirements, ndim)\
 do {\
     if (_convert_array_check((array_out), (array_to_convert), (typenum),\
-                           (requirements), (ndim))) {\
-        PyErr_Format(PyExc_ValueError, "Failed to import array %s",\
-                     QUOTE((array_out)));\
+                           (requirements), (ndim), QUOTE((array_out)))) {\
         goto fail;\
     }\
 } while(0)

@@ -24,7 +24,8 @@ np_ptr _convert_array(const py_ptr to_convert, const int typenum,
 }
 
 int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
-                         const int requirements, const int ndim)
+                         const int requirements, const int ndim,
+                         const char * name)
 {
     if ((array = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements))
          == NULL)
@@ -33,8 +34,9 @@ int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenu
     int array_ndim = PyArray_NDIM(array);
     
     if (array_ndim != ndim) {
-        errorln("Array is %d-dimensional, but expected to be %d-dimensional",
-                array_ndim, ndim);
+        PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
+                                       "expected to be %d-dimensional", name,
+                                        array_ndim, ndim);
         return 1;
     }
     

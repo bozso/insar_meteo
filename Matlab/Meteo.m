@@ -610,17 +610,6 @@ classdef Meteo
                                         date_before, date_after, ...
                                         weather_model_datapath);
             
-            % open the netcdf
-            ncid = netcdf.open(modelfile_before(1,:), 'NC_NOWRITE');
-
-            % read netcdf variables and get number of variables
-            [numdims, numvars, numglobalatts, unlimdimid] = netcdf.inq(ncid);      
-            
-            [~, nlon] = netcdf.inqDim(ncid, 0);
-            [~, nlat] = netcdf.inqDim(ncid, 1);
-            
-            netcdf.close(ncid);
-
             ncols = nsar + 2;
             
             abs_wet = Staux.load_binary('dinv_wet.dat', ncols);
@@ -659,10 +648,14 @@ classdef Meteo
                 %Ts(:,d) = interp2(longrid(:,:,1), latgrid(:,:,1), ...
                 %                  T, lon, lat);
                 
-                g =   9.80616 .* (1 - 0.002637 .* cosd(2 .* latgrid) ...
-                    + 0.0000059 .* (cosd(2 .* latgrid)).^2);
+                temp_lat = latgrid(:,:,1);
                 
-                iwv = e(:,:,1) ./ g(:,:,1);
+                g =   9.80616 .* (1 - 0.002637 .* cosd(2 .* temp_lat) ...
+                    + 0.0000059 .* (cosd(2 .* temp_lat)).^2);
+                
+                clear temp_lat;
+                
+                iwv = e(:,:,1) ./ g .* 100;
                 figure; imagesc(iwv); colorbar; return
                 return
             end

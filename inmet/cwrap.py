@@ -1,4 +1,4 @@
-# Copyright (C) 2018  MTA CSFK GGI
+# Copyright (C) 2018  István Bozsó
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,52 +21,15 @@ from argparse import ArgumentParser
 
 from inmet.gnuplot import Gnuplot
 
-def parse_steps(args, steps):
-    if args.step is not None:
-        return [args.step]
-    else:
-        first = steps.index(args.start)
-        last = steps.index(args.stop)
-        return steps[first:last + 1]
-
-def gen_step_parser(steps):
-    
-    parser = ArgumentParser(add_help=False)
-    
-    parser.add_argument(
-        "--step",
-        nargs="?",
-        default=None,
-        type=str,
-        choices=steps,
-        help="Carry out the processing step defined by this argument "
-             "and exit.")
-
-    parser.add_argument(
-        "--start",
-        nargs="?",
-        default=steps[0],
-        type=str,
-        choices=steps,
-        help="Starting processing step. Processing steps will be executed "
-             "until processing step defined by --stop is reached.")
-    
-    parser.add_argument(
-        "--stop",
-        nargs="?",
-        default=steps[-1],
-        type=str,
-        choices=steps,
-        help="Last processing step to be executed.")
-    
-    return parser
 
 def get_key(line, sep):
     return line.split(sep)[0].strip()
 
+
 def get_value(line, comment, sep):
     line = line.split(sep)[1].split(comment)[0].strip()
     return "".join(line)
+
 
 def parse_config_file(filepath, comment="#", sep=":"):
 
@@ -76,6 +39,7 @@ def parse_config_file(filepath, comment="#", sep=":"):
                   if sep in line and not line.startswith(comment)}
 
     return params
+
 
 def get_par(parameter, search, sep=":"):
 
@@ -97,7 +61,8 @@ def get_par(parameter, search, sep=":"):
 
     return parameter_value
 
-def cmd(Cmd, *args, ret=False, prt=False):
+
+def cmd(Cmd, *args, prt=False):
     """
     Calls a command line program. Arbitrary number of arguments can be passed
     through `*args`. See documentation of modules for arguments.
@@ -154,25 +119,28 @@ def cmd(Cmd, *args, ret=False, prt=False):
     if prt:
         print(cmd_out)
     
-    if ret:
-        return cmd_out
+    return cmd_out
 
 # *****************
 # * DAISY Modules *
 # *****************
 
+
 def data_select(in_asc, in_dsc, ps_sep=100.0):
     
     cmd("daisy data_select", in_asc, in_dsc, ps_sep)
+
 
 def dominant(in_asc="asc_data.xys", in_dsc="dsc_data.xys", ps_sep=100.0):
     
     cmd("daisy dominant", in_asc, in_dsc, ps_sep)
 
+
 def poly_orbit(asc_orbit="asc_master.res", dsc_orbit="dsc_master.res", deg=4):
     
     cmd("daisy poly_orbit", asc_orbit, deg)
     cmd("daisy poly_orbit", dsc_orbit, deg)
+
 
 def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
               dsc_fit_orbit="dsc_master.porb"):
@@ -182,9 +150,11 @@ def integrate(dominant="dominant.xyd", asc_fit_orbit="asc_master.porb",
 # * INMET Modules *
 # *****************
 
+
 def azi_inc(fit_file, coords, mode, outfile, max_iter=1000):
 
     cmd("inmet azi_inc", fit_file, coords, mode, max_iter, outfile)
+
 
 def fit_orbit(coords, fit_file, deg=3, centered=True):
 
@@ -193,9 +163,11 @@ def fit_orbit(coords, fit_file, deg=3, centered=True):
     else:
         cmd("inmet fit_orbit", coords, deg, 0, fit_file)
 
+
 def eval_orbit(fit_file, outfile, nstep=100, multiply=1):
 
     cmd("inmet eval_orbit", fit_file, nstep, multiply, outfile)
+
 
 def orbit_fit(path, preproc, fit_file, centered=True, deg=3):
     
@@ -207,6 +179,7 @@ def orbit_fit(path, preproc, fit_file, centered=True, deg=3):
         cmd("inmet fit_orbit", "coords.txyz", deg, 0, fit_file, prt=True)
 
     #os.remove("coords.txyz")
+
 
 def plot_orbit(path, preproc, fit_file, fit_plot, nstep=100, **kwargs):
 
@@ -238,6 +211,7 @@ def plot_orbit(path, preproc, fit_file, fit_plot, nstep=100, **kwargs):
     
     os.remove("coords.txyz")
     os.remove("fit.txyz")
+
 
 def extract_coords(path, preproc, coordsfile):
 

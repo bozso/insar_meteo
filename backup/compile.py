@@ -16,10 +16,10 @@
 from os.path import join as pjoin, isfile
 from distutils.ccompiler import new_compiler
 
-c_file = "inmet.c"
+from compilers import compile_project
+
 libs = ["m", "gsl", "gslcblas"]
 flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-#flags = ["-std=c99"]
 macros = [("HAVE_INLINE", None), ("GSL_RANGE_CHECK_OFF", None)]
 inc_dirs = ["/home/istvan/progs/gsl/include"]
 lib_dirs = ["/home/istvan/progs/gsl/lib"]
@@ -31,25 +31,10 @@ lib_dirs = ["/home/istvan/progs/gsl/lib"]
 #macros = None
 
 def main():
-    c_basename = c_file.split(".")[0]
 
-    sources = ["matrix.c", "main_functions.c", c_file]
-    
-    ccomp = new_compiler()
-    obj = [ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,
-                         macros=macros)[0] for source in sources]
-    
-    
-    #ccomp.compile(c_file, extra_postargs=flags, include_dirs=inc_dirs)
-    #ccomp.compile(["matrix.c"], extra_postargs=flags, include_dirs=inc_dirs,
-                  #macros=macros)
-    #ccomp.compile(["main_functions.c"], extra_postargs=flags,
-                  #include_dirs=inc_dirs, macros=macros)
-    
-    ccomp.link_executable(obj,
-                          pjoin("..", "bin", c_basename),
-                          libraries=libs, library_dirs=lib_dirs,
-                          extra_postargs=flags)
-    
+    compile_project("inmet.c", "matrix.c", "main_functions.c", macros=macros,
+                    inc_dirs=inc_dirs, lib_dirs=lib_dirs, flags=flags,
+                    libs=libs, outdir=pjoin("..", "bin"))
+
 if __name__ == "__main__":
     main()

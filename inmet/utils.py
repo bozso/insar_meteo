@@ -65,3 +65,23 @@ def gen_step_parser(steps):
         help="Last processing step to be executed.")
     
     return parser
+
+def get_par(parameter, search):
+
+    if isinstance(search, list):
+        searchfile = search
+    elif pth.isfile(search):
+        with open(search, "r") as f:
+            searchfile = f.readlines()
+    else:
+        raise ValueError("search should be either a list or a string that "
+                         "describes a path to the parameter file.")
+    
+    parameter_value = None
+    
+    for line in searchfile:
+        if parameter in line:
+            parameter_value = " ".join(line.split(":")[1:]).strip()
+            break
+
+    return parameter_value

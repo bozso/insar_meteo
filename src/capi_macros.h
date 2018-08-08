@@ -19,8 +19,6 @@
 
 #include "params_types.h"
 
-np_ptr _convert_array(const py_ptr to_convert, const int typenum,
-                      const int requirements);
 
 int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
                          const int requirements, const int ndim,
@@ -230,27 +228,28 @@ do {\
  * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples
  * /src/C/NumPy_macros.h */
 
-#define np_import(array_out, array_to_convert, typenum, requirements)\
+#define np_import(array_out, array_to_convert, typenum, requirements, name)\
 do {\
-    (array_out) = _convert_array((array_to_convert), (typenum), (requirements));\
-    if ((array_out) == NULL) {\
+    if ((array_out) = (np_ptr) PyArray_FROM_OTF(to_convert, typenum,\
+                                                requirements) == NULL) {\
         PyErr_Format(PyExc_ValueError, "Failed to import array %s",\
-                     QUOTE((array_out)));\
+                     (name));\
         goto fail;\
     }\
 } while(0)
 
-#define np_import_check(array_out, array_to_convert, typenum, requirements, ndim)\
+#define np_import_check(array_out, array_to_convert, typenum, requirements,\
+                        ndim, name)\
 do {\
     if (_convert_array_check((array_out), (array_to_convert), (typenum),\
-                           (requirements), (ndim), QUOTE((array_out)))) {\
+                           (requirements), (ndim), (name))) {\
         goto fail;\
     }\
 } while(0)
 
-#define np_check_matrix(array, rows, cols)\
+#define np_check_matrix(array, rows, cols, name)\
 do {\
-    if (_check_matrix((array), (rows), (cols), QUOTE((array))))\
+    if (_check_matrix((array), (rows), (cols), (name)))\
         goto fail;\
 } while(0)
 
@@ -265,15 +264,15 @@ do {\
     }\
 } while(0)
 
-#define np_check_ndim(array, ndim)\
+#define np_check_ndim(array, ndim, name)\
 do {\
-    if (_check_ndim((array), (ndim), QUOTE((array))))\
+    if (_check_ndim((array), (ndim), (name)))\
         goto fail;\
 } while(0)
 
-#define np_check_dim(array, dim, expected_length)\
+#define np_check_dim(array, dim, expected_length, name)\
 do {\
-    if (_check_dim((array), (dim), (expected_length), QUOTE((array))))\
+    if (_check_dim((array), (dim), (expected_length), (name)))\
         goto fail;\
 } while(0)
 

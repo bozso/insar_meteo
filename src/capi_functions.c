@@ -17,12 +17,6 @@
 #include "capi_macros.h"
 #include "params_types.h"
 
-np_ptr _convert_array(const py_ptr to_convert, const int typenum,
-                      const int requirements)
-{
-    return (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements);
-}
-
 int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
                          const int requirements, const int ndim,
                          const char * name)

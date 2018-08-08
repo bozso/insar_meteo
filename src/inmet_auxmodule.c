@@ -331,22 +331,23 @@ py_ptr azi_inc (py_varargs)
                         &max_iter, &is_lonlat);
 
     // Importing arrays
-    np_import_check(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
-    np_import_check(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
-    np_import_check(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 1);
+    np_import_check(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "coeffs");
+    np_import_check(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "coords");
+    np_import_check(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY,
+                    1, "mean_coords");
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
     
-    np_check_matrix(a_coeffs, 3, deg + 1);
+    np_check_matrix(a_coeffs, 3, deg + 1, "coeffs");
     
     // should be nx3 matrix
-    np_check_dim(a_coords, 1, 3);
+    np_check_dim(a_coords, 1, 3, "coords");
     
     n_coords = np_dim(a_coords, 0);
     
     // should be a 3 element vector
-    np_check_dim(a_meancoords, 0, 3);
+    np_check_dim(a_meancoords, 0, 3, "coords");
     
     azi_inc_shape[0] = n_coords;
     azi_inc_shape[1] = 2;
@@ -438,8 +439,8 @@ py_ptr asc_dsc_select(py_keywords)
     println("Maximum separation: %6.3lf meters => approx. %E degrees",
             max_sep, max_sep_deg);
     
-    np_import(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    np_import(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    np_import_check(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "asc");
+    np_import_check(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "dsc");
     
     n_arr1 = np_dim(arr1, 0);
     n_arr2 = np_dim(arr2, 0);
@@ -475,54 +476,7 @@ fail:
  * Python boilerplate *
  **********************/
 
-init_module(insar_aux, "INSAR_AUX",
+init_module(inmet_aux, "inmet_aux",
             pymeth_noargs(test),
             pymeth_varargs(azi_inc),
             pymeth_keywords(asc_dsc_select));
-
-// init_module expands into this, without the do { ... } while(0)
-
-#if 0
-do {
-    static PyMethodDef insar_aux_methods[] = {
-        {"test", (PyCFunction) test, 0x0004, test__doc__},
-        {"azi_inc", (PyCFunction) azi_inc, 0x0001, azi_inc__doc__},
-        {"error_out", (PyCFunction)error_out, 0x0004, ((void *)0)},
-        {((void *)0), ((void *)0), 0, ((void *)0)}
-    };
-    
-    static struct PyModuleDef insar_aux_moduledef = {
-        { { 1, ((void *)0) }, ((void *)0), 0, ((void *)0), },
-        "insar_aux", ("INSAR_AUX"), sizeof(struct module_state),
-        insar_aux_methods,
-        ((void *)0),
-        extension_traverse,
-        extension_clear,
-        ((void *)0)
-    };
-    
-    PyObject* PyInit_insar_aux(void)
-    {
-        {if (_import_array() < 0) {
-            PyErr_Print();
-            PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import");
-            return ((void *)0); }
-        };
-        PyObject *module = PyModule_Create2(&(insar_aux_moduledef), 1013);
-        if (module == ((void *)0))
-            return ((void *)0);
-        
-        struct module_state *st = ((struct module_state*)PyModule_GetState(module));
-        st->error = PyErr_NewException("insar_aux"".Error", ((void *)0), ((void *)0));
-        
-        if (st->error == ((void *)0)) {
-            do { PyObject *_py_decref_tmp = (PyObject *)(module);
-                if ( --(_py_decref_tmp)->ob_refcnt != 0) ;
-                else ( (*(((PyObject*)(_py_decref_tmp))->ob_type)->tp_dealloc)((PyObject *)(_py_decref_tmp)));
-            } while (0);
-            return ((void *)0);
-        } return module;
-    }
-} while(0)
-
-#endif

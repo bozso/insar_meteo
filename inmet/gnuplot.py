@@ -26,47 +26,47 @@ from math import ceil, sqrt
 from sys import stderr, platform
 
 
-if platform == "mac":
-    # TODO: from . import gnuplot_Suites
+#if platform == "mac":
+    ## TODO: from . import gnuplot_Suites
     
-    from inmet.gnuplot_platforms import GnuplotProcessMac as gpp
+    #from inmet.gnuplot_platforms import GnuplotProcessMac as gpp
 
-elif platform == "win32" or platform == "cli":
-    try:
-        from sys import hexversion
-    except ImportError:
-        hexversion = 0
+#elif platform == "win32" or platform == "cli":
+    #try:
+        #from sys import hexversion
+    #except ImportError:
+        #hexversion = 0
 
-    from inmet.gnuplot_platforms import GnuplotProcessWin32 as gpp
+    #from inmet.gnuplot_platforms import GnuplotProcessWin32 as gpp
 
-elif platform == "darwin":
+#elif platform == "darwin":
 
-    from inmet.gnuplot_platforms import GnuplotProcessMacOSX as gpp
+    #from inmet.gnuplot_platforms import GnuplotProcessMacOSX as gpp
 
-elif platform[:4] == "java":
+#elif platform[:4] == "java":
 
-    from java.lang import Runtime
+    #from java.lang import Runtime
 
-    from inmet.gnuplot_platforms import GnuplotProcessJava as gpp
+    #from inmet.gnuplot_platforms import GnuplotProcessJava as gpp
 
-elif platform == "cygwin":
+#elif platform == "cygwin":
 
-    try:
-        from sys import hexversion
-    except ImportError:
-        hexversion = 0
+    #try:
+        #from sys import hexversion
+    #except ImportError:
+        #hexversion = 0
 
 
-    from inmet.gnuplot_platforms import GnuplotProcessCygwin as gpp
+    #from inmet.gnuplot_platforms import GnuplotProcessCygwin as gpp
 
-else:
-    from inmet.gnuplot_platforms import GnuplotProcessUnix as gpp
+#else:
+    #from inmet.gnuplot_platforms import GnuplotProcessUnix as gpp
 
 
 class Gnuplot(object):
     def __init__(self, persist=False, debug=False, silent=False, **kwargs):
 
-        term = str(kwargs.get("term", "wxt"))
+        term = str(kwargs.get("term", "x11"))
         font = str(kwargs.get("font", "Verdena"))
         fontsize = int(kwargs.get("fontsize", 8))
         
@@ -130,7 +130,9 @@ class Gnuplot(object):
                      if plot.data is not None)
         
         if data:
-            self.write("e".join(data) + "\ne\n")
+            self.write("\ne\n".join(data) + "\ne\n")
+            if self.debug:
+                stderr.write("\ne\n".join(data) + "\ne\n")
         
         self.flush()
         
@@ -579,10 +581,12 @@ def _parse_plot_arguments(**kwargs):
     title = kwargs.get("title")
     
     text = ""
-
-    text += " " + " ".join(("{} {}".format(key, value)
-                           for key,value in kwargs.items()
-                           if key in _additional_keys))
+    
+    add = tuple("{} {}".format(key, value) for key,value in kwargs.items()
+                                           if key in _additional_keys)
+    
+    if add:
+        text += " " + " ".join(add)
     
     if with_ is not None:
         text += " with " + with_
@@ -602,12 +606,12 @@ def linedef(**kwargs):
     line_type  = kwargs.get("line_type")
     line_width = kwargs.get("line_width", 1.0)
     
-    if line_type not in _line_type_dict.keys():
+    if line_type not in _line_type_dict.keys() and line_type is not None:
         raise OptionError("Unrecognized linetype \"{}\"!".format(line_type))
     
     point_type = kwargs.get("point_type")
 
-    if point_type not in _point_type_dict.keys():
+    if point_type not in _point_type_dict.keys() and point_type is not None:
         raise OptionError("Unrecognized pointtype \"{}\"!".format(point_type))
 
     point_size = kwargs.get("point_size", 1.0)
@@ -647,63 +651,6 @@ def linedef(**kwargs):
     
     return text
     
-
-# Old function DO NOT USE THIS
-def _parse_line_arguments(**kwargs):
-    
-    errorbars = kwargs.get("errorbars", False)
-    
-    linestyle  = kwargs.get("linestyle")
-    line_type  = kwargs.get("line_type")
-    line_width = kwargs.get("line_width", 1.0)
-
-    pt_type = kwargs.get("pt_type")
-    pt_size = kwargs.get("pt_size", 1.0)
-    
-    rgb = kwargs.get("rgb")
-    title = kwargs.get("title")
-    
-    text = ""
-
-    text += " " + " ".join(("{} {}".format(key, value)
-                           for key, value in kwargs.items()
-                           if key in _additional_keys))
-    
-    is_point = pt_type is not None
-    is_line  = line_type is not None
-    
-    if linestyle is not None:
-        text += " with linestyle {}".format(linestyle)
-    
-    elif errorbars:
-        if isinstance(errorbars, bool):
-            text += " with errorbars"
-        else:
-            text += " with {}errorbars".format(errorbars)
-    
-    elif is_point and is_line:
-        text += " with linespoints pt {} ps {} lt {} lw {}"\
-                .format(_pt_type_dict[pt_type], pt_size,
-                        _line_type_dict[line_type], line_width)
-    
-    elif is_point:
-        text += " with points pt {} ps {}"\
-                .format(_pt_type_dict[pt_type], pt_size)
-    
-    elif is_line:
-        text += " with lines lt {} lw {}"\
-                .format(_line_type_dict[line_type], line_width)
-    
-    elif rgb is not None:
-        text += " with lines lt rgb {} lw {}".format(rgb, line_width)
-
-    if title is not None:
-        text += " title '{}'".format(title)
-    else:
-        text += " notitle"
-    
-    return text
-
 
 def _check_kwargs(**kwargs):
 

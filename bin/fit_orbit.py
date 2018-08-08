@@ -22,7 +22,7 @@
 
 import argparse as ap
 
-import inmet.cwrap as cw
+from inmet.satorbit import Satorbit
 
 def parse_arguments():
     parser = ap.ArgumentParser(description=__doc__,
@@ -38,7 +38,10 @@ def parse_arguments():
              "preprocessing of SAR images.")
     
     parser.add_argument(
-        "fit_file",
+        "--fit_file",
+        nargs="?",
+        default=None,
+        type=str,
         help="Parameters of the fitted polynom will be printed to this ascii file.")
     
     parser.add_argument(
@@ -75,10 +78,19 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    cw.orbit_fit(args.orbit_data, args.preproc, args.fit_file, deg=args.deg, centered=False)
+    sat = Satorbit()
     
-    #if args.plot is not None:
-        #cw.plot_orbit(args.orbit_data, args.preproc, args.fit_file, args.plot)
+    sat.read_orbits(args.orbit_data, args.preproc)
+    
+    sat.fit_orbit(centered=False, deg=args.deg)
+    
+    if args.fit_file:
+        sat.save_fit(args.fit_file)
+    
+    #print(sat.coeffs)
+    
+    if args.plot is not None:
+        sat.plot_orbit(args.plot)
     
     return 0
     

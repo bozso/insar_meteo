@@ -19,7 +19,7 @@ import numpy as np
 from os.path import isfile
 import pickle as pk
 
-from inmet.gnuplot import Gnuplot
+from inmet.gnuplot import Gnuplot, linedef
 from inmet.utils import get_par
 import inmet.inmet_aux as ina
 
@@ -36,33 +36,33 @@ class Satorbit(object):
             lines = f.readlines()
         
         if preproc == "doris":
-            data_num = [(ii, line) for ii, line in enumerate(lines)
+            datanum = [(ii, line) for ii, line in enumerate(lines)
                         if line.startswith("NUMBER_OF_DATAPOINTS:")]
         
-            if len(data_num) != 1:
+            if len(datanum) != 1:
                 raise ValueError("More than one or none of the lines contain the "
                                  "number of datapoints.")
         
-            idx = data_num[0][0]
-            datanum = int(data_num[0][1].split(":")[1])
+            idx = datanum[0][0]
+            datanum = int(datanum[0][1].split(":")[1])
             
-            data = np.fromstring(''.join(lines[idx + 1:idx + data_num + 1]),
-                                 count=data_num * 4, dtype=np.double, sep=" ")\
-                                 .reshape((data_num, 4))
+            data = np.fromstring("".join(lines[idx + 1:idx + datanum + 1]),
+                                 count=datanum * 4, dtype=np.double, sep=" ")\
+                                 .reshape((datanum, 4))
     
             time = data[:,0]
             coords = data[:,1:]
         
         elif preproc == "gamma":
-            data_num = [(ii, line) for ii, line in enumerate(lines)
-                        if line.startswith("number_of_state_vectors:")]
+            datanum = [(ii, line) for ii, line in enumerate(lines)
+                       if line.startswith("number_of_state_vectors:")]
     
-            if len(data_num) != 1:
+            if len(datanum) != 1:
                 raise ValueError("More than one or none of the lines contains the "
                                  "number of datapoints.")
             
-            idx = data_num[0][0]
-            datanum = int(data_num[0][1].split(":")[1])
+            idx = datanum[0][0]
+            datanum = int(datanum[0][1].split(":")[1])
             
             t_first = float(lines[idx + 1].split(":")[1].split()[0])
             t_step  = float(lines[idx + 2].split(":")[1].split()[0])
@@ -121,10 +121,10 @@ class Satorbit(object):
         with open(savefile, "w") as f:
             f.write(cent)
         
-            f.write("Start and stop times.")
+            f.write("Start and stop times.\n")
             f.write("t_start:\t{}\n".format(self.t_start))
             f.write("t_stop:\t{}\n".format(self.t_stop))
-            f.write("Degree of fitted polynom")
+            f.write("Degree of fitted polynom.\n")
             f.write("deg:\t{}\n".format(self.deg))
             
             f.write("(x, y, z) residuals: ({})\n"
@@ -136,7 +136,7 @@ class Satorbit(object):
                     .format(" ".join(str(elem)
                                 for elem in coeffs[0].T.reshape(-1).astype(str))))
             
-            if centered:
+            if self.centered:
                 f.write("mean_time:\t{}\n".format(mean_t))
                 f.write("mean_coords:\t{}\n"
                         .format(" ".join(str(coord) for coord in self.mean_coords)))
@@ -170,53 +170,56 @@ class Satorbit(object):
                            self.mean_coords, self.centered, self.deg,
                            coords, max_iter, is_lonlat)
 
-    #def plot_poly(self, plotfile, nsamp=100):
+    def plot_orbit(self, plotfile, nsamp=100):
         
-        #time = np.linspace(self.t_start, self.t_stop, nsamp)
+        coeffs = self.coeffs[0].T
+        coords = self.coords / 1e3
         
-        #if self.centered:
-            #time_cent = time - self.t_mean
+        t = self.time
+        time = np.linspace(self.t_start, self.t_stop, nsamp)
+        
+        if self.centered:
+            time_cent = time - self.t_mean
             
-            #poly = np.asarray([np.polyval(self.coeffs[ii,:], time_cent)
-                               #+ mean_coords[ii] for ii in range(3)]).T
+            poly = np.asarray([np.polyval(coeffs[ii,:], time_cent)
+                               + mean_coords[ii] for ii in range(3)]).T
             
-        #else:
-            #poly = np.asarray([np.polyval(self.coeffs[ii,:], time)
-                               #for ii in range(3)]).T
+        else:
+            poly = np.asarray([np.polyval(coeffs[ii,:], time)
+                               for ii in range(3)]).T
         
-        #gpt = Gnuplot(out=plotfile, term="pngcairo font ',10'")
+        poly /= 1e3
         
-        #fit = gpt.list2str(time, poly / 1e3)
-        #coords = gpt.list2str(self.time, self.coords)
+        gpt = Gnuplot()
         
-        #gpt.axis_format("x", "")
-        #gpt("set lmargin 10")
-        #gpt("set bmargin 3")
-        #gpt("set tics font ',8'")
+        gpt.output(plotfile, term="pngcairo", fontsize=8)
         
-        #gpt.multiplot((3,1), title=f"Fit of orbital vectors - degree of "
-                                   #f"polynom: {deg_poly}")
+        gpt.axis_format("x", "")
+        gpt.margins(bmargin=3.5)
+        gpt("set tics font ',8'")
         
-        #gpt.ylabel("X [km]")
-        #gpt("plot '-' using 1:($2 / 1e3) title 'Orbital coordinates' pt 7, "
-                 #"'-' using 1:2 title 'Fitted polynom' with lines")
-        #gpt(coords)
-        #gpt(fit)
+        gpt.multiplot(3, portrait=True, title="Fit of orbital vectors - "
+                      "degree of polynom: {}".format(self.deg))
         
-        #gpt.ylabel("Y [km]")
-        #gpt("plot '-' using 1:($3 / 1e3) notitle pt 7, "
-                #" '-' using 1:3 notitle with lines")
-        #gpt(coords)
-        #gpt(fit)
+        ylabels = ("X [km]", "Y [km]", "Z [km]")
         
-        #gpt("set format x")
-        #gpt.labels(x="Time [s]", y="Z [km]")
-        #gpt("plot '-' using 1:($4 / 1e3) notitle pt 7, "
-                #" '-' using 1:4 notitle with lines")
-        #gpt(coords)
-        #gpt(fit)
         
-        #del gpt
+        for ii in range(3):
+            
+            gpt.ylabel(ylabels[ii])
+            
+            points = gpt.data(t, coords[:,ii], title="Orbital coordinates",
+                              vith=linedef(point_type="empty_circle"))
+            
+            fit = gpt.data(time, poly[:,ii], title="Fitted polynom",
+                           vith="lines")
+            
+            if ii == 2:
+                gpt("set format x")
+                gpt.xlabel("Time [s]")
+            
+            gpt.plot(points, fit)
+
 
 def str2orbit(line):
     line_split = line.split()

@@ -30,17 +30,17 @@ def parse_arguments():
 
     parser.add_argument(
         "orbit_data",
+        type=str,
         help="Text file that contains the orbit data.")
 
     parser.add_argument(
         "preproc",
+        type=str,
         help="Type doris or gamma, the program that was used in the "
              "preprocessing of SAR images.")
     
     parser.add_argument(
-        "--fit_file",
-        nargs="?",
-        default=None,
+        "fit_file",
         type=str,
         help="Parameters of the fitted polynom will be printed to this ascii file.")
     
@@ -78,16 +78,10 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    sat = Satorbit()
-    
-    sat.read_orbits(args.orbit_data, args.preproc)
+    sat = Satorbit(args.orbit_data, args.preproc)
     
     sat.fit_orbit(centered=False, deg=args.deg)
-    
-    if args.fit_file:
-        sat.save_fit(args.fit_file)
-    
-    #print(sat.coeffs)
+    sat.save_fit(args.fit_file)
     
     if args.plot is not None:
         sat.plot_orbit(args.plot)

@@ -24,8 +24,12 @@ from inmet.utils import get_par
 import inmet.inmet_aux as ina
 
 class Satorbit(object):
-    def __init__(self):
-        pass
+    def __init__(self, path, mode):
+        
+        if mode == "fit_file":
+            self.read_fit(path)
+        elif mode == "dorsi" or mode == "gamma":
+            self.read_orbits(path, mode)
     
     def read_orbits(self, path, preproc):
     
@@ -80,6 +84,31 @@ class Satorbit(object):
         self.time = time
         self.coords = coords
         self.datanum = datanum
+
+
+    def read_fit(self, fit_file):
+        
+        with open(fit_file, "r") as f:
+            poly = {line.split(":")[0]: line.split(':')[1].strip()
+                    for line in f if ":" in line}
+        
+        self.centered = int(poly["centered"])
+        self.deg = int(poly["deg"])
+        
+        if self.centered:
+            self.mean_coords = np.genfromtxt(poly["mean_coords"].split(),
+                                             dtype=np.double)
+            self.t_mean      = float(poly["mean_time"])
+        else:
+            self.mean_coords = [0.0, 0.0, 0.0]
+            self.t_mean      = 0.0
+        
+        self.t_start = float(poly["t_start"])
+        self.t_stop  = float(poly["t_stop"])
+        
+        self.coeffs = np.genfromtxt(poly["coefficients"].split(),
+                                    dtype=np.double).reshape(3, deg + 1)
+
     
     def fit_orbit(self, centered=True, deg=3):
         
@@ -141,28 +170,6 @@ class Satorbit(object):
                 f.write("mean_coords:\t{}\n"
                         .format(" ".join(str(coord) for coord in self.mean_coords)))
         
-    def load_fit(self, fit_file):
-        
-        with open(fit_file, "r") as f:
-            poly = {line.split(":")[0]: line.split(':')[1].strip()
-                    for line in f if ":" in line}
-        
-        self.centered = int(poly["centered"])
-        self.deg = int(poly["deg"])
-        
-        if self.centered:
-            self.mean_coords = np.genfromtxt(poly["mean_coords"].split(),
-                                             dtype=np.double)
-            self.t_mean      = float(poly["mean_time"])
-        else:
-            self.mean_coords = [0.0, 0.0, 0.0]
-            self.t_mean      = 0.0
-        
-        self.t_start = float(poly["t_start"])
-        self.t_stop  = float(poly["t_stop"])
-        
-        self.coeffs = np.genfromtxt(poly["coefficients"].split(),
-                                    dtype=np.double).reshape(3, deg + 1)
 
     def azi_inc(fit_file, coords, is_lonlat=True, max_iter=1000):
         

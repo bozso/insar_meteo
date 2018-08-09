@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # INMET
 # Copyright (C) 2018  MTA CSFK GGI

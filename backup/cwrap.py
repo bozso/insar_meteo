@@ -22,15 +22,6 @@ from argparse import ArgumentParser
 from inmet.gnuplot import Gnuplot
 
 
-def get_key(line, sep):
-    return line.split(sep)[0].strip()
-
-
-def get_value(line, comment, sep):
-    line = line.split(sep)[1].split(comment)[0].strip()
-    return "".join(line)
-
-
 def parse_config_file(filepath, comment="#", sep=":"):
 
     with open(filepath, "r") as f:
@@ -62,64 +53,6 @@ def get_par(parameter, search, sep=":"):
     return parameter_value
 
 
-def cmd(Cmd, *args, prt=False):
-    """
-    Calls a command line program. Arbitrary number of arguments can be passed
-    through `*args`. See documentation of modules for arguments.
-    The passed arguments will be converted to string joined together and
-    appended to the command.
-    
-    Parameters
-    ----------
-    Cmd : str
-        Name of the program to be called.
-    
-    *args
-        Arbitrary number of arguments, that can be converted to string, i.e.
-        they have a __str__ method.
-    
-    Returns
-    -------
-    ret : byte-string
-        Output of called module returned if ret=True.
-    
-    Raises
-    ------
-    CalledProcessError
-        If something went wrong with the calling of the module, e.g.
-        non zero returncode.
-
-    Examples
-    --------
-    
-    >>> from inmet.cwrap import cmd
-    >>> cmd("ls", "*.png", "*.txt")
-    """
-    
-    Cmd = "{} {}".format(Cmd, " ".join(str(arg) for arg in args))
-    
-    try:
-        #process = sub.Popen(split(Cmd), stdout=sub.PIPE, stderr=sub.STDOUT)
-        cmd_out = sub.check_output(split(Cmd), stderr=sub.STDOUT)
-        
-        #while True:
-            #output = process.stdout.readline()
-            #if output == '' and process.poll() is not None:
-                #break
-            #if output:
-                #print(output.strip())
-
-        #cmd_out = process.poll()
-
-    except sub.CalledProcessError as e:
-        print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
-        print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
-        print("RETURNCODE was: {}".format(e.returncode))
-    
-    if prt:
-        print(cmd_out)
-    
-    return cmd_out
 
 # *****************
 # * DAISY Modules *

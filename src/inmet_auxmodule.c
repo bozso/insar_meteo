@@ -309,12 +309,6 @@ pyfun_doc(azi_inc, "azi_inc");
 
 py_ptr azi_inc (py_varargs)
 {
-    double start_t, stop_t, mean_t;
-    py_ptr coeffs, coords, mean_coords;
-    np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL,
-           azi_inc = NULL;
-    uint is_centered, deg, max_iter, is_lonlat;
-
     cart sat;
     orbit_fit orb;
     npy_intp n_coords, azi_inc_shape[2];
@@ -325,12 +319,19 @@ py_ptr azi_inc (py_varargs)
            X, Y, Z,
            t0, lon, lat, h,
            azi, inc;
-    
+
+    double start_t, stop_t, mean_t;
+    uint is_centered, deg, max_iter, is_lonlat;
+
+    py_ptr coeffs, coords, mean_coords;    
+
     pyfun_parse_varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
                         &max_iter, &is_lonlat);
 
     // Importing arrays
+    np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL,
+           azi_inc = NULL;
     np_import_check(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "coeffs");
     np_import_check(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "coords");
     np_import_check(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY,

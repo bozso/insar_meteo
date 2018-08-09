@@ -20,7 +20,7 @@ import argparse as ap
 
 import inmet.cwrap as cw
 
-_steps = ["data_select", "dominant", "poly_orbit", "integrate"]
+_steps = frozenset(("data_select", "dominant", "poly_orbit", "integrate"))
 
 _daisy__doc__=\
 """

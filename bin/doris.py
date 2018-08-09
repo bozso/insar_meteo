@@ -26,7 +26,7 @@ from contextlib import contextmanager
 
 import inmet.cwrap as cw
 
-_steps = ["import", "make_slcs"]
+_steps = frozenset(("import", "make_slcs"))
 
 # To be translated into python
 

@@ -17,7 +17,7 @@
 
 import argparse as ap
 
-import inmet.cwrap as cw
+import inmet.utils as ut
 
 _steps = frozenset(("data_select", "dominant", "poly_orbit", "integrate"))
 
@@ -30,7 +30,7 @@ Steps: [{}]
 def parse_arguments():
     parser = ap.ArgumentParser(description=_daisy__doc__,
             formatter_class=ap.ArgumentDefaultsHelpFormatter,
-            parent=[cw.gen_step_parser(_steps)])
+            parent=[ut.gen_step_parser(_steps)])
 
     parser.add_argument(
         "in_asc",
@@ -75,20 +75,25 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     
-    start, stop = cw.parse_steps(args, _steps)
+    steps = ut.parse_steps(args, _steps)
     ps_sep = args.ps_sep
     
-    if start == 0:
-        cw.data_select(args.in_asc, args.in_dsc, ps_sep=ps_sep)
+    in_asc = args.in_asc
+    in_dsc = args.in_dsc
     
-    if start <= 1 and stop >= 1:
-        cw.dominant(ps_sep=ps_sep)
+    if "data_select" in steps:
+        ut.cmd("daisy data_select", in_asc, in_dsc, ps_sep)
 
-    if start <= 2 and stop >= 2:
-        cw.poly_orbit(asc_orbit=args.orb_asc, dsc_orbit=args.orb_dsc, deg=args.deg)
-    
-    if stop == 3:
-        cw.integrate()
+    if "dominant" in steps:
+        ut.cmd("daisy dominant", in_asc + "s", in_dsc + "s", ps_sep)
+
+    if "poly_orbit" in steps:
+        ut.cmd("daisy poly_orbit", args.orb_asc, args.deg)
+        ut.cmd("daisy poly_orbit", args.orb_dsc, args.deg)
+        
+    if "integrate" in steps:
+        ut.cmd("daisy integrate", "dominant.xyd", "asc_master.porb",
+               "dsc_master.porb")
     
     return 0
     

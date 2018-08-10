@@ -18,13 +18,15 @@
 """
 Usage:
     fit_orbit.py <orbit_data> <preproc> <fit_file> [--deg=<d>] [--plot=<file>] 
-                 [--nstep=<n>]
+                 [--nstep=<n>] [--centered]
 
 Options:
     -h --help      Show this screen.
     --deg=<d>      Degree of fitted polynom [default: 3].
     --plot=<file>  If defined a plot file will be generated.
     --nstep=<n>    Number of steps used to evaluate the polynom [default: 100].
+    --centered     If set the mean coordinates and time value will be subtracted
+                   from the coordinates and time values before fitting.
 """
 
 from inmet.satorbit import Satorbit
@@ -36,13 +38,15 @@ def main():
     print(args)
     return 0
     
-    sat = Satorbit(args.orbit_data, args.preproc)
+    sat = Satorbit(args["<orbit_data>"], args["<preproc>"])
     
-    sat.fit_orbit(centered=False, deg=args.deg)
-    sat.save_fit(args.fit_file)
+    sat.fit_orbit(centered=args["--centered"], deg=args["--deg"])
+    sat.save_fit(args["<fit_file>"])
     
-    if args.plot is not None:
-        sat.plot_orbit(args.plot)
+    plot = args["--plot"]
+    
+    if plot is not None:
+        sat.plot_orbit(plot)
     
     return 0
     

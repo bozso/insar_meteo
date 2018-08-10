@@ -243,7 +243,7 @@ static inline void calc_azi_inc(const orbit_fit * orb,
                                 const uint max_iter, double * azi,
                                 double * inc)
 {
-    double xf, yf, zf, xl, yl, zl, t0, temp_azi;
+    double xf, yf, zf, xl, yl, zl, t0;
     cart sat;
     // satellite closest approache cooridantes
     closest_appr(orb, X, Y, Z, max_iter, &sat);
@@ -267,7 +267,7 @@ static inline void calc_azi_inc(const orbit_fit * orb,
     
     if(xl == 0.0) xl = 0.000000001;
     
-    temp_azi = atan(fabs(yl / xl));
+    double temp_azi = atan(fabs(yl / xl));
     
     if( (xl < 0.0) && (yl > 0.0) ) temp_azi = M_PI - temp_azi;
     if( (xl < 0.0) && (yl < 0.0) ) temp_azi = M_PI + temp_azi;
@@ -309,20 +309,8 @@ pyfun_doc(azi_inc, "azi_inc");
 
 py_ptr azi_inc (py_varargs)
 {
-    cart sat;
-    orbit_fit orb;
-    npy_intp n_coords, azi_inc_shape[2];
-
-    // topocentric parameters in PS local system
-    double xf, yf, zf,
-           xl, yl, zl,
-           X, Y, Z,
-           t0, lon, lat, h,
-           azi, inc;
-
     double start_t, stop_t, mean_t;
     uint is_centered, deg, max_iter, is_lonlat;
-
     py_ptr coeffs, coords, mean_coords;    
 
     pyfun_parse_varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
@@ -344,19 +332,22 @@ py_ptr azi_inc (py_varargs)
     
     // should be nx3 matrix
     np_check_dim(a_coords, 1, 3, "coords");
-    
-    n_coords = np_dim(a_coords, 0);
-    
+
     // should be a 3 element vector
     np_check_dim(a_meancoords, 0, 3, "coords");
     
-    azi_inc_shape[0] = n_coords;
-    azi_inc_shape[1] = 2;
+    // number of coordinates
+    npy_intp n_coords = np_dim(a_coords, 0);
+
+    npy_intp azi_inc_shape[2] = {n_coords, 2};
     
-    // matrix holding azimuth and inclinations values
+    // matrix holding azimuth and inclination values
     np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
     
+    
     // Set up orbit polynomial structure
+
+    orbit_fit orb;
     orb.coeffs = (double *) np_data(a_coeffs);
     orb.deg = deg;
     orb.is_centered = is_centered;
@@ -366,6 +357,8 @@ py_ptr azi_inc (py_varargs)
     orb.mean_t = mean_t;
     
     orb.mean_coords = (double *) np_data(a_meancoords);
+
+    double X, Y, Z, lon, lat, h;
     
     // coords contains lon, lat, h
     if (is_lonlat) {

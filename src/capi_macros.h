@@ -162,7 +162,7 @@ error_out(PyObject *m) {
  * REQUIRES C99 standard! *
  **************************/
 
-#define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); (ii)++)
+#define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
 /*************

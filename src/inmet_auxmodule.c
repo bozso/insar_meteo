@@ -331,22 +331,20 @@ py_ptr azi_inc (py_varargs)
     np_check_matrix(a_coeffs, 3, deg + 1, "coeffs");
     
     // should be nx3 matrix
-    np_check_dim(a_coords, 1, 3, "coords");
+    np_check_cols(a_coords, 3, "coords");
 
     // should be a 3 element vector
-    np_check_dim(a_meancoords, 0, 3, "coords");
+    np_check_rows(a_meancoords, 3, "coords");
     
     // number of coordinates
-    npy_intp n_coords = np_dim(a_coords, 0);
+    uint n_coords = np_rows(a_coords);
 
-    npy_intp azi_inc_shape[2] = {n_coords, 2};
+    npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
     
     // matrix holding azimuth and inclination values
     np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
     
-    
     // Set up orbit polynomial structure
-
     orbit_fit orb;
     orb.coeffs = (double *) np_data(a_coeffs);
     orb.deg = deg;
@@ -414,33 +412,30 @@ pyfun_doc(asc_dsc_select,
 
 py_ptr asc_dsc_select(py_keywords)
 {
-    py_ptr in_arr1 = NULL, in_arr2 = NULL;
-    np_ptr arr1 = NULL, arr2 = NULL;
-    npy_double max_sep = 100.0, max_sep_deg;
-    
-    npy_intp n_arr1, n_arr2;
-    uint n_found = 0;
-    npy_double dlon, dlat;
-    
     char * keywords[] = {"asc", "dsc", "max_sep", NULL};
-    
+
+    py_ptr in_arr1 = NULL, in_arr2 = NULL;
+    npy_double max_sep = 100.0;
+
     pyfun_parse_keywords(keywords, "OO|d:asc_dsc_select",
                          &in_arr1, &in_arr2, &max_sep);
     
-    max_sep_deg = max_sep / R_earth;
+    npy_double max_sep_deg = max_sep / R_earth;
     max_sep_deg = max_sep_deg * max_sep_deg * RAD2DEG * RAD2DEG;
 
     println("Maximum separation: %6.3lf meters => approx. %E degrees",
             max_sep, max_sep_deg);
-    
+
+    np_ptr arr1 = NULL, arr2 = NULL;
     np_import_check(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "asc");
     np_import_check(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "dsc");
     
-    n_arr1 = np_dim(arr1, 0);
-    n_arr2 = np_dim(arr2, 0);
+    uint n_arr1 = np_rows(arr1), n_arr2 = np_rows(arr2);
     
-    np_ptr idx = (np_ptr) PyArray_ZEROS(1, &n_arr1, NPY_BOOL, 0);
+    np_ptr idx = (np_ptr) PyArray_ZEROS(1, (npy_intp *) &n_arr1, NPY_BOOL, 0);
     
+    uint n_found = 0;
+    npy_double dlon, dlat;
     FOR(ii, 0, n_arr1) {
         FOR(jj, 0, n_arr2) {
             dlon = np_delem(arr1, ii, 0) - np_delem(arr2, jj, 0);

@@ -36,9 +36,9 @@ int _check_dim(const np_ptr array, const int dim, const int expected_length,
 // turn s into string "s"
 #define QUOTE(s) # s
 
-/****************************
- * Python 2/3 Compatibility *
- ****************************/
+/***********************************************************
+ * Python 2/3 compatible module initialization biolerplate *
+ ***********************************************************/
 
 
 /************
@@ -111,10 +111,11 @@ static int extension_clear(PyObject *m)
         return module;\
     }\
 
+#else
+
 /************
  * Python 2 *
  ************/
-#else
 
 #define GETSTATE(m) (&_state)
 
@@ -132,7 +133,7 @@ error_out(PyObject *m) {
 }
 
 // for some reason only works without: do { ... } while(0)
-#define init_module(module_name, ...)\
+#define init_module(module_name, module_doc, ...)\
     static  PyMethodDef module_name ## _methods[] = {\
     __VA_ARGS__,\
     {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
@@ -142,7 +143,8 @@ error_out(PyObject *m) {
     void init ## module_name(void)\
     {\
         import_array();
-        PyObject *module = Py_InitModule(QUOTE(module_name), module_name ## _methods);\
+        PyObject *module = Py_InitModule3(QUOTE(module_name),\
+                                          module_name ## _methods, (module_doc));\
         if (module == NULL)\
             return;\
         struct module_state *st = GETSTATE(module);\
@@ -161,7 +163,6 @@ error_out(PyObject *m) {
  * for macros             *
  * REQUIRES C99 standard! *
  **************************/
-
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
@@ -175,7 +176,7 @@ error_out(PyObject *m) {
 #define print(string) PySys_WriteStdout(string)
 #define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
 
-#define Log print("File: %s line: %d", __FILE__, __LINE__)
+#define Log println("File: %s line: %d", __FILE__, __LINE__)
 
 /******************************
  * Function definition macros *
@@ -196,7 +197,7 @@ error_out(PyObject *m) {
 {#fun_name, (PyCFunction) fun_name, METH_VARARGS | METH_KEYWORDS, \
  fun_name ## __doc__}
 
-#define pyfun_doc(fun_name, doc) PyDoc_VAR( fun_name ## __doc__) = PyDoc_STR(doc)
+#define pyfun_doc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
 
 #define pyfun_parse_keywords(keywords, format, ...) \
 do {\
@@ -217,16 +218,22 @@ do {\
 
 #define np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
 #define np_gptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
-#define np_dim(obj, idx) PyArray_DIM((obj), (idx))
+#define np_dim(obj, idx) (uint) PyArray_DIM((obj), (idx))
 #define np_ndim(obj, idx) PyArray_NDIM((obj), (idx))
 #define np_delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
 #define np_belem1(obj, ii) *((npy_bool *) PyArray_GETPTR1((obj), (ii)))
+
+#define np_rows(obj) np_dim((obj), 0)
+#define np_cols(obj) np_dim((obj), 1)
 
 #define np_data(obj) PyArray_DATA((obj))
 
 /* based on
  * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples
  * /src/C/NumPy_macros.h */
+
+
+// Import a numpy array
 
 #define np_import(array_out, array_to_convert, typenum, requirements, name)\
 do {\
@@ -238,6 +245,9 @@ do {\
     }\
 } while(0)
 
+
+// Import a numpy array and check the number of its dimensions.
+
 #define np_import_check(array_out, array_to_convert, typenum, requirements,\
                         ndim, name)\
 do {\
@@ -247,11 +257,17 @@ do {\
     }\
 } while(0)
 
+
+// Check whether a matrix has the adequate number of rows and cols.
+
 #define np_check_matrix(array, rows, cols, name)\
 do {\
     if (_check_matrix((array), (rows), (cols), (name)))\
         goto fail;\
 } while(0)
+
+
+// Create an empty numpy array
 
 #define np_empty(array_out, ndim, shape, typenum, is_fortran)\
 do {\
@@ -264,17 +280,33 @@ do {\
     }\
 } while(0)
 
+
+// Check if a numpy array has the correct number of dimensions.
+
 #define np_check_ndim(array, ndim, name)\
 do {\
     if (_check_ndim((array), (ndim), (name)))\
         goto fail;\
 } while(0)
 
+
+/* Check whether the number of elements for a given dimension
+ * in a numpy array is adequate. */
+
 #define np_check_dim(array, dim, expected_length, name)\
 do {\
     if (_check_dim((array), (dim), (expected_length), (name)))\
         goto fail;\
 } while(0)
+
+
+// Check the number of rows or cols in a matrix.
+
+#define np_check_rows(obj, expected, name)\
+        np_check_dim((obj), 0, (expected), (name))
+
+#define np_check_cols(obj, expected, name)\
+        np_check_dim((obj), 1, (expected), (name))
 
 #define np_check_type(array, tp)\
 do {\

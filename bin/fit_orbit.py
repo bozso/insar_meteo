@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-# INMET
-# Copyright (C) 2018  MTA CSFK GGI
+# Copyright (C) 2018  István Bozsó
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

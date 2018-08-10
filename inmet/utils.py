@@ -78,11 +78,26 @@ def gen_sequence(elem_cast, sequence_cast=tuple):
 
 
 def parse_steps(args, steps):
-    if args.step is not None:
-        return [args.step]
+    
+    step = args.get("step")
+    
+    if step is not None:
+        if step not in steps:
+            raise ValueError("{} is not a valid step.".format(step))
+        return [step]
     else:
-        first = steps.index(args.start)
-        last = steps.index(args.stop)
+        start = args.get("start")
+        stop  = args.get("stop")
+
+        if start not in steps:
+            raise ValueError("{} is not a valid step.".format(start))
+        
+        if stop not in steps:
+            raise ValueError("{} is not a valid step.".format(stop))
+        
+        first = steps.index(start)
+        last = steps.index(stop)
+
         return steps[first:last + 1]
 
 

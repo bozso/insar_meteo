@@ -16,66 +16,25 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+Usage:
+    fit_orbit.py <orbit_data> <preproc> <fit_file> [--deg=<d>] [--plot=<file>] 
+                 [--nstep=<n>]
 
+Options:
+    -h --help      Show this screen.
+    --deg=<d>      Degree of fitted polynom [default: 3].
+    --plot=<file>  If defined a plot file will be generated.
+    --nstep=<n>    Number of steps used to evaluate the polynom [default: 100].
 """
 
-import argparse as ap
-
 from inmet.satorbit import Satorbit
-
-def parse_arguments():
-    parser = ap.ArgumentParser(description=__doc__,
-            formatter_class=ap.ArgumentDefaultsHelpFormatter)
-
-    parser.add_argument(
-        "orbit_data",
-        type=str,
-        help="Text file that contains the orbit data.")
-
-    parser.add_argument(
-        "preproc",
-        type=str,
-        help="Type doris or gamma, the program that was used in the "
-             "preprocessing of SAR images.")
-    
-    parser.add_argument(
-        "fit_file",
-        type=str,
-        help="Parameters of the fitted polynom will be printed to this ascii file.")
-    
-    parser.add_argument(
-        "-d", "--deg",
-        nargs="?",
-        default=3,
-        type=int,
-        help="Degree of the polynom fitted to satellite orbit coordinates.")
-
-    parser.add_argument(
-        "--plot",
-        nargs="?",
-        default=None,
-        type=str,
-        help="Gnuplot will plot the original and fitted coordinates to this file.")
-
-    parser.add_argument(
-        "--nstep",
-        nargs="?",
-        default=100,
-        type=int,
-        help="Evaluate fitted x, y, z coordinates at nstep number of steps "
-             "between the range of t_min and t_max.")
-
-    """
-    parser.add_argument("--logile", help="logfile name ", nargs="?",
-                        type=str, default="daisy.log")
-    parser.add_argument("--loglevel", help="level of logging ", nargs="?",
-                        type=str, default="DEBUG")
-    """
-
-    return parser.parse_args()
+from inmet.docopt import docopt
 
 def main():
-    args = parse_arguments()
+    args = docopt(__doc__)
+    
+    print(args)
+    return 0
     
     sat = Satorbit(args.orbit_data, args.preproc)
     

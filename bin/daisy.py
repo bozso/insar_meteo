@@ -15,86 +15,45 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse as ap
-
-import inmet.utils as ut
-
 _steps = frozenset(("data_select", "dominant", "poly_orbit", "integrate"))
 
-_daisy__doc__=\
+daisy__doc__  = \
 """
-DAISY
-Steps: [{}]
+Commands available: {}
+
+Usage:
+    daisy.py <command> [<args>...]
+
+Options:
+    -h --help      Show this screen.
 """.format(", ".join(_steps))
 
-def parse_arguments():
-    parser = ap.ArgumentParser(description=_daisy__doc__,
-            formatter_class=ap.ArgumentDefaultsHelpFormatter,
-            parent=[ut.gen_step_parser(_steps)])
+from inmet.utils import cmd
+from inmet.docopt import docopt
 
-    parser.add_argument(
-        "in_asc",
-        help="Text file that contains the ASCENDING PS velocities.")
-        
-    parser.add_argument(
-        "in_dsc",
-        help="Text file that contains the DESCENDING PS velocities.")
-
-    parser.add_argument(
-        "orb_asc",
-        help="Text file that contains the ASCENDING orbit state vectors.")
-    
-    parser.add_argument(
-        "orb_dsc",
-        help="Text file that contains the DESCENDING orbit state vectors.")
-    
-    parser.add_argument(
-        "-p", "--ps_sep",
-        nargs="?",
-        default=100.0,
-        type=float,
-        help="Maximum separation distance between ASC and DSC PS points "
-             "in meters.")
-
-    parser.add_argument(
-        "-d", "--deg",
-        nargs="?",
-        default=3,
-        type=int,
-        help="Degree of the polynom fitted to satellite orbit coordinates.")
-    
+def data_select(argv):
     """
-    parser.add_argument("--logile", help="logfile name ", nargs="?",
-                        type=str, default="daisy.log")
-    parser.add_argument("--loglevel", help="level of logging ", nargs="?",
-                        type=str, default="DEBUG")
+    Usage:
+        daisy.py data_select <asc_data> <dsc_data> [--ps_sep=<sep>]
+    
+    Options:
+        -h --help        Show this screen.
+        --ps_sep=<sep>   Separation between PSs in meters [default: 100].
     """
-
-    return parser.parse_args()
+    args = docopt(data_select.__doc__, argv=argv)
+    print(args)
 
 def main():
-    args = parse_arguments()
     
-    steps = ut.parse_steps(args, _steps)
-    ps_sep = args.ps_sep
+    args = docopt(daisy__doc__, options_first=True)
     
-    in_asc = args.in_asc
-    in_dsc = args.in_dsc
+    command = args["<command>"]
+    argv = [command] + args["<args>"]
     
-    if "data_select" in steps:
-        ut.cmd("daisy data_select", in_asc, in_dsc, ps_sep)
+    if command == "data_select":
+        print(argv)
+        data_select(argv)
 
-    if "dominant" in steps:
-        ut.cmd("daisy dominant", in_asc + "s", in_dsc + "s", ps_sep)
-
-    if "poly_orbit" in steps:
-        ut.cmd("daisy poly_orbit", args.orb_asc, args.deg)
-        ut.cmd("daisy poly_orbit", args.orb_dsc, args.deg)
-        
-    if "integrate" in steps:
-        ut.cmd("daisy integrate", "dominant.xyd", "asc_master.porb",
-               "dsc_master.porb")
-    
     return 0
     
 if __name__ == "__main__":

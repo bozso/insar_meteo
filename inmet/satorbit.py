@@ -19,7 +19,7 @@ import numpy as np
 from os.path import isfile
 import pickle as pk
 
-from gnuplot.gnuplot import Gnuplot, linedef
+from gnuplot import Gnuplot, linedef
 from inmet.utils import get_par
 import inmet.inmet_aux as ina
 

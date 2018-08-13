@@ -17,7 +17,7 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-#include "capi_macros.h"
+#include "capi_functions.h"
 #include "satorbit.h"
 
 /*****************************************

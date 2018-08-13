@@ -28,8 +28,7 @@ flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
 ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.c",
-              "capi_functions.c", "satorbit.c"],
+    Extension(name="inmet_aux", sources=["inmet_auxmodule.c", "satorbit.c"],
               define_macros=macros, extra_compile_args=["-std=c99"])
 ]
 

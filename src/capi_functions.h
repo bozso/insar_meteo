@@ -19,7 +19,7 @@
 
 #include "params_types.h"
 
-int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
+static int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
                          const int requirements, const int ndim,
                          const char * name)
 {
@@ -39,7 +39,7 @@ int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenu
     return 0;
 }
 
-int _check_matrix(const np_ptr array, const int rows, const int cols,
+static int _check_matrix(const np_ptr array, const int rows, const int cols,
                   const char * name)
 {
     int tmp = PyArray_DIM(array, 0);
@@ -61,7 +61,7 @@ int _check_matrix(const np_ptr array, const int rows, const int cols,
     return 0;
 }    
 
-int _check_ndim(const np_ptr array, const int ndim, const char * name)
+static int _check_ndim(const np_ptr array, const int ndim, const char * name)
 {
     int tmp = PyArray_NDIM(array);
     if (tmp != ndim) {
@@ -73,7 +73,7 @@ int _check_ndim(const np_ptr array, const int ndim, const char * name)
     return 0;
 }
 
-int _check_dim(const np_ptr array, const int dim, const int expected_length,
+static int _check_dim(const np_ptr array, const int dim, const int expected_length,
                const char * name)
 {
     int tmp = PyArray_NDIM(array);

@@ -16,7 +16,7 @@
 from argparse import ArgumentParser
 from subprocess import check_output, CalledProcessError
 from shlex import split
-
+import logging
 
 def cmd(Cmd, *args, debug=False):
     """
@@ -152,3 +152,32 @@ def get_par(parameter, search):
             break
 
     return parameter_value
+
+def setup_log(logger_name, filename=None, formatter=None, loglevel="debug"):
+    
+    logger = logging.getLogger(logger_name)
+    
+    level = getattr(logging, loglevel.upper(), None)
+    
+    if not isinstance(level, int):
+        raise ValueError("Invalid log level: {}".format(loglevel))
+    
+    logger.setLevel(level)
+
+    if formatter is None:
+        form = logging.Formatter(_default_log_format)
+    else:
+        form = logging.Formatter(formatter)
+
+    
+    if filename is not None:
+        fh = logging.FileHandler(filename)
+        fh.setFormatter(form)
+        logger.addHandler(fh)
+    
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(form)
+    
+    logger.addHandler(consoleHandler)    
+
+    return logger

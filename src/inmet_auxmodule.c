@@ -33,7 +33,6 @@ py_ptr test(void)
 
     FOR(ii, 0, 10000000) {
         ell_cart(lon, lat, height, &x, &y, &z);
-        //println("%lf %lf %lf\n", lon, lat, height);
         cart_ell(x, y, z, &lon, &lat, &height);
     }
     
@@ -55,12 +54,11 @@ py_ptr azi_inc (py_varargs)
                         &max_iter, &is_lonlat);
 
     // Importing arrays
-    np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL,
-           azi_inc = NULL;
-    np_import_check(a_coeffs, coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "coeffs");
-    np_import_check(a_coords, coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "coords");
-    np_import_check(a_meancoords, mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY,
-                    1, "mean_coords");
+    np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL;
+
+    np_import_check_double_in(a_coeffs, coeffs, 2, "coeffs");
+    np_import_check_double_in(a_coords, coords, 2, "coords");
+    np_import_check_double_in(a_meancoords, mean_coords, 1, "mean_coords");
 
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
@@ -79,7 +77,8 @@ py_ptr azi_inc (py_varargs)
     npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
     
     // matrix holding azimuth and inclination values
-    np_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, 0);
+    np_ptr azi_inc = NULL;
+    np_empty_double(azi_inc, 2, azi_inc_shape);
     
     // Set up orbit polynomial structure
     orbit_fit orb;
@@ -164,8 +163,9 @@ py_ptr asc_dsc_select(py_keywords)
             max_sep, max_sep_deg);
 
     np_ptr arr1 = NULL, arr2 = NULL;
-    np_import_check(arr1, in_arr1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "asc");
-    np_import_check(arr2, in_arr2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2, "dsc");
+
+    np_import_check_double_in(arr1, in_arr1, 2, "asc");
+    np_import_check_double_in(arr2, in_arr2, 2, "dsc");
     
     uint n_arr1 = np_rows(arr1), n_arr2 = np_rows(arr2);
     

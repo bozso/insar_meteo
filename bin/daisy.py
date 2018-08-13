@@ -40,6 +40,7 @@ def data_select(argv):
         -h --help        Show this screen.
         --ps_sep=<sep>   Separation between PSs in meters [default: 100].
     """
+    
     args = docopt(data_select.__doc__, argv=argv)
     print(args)
 
@@ -51,9 +52,11 @@ def main():
     argv = [command] + args["<args>"]
     
     if command == "data_select":
-        print(argv)
         data_select(argv)
-
+    
+    else:
+        raise ValueError("Unknown command: \"{}\"".format(command))
+    
     return 0
     
 if __name__ == "__main__":

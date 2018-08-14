@@ -108,7 +108,7 @@ static int _check_dim(const np_ptr array, const int dim,
 #define np_delem2(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
 
 #define np_belem1(obj, ii) *((npy_bool *) PyArray_GETPTR1((obj), (ii)))
-#define np_belem1(obj, ii, jj) *((npy_bool *) PyArray_GETPTR2((obj), (ii), (jj)))
+#define np_belem2(obj, ii, jj) *((npy_bool *) PyArray_GETPTR2((obj), (ii), (jj)))
 
 #define np_rows(obj) np_dim((obj), 0)
 #define np_cols(obj) np_dim((obj), 1)

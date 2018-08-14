@@ -176,8 +176,8 @@ py_ptr asc_dsc_select(py_keywords)
     
     FOR(ii, 0, n_arr1) {
         FOR(jj, 0, n_arr2) {
-            dlon = np_delem(arr1, ii, 0) - np_delem(arr2, jj, 0);
-            dlat = np_delem(arr1, ii, 1) - np_delem(arr2, jj, 1);
+            dlon = np_delem2(arr1, ii, 0) - np_delem2(arr2, jj, 0);
+            dlat = np_delem2(arr1, ii, 1) - np_delem2(arr2, jj, 1);
             
             if ( (dlon * dlon + dlat * dlat) < max_sep) {
                 np_belem1(idx, ii) = NPY_TRUE;

@@ -22,9 +22,9 @@ Usage:
 
 Options:
     -h --help      Show this screen.
-    --deg=<d>      Degree of fitted polynom [default: 3].
-    --plot=<file>  If defined a plot file will be generated.
-    --nstep=<n>    Number of steps used to evaluate the polynom [default: 100].
+    --deg=d      Degree of fitted polynom [default: 3].
+    --plot=file  If defined a plot file will be generated.
+    --nstep=n    Number of steps used to evaluate the polynom [default: 100].
     --centered     If set the mean coordinates and time value will be subtracted
                    from the coordinates and time values before fitting.
 """
@@ -34,9 +34,6 @@ from inmet.docopt import docopt
 
 def main():
     args = docopt(__doc__)
-    
-    print(args)
-    return 0
     
     sat = Satorbit(args["<orbit_data>"], args["<preproc>"])
     

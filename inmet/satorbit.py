@@ -28,7 +28,7 @@ class Satorbit(object):
         
         if mode == "fit_file":
             self.read_fit(path)
-        elif mode == "dorsi" or mode == "gamma":
+        elif mode == "doris" or mode == "gamma":
             self.read_orbits(path, mode)
     
     def read_orbits(self, path, preproc):

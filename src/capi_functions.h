@@ -19,9 +19,9 @@
 
 #include "params_types.h"
 
-static int _convert_array_check(np_ptr array, const py_ptr to_convert, const int typenum,
-                         const int requirements, const int ndim,
-                         const char * name)
+static int _convert_array_check(np_ptr array, const py_ptr to_convert,
+                                const int typenum, const int requirements,
+                                const int ndim, const char * name)
 {
     if ((array = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements))
          == NULL)
@@ -40,7 +40,7 @@ static int _convert_array_check(np_ptr array, const py_ptr to_convert, const int
 }
 
 static int _check_matrix(const np_ptr array, const int rows, const int cols,
-                  const char * name)
+                         const char * name)
 {
     int tmp = PyArray_DIM(array, 0);
 
@@ -73,8 +73,8 @@ static int _check_ndim(const np_ptr array, const int ndim, const char * name)
     return 0;
 }
 
-static int _check_dim(const np_ptr array, const int dim, const int expected_length,
-               const char * name)
+static int _check_dim(const np_ptr array, const int dim,
+                      const int expected_length, const char * name)
 {
     int tmp = PyArray_NDIM(array);
     if (dim > tmp) {
@@ -98,12 +98,17 @@ static int _check_dim(const np_ptr array, const int dim, const int expected_leng
  * Numpy convenience macros *
  ****************************/
 
-#define np_ptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
-#define np_gptr(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
+#define np_gptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
+#define np_gptr2(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
+
 #define np_dim(obj, idx) (uint) PyArray_DIM((obj), (idx))
-#define np_ndim(obj, idx) PyArray_NDIM((obj), (idx))
-#define np_delem(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
+#define np_ndim(obj, idx) (uint) PyArray_NDIM((obj), (idx))
+
+#define np_delem1(obj, ii) *((npy_double *) PyArray_GETPTR1((obj), (ii), (jj)))
+#define np_delem2(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
+
 #define np_belem1(obj, ii) *((npy_bool *) PyArray_GETPTR1((obj), (ii)))
+#define np_belem1(obj, ii, jj) *((npy_bool *) PyArray_GETPTR2((obj), (ii), (jj)))
 
 #define np_rows(obj) np_dim((obj), 0)
 #define np_cols(obj) np_dim((obj), 1)
@@ -216,6 +221,7 @@ do {\
 
 // turn s into string "s"
 #define QUOTE(s) # s
+
 
 /***********************************************************
  * Python 2/3 compatible module initialization biolerplate *

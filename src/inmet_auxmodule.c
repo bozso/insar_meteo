@@ -97,16 +97,16 @@ py_ptr azi_inc (py_varargs)
     // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, 0, n_coords) {
-            lon = np_delem(a_coords, ii, 0) * DEG2RAD;
-            lat = np_delem(a_coords, ii, 1) * DEG2RAD;
-            h   = np_delem(a_coords, ii, 2);
+            lon = np_delem2(a_coords, ii, 0) * DEG2RAD;
+            lat = np_delem2(a_coords, ii, 1) * DEG2RAD;
+            h   = np_delem2(a_coords, ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, &X, &Y, &Z);
             
             calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
-                         (double *) np_gptr(azi_inc, ii, 0),
-                         (double *) np_gptr(azi_inc, ii, 1));
+                         (npy_double *) np_gptr2(azi_inc, ii, 0),
+                         (npy_double *) np_gptr2(azi_inc, ii, 1));
             
         }
         // end for
@@ -114,16 +114,16 @@ py_ptr azi_inc (py_varargs)
     // coords contains X, Y, Z
     else {
         FOR(ii, 0, n_coords) {
-            X = np_delem(a_coords, ii, 0);
-            Y = np_delem(a_coords, ii, 1);
-            Z = np_delem(a_coords, ii, 2);
+            X = np_delem2(a_coords, ii, 0);
+            Y = np_delem2(a_coords, ii, 1);
+            Z = np_delem2(a_coords, ii, 2);
             
             // calulate surface WGS-84 geodetic coordinates
             cart_ell(X, Y, Z, &lon, &lat, &h);
         
             calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
-                         (double *) np_gptr(azi_inc, ii, 0),
-                         (double *) np_gptr(azi_inc, ii, 1));
+                         (npy_double *) np_gptr2(azi_inc, ii, 0),
+                         (npy_double *) np_gptr2(azi_inc, ii, 1));
         }
         // end for
     }
@@ -173,14 +173,14 @@ py_ptr asc_dsc_select(py_keywords)
     
     uint n_found = 0;
     npy_double dlon, dlat;
+    
     FOR(ii, 0, n_arr1) {
         FOR(jj, 0, n_arr2) {
             dlon = np_delem(arr1, ii, 0) - np_delem(arr2, jj, 0);
             dlat = np_delem(arr1, ii, 1) - np_delem(arr2, jj, 1);
             
-            if ( dlon * dlon + dlat * dlat < max_sep) {
-                //*( (npy_bool *) np_ptr1(idx, ii) ) = 1;
-                np_belem1(idx, ii) = 1;
+            if ( (dlon * dlon + dlat * dlat) < max_sep) {
+                np_belem1(idx, ii) = NPY_TRUE;
                 n_found++;
                 break;
             }

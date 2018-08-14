@@ -64,7 +64,9 @@ def cmd(Cmd, *args, debug=False):
         print("ERROR: Non zero returncode from command: '{}'".format(Cmd))
         print("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
         print("RETURNCODE was: {}".format(e.returncode))
-
+        
+        raise e
+        
     return cmd_out
 
 

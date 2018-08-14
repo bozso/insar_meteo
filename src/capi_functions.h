@@ -19,15 +19,54 @@
 
 #include "params_types.h"
 
-static int _convert_array_check(np_ptr array, const py_ptr to_convert,
+/*************
+ * IO macros *
+ *************/
+
+#define error(text) PySys_WriteStderr(text)
+#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
+
+#define print(string) PySys_WriteStdout(string)
+#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
+
+#define _log println("File: %s line: %d", __FILE__, __LINE__)
+
+static void * _ar_setup_array(const np_ptr array)
+{
+    np_ptr arr;
+    
+    if ((arr = (np_ptr) PyMem_Malloc(sizeof(np_ptr) + sizeof(char*))) == NULL) {
+        return NULL;
+    }
+    
+    arr = array;
+    println("%p", arr);
+    arr++;
+    arr = PyArray_BYTES(array);
+    
+    return arr;
+}
+
+#define ar_setup(arr, np_arr)\
+do {\
+    if(((arr) = _ar_setup_array((np_arr))) == NULL) {\
+        goto fail;\
+    }\
+} while(0)
+
+#define ar_get_raw(arr) ((np_ptr) (arr) - 1)
+
+//#define ar_ndim(arr)
+
+static int _np_convert_array_check(np_ptr * array, const py_ptr to_convert,
                                 const int typenum, const int requirements,
                                 const int ndim, const char * name)
 {
-    if ((array = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements))
+    if ((*array = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements))
          == NULL)
          return 1;
-    
-    int array_ndim = PyArray_NDIM(array);
+
+    int array_ndim = PyArray_NDIM(*array);
     
     if (array_ndim != ndim) {
         PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
@@ -39,7 +78,7 @@ static int _convert_array_check(np_ptr array, const py_ptr to_convert,
     return 0;
 }
 
-static int _check_matrix(const np_ptr array, const int rows, const int cols,
+static int _np_check_matrix(const np_ptr array, const int rows, const int cols,
                          const char * name)
 {
     int tmp = PyArray_DIM(array, 0);
@@ -61,7 +100,7 @@ static int _check_matrix(const np_ptr array, const int rows, const int cols,
     return 0;
 }    
 
-static int _check_ndim(const np_ptr array, const int ndim, const char * name)
+static int _np_check_ndim(const np_ptr array, const int ndim, const char * name)
 {
     int tmp = PyArray_NDIM(array);
     if (tmp != ndim) {
@@ -73,7 +112,7 @@ static int _check_ndim(const np_ptr array, const int ndim, const char * name)
     return 0;
 }
 
-static int _check_dim(const np_ptr array, const int dim,
+static int _np_check_dim(const np_ptr array, const int dim,
                       const int expected_length, const char * name)
 {
     int tmp = PyArray_NDIM(array);
@@ -102,7 +141,7 @@ static int _check_dim(const np_ptr array, const int dim,
 #define np_gptr2(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
 
 #define np_dim(obj, idx) (uint) PyArray_DIM((obj), (idx))
-#define np_ndim(obj, idx) (uint) PyArray_NDIM((obj), (idx))
+#define np_ndim(obj) (uint) PyArray_NDIM((obj))
 
 #define np_delem1(obj, ii) *((npy_double *) PyArray_GETPTR1((obj), (ii), (jj)))
 #define np_delem2(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
@@ -138,7 +177,7 @@ do {\
 #define np_import_check(array_out, array_to_convert, typenum, requirements,\
                         ndim, name)\
 do {\
-    if (_convert_array_check((array_out), (array_to_convert), (typenum),\
+    if (_np_convert_array_check((&(array_out)), (array_to_convert), (typenum),\
                            (requirements), (ndim), (name))) {\
         goto fail;\
     }\
@@ -152,7 +191,7 @@ do {\
 
 #define np_check_matrix(array, rows, cols, name)\
 do {\
-    if (_check_matrix((array), (rows), (cols), (name)))\
+    if (_np_check_matrix((array), (rows), (cols), (name)))\
         goto fail;\
 } while(0)
 
@@ -177,7 +216,7 @@ do {\
 
 #define np_check_ndim(array, ndim, name)\
 do {\
-    if (_check_ndim((array), (ndim), (name)))\
+    if (_np_check_ndim((array), (ndim), (name)))\
         goto fail;\
 } while(0)
 
@@ -187,7 +226,7 @@ do {\
 
 #define np_check_dim(array, dim, expected_length, name)\
 do {\
-    if (_check_dim((array), (dim), (expected_length), (name)))\
+    if (_np_check_dim((array), (dim), (expected_length), (name)))\
         goto fail;\
 } while(0)
 
@@ -344,18 +383,6 @@ error_out(PyObject *m) {
     }\
 
 #endif
-
-/*************
- * IO macros *
- *************/
-
-#define error(text) PySys_WriteStderr(text)
-#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
-
-#define print(string) PySys_WriteStdout(string)
-#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
-
-#define Log println("File: %s line: %d", __FILE__, __LINE__)
 
 /******************************
  * Function definition macros *

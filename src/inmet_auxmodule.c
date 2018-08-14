@@ -26,19 +26,31 @@
 
 pyfun_doc(test, "test");
 
-py_ptr test(void)
+py_ptr test(py_varargs)
 {
-    double x, y, z, lon, lat, height;
-    lon = 45.0 * DEG2RAD; lat = 25.0 * DEG2RAD; height = 63900.0;
-
-    FOR(ii, 0, 10000000) {
-        ell_cart(lon, lat, height, &x, &y, &z);
-        cart_ell(x, y, z, &lon, &lat, &height);
-    }
+    py_ptr arr;
+    pyfun_parse_varargs("O", &arr);
     
-    println("%lf %lf %lf\n", lon * RAD2DEG, lat * RAD2DEG, height);
+    np_ptr a_arr = NULL;
+    np_import_check_double_in(a_arr, arr, 1, "arr");
     
+    npy_double * array = NULL;
+    println("%p", a_arr);
+    ar_setup(array, a_arr);
+    
+    println("%p", (np_ptr) array - 1);
+    //println("%p %p", ar_get_raw(arr), a_arr);
+    
+    uint n = np_rows(a_arr);
+    
+    FOR(ii, 0, n)
+        println("%lf", array[ii]);
+    
+    Py_DECREF(a_arr);
     Py_RETURN_NONE;
+fail:
+    Py_XDECREF(a_arr);
+    return NULL;
 }
 
 pyfun_doc(azi_inc, "azi_inc");
@@ -203,6 +215,6 @@ fail:
  **********************/
 
 init_module(inmet_aux, "inmet_aux",
-            pymeth_noargs(test),
+            pymeth_varargs(test),
             pymeth_varargs(azi_inc),
             pymeth_keywords(asc_dsc_select));

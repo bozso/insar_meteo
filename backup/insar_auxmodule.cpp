@@ -19,7 +19,7 @@
 
 #include "insar_functions.hpp"
 
-namespace py = pybind11;
+using namespace pybind11;
 using namespace std;
 
 static void calc_pos(const orbit_fit& orb, double time, double& X, double& Y, double& Z)
@@ -176,11 +176,11 @@ static void closest_appr(const orbit_fit& orb, cdouble X, cdouble Y,
  * Main functions - calleble from Python *
  *****************************************/
 
-py::array_t<double> azi_inc (double t_start, double t_stop, double t_mean,
-                             uint is_centered, uint max_iter, uint is_lonlat,
-                             py::array_t<double>coeffs,
-                             py::array_t<double> coords,
-                             py::array_t<double> mean_coords)
+array_t<double> azi_inc (double t_start, double t_stop, double t_mean,
+                         uint is_centered, uint max_iter, uint is_lonlat,
+                         array_t<double>coeffs,
+                         array_t<double> coords,
+                         array_t<double> mean_coords)
 {
     auto buf_coeffs = coeffs.request(), buf_mean_coords = mean_coords.request();
     
@@ -199,16 +199,12 @@ py::array_t<double> azi_inc (double t_start, double t_stop, double t_mean,
     orb.mean_coords = (double *) buf_mean_coords.ptr;
     
     // topocentric parameters in PS local system
-    double xf, yf, zf,
-           xl, yl, zl,
-           X, Y, Z,
-           t0, lon, lat, h,
-           azi, inc;
+    double X, Y, Z;
     
     auto rcoords = coords.unchecked<2>();
     
-    auto result = py::array_t<double>(rcoords.size());
-
+    auto result = array_t<double, array::c_style>({rcoords.shape(0), 2});
+    
 #if 0
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
@@ -292,7 +288,7 @@ void test(void)
         cart_ell(x, y, z, lon, lat, height);
     }
     
-    py::print(lon * RAD2DEG, lat * RAD2DEG, height);
+    print(lon * RAD2DEG, lat * RAD2DEG, height);
 }
 
 

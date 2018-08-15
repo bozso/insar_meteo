@@ -19,7 +19,6 @@
 
 #include "params_types.hpp"
 #include <cstring>
-#include <stdexcept>
 
 #define FOR(ii, start, stop) for(uint (ii) = 0; (ii) < (stop); ++(ii))
 
@@ -63,8 +62,7 @@ inline void np_wrap<T>::import(const py_ptr to_convert, const int typenum,
     np_ptr tmp;
     if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, NPY_ARRAY_IN_ARRAY))
          == nullptr) {
-        print("AAA");
-        throw std::runtime_error("");
+        throw "Failed to convert to numpy array!";
     }
     
     int array_ndim = PyArray_NDIM(tmp);
@@ -74,21 +72,37 @@ inline void np_wrap<T>::import(const py_ptr to_convert, const int typenum,
             PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
                                            "expected to be %d-dimensional",
                                             nname, array_ndim, edim);
-            throw std::runtime_error("");
+            throw "Wrong number of dimensions!";
         }
     }
     
     ndim = array_ndim;
     shape = PyArray_DIMS(tmp);
-    strides = new npy_intp[array_ndim];
+    strides = PyMem_New(npy_intp, array_ndim);
     std::memcpy(strides, PyArray_STRIDES(tmp), array_ndim * sizeof(npy_intp));
     
     for(uint ii = 0; ii < array_ndim; ++ii)\
         strides[ii] /= sizeof(*(data));
     
-    data = reinterpret_cast<T*>(PyArray_BYTES(tmp));
+    data = (T*) PyArray_BYTES(tmp);
     np_array = tmp;
     name = nname;
+}
+
+template<class T>
+inline void np_wrap<T>::decref()
+{
+    Py_DECREF(np_array);
+    PyMem_Del(strides);
+}
+
+template<class T>
+inline void np_wrap<T>::xdecref()
+{
+    Py_XDECREF(np_array);
+    
+    if (strides != nullptr)
+        PyMem_Del(strides);
 }
 
 template<class T>
@@ -119,22 +133,6 @@ template<class T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 {
     return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]];
-}
-
-template<class T>
-inline void np_wrap<T>::decref()
-{
-    Py_DECREF(np_array);
-    delete strides;
-}
-
-template<class T>
-inline void np_wrap<T>::xdecref()
-{
-    Py_XDECREF(np_array);
-    
-    if (strides != nullptr)
-        delete strides;
 }
 
 #if 0

@@ -25,11 +25,11 @@ import sys
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
 flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
-libs=["stdc++"]
+#libs=["stdc++"]
 
 ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp"],
-              define_macros=macros, extra_compile_args=["-std=c++11"], libraries=libs)
+    Extension(name="inmet_aux", sources=["inmet_auxmodule.c"],
+              define_macros=macros, extra_compile_args=["-std=c99", "-save-temps"])
 ]
 
 def main():

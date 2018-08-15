@@ -17,9 +17,6 @@
 #ifndef PARAMS_TYPES_H
 #define PARAMS_TYPES_H
 
-#include "Python.h"
-#include "numpy/arrayobject.h"
-
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
  *******************************/
@@ -45,13 +42,5 @@
 #define RAD2DEG 5.729578e+01
 
 #define distance(x, y, z) sqrt((y)*(y)+(x)*(x)+(z)*(z))
-
-#define OR ||
-#define AND &&
-
-typedef PyArrayObject* np_ptr;
-typedef PyObject* py_ptr;
-typedef const double cdouble;
-typedef unsigned int uint;
 
 #endif

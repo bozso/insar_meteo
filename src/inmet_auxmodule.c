@@ -14,9 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Python.h"
-#include "numpy/arrayobject.h"
-
 #include "capi_functions.h"
 #include "satorbit.h"
 
@@ -26,7 +23,7 @@
 
 pyfun_doc(test, "test");
 
-py_ptr test(py_varargs)
+static py_ptr test(py_varargs)
 {
     py_ptr arr;
     pyfun_parse_varargs("O", &arr);
@@ -39,7 +36,9 @@ py_ptr test(py_varargs)
     
     println("%u %u", nrows, ncols);
     println("%u %u", ar_stride(array, 0), ar_stride(array, 1));
-
+    
+    ar_check_cols(array, 10);
+    
     FOR(ii, 0, nrows) {
         FOR(jj, 0, ncols)
             printf("%lf ", ar_elem2(array, ii, jj));
@@ -53,9 +52,11 @@ fail:
     return NULL;
 }
 
+#if 0
+
 pyfun_doc(azi_inc, "azi_inc");
 
-py_ptr azi_inc (py_varargs)
+static py_ptr azi_inc (py_varargs)
 {
     double start_t, stop_t, mean_t;
     uint is_centered, deg, max_iter, is_lonlat;
@@ -160,7 +161,7 @@ fail:
 pyfun_doc(asc_dsc_select,
 "asc_dsc_select");
 
-py_ptr asc_dsc_select(py_keywords)
+static py_ptr asc_dsc_select(py_keywords)
 {
     char * keywords[] = {"asc", "dsc", "max_sep", NULL};
 
@@ -212,11 +213,13 @@ fail:
 }
 // end asc_dsc_select
 
+#endif
+
 /**********************
  * Python boilerplate *
  **********************/
 
-init_module(inmet_aux, "inmet_aux",
-            pymeth_varargs(test),
-            pymeth_varargs(azi_inc),
-            pymeth_keywords(asc_dsc_select));
+init_table(inmet_aux, pymeth_varargs(test));
+
+init_module(inmet_aux, "inmet_aux")
+            

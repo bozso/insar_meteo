@@ -26,7 +26,7 @@
 
 pyfun_doc(test, "test");
 
-py_ptr test(py_varargs)
+static py_ptr test(py_varargs)
 {
     py_ptr arr;
     pyfun_parse_varargs("O", &arr);
@@ -36,8 +36,8 @@ py_ptr test(py_varargs)
     try {
         array.import(arr, NPY_DOUBLE, "arr");
     }
-    catch(const std::runtime_error& e) {
-        print("Asd");
+    catch(const char * e) {
+        errorln("%s", e);
         array.xdecref();
         return NULL;
     }

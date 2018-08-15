@@ -31,6 +31,71 @@
 
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
+typedef struct ar_matrix_double_t {
+    uint nrows, ncols;
+    np_ptr array;
+    double * data;
+} ar_matrix_double;
+
+typedef struct ar_vector_double_t {
+    uint ndata;
+    np_ptr array;
+    double * data;
+} ar_vector_double;
+
+static int _ar_import_check(np_ptr * array, const py_ptr to_convert,
+                            const int typenum, const int requirements,
+                            const int ndim, const char * name)
+{
+    if ((*array = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements))
+         == NULL)
+         return 1;
+
+    int array_ndim = PyArray_NDIM(*array);
+    
+    if (array_ndim != ndim) {
+        PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
+                                       "expected to be %d-dimensional", name,
+                                        array_ndim, ndim);
+        return 1;
+    }
+    
+    return 0;
+}
+
+#define ar_matrix(ar_struct, to_convert, typenum, name)\
+do {\
+    np_ptr tmp;\
+    if(_ar_import_check(&tmp, (to_convert), (typenum),\
+                        NPY_ARRAY_IN_ARRAY, 2, (name)))\
+        goto fail;\
+    \
+    (ar_struct).nrows = PyArray_DIM(tmp, 0);\
+    (ar_struct).ncols = PyArray_DIM(tmp, 1);\
+    (ar_struct).data = PyArray_BYTES(tmp);\
+    (ar_struct).array = tmp;\
+} while(0)
+
+#define ar_vector(ar_struct, to_convert, typenum, name)\
+do {\
+    np_ptr tmp;\
+    if(_ar_import_check(&tmp, (to_convert), (typenum),\
+                        NPY_ARRAY_IN_ARRAY, 1, (name)))\
+        goto fail;\
+    \
+    (ar_struct).ndata = PyArray_DIM(tmp, 0);\
+    (ar_struct).data = PyArray_BYTES(tmp);\
+    (ar_struct).array = tmp;\
+} while(0)
+
+#define ar_decref(ar_struct) Py_DECREF((ar_struct).array)
+#define ar_xdecref(ar_struct) Py_XDECREF((ar_struct).array)
+
+#define ar_elem1(array, ii) (array).data[(ii)]
+#define ar_elem2(array, ii, jj) (array).data[(jj) + (ii) * (array).ncols]
+
+#if 0
+
 static void * _ar_setup_array(const np_ptr array)
 {
     np_ptr arr;
@@ -57,6 +122,8 @@ do {\
 #define ar_get_raw(arr) ((np_ptr) (arr) - 1)
 
 //#define ar_ndim(arr)
+
+#endif
 
 static int _np_convert_array_check(np_ptr * array, const py_ptr to_convert,
                                 const int typenum, const int requirements,

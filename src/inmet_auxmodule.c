@@ -31,25 +31,24 @@ py_ptr test(py_varargs)
     py_ptr arr;
     pyfun_parse_varargs("O", &arr);
     
-    np_ptr a_arr = NULL;
-    np_import_check_double_in(a_arr, arr, 1, "arr");
+    ar_matrix_double array;
+    ar_matrix(array, arr, NPY_DOUBLE, "arr");
     
-    npy_double * array = NULL;
-    println("%p", a_arr);
-    ar_setup(array, a_arr);
+    uint nrows = array.nrows;
+    uint ncols = array.ncols;
     
-    println("%p", (np_ptr) array - 1);
-    //println("%p %p", ar_get_raw(arr), a_arr);
+    println("%u %u", nrows, ncols);
     
-    uint n = np_rows(a_arr);
+    FOR(ii, 0, nrows) {
+        FOR(jj, 0, ncols)
+            printf("%lf ", ar_elem2(array, ii, jj));
+        printf("\n");
+    }
     
-    FOR(ii, 0, n)
-        println("%lf", array[ii]);
-    
-    Py_DECREF(a_arr);
+    ar_decref(array);
     Py_RETURN_NONE;
 fail:
-    Py_XDECREF(a_arr);
+    ar_xdecref(array);
     return NULL;
 }
 

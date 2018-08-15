@@ -184,7 +184,7 @@ static int _setup_ar_dsc(np_ptr array, _array_descr * ar_dsc, char * name)
     
     ar_dsc->ndim = (uint) array_ndim;
     ar_dsc->shape = PyArray_DIMS(array);
-    ar_dsc->strides = (npy_intp *) malloc(array_ndim * sizeof(npy_intp));
+    ar_dsc->strides = PyMem_New(npy_intp, array_ndim);
     ar_dsc->strides = memcpy(ar_dsc->strides, PyArray_STRIDES(array), array_ndim * sizeof(npy_intp));
     
     for(int ii = 0; ii < array_ndim; ++ii)

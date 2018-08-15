@@ -37,8 +37,6 @@ static py_ptr test(py_varargs)
     println("%u %u", nrows, ncols);
     println("%u %u", ar_stride(array, 0), ar_stride(array, 1));
     
-    ar_check_cols(array, 10);
-    
     FOR(ii, 0, nrows) {
         FOR(jj, 0, ncols)
             printf("%lf ", ar_elem2(array, ii, jj));

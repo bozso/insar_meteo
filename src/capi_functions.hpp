@@ -17,7 +17,10 @@
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
-#include "params_types.h"
+#include "params_types.hpp"
+#include <cstring>
+
+#define FOR(ii, start, stop) for(uint (ii) = 0; (ii) < (stop); ++(ii))
 
 /*************
  * IO macros *
@@ -31,99 +34,236 @@
 
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
-typedef struct ar_matrix_double_t {
-    uint nrows, ncols;
-    np_ptr array;
-    double * data;
-} ar_matrix_double;
-
-typedef struct ar_vector_double_t {
-    uint ndata;
-    np_ptr array;
-    double * data;
-} ar_vector_double;
-
-static int _ar_import_check(np_ptr * array, const py_ptr to_convert,
-                            const int typenum, const int requirements,
-                            const int ndim, const char * name)
+template<class T>
+class np_wrap
 {
-    if ((*array = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements))
+    private:
+        uint ndim;
+        npy_intp *strides, *shape;
+        np_ptr np_array;
+        T * data;
+        char * name;
+    public:
+        int import(const py_ptr to_convert, const int typenum, char * name,
+                   const int ndim);
+        void decref(void);
+        void xdecref(void);
+        T& operator()(uint ii);
+        T& operator()(uint ii, uint jj);
+        T& operator()(uint ii, uint jj, uint kk);
+        const uint rows();
+        const uint cols();
+};
+
+template<class T>
+int np_wrap<T>::import(const py_ptr to_convert, const int typenum,
+                       char * nname, const int edim = 0)
+{
+    np_ptr tmp;
+    if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, NPY_ARRAY_IN_ARRAY))
          == NULL)
          return 1;
-
-    int array_ndim = PyArray_NDIM(*array);
     
-    if (array_ndim != ndim) {
-        PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
-                                       "expected to be %d-dimensional", name,
-                                        array_ndim, ndim);
-        return 1;
+    int array_ndim = PyArray_NDIM(tmp);
+    
+    if (ndim > 0) {
+        if (array_ndim != edim) {
+            PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
+                                           "expected to be %d-dimensional",
+                                            nname, array_ndim, edim);
+            return 1;
+        }
     }
+    
+    ndim = array_ndim;
+    shape = PyArray_DIMS(tmp);
+    strides = new npy_intp[array_ndim];
+    std::memcpy(strides, PyArray_STRIDES(tmp), array_ndim * sizeof(npy_intp));
+    
+    for(uint ii = 0; ii < array_ndim; ++ii)\
+        strides[ii] /= sizeof(*(data));
+    
+    data = reinterpret_cast<T*>(PyArray_BYTES(tmp));
+    np_array = tmp;
+    name = nname;
     
     return 0;
 }
 
-#define ar_matrix(ar_struct, to_convert, typenum, name)\
-do {\
-    np_ptr tmp;\
-    if(_ar_import_check(&tmp, (to_convert), (typenum),\
-                        NPY_ARRAY_IN_ARRAY, 2, (name)))\
-        goto fail;\
-    \
-    (ar_struct).nrows = PyArray_DIM(tmp, 0);\
-    (ar_struct).ncols = PyArray_DIM(tmp, 1);\
-    (ar_struct).data = PyArray_BYTES(tmp);\
-    (ar_struct).array = tmp;\
-} while(0)
+template<class T>
+const uint np_wrap<T>::rows()
+{
+    return static_cast<uint>(shape[0]);
+}
 
-#define ar_vector(ar_struct, to_convert, typenum, name)\
-do {\
-    np_ptr tmp;\
-    if(_ar_import_check(&tmp, (to_convert), (typenum),\
-                        NPY_ARRAY_IN_ARRAY, 1, (name)))\
-        goto fail;\
-    \
-    (ar_struct).ndata = PyArray_DIM(tmp, 0);\
-    (ar_struct).data = PyArray_BYTES(tmp);\
-    (ar_struct).array = tmp;\
-} while(0)
+template<class T>
+const uint np_wrap<T>::cols()
+{
+    return static_cast<uint>(shape[1]);
+}
 
-#define ar_decref(ar_struct) Py_DECREF((ar_struct).array)
-#define ar_xdecref(ar_struct) Py_XDECREF((ar_struct).array)
+template<class T>
+T& np_wrap<T>::operator()(uint ii)
+{
+    return data[ii * strides[0]];
+}
 
-#define ar_elem1(array, ii) (array).data[(ii)]
-#define ar_elem2(array, ii, jj) (array).data[(jj) + (ii) * (array).ncols]
+template<class T>
+T& np_wrap<T>::operator()(uint ii, uint jj)
+{
+    return data[  ii * strides[0] + jj * strides[1]];
+}
+
+template<class T>
+T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
+{
+    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]];
+}
+
+template<class T>
+void np_wrap<T>::decref()
+{
+    Py_DECREF(np_array);
+    delete strides;
+}
+
+template<class T>
+void np_wrap<T>::xdecref()
+{
+    Py_XDECREF(np_array);
+    
+    if (strides != nullptr)
+        delete strides;
+}
 
 #if 0
 
-static void * _ar_setup_array(const np_ptr array)
+template<class T>
+static np_wrap<T> ar_empty(uint ndim, npy_inpt * shape, int typenum,
+                           int is_fortran = 0)
 {
-    np_ptr arr;
+    np_ptr tmp;
+    if (
     
-    if ((arr = (np_ptr) PyMem_Malloc(sizeof(np_ptr) + sizeof(char*))) == NULL) {
-        return NULL;
-    }
     
-    arr = array;
-    println("%p", arr);
-    arr++;
-    arr = PyArray_BYTES(array);
-    
-    return arr;
 }
 
-#define ar_setup(arr, np_arr)\
+#define np_empty(array_out, ndim, shape, typenum, is_fortran)\
 do {\
-    if(((arr) = _ar_setup_array((np_arr))) == NULL) {\
+    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum),\
+                                          (is_fortran));\
+    if ((array_out) == NULL) {\
+        PyErr_Format(PyExc_ValueError, "Failed to create empty array %s",\
+                     QUOTE((array_out)));\
         goto fail;\
     }\
 } while(0)
 
-#define ar_get_raw(arr) ((np_ptr) (arr) - 1)
 
-//#define ar_ndim(arr)
+#define ar_empty(ar_struct, edim, shape, typenum)\
+do {\
+    (ar_struct)
 
-#endif
+#define ar_array(ar_struct) (ar_struct).np_array
+
+#define ar_ndim(ar_struct) (ar_struct).ndim
+#define ar_stride(ar_struct, dim) (uint)(ar_struct).strides[dim]
+#define ar_dim(ar_struct, dim) (uint) (ar_struct).shape[dim]
+
+#define ar_rows(ar_struct) ar_dim((ar_struct), 0)
+#define ar_cols(ar_struct) ar_dim((ar_struct), 1)
+
+#define ar_data(ar_struct) (ar_struct).data
+
+#define ar_elem1(ar_struct, ii) (ar_struct).data[(ii) * (ar_struct).strides[0]]
+
+#define ar_elem2(ar_struct, ii, jj) (ar_struct).data[\
+                                               (ii) * (ar_struct).strides[0]\
+                                             + (jj) * (ar_struct).strides[1]]
+
+#define ar_elem3(ar_struct, ii, jj, kk) (ar_struct).data[\
+                                                   (ii) * (ar_struct).strides[0]\
+                                                 + (jj) * (ar_struct).strides[1]\
+                                                 + (kk) * (ar_struct).strides[2]]
+
+#define ar_ptr1(ar_struct, ii) (ar_struct).data + (ii) * (ar_struct).strides[0]
+
+#define ar_ptr2(ar_struct, ii, jj) (ar_struct).data + (ii) * (ar_struct).strides[0] \
+                                            + (jj) * (ar_struct).strides[1]
+
+#define ar_ptr3(ar_struct, ii, jj, kk) (ar_struct).data + (ii) * (ar_struct).strides[0]\
+                                                 + (jj) * (ar_struct).strides[1]\
+                                                 + (kk) * (ar_struct).strides[2]
+
+#define ar_check_matrix(ar_struct, rows, cols)\
+do {\
+    if (rows != (ar_struct).shape[0]) {\
+        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "\
+                                       "(expected %d)", (ar_struct).name, rows, (ar_struct).shape[0]);
+        goto fail;\
+    }\
+
+    if (cols != (ar_struct).shape[1]) {\
+        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "\
+                                       "(expected %d)", (ar_struct).name, cols, (ar_struct).shape[1]);
+        goto fail;\
+    }\
+} while(0)
+
+#define ar_check_rows(ar_struct, rows, name)\
+do {\
+    if (rows != (ar_struct).shape[0]) {\
+        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "\
+                                       "(expected %d)", (ar_struct).name, rows, (ar_struct).shape[0]);
+        goto fail;\
+    }\
+} while (0)
+
+#define ar_check_cols(ar_struct, cols, name)\
+do {\
+    if (cols != (ar_struct).shape[1]) {\
+        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "\
+                                       "(expected %d)", (ar_struct).name, cols, (ar_struct).shape[1]);
+        goto fail;\
+    }\
+} while (0)
+
+static int _np_check_matrix(const np_ptr array, const int rows, const int cols,
+                         const char * name)
+{
+    int tmp = PyArray_DIM(array, 0);
+
+    if (tmp != rows) {
+        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "
+                                       "(expected %d)", name, tmp, rows);
+        return 1;
+    }                                                                       
+
+    tmp = PyArray_DIM(array, 1);
+
+    if (tmp != cols) {
+        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "
+                                       "(expected %d)", name, tmp, cols);
+        return 1;
+    }                                                                       
+    
+    return 0;
+}    
+
+
+
+#define ar_decref(ar_struct)\
+do {\
+    Py_DECREF((ar_struct).np_array);\
+    free((ar_struct).strides);\
+} while(0)
+
+#define ar_xdecref(ar_struct)\
+do {\
+    Py_XDECREF((ar_struct).np_array);\
+    if ((ar_struct).strides != NULL)\
+        free((ar_struct).strides);\
+} while(0)
 
 static int _np_convert_array_check(np_ptr * array, const py_ptr to_convert,
                                 const int typenum, const int requirements,
@@ -199,6 +339,8 @@ static int _np_check_dim(const np_ptr array, const int dim,
     }
     return 0;
 }
+
+#endif
 
 /****************************
  * Numpy convenience macros *

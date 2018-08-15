@@ -31,20 +31,21 @@ py_ptr test(py_varargs)
     py_ptr arr;
     pyfun_parse_varargs("O", &arr);
     
-    ar_matrix_double array;
-    ar_matrix(array, arr, NPY_DOUBLE, "arr");
+    ar_double array;
+    ar_import_check(array, arr, NPY_DOUBLE, 2, "arr");
     
-    uint nrows = array.nrows;
-    uint ncols = array.ncols;
+    uint nrows = ar_rows(array);
+    uint ncols = ar_cols(array);
     
     println("%u %u", nrows, ncols);
-    
+    println("%u %u", ar_stride(array, 0), ar_stride(array, 1));
+
     FOR(ii, 0, nrows) {
         FOR(jj, 0, ncols)
             printf("%lf ", ar_elem2(array, ii, jj));
         printf("\n");
     }
-    
+
     ar_decref(array);
     Py_RETURN_NONE;
 fail:
@@ -58,7 +59,7 @@ py_ptr azi_inc (py_varargs)
 {
     double start_t, stop_t, mean_t;
     uint is_centered, deg, max_iter, is_lonlat;
-    py_ptr coeffs, coords, mean_coords;    
+    py_ptr coeffs = NULL, coords = NULL, mean_coords = NULL;    
 
     pyfun_parse_varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
@@ -66,24 +67,26 @@ py_ptr azi_inc (py_varargs)
 
     // Importing arrays
     np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL;
-
-    np_import_check_double_in(a_coeffs, coeffs, 2, "coeffs");
-    np_import_check_double_in(a_coords, coords, 2, "coords");
-    np_import_check_double_in(a_meancoords, mean_coords, 1, "mean_coords");
-
+    
+    ar_double ar_coeffs, ar_coords, ar_mean;
+    
+    ar_import_check(ar_coeffs, coeffs, NYP_DOUBLE, 2, "coeffs")
+    ar_import_check(ar_coords, coords, NYP_DOUBLE, 2, "coords")
+    ar_import_check(ar_mean, mean_coords, NYP_DOUBLE, 1, "mean_coords")
+    
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
     
-    np_check_matrix(a_coeffs, 3, deg + 1, "coeffs");
+    ar_check_matrix(ar_coeffs, 3, deg + 1)
     
     // should be nx3 matrix
-    np_check_cols(a_coords, 3, "coords");
+    ar_check_cols(ar_coords, 3);
 
     // should be a 3 element vector
-    np_check_rows(a_meancoords, 3, "coords");
+    ar_check_rows(a_meancoords, 3);
     
     // number of coordinates
-    uint n_coords = np_rows(a_coords);
+    uint n_coords = ar_rows(ar_coords);
 
     npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
     

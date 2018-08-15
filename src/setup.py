@@ -23,13 +23,13 @@ from glob import iglob
 import sys
 
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
-inc_dirs = ["/home/istvan/progs/pybind11/include"]
 flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
+libs=["stdc++"]
 
 ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.c", "satorbit.c"],
-              define_macros=macros, extra_compile_args=["-std=c99"])
+    Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp"],
+              define_macros=macros, extra_compile_args=["-std=c++11"], libraries=libs)
 ]
 
 def main():

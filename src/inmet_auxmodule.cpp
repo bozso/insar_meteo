@@ -32,7 +32,15 @@ py_ptr test(py_varargs)
     pyfun_parse_varargs("O", &arr);
     
     np_wrap<npy_double> array;
-    array.import(arr, NPY_DOUBLE, "arr");
+    
+    try {
+        array.import(arr, NPY_DOUBLE, "arr");
+    }
+    catch(const std::runtime_error& e) {
+        print("Asd");
+        array.xdecref();
+        return NULL;
+    }
     
     uint nrows = array.rows();
     uint ncols = array.cols();
@@ -47,9 +55,6 @@ py_ptr test(py_varargs)
 
     array.decref();
     Py_RETURN_NONE;
-fail:
-    array.xdecref();
-    return NULL;
 }
 
 #if 0

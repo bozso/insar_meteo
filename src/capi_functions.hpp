@@ -19,6 +19,7 @@
 
 #include "params_types.hpp"
 #include <cstring>
+#include <stdexcept>
 
 #define FOR(ii, start, stop) for(uint (ii) = 0; (ii) < (stop); ++(ii))
 
@@ -44,8 +45,8 @@ class np_wrap
         T * data;
         char * name;
     public:
-        int import(const py_ptr to_convert, const int typenum, char * name,
-                   const int ndim);
+        void import(const py_ptr to_convert, const int typenum, char * name,
+                    const int ndim);
         void decref(void);
         void xdecref(void);
         T& operator()(uint ii);
@@ -56,22 +57,24 @@ class np_wrap
 };
 
 template<class T>
-int np_wrap<T>::import(const py_ptr to_convert, const int typenum,
-                       char * nname, const int edim = 0)
+inline void np_wrap<T>::import(const py_ptr to_convert, const int typenum,
+                   char * nname, const int edim = 0)
 {
     np_ptr tmp;
     if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, NPY_ARRAY_IN_ARRAY))
-         == NULL)
-         return 1;
+         == nullptr) {
+        print("AAA");
+        throw std::runtime_error("");
+    }
     
     int array_ndim = PyArray_NDIM(tmp);
     
-    if (ndim > 0) {
+    if (edim > 0) {
         if (array_ndim != edim) {
             PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
                                            "expected to be %d-dimensional",
                                             nname, array_ndim, edim);
-            return 1;
+            throw std::runtime_error("");
         }
     }
     
@@ -86,49 +89,47 @@ int np_wrap<T>::import(const py_ptr to_convert, const int typenum,
     data = reinterpret_cast<T*>(PyArray_BYTES(tmp));
     np_array = tmp;
     name = nname;
-    
-    return 0;
 }
 
 template<class T>
-const uint np_wrap<T>::rows()
+inline const uint np_wrap<T>::rows()
 {
     return static_cast<uint>(shape[0]);
 }
 
 template<class T>
-const uint np_wrap<T>::cols()
+inline const uint np_wrap<T>::cols()
 {
     return static_cast<uint>(shape[1]);
 }
 
 template<class T>
-T& np_wrap<T>::operator()(uint ii)
+inline T& np_wrap<T>::operator()(uint ii)
 {
     return data[ii * strides[0]];
 }
 
 template<class T>
-T& np_wrap<T>::operator()(uint ii, uint jj)
+inline T& np_wrap<T>::operator()(uint ii, uint jj)
 {
     return data[  ii * strides[0] + jj * strides[1]];
 }
 
 template<class T>
-T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
+inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 {
     return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]];
 }
 
 template<class T>
-void np_wrap<T>::decref()
+inline void np_wrap<T>::decref()
 {
     Py_DECREF(np_array);
     delete strides;
 }
 
 template<class T>
-void np_wrap<T>::xdecref()
+inline void np_wrap<T>::xdecref()
 {
     Py_XDECREF(np_array);
     

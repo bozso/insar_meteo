@@ -68,7 +68,19 @@ inline void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
 
 
 template<class T>
-inline double norm(const T x, const T y, const T z)
+inline T deg2rad(const T deg)
+{
+    return deg * 1.745329e-02;
+}
+
+template<class T>
+inline T rad2deg(const T rad)
+{
+    return rad * 5.729578e+01;
+}
+
+template<class T>
+inline T norm(const T x, const T y, const T z)
 {
     // vector norm
     return sqrt(x * x + y * y + z * z);

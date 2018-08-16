@@ -15,7 +15,7 @@
  */
 
 #include "capi_functions.hpp"
-//#include "satorbit.hpp"
+#include "satorbit.hpp"
 #include "utils.hpp"
 
 /*****************************************
@@ -61,7 +61,7 @@ static py_ptr test(py_varargs)
 
 pyfun_doc(azi_inc, "azi_inc");
 
-py_ptr azi_inc (py_varargs)
+static py_ptr azi_inc (py_varargs)
 {
     double start_t, stop_t, mean_t;
     uint is_centered, deg, max_iter, is_lonlat;
@@ -125,8 +125,8 @@ py_ptr azi_inc (py_varargs)
     // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, 0, n_coords) {
-            lon = coords(ii, 0) * DEG2RAD;
-            lat = coords(ii, 1) * DEG2RAD;
+            lon = deg2rad(coords(ii, 0));
+            lat = deg2rad(coords(ii, 1));
             h   = coords(ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates
@@ -166,15 +166,15 @@ py_ptr azi_inc (py_varargs)
 pyfun_doc(asc_dsc_select,
 "asc_dsc_select");
 
-py_ptr asc_dsc_select(py_keywords)
+static py_ptr asc_dsc_select(py_keywords)
 {
     char * keywords[] = {"asc", "dsc", "max_sep", NULL};
 
-    py_ptr in_arr1 = NULL, in_arr2 = NULL;
+    py_ptr _arr1 = NULL, _arr2 = NULL;
     npy_double max_sep = 100.0;
 
     pyfun_parse_keywords(keywords, "OO|d:asc_dsc_select",
-                         &in_arr1, &in_arr2, &max_sep);
+                         &_arr1, &_arr2, &max_sep);
     
     npy_double max_sep_deg = max_sep / R_earth;
     max_sep_deg = max_sep_deg * max_sep_deg * RAD2DEG * RAD2DEG;
@@ -182,47 +182,54 @@ py_ptr asc_dsc_select(py_keywords)
     println("Maximum separation: %6.3lf meters => approx. %E degrees",
             max_sep, max_sep_deg);
 
-    np_ptr arr1 = NULL, arr2 = NULL;
-
-    np_import_check_double_in(arr1, in_arr1, 2, "asc");
-    np_import_check_double_in(arr2, in_arr2, 2, "dsc");
+    np_wrap<npy_double> arr1, arr2;
+    np_wrap<npy_bool> idx;
     
-    uint n_arr1 = np_rows(arr1), n_arr2 = np_rows(arr2);
+    uint n_arr1, n_arr2;
     
-    np_ptr idx = (np_ptr) PyArray_ZEROS(1, (npy_intp *) &n_arr1, NPY_BOOL, 0);
+    try {
+        arr1.import(_arr1, "arr1", 2);
+        arr2.import(_arr2, "arr2", 2);
+    
+        n_arr1 = arr1.rows();
+        n_arr2 = arr2.rows();
+        
+        idx.empty(1, (npy_intp *) &n_arr1, 0, "idx");
+    }
+    catch(const char * e) {
+        errorln("%s", e);
+        arr1.xdecref();
+        arr2.xdecref();
+        idx.xdecref();
+        return NULL;
+    }
     
     uint n_found = 0;
     npy_double dlon, dlat;
     
     FOR(ii, 0, n_arr1) {
         FOR(jj, 0, n_arr2) {
-            dlon = np_delem2(arr1, ii, 0) - np_delem2(arr2, jj, 0);
-            dlat = np_delem2(arr1, ii, 1) - np_delem2(arr2, jj, 1);
+            dlon = arr1(ii, 0) - arr2(jj, 0);
+            dlat = arr1(ii, 1) - arr2(jj, 1);
             
             if ( (dlon * dlon + dlat * dlat) < max_sep) {
-                np_belem1(idx, ii) = NPY_TRUE;
+                idx(ii) = NPY_TRUE;
                 n_found++;
                 break;
             }
         }
     }
     
-    Py_DECREF(arr1);
-    Py_DECREF(arr2);
-    return Py_BuildValue("OI", idx, n_found);
-
-fail:
-    Py_XDECREF(arr1);
-    Py_XDECREF(arr2);
-    return NULL;
+    arr1.decref();
+    arr2.decref();
+    return Py_BuildValue("OI", idx.np_array(), n_found);
 }
 // end asc_dsc_select
 
-/**********************
- * Python boilerplate *
- **********************/
-
 #endif
 
-init_module(inmet_aux, "inmet_aux",
-            pymeth_varargs(test));
+// Module initialization
+
+init_table(inmet_aux, pymeth_varargs(test));
+
+init_module(inmet_aux, "inmet_aux")

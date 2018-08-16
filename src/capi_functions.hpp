@@ -58,23 +58,33 @@ class np_wrap
         char * name;
         bool decrefd;
     public:
-        void convert_np_array(const np_ptr tmp, char * nname);
-        void import(const py_ptr to_convert, char * nname, const int edim = 0);
-        void empty(int ndim, npy_intp * shape, int is_fortran = 0, char * name = "");
+        void convert_np_array(const np_ptr tmp, const char * nname);
+        
+        void import(const py_ptr to_convert, const char * nname,
+                    const int edim = 0);
+        
+        void empty(int ndim, npy_intp * shape, int is_fortran = 0,
+                   const char * name = "");
+        
         void decref(void);
         void xdecref(void);
+        
         void check_matrix(uint rows, uint cols);
         void check_rows(uint rows);
         void check_cols(uint cols);
+        
         T * get_data();
         np_ptr get_array();
+
         T& operator()(uint ii);
         T& operator()(uint ii, uint jj);
         T& operator()(uint ii, uint jj, uint kk);
+
         const uint rows();
         const uint cols();
         const uint get_shape(uint ii);
         const uint get_stride(uint ii);
+
         ~np_wrap();
 };
 
@@ -141,7 +151,7 @@ inline const int np_type()
 
 
 template<class T>
-inline void np_wrap<T>::convert_np_array(const np_ptr tmp, char * nname)
+inline void np_wrap<T>::convert_np_array(const np_ptr tmp, const char * nname)
 {
     uint array_ndim = (uint) PyArray_NDIM(tmp);
     
@@ -166,7 +176,7 @@ inline void np_wrap<T>::convert_np_array(const np_ptr tmp, char * nname)
 
 
 template<class T>
-inline void np_wrap<T>::import(const py_ptr to_convert, char * nname,
+inline void np_wrap<T>::import(const py_ptr to_convert, const char * nname,
                                const int edim)
 {
     static const int typenum = np_type<T>();
@@ -328,7 +338,7 @@ inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 
 template<class T>
 inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran,
-                              char * name)
+                              const char * name)
 {
     static const int typenum = np_type<T>();
 
@@ -344,287 +354,18 @@ inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran,
     convert_np_array(tmp, name);
 }
 
-#if 0
-
-#define ar_check_matrix(ar_struct, rows, cols)\
-do {\
-    if (rows != (ar_struct).shape[0]) {\
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "\
-                                       "(expected %d)", (ar_struct).name, rows, (ar_struct).shape[0]);
-        goto fail;\
-    }\
-
-    if (cols != (ar_struct).shape[1]) {\
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "\
-                                       "(expected %d)", (ar_struct).name, cols, (ar_struct).shape[1]);
-        goto fail;\
-    }\
-} while(0)
-
-#define ar_check_rows(ar_struct, rows, name)\
-do {\
-    if (rows != (ar_struct).shape[0]) {\
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "\
-                                       "(expected %d)", (ar_struct).name, rows, (ar_struct).shape[0]);
-        goto fail;\
-    }\
-} while (0)
-
-#define ar_check_cols(ar_struct, cols, name)\
-do {\
-    if (cols != (ar_struct).shape[1]) {\
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "\
-                                       "(expected %d)", (ar_struct).name, cols, (ar_struct).shape[1]);
-        goto fail;\
-    }\
-} while (0)
-
-static int _np_check_matrix(const np_ptr array, const int rows, const int cols,
-                         const char * name)
-{
-    int tmp = PyArray_DIM(array, 0);
-
-    if (tmp != rows) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "
-                                       "(expected %d)", name, tmp, rows);
-        return 1;
-    }                                                                       
-
-    tmp = PyArray_DIM(array, 1);
-
-    if (tmp != cols) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "
-                                       "(expected %d)", name, tmp, cols);
-        return 1;
-    }                                                                       
-    
-    return 0;
-}    
-
-
-
-#define ar_decref(ar_struct)\
-do {\
-    Py_DECREF((ar_struct).np_array);\
-    free((ar_struct).strides);\
-} while(0)
-
-#define ar_xdecref(ar_struct)\
-do {\
-    Py_XDECREF((ar_struct).np_array);\
-    if ((ar_struct).strides != NULL)\
-        free((ar_struct).strides);\
-} while(0)
-
-static int _np_convert_array_check(np_ptr * array, const py_ptr to_convert,
-                                const int typenum, const int requirements,
-                                const int ndim, const char * name)
-{
-    if ((*array = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, requirements))
-         == NULL)
-         return 1;
-
-    int array_ndim = PyArray_NDIM(*array);
-    
-    if (array_ndim != ndim) {
-        PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
-                                       "expected to be %d-dimensional", name,
-                                        array_ndim, ndim);
-        return 1;
-    }
-    
-    return 0;
-}
-
-static int _np_check_matrix(const np_ptr array, const int rows, const int cols,
-                         const char * name)
-{
-    int tmp = PyArray_DIM(array, 0);
-
-    if (tmp != rows) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "
-                                       "(expected %d)", name, tmp, rows);
-        return 1;
-    }                                                                       
-
-    tmp = PyArray_DIM(array, 1);
-
-    if (tmp != cols) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "
-                                       "(expected %d)", name, tmp, cols);
-        return 1;
-    }                                                                       
-    
-    return 0;
-}    
-
-static int _np_check_ndim(const np_ptr array, const int ndim, const char * name)
-{
-    int tmp = PyArray_NDIM(array);
-    if (tmp != ndim) {
-        PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
-                                       "expected to be %d-dimensional!",
-                                        name, tmp, ndim);
-        return 1;
-    }
-    return 0;
-}
-
-static int _np_check_dim(const np_ptr array, const int dim,
-                      const int expected_length, const char * name)
-{
-    int tmp = PyArray_NDIM(array);
-    if (dim > tmp) {
-        PyErr_Format(PyExc_ValueError, "Array %s has no %d dimension "
-                                       "(max dim. is %d)", name, dim, tmp);
-        return 1;
-    }
-    
-    tmp = PyArray_DIM(array, dim);
-    
-    if (tmp != expected_length) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong %d-dimension=%d "
-                                       "(expected %d)", name, dim, tmp,
-                                       expected_length);
-        return 1;
-    }
-    return 0;
-}
-
-#endif
-
-/****************************
- * Numpy convenience macros *
- ****************************/
-
-#define np_gptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
-#define np_gptr2(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
-
-#define np_dim(obj, idx) (uint) PyArray_DIM((obj), (idx))
-#define np_ndim(obj) (uint) PyArray_NDIM((obj))
-
-#define np_delem1(obj, ii) *((npy_double *) PyArray_GETPTR1((obj), (ii), (jj)))
-#define np_delem2(obj, ii, jj) *((npy_double *) PyArray_GETPTR2((obj), (ii), (jj)))
-
-#define np_belem1(obj, ii) *((npy_bool *) PyArray_GETPTR1((obj), (ii)))
-#define np_belem2(obj, ii, jj) *((npy_bool *) PyArray_GETPTR2((obj), (ii), (jj)))
-
-#define np_rows(obj) np_dim((obj), 0)
-#define np_cols(obj) np_dim((obj), 1)
-
-#define np_data(obj) PyArray_DATA((obj))
-
-/* based on
- * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples
- * /src/C/NumPy_macros.h */
-
-
-// Import a numpy array
-
-#define np_import(array_out, array_to_convert, typenum, requirements, name)\
-do {\
-    if ((array_out) = (np_ptr) PyArray_FROM_OTF(to_convert, typenum,\
-                                                requirements) == NULL) {\
-        PyErr_Format(PyExc_ValueError, "Failed to import array %s",\
-                     (name));\
-        goto fail;\
-    }\
-} while(0)
-
-
-// Import a numpy array and check the number of its dimensions.
-
-#define np_import_check(array_out, array_to_convert, typenum, requirements,\
-                        ndim, name)\
-do {\
-    if (_np_convert_array_check((&(array_out)), (array_to_convert), (typenum),\
-                           (requirements), (ndim), (name))) {\
-        goto fail;\
-    }\
-} while(0)
-
-#define np_import_check_double_in(array_out, array_to_convert, ndim, name)\
-        np_import_check((array_out), (array_to_convert), NPY_DOUBLE,\
-                        NPY_ARRAY_IN_ARRAY, (ndim), (name))
-
-// Check whether a matrix has the adequate number of rows and cols.
-
-#define np_check_matrix(array, rows, cols, name)\
-do {\
-    if (_np_check_matrix((array), (rows), (cols), (name)))\
-        goto fail;\
-} while(0)
-
-
-// Create an empty numpy array
-
-#define np_empty(array_out, ndim, shape, typenum, is_fortran)\
-do {\
-    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum),\
-                                          (is_fortran));\
-    if ((array_out) == NULL) {\
-        PyErr_Format(PyExc_ValueError, "Failed to create empty array %s",\
-                     QUOTE((array_out)));\
-        goto fail;\
-    }\
-} while(0)
-
-#define np_empty_double(array_out, ndim, shape)\
-        np_empty((array_out), (ndim), (shape), NPY_DOUBLE, 0)
-
-// Check if a numpy array has the correct number of dimensions.
-
-#define np_check_ndim(array, ndim, name)\
-do {\
-    if (_np_check_ndim((array), (ndim), (name)))\
-        goto fail;\
-} while(0)
-
-
-/* Check whether the number of elements for a given dimension
- * in a numpy array is adequate. */
-
-#define np_check_dim(array, dim, expected_length, name)\
-do {\
-    if (_np_check_dim((array), (dim), (expected_length), (name)))\
-        goto fail;\
-} while(0)
-
-
-// Check the number of rows or cols in a matrix.
-
-#define np_check_rows(obj, expected, name)\
-        np_check_dim((obj), 0, (expected), (name))
-
-#define np_check_cols(obj, expected, name)\
-        np_check_dim((obj), 1, (expected), (name))
-
-#define np_check_type(array, tp)\
-do {\
-    if (PyArray_TYPE(array) != (tp)) {\
-        PyErr_Format(PyExc_TypeError,\
-        "%s array is not of correct type (%d)", QUOTE(array), (tp));\
-        goto fail;\
-    }\
-} while(0)
-
-#define np_check_callable(func)\
-do {\
-    if (!PyCallable_Check(func)) {\
-        PyErr_Format(PyExc_TypeError,\
-        "%s is not a callable function", QUOTE(func));\
-        goto fail;\
-    }\
-} while(0)
-
-
 // turn s into string "s"
 #define QUOTE(s) # s
-
 
 /***********************************************************
  * Python 2/3 compatible module initialization biolerplate *
  ***********************************************************/
+#define init_table(module_name, ...)\
+    static PyMethodDef module_name ## _methods[] = {\
+        __VA_ARGS__,\
+        {"_error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
+        {NULL, NULL, 0, NULL}\
+    }
 
 
 /************
@@ -661,12 +402,6 @@ static int extension_clear(PyObject *m)
 
 // for some reason only works without: do { ... } while(0)
 #define init_module(module_name, module_doc, ...)\
-    static PyMethodDef module_name ## _methods[] = {\
-        __VA_ARGS__,\
-        {"_error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
-        {NULL, NULL, 0, NULL}\
-    };\
-    \
     static struct PyModuleDef module_name ## _moduledef = {\
         PyModuleDef_HEAD_INIT,\
         QUOTE(module_name),\
@@ -720,12 +455,6 @@ error_out(PyObject *m) {
 
 // for some reason only works without: do { ... } while(0)
 #define init_module(module_name, module_doc, ...)\
-    static  PyMethodDef module_name ## _methods[] = {\
-    __VA_ARGS__,\
-    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},\
-    {NULL, NULL, 0, NULL}\
-    };\
-
     void init ## module_name(void)\
     {\
         import_array();

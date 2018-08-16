@@ -190,7 +190,7 @@ inline void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
     
     t0 = norm(xl, yl, zl);
     
-    inc = acos(zl / t0) * RAD2DEG;
+    inc = rad2deg(acos(zl / t0));
     
     if(xl == 0.0) xl = 0.000000001;
     
@@ -200,7 +200,7 @@ inline void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
     if( (xl < 0.0) && (yl < 0.0) ) temp_azi = M_PI + temp_azi;
     if( (xl > 0.0) && (yl < 0.0) ) temp_azi = 2.0 * M_PI - temp_azi;
     
-    temp_azi *= RAD2DEG;
+    temp_azi = rad2deg(temp_azi);
     
     if(temp_azi > 180.0)
         temp_azi -= 180.0;

@@ -24,6 +24,8 @@ import sys
 
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
+# , "satorbit.cpp"
+
 ext_modules = [
     Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp"],
               define_macros=macros,

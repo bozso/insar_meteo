@@ -14,66 +14,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <tgmath.h>
+#include "satorbit.hpp"
 
-#include "satorbit.h"
-
-static inline double norm(cdouble x, cdouble y, cdouble z)
-{
-    // vector norm
-    return sqrt(x * x + y * y + z * z);
-}
-
-void ell_cart (cdouble lon, cdouble lat, cdouble h,
-               double *x, double *y, double *z)
-{
-    // from ellipsoidal to cartesian coordinates
-    
-    double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
-
-    *x = (              n + h) * cos(lat) * cos(lon);
-    *y = (              n + h) * cos(lat) * sin(lon);
-    *z = ( (1.0 - E2) * n + h) * sin(lat);
-
-} // end of ell_cart
-
-
-void cart_ell (cdouble x, cdouble y, cdouble z,
-               double *lon, double *lat, double *h)
-{
-    // from cartesian to ellipsoidal coordinates
-    
-    double n, p, o, so, co;
-
-    n = (WA * WA - WB * WB);
-    p = sqrt(x * x + y * y);
-
-    o = atan(WA / p / WB * z);
-    so = sin(o); co = cos(o);
-    o = atan( (z + n / WB * so * so * so) / (p - n / WA * co * co * co) );
-    so = sin(o); co = cos(o);
-    n= WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
-
-    *lat = o;
-    
-    o = atan(y/x); if(x < 0.0) o += M_PI;
-    *lon = o;
-    *h = p / co - n;
-}
-// end of cart_ell
-
-static void calc_pos(const orbit_fit * orb, double time, cart * pos)
+void calc_pos(const orbit_fit& orb, double time, cart& pos)
 {
     // Calculate satellite position based on fitted polynomial orbits at time
     
-    uint n_poly = orb->deg + 1, is_centered = orb->is_centered;
+    uint n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
-    const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
+    const double *coeffs = orb.coeffs, *mean_coords = orb.mean_coords;
     
     if (is_centered)
-        time -= orb->mean_t;
+        time -= orb.mean_t;
     
     if(n_poly == 2) {
         x = coeffs[0] * time + coeffs[1];
@@ -102,10 +55,10 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
         z += mean_coords[2];
     }
     
-    pos->x = x; pos->y = y; pos->z = z;
+    pos.x = x; pos.y = y; pos.z = z;
 } // end calc_pos
 
-static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
+double dot_product(const orbit_fit& orb, cdouble X, cdouble Y,
                           cdouble Z, double time)
 {
     /* Calculate dot product between satellite velocity vector and
@@ -113,12 +66,12 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
-    uint n_poly = orb->deg + 1;
+    uint n_poly = orb.deg + 1;
     
-    const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
+    const double *coeffs = orb.coeffs, *mean_coords = orb.mean_coords;
     
-    if (orb->is_centered)
-        time -= orb->mean_t;
+    if (orb.is_centered)
+        time -= orb.mean_t;
     
     // linear case 
     if(n_poly == 2) {
@@ -170,18 +123,18 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     // product of inverse norms
     inorm = (1.0 / norm(dx, dy, dz)) * (1.0 / norm(vel_x, vel_y, vel_z));
     
-    return((vel_x * dx  + vel_y * dy  + vel_z * dz) * inorm);
+    return (vel_x * dx  + vel_y * dy  + vel_z * dz) * inorm;
 }
 // end dot_product
 
-static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
-                         cdouble Z, const uint max_iter, cart * sat_pos)
+void closest_appr(const orbit_fit& orb, cdouble X, cdouble Y,
+                  cdouble Z, const uint max_iter, cart& sat_pos)
 {
     // Compute the sat position using closest approche.
     
     // first, last and middle time, extending the time window by 5 seconds
-    double t_start = orb->start_t - 5.0,
-           t_stop  = orb->stop_t + 5.0,
+    double t_start = orb.start_t - 5.0,
+           t_stop  = orb.stop_t + 5.0,
            t_middle;
     
     // dot products
@@ -213,14 +166,14 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     calc_pos(orb, t_middle, sat_pos);
 } // end closest_appr
 
-inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
+inline void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
                          cdouble Z, cdouble lon, cdouble lat,
-                         const uint max_iter, double * azi, double * inc)
+                         const uint max_iter, double& azi, double& inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
     cart sat;
     // satellite closest approache cooridantes
-    closest_appr(orb, X, Y, Z, max_iter, &sat);
+    closest_appr(orb, X, Y, Z, max_iter, sat);
     
     xf = sat.x - X;
     yf = sat.y - Y;
@@ -237,7 +190,7 @@ inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
     
     t0 = norm(xl, yl, zl);
     
-    *inc = acos(zl / t0) * RAD2DEG;
+    inc = acos(zl / t0) * RAD2DEG;
     
     if(xl == 0.0) xl = 0.000000001;
     
@@ -254,5 +207,5 @@ inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
     else
         temp_azi += 180.0;
     
-    *azi = temp_azi;
+    azi = temp_azi;
 }

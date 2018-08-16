@@ -20,19 +20,6 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-/*******************************
- * WGS-84 ELLIPSOID PARAMETERS *
- *******************************/
-
-// RADIUS OF EARTH
-#define R_earth 6372000
-
-#define WA  6378137.0
-#define WB  6356752.3142
-
-// (WA*WA-WB*WB)/WA/WA
-#define E2  6.694380e-03
-
 /************************
  * DEGREES, RADIANS, PI *
  ************************/

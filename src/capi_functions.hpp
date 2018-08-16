@@ -17,15 +17,16 @@
 #ifndef CAPI_MACROS_H
 #define CAPI_MACROS_H
 
-#include "params_types.hpp"
+#include <cstring>
+#include <type_traits>
 
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-#include <cstring>
-#include <type_traits>
+#include "utils.hpp"
 
-#define FOR(ii, start, stop) for(uint (ii) = 0; (ii) < (stop); ++(ii))
+typedef PyArrayObject * np_ptr;
+typedef PyObject * py_ptr;
 
 #define pyexcf(exc_type, format, ...)\
         PyErr_Format((exc_type), (format), __VA_ARGS__)
@@ -62,6 +63,11 @@ class np_wrap
         void empty(int ndim, npy_intp * shape, int is_fortran, char * name);
         void decref(void);
         void xdecref(void);
+        void check_matrix(uint rows, uint cols);
+        void check_rows(uint rows);
+        void check_cols(uint cols);
+        T * get_data();
+        np_ptr get_array();
         T& operator()(uint ii);
         T& operator()(uint ii, uint jj);
         T& operator()(uint ii, uint jj, uint kk);
@@ -77,12 +83,56 @@ inline const int np_type()
 {
     if (std::is_same<T, npy_double>::value)
         return NPY_DOUBLE;
+
     else if (std::is_same<T, npy_bool>::value)
         return NPY_BOOL;
+
     else if (std::is_same<T, npy_byte>::value)
         return NPY_BYTE;
     else if (std::is_same<T, npy_ubyte>::value)
         return NPY_UBYTE;
+
+    else if (std::is_same<T, npy_short>::value)
+        return NPY_SHORT;
+    else if (std::is_same<T, npy_ushort>::value)
+        return NPY_USHORT;
+
+    else if (std::is_same<T, npy_int>::value)
+        return NPY_INT;
+    else if (std::is_same<T, npy_uint>::value)
+        return NPY_UINT;
+
+    else if (std::is_same<T, npy_long>::value)
+        return NPY_LONG;
+    else if (std::is_same<T, npy_ulong>::value)
+        return NPY_ULONG;
+
+    else if (std::is_same<T, npy_longlong>::value)
+        return NPY_LONGLONG;
+    else if (std::is_same<T, npy_ulonglong>::value)
+        return NPY_ULONGLONG;
+
+    else if (std::is_same<T, npy_float16>::value)
+        return NPY_FLOAT16;
+
+    else if (std::is_same<T, npy_float32>::value)
+        return NPY_FLOAT32;
+
+    else if (std::is_same<T, npy_float64>::value)
+        return NPY_FLOAT64;
+
+    else if (std::is_same<T, npy_longdouble>::value)
+        return NPY_LONGDOUBLE;
+
+    else if (std::is_same<T, npy_complex64>::value)
+        return NPY_COMPLEX64;
+
+    else if (std::is_same<T, npy_complex128>::value)
+        return NPY_COMPLEX128;
+
+    else if (std::is_same<T, npy_clongdouble>::value)
+        return NPY_CLONGDOUBLE;
+
     else {
         pyexc(PyExc_ValueError, "Unknown numpy type passed to np_type!");
         throw "Unrecognized numpy type!";
@@ -168,10 +218,63 @@ np_wrap<T>::~np_wrap()
 }        
 
 template<class T>
+inline void np_wrap<T>::check_matrix(uint rows, uint cols)
+{
+    uint tmp = (uint) shape[0];
+    if (rows != tmp) {
+        pyexcf(PyExc_ValueError, "Array %s has wrong number of rows=%d "\
+                                       "(expected %d)", name, rows, tmp);
+        throw "Wrong number of rows!";
+    }
+
+    tmp = (uint) shape[1];
+    if (cols != tmp) {
+        pyexcf(PyExc_ValueError, "Array %s has wrong number of cols=%d "\
+                                       "(expected %d)", name, cols, tmp);
+        throw "Wrong number of cols!";
+    }
+}
+
+template<class T>
+inline void np_wrap<T>::check_rows(uint rows)
+{
+    uint tmp = (uint) shape[0];
+    if (rows != tmp) {
+        pyexcf(PyExc_ValueError, "Array %s has wrong number of rows=%d "\
+                                       "(expected %d)", name, rows, tmp);
+        throw "Wrong number of rows!";
+    }
+}
+
+template<class T>
+inline void np_wrap<T>::check_cols(uint cols)
+{
+    uint tmp = (uint) shape[0];
+    if (rows != tmp) {
+        pyexcf(PyExc_ValueError, "Array %s has wrong number of cols=%d "\
+                                       "(expected %d)", name, cols, tmp);
+        throw "Wrong number of cols!";
+    }
+}
+
+template<class T>
+inline T* np_wrap<T>::get_data()
+{
+    return data;
+}
+
+template<class T>
+inline np_ptr np_wrap<T>::get_array()
+{
+    return np_array;
+}
+
+template<class T>
 inline const uint np_wrap<T>::rows()
 {
     return static_cast<uint>(shape[0]);
 }
+
 
 template<class T>
 inline const uint np_wrap<T>::cols()
@@ -179,11 +282,13 @@ inline const uint np_wrap<T>::cols()
     return static_cast<uint>(shape[1]);
 }
 
+
 template<class T>
 inline const uint np_wrap<T>::get_shape(uint ii)
 {
     return static_cast<uint>(shape[ii]);
 }
+
 
 template<class T>
 inline const uint np_wrap<T>::get_stride(uint ii)
@@ -191,11 +296,13 @@ inline const uint np_wrap<T>::get_stride(uint ii)
     return static_cast<uint>(strides[ii]);
 }
 
+
 template<class T>
 inline T& np_wrap<T>::operator()(uint ii)
 {
     return data[ii * strides[0]];
 }
+
 
 template<class T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj)
@@ -203,11 +310,13 @@ inline T& np_wrap<T>::operator()(uint ii, uint jj)
     return data[ii * strides[0] + jj * strides[1]];
 }
 
+
 template<class T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 {
     return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
 }
+
 
 template<class T>
 inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran = 0,
@@ -228,59 +337,6 @@ inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran = 0,
 }
 
 #if 0
-
-template<typename T>
-static inline pyexc(const char * format)
-{
-    PyErr_Format(T, format);
-}
-
-#define np_empty(array_out, ndim, shape, typenum, is_fortran)\
-do {\
-    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum),\
-                                          (is_fortran));\
-    if ((array_out) == NULL) {\
-        PyErr_Format(PyExc_ValueError, "Failed to create empty array %s",\
-                     QUOTE((array_out)));\
-        goto fail;\
-    }\
-} while(0)
-
-
-#define ar_empty(ar_struct, edim, shape, typenum)\
-do {\
-    (ar_struct)
-
-#define ar_array(ar_struct) (ar_struct).np_array
-
-#define ar_ndim(ar_struct) (ar_struct).ndim
-#define ar_stride(ar_struct, dim) (uint)(ar_struct).strides[dim]
-#define ar_dim(ar_struct, dim) (uint) (ar_struct).shape[dim]
-
-#define ar_rows(ar_struct) ar_dim((ar_struct), 0)
-#define ar_cols(ar_struct) ar_dim((ar_struct), 1)
-
-#define ar_data(ar_struct) (ar_struct).data
-
-#define ar_elem1(ar_struct, ii) (ar_struct).data[(ii) * (ar_struct).strides[0]]
-
-#define ar_elem2(ar_struct, ii, jj) (ar_struct).data[\
-                                               (ii) * (ar_struct).strides[0]\
-                                             + (jj) * (ar_struct).strides[1]]
-
-#define ar_elem3(ar_struct, ii, jj, kk) (ar_struct).data[\
-                                                   (ii) * (ar_struct).strides[0]\
-                                                 + (jj) * (ar_struct).strides[1]\
-                                                 + (kk) * (ar_struct).strides[2]]
-
-#define ar_ptr1(ar_struct, ii) (ar_struct).data + (ii) * (ar_struct).strides[0]
-
-#define ar_ptr2(ar_struct, ii, jj) (ar_struct).data + (ii) * (ar_struct).strides[0] \
-                                            + (jj) * (ar_struct).strides[1]
-
-#define ar_ptr3(ar_struct, ii, jj, kk) (ar_struct).data + (ii) * (ar_struct).strides[0]\
-                                                 + (jj) * (ar_struct).strides[1]\
-                                                 + (kk) * (ar_struct).strides[2]
 
 #define ar_check_matrix(ar_struct, rows, cols)\
 do {\

@@ -15,7 +15,8 @@
  */
 
 #include "capi_functions.hpp"
-//#include "satorbit.h"
+//#include "satorbit.hpp"
+#include "utils.hpp"
 
 /*****************************************
  * Main functions - calleble from Python *
@@ -62,44 +63,52 @@ py_ptr azi_inc (py_varargs)
 {
     double start_t, stop_t, mean_t;
     uint is_centered, deg, max_iter, is_lonlat;
-    py_ptr coeffs = NULL, coords = NULL, mean_coords = NULL;    
+    py_ptr _coeffs = NULL, _coords = NULL, _mean_coords = NULL;    
 
-    pyfun_parse_varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
-                        &mean_t, &mean_coords, &is_centered, &deg, &coords,
+    pyfun_parse_varargs("OdddOIIOII:azi_inc", &_coeffs, &start_t, &stop_t,
+                        &mean_t, &_mean_coords, &is_centered, &deg, &_coords,
                         &max_iter, &is_lonlat);
 
+    uint n_coords;
+    
     // Importing arrays
-    np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL;
+    np_wrap<npy_double> coeffs, coords, mean_coords, azi_inc;
     
-    ar_double ar_coeffs, ar_coords, ar_mean;
-    
-    ar_import_check(ar_coeffs, coeffs, NYP_DOUBLE, 2, "coeffs")
-    ar_import_check(ar_coords, coords, NYP_DOUBLE, 2, "coords")
-    ar_import_check(ar_mean, mean_coords, NYP_DOUBLE, 1, "mean_coords")
-    
-    /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
-     * every row contains the coefficients for the fitted x,y,z polynoms. */
-    
-    ar_check_matrix(ar_coeffs, 3, deg + 1)
-    
-    // should be nx3 matrix
-    ar_check_cols(ar_coords, 3);
+    try {
+        coeffs.import(_coeffs, "coeffs", 2);
+        coords.import(_coords, "coords", 2);
+        mean_coords.import(_mean_coords, "mean_coords", 1);
 
-    // should be a 3 element vector
-    ar_check_rows(a_meancoords, 3);
-    
-    // number of coordinates
-    uint n_coords = ar_rows(ar_coords);
+        /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix
+         * where every row contains the coefficients for the fitted x,y,z
+         * polynoms. */
 
-    npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
+        coeffs.check_matrix(3, deg + 1)
+        coords.check_cols(3);
+        
+        // should be a 3 element vector
+        mean_coords.check_rows(3);
+
+        // number of coordinates
+        ncoords = coords.rows();
     
-    // matrix holding azimuth and inclination values
-    np_ptr azi_inc = NULL;
-    np_empty_double(azi_inc, 2, azi_inc_shape);
+        npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
+        
+        // matrix holding azimuth and inclination values
+        az_inc.empty(2, azi_inc_shape, "azi_inc");
+    }
+    catch(const char * e) {
+        errorln("%s", e);
+        coeffs.xdecref();
+        coords.xdecref();
+        mean_coords.xdecref();
+        azi_inc.xdecref();
+        return NULL;
+    }
     
     // Set up orbit polynomial structure
     orbit_fit orb;
-    orb.coeffs = (double *) np_data(a_coeffs);
+    orb.coeffs = coeffs.get_data();
     orb.deg = deg;
     orb.is_centered = is_centered;
     
@@ -107,23 +116,22 @@ py_ptr azi_inc (py_varargs)
     orb.stop_t = stop_t;
     orb.mean_t = mean_t;
     
-    orb.mean_coords = (double *) np_data(a_meancoords);
+    orb.mean_coords = mean_coords.get_data();
 
     double X, Y, Z, lon, lat, h;
     
     // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, 0, n_coords) {
-            lon = np_delem2(a_coords, ii, 0) * DEG2RAD;
-            lat = np_delem2(a_coords, ii, 1) * DEG2RAD;
-            h   = np_delem2(a_coords, ii, 2);
+            lon = coords(ii, 0) * DEG2RAD;
+            lat = coords(ii, 1) * DEG2RAD;
+            h   = coords(ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, &X, &Y, &Z);
             
             calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
-                         (npy_double *) np_gptr2(azi_inc, ii, 0),
-                         (npy_double *) np_gptr2(azi_inc, ii, 1));
+                         azi_inc(ii, 0), azi_inc(ii, 1));
             
         }
         // end for
@@ -131,33 +139,26 @@ py_ptr azi_inc (py_varargs)
     // coords contains X, Y, Z
     else {
         FOR(ii, 0, n_coords) {
-            X = np_delem2(a_coords, ii, 0);
-            Y = np_delem2(a_coords, ii, 1);
-            Z = np_delem2(a_coords, ii, 2);
+            X = coords(ii, 0);
+            Y = coords(ii, 1);
+            Z = coords(ii, 2);
             
             // calulate surface WGS-84 geodetic coordinates
             cart_ell(X, Y, Z, &lon, &lat, &h);
         
             calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
-                         (npy_double *) np_gptr2(azi_inc, ii, 0),
-                         (npy_double *) np_gptr2(azi_inc, ii, 1));
+                         azi_inc(ii, 0), azi_inc(ii, 1));
         }
         // end for
     }
     // end else
 
     // Cleanup and return
-    Py_DECREF(a_coeffs);
-    Py_DECREF(a_coords);
-    Py_DECREF(a_meancoords);
-    return Py_BuildValue("O", azi_inc);
-
-fail:
-    Py_XDECREF(a_coeffs);
-    Py_XDECREF(a_coords);
-    Py_XDECREF(a_meancoords);
-    Py_XDECREF(azi_inc);
-    return NULL;
+    coeffs.decref();
+    coords.decref();
+    mean_coords.decref();
+    
+    return Py_BuildValue("O", azi_inc.get_array());
 } // end azim_inc
 
 pyfun_doc(asc_dsc_select,

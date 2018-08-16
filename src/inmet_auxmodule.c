@@ -28,29 +28,26 @@ static py_ptr test(py_varargs)
     py_ptr arr;
     pyfun_parse_varargs("O", &arr);
     
-    ar_double array;
-    ar_import_check(array, arr, NPY_DOUBLE, 2, "arr");
+    np_ptr array;
+    np_import_check_double_in(array, arr, 2, "arr");
     
-    uint nrows = ar_rows(array);
-    uint ncols = ar_cols(array);
+    uint nrows = np_rows(array);
+    uint ncols = np_cols(array);
     
     println("%u %u", nrows, ncols);
-    println("%u %u", ar_stride(array, 0), ar_stride(array, 1));
     
     FOR(ii, 0, nrows) {
         FOR(jj, 0, ncols)
-            printf("%lf ", ar_elem2(array, ii, jj));
+            printf("%lf ", np_delem2(array, ii, jj));
         printf("\n");
     }
 
-    ar_decref(array);
+    Py_DECREF(array);
     Py_RETURN_NONE;
 fail:
-    ar_xdecref(array);
+    Py_XDECREF(array);
     return NULL;
 }
-
-#if 0
 
 pyfun_doc(azi_inc, "azi_inc");
 
@@ -63,36 +60,32 @@ static py_ptr azi_inc (py_varargs)
     pyfun_parse_varargs("OdddOIIOII:azi_inc", &coeffs, &start_t, &stop_t,
                         &mean_t, &mean_coords, &is_centered, &deg, &coords,
                         &max_iter, &is_lonlat);
-
-    // Importing arrays
+    
     np_ptr a_coeffs = NULL, a_coords = NULL, a_meancoords = NULL;
-    
-    ar_double ar_coeffs, ar_coords, ar_mean;
-    
-    ar_import_check(ar_coeffs, coeffs, NYP_DOUBLE, 2, "coeffs")
-    ar_import_check(ar_coords, coords, NYP_DOUBLE, 2, "coords")
-    ar_import_check(ar_mean, mean_coords, NYP_DOUBLE, 1, "mean_coords")
-    
+    np_import_check_double_in(a_coeffs, coeffs, 2, "coeffs");
+    np_import_check_double_in(a_coords, coords, 2, "coords");
+    np_import_check_double_in(a_meancoords, mean_coords, 1, "mean_coords");
+
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
     
-    ar_check_matrix(ar_coeffs, 3, deg + 1)
+    np_check_matrix(a_coeffs, 3, deg + 1, "coeffs");
     
     // should be nx3 matrix
-    ar_check_cols(ar_coords, 3);
+    np_check_cols(a_coords, 3, "coords");
 
     // should be a 3 element vector
-    ar_check_rows(a_meancoords, 3);
+    np_check_rows(a_meancoords, 3, "coords");
     
     // number of coordinates
-    uint n_coords = ar_rows(ar_coords);
+    uint n_coords = np_rows(a_coords);
 
     npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
     
     // matrix holding azimuth and inclination values
     np_ptr azi_inc = NULL;
-    np_empty_double(azi_inc, 2, azi_inc_shape);
-    
+    np_empty_double(azi_inc, 2, azi_inc_shape);    
+
     // Set up orbit polynomial structure
     orbit_fit orb;
     orb.coeffs = (double *) np_data(a_coeffs);
@@ -155,6 +148,8 @@ fail:
     Py_XDECREF(azi_inc);
     return NULL;
 } // end azim_inc
+
+#if 0
 
 pyfun_doc(asc_dsc_select,
 "asc_dsc_select");

@@ -17,6 +17,9 @@
 #ifndef PARAMS_TYPES_H
 #define PARAMS_TYPES_H
 
+typedef const double cdouble;
+typedef unsigned int uint;
+
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
  *******************************/

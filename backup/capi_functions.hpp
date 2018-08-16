@@ -18,9 +18,20 @@
 #define CAPI_MACROS_H
 
 #include "params_types.hpp"
+
+#include "Python.h"
+#include "numpy/arrayobject.h"
+
 #include <cstring>
+#include <type_traits>
 
 #define FOR(ii, start, stop) for(uint (ii) = 0; (ii) < (stop); ++(ii))
+
+#define pyexcf(exc_type, format, ...)\
+        PyErr_Format((exc_type), (format), __VA_ARGS__)
+
+#define pyexc(exc_type, format)\
+        PyErr_Format((exc_type), (format))
 
 /*************
  * IO macros *
@@ -30,6 +41,7 @@
 #define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
 
 #define print(string) PySys_WriteStdout(string)
+#define prints(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
 #define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
 
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
@@ -43,9 +55,11 @@ class np_wrap
         np_ptr np_array;
         T * data;
         char * name;
+        bool decrefd;
     public:
-        void import(const py_ptr to_convert, const int typenum, char * name,
-                    const int ndim);
+        void convert_np_array(const np_ptr tmp, char * nname);
+        void import(const py_ptr to_convert, char * name, const int ndim);
+        void empty(int ndim, npy_intp * shape, int is_fortran, char * name);
         void decref(void);
         void xdecref(void);
         T& operator()(uint ii);
@@ -53,29 +67,34 @@ class np_wrap
         T& operator()(uint ii, uint jj, uint kk);
         const uint rows();
         const uint cols();
+        const uint get_shape(uint ii);
+        const uint get_stride(uint ii);
+        ~np_wrap();
 };
 
 template<class T>
-inline void np_wrap<T>::import(const py_ptr to_convert, const int typenum,
-                   char * nname, const int edim = 0)
+inline const int np_type()
 {
-    np_ptr tmp;
-    if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, NPY_ARRAY_IN_ARRAY))
-         == nullptr) {
-        throw "Failed to convert to numpy array!";
+    if (std::is_same<T, npy_double>::value)
+        return NPY_DOUBLE;
+    else if (std::is_same<T, npy_bool>::value)
+        return NPY_BOOL;
+    else if (std::is_same<T, npy_byte>::value)
+        return NPY_BYTE;
+    else if (std::is_same<T, npy_ubyte>::value)
+        return NPY_UBYTE;
+    else {
+        pyexc(PyExc_ValueError, "Unknown numpy type passed to np_type!");
+        throw "Unrecognized numpy type!";
     }
-    
+}
+
+
+template<class T>
+inline void np_wrap<T>::convert_np_array(const np_ptr tmp, char * nname)
+{
     int array_ndim = PyArray_NDIM(tmp);
-    
-    if (edim > 0) {
-        if (array_ndim != edim) {
-            PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
-                                           "expected to be %d-dimensional",
-                                            nname, array_ndim, edim);
-            throw "Wrong number of dimensions!";
-        }
-    }
-    
+
     ndim = array_ndim;
     shape = PyArray_DIMS(tmp);
     strides = PyMem_New(npy_intp, array_ndim);
@@ -87,23 +106,66 @@ inline void np_wrap<T>::import(const py_ptr to_convert, const int typenum,
     data = (T*) PyArray_BYTES(tmp);
     np_array = tmp;
     name = nname;
+    decrefd = false;
+}    
+
+
+template<class T>
+inline void np_wrap<T>::import(const py_ptr to_convert, char * nname,
+                               const int edim = 0)
+{
+    static const int typenum = np_type<T>();
+    
+    np_ptr tmp;
+    if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, NPY_ARRAY_IN_ARRAY))
+         == nullptr) {
+        decrefd = true;
+        throw "Failed to convert to numpy array!";
+    }
+    
+    int array_ndim = PyArray_NDIM(tmp);
+    
+    if (edim > 0) {
+        if (array_ndim != edim) {
+            pyexcf(PyExc_ValueError, "Array %s is %d-dimensional, but expected "
+                                     "to be %d-dimensional", nname, array_ndim,
+                                     edim);
+            throw "Wrong number of dimensions!";
+        }
+    }
+    convert_np_array(tmp, nname);
 }
+
 
 template<class T>
 inline void np_wrap<T>::decref()
 {
+    decrefd = true;
     Py_DECREF(np_array);
     PyMem_Del(strides);
 }
 
+
 template<class T>
 inline void np_wrap<T>::xdecref()
 {
+    decrefd = true;
     Py_XDECREF(np_array);
     
     if (strides != nullptr)
         PyMem_Del(strides);
 }
+
+template<class T>
+np_wrap<T>::~np_wrap()
+{
+    if (!decrefd) {
+        Py_XDECREF(np_array);
+        
+        if (strides != nullptr)
+            PyMem_Del(strides);
+    }
+}        
 
 template<class T>
 inline const uint np_wrap<T>::rows()
@@ -118,6 +180,18 @@ inline const uint np_wrap<T>::cols()
 }
 
 template<class T>
+inline const uint np_wrap<T>::get_shape(uint ii)
+{
+    return static_cast<uint>(shape[ii]);
+}
+
+template<class T>
+inline const uint np_wrap<T>::get_stride(uint ii)
+{
+    return static_cast<uint>(strides[ii]);
+}
+
+template<class T>
 inline T& np_wrap<T>::operator()(uint ii)
 {
     return data[ii * strides[0]];
@@ -126,25 +200,39 @@ inline T& np_wrap<T>::operator()(uint ii)
 template<class T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj)
 {
-    return data[  ii * strides[0] + jj * strides[1]];
+    return data[ii * strides[0] + jj * strides[1]];
 }
 
 template<class T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 {
-    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]];
+    return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+}
+
+template<class T>
+inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran = 0,
+                              char * name = "")
+{
+    static const int typenum = np_type<T>();
+
+    np_ptr tmp;
+    if ((tmp = (np_ptr) PyArray_EMPTY(ndim, shape, typenum, is_fortran))
+         == nullptr) {
+        pyexcf(PyExc_RuntimeError, "Could not create empty array %s!", name);
+        decrefd = true;
+        throw "Array creation failed!";
+        
+    }
+    
+    convert_np_array(tmp, name);
 }
 
 #if 0
 
-template<class T>
-static np_wrap<T> ar_empty(uint ndim, npy_inpt * shape, int typenum,
-                           int is_fortran = 0)
+template<typename T>
+static inline pyexc(const char * format)
 {
-    np_ptr tmp;
-    if (
-    
-    
+    PyErr_Format(T, format);
 }
 
 #define np_empty(array_out, ndim, shape, typenum, is_fortran)\

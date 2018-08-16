@@ -14,9 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Python.h"
-#include "numpy/arrayobject.h"
-
 #include "capi_functions.hpp"
 //#include "satorbit.h"
 
@@ -26,15 +23,14 @@
 
 pyfun_doc(test, "test");
 
-static py_ptr test(py_varargs)
+static py_ptr test(void)
 {
-    py_ptr arr;
-    pyfun_parse_varargs("O", &arr);
-    
     np_wrap<npy_double> array;
     
+    npy_intp shape = 3;
+    
     try {
-        array.import(arr, NPY_DOUBLE, "arr");
+        array.empty(1, &shape, 0, "arr");
     }
     catch(const char * e) {
         errorln("%s", e);
@@ -43,16 +39,17 @@ static py_ptr test(py_varargs)
     }
     
     uint nrows = array.rows();
-    uint ncols = array.cols();
     
-    println("%u %u", nrows, ncols);
-
+    array(0) = 1.0;
+    array(1) = 2.0;
+    array(2) = 3.0;
+    
     FOR(ii, 0, nrows) {
-        FOR(jj, 0, ncols)
-            printf("%lf ", array(ii, jj));
-        printf("\n");
+        prints("%lf ", array(ii));
     }
-
+    
+    print("\n");
+    
     array.decref();
     Py_RETURN_NONE;
 }
@@ -225,4 +222,4 @@ fail:
 #endif
 
 init_module(inmet_aux, "inmet_aux",
-            pymeth_varargs(test));
+            pymeth_noargs(test));

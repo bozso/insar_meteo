@@ -24,14 +24,16 @@
 
 pyfun_doc(test, "test");
 
-static py_ptr test(void)
+static py_ptr test(py_varargs)
 {
+    py_ptr _array = nullptr;
+    
+    pyfun_parse_varargs("O", &_array);
+    
     np_wrap<npy_double> array;
     
-    npy_intp shape = 3;
-    
     try {
-        array.empty(1, &shape, 0, "arr");
+        array.import(_array, "arr", 1);
     }
     catch(const char * e) {
         errorln("%s", e);
@@ -223,4 +225,4 @@ fail:
 #endif
 
 init_module(inmet_aux, "inmet_aux",
-            pymeth_noargs(test));
+            pymeth_varargs(test));

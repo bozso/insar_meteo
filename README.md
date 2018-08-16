@@ -14,13 +14,11 @@ form the basis for my future programs.
 ## Short description of folders and files
 
 - **Matlab**: auxilliary Matlab modules for
-  [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/) and 
+  [StaMPS](https://github.com/dbekaert/StaMPS) and 
   [TRAIN](https://github.com/dbekaert/TRAIN),
-- **inmet**: Main python scripts that call GMT and my C modules,
-- **backup**: I store files here that I do not use anymore, but may be useful
-  in the future,
+- **inmet**: Main python scripts that call Gnuplot and my C++ modules,
 - **daisy_test_data**: test datafiles for the DAISY program,
-- **src**: source files for C programs,
+- **src**: source files for C++ Python extensions,
 - **insar_meteo.sh** source this file in your .bashrc so you can use the C,
   Python and Matlab programs. **IMPORTANT**: first set the MAIN_DIR variable
   in the file.
@@ -31,7 +29,7 @@ Code is licensed with [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).
 
 ## Acknowledgement
 
-Code from [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/), 
+Code from [StaMPS](https://github.com/dbekaert/StaMPS),
 [TRAIN](https://github.com/dbekaert/TRAIN) were used in the developement of
 these libraries. I wish to thank Andrew Hooper and David Bekaert for
 providing open acces to their code.

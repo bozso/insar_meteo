@@ -65,7 +65,7 @@ The function returns the function handle `h` to the boxplot.
 
 ## Acknowledgement
 
-Code from [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/), 
+Code from [StaMPS](https://github.com/dbekaert/StaMPS), 
 [TRAIN](https://github.com/dbekaert/TRAIN) were used in the developement of
 these libraries. I wish to thank Andrew Hooper and David Bekaert for
 providing open acces to their code.

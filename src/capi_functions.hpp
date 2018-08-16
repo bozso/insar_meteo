@@ -59,8 +59,8 @@ class np_wrap
         bool decrefd;
     public:
         void convert_np_array(const np_ptr tmp, char * nname);
-        void import(const py_ptr to_convert, char * name, const int ndim);
-        void empty(int ndim, npy_intp * shape, int is_fortran, char * name);
+        void import(const py_ptr to_convert, char * nname, const int edim = 0);
+        void empty(int ndim, npy_intp * shape, int is_fortran = 0, char * name = "");
         void decref(void);
         void xdecref(void);
         void check_matrix(uint rows, uint cols);
@@ -143,34 +143,42 @@ inline const int np_type()
 template<class T>
 inline void np_wrap<T>::convert_np_array(const np_ptr tmp, char * nname)
 {
-    int array_ndim = PyArray_NDIM(tmp);
-
+    uint array_ndim = (uint) PyArray_NDIM(tmp);
+    
+    double elemsize = (double) PyArray_ITEMSIZE(tmp);
+    
     ndim = array_ndim;
     shape = PyArray_DIMS(tmp);
     strides = PyMem_New(npy_intp, array_ndim);
-    std::memcpy(strides, PyArray_STRIDES(tmp), array_ndim * sizeof(npy_intp));
+    
+    npy_intp * _strides = PyArray_STRIDES(tmp);
     
     for(uint ii = 0; ii < array_ndim; ++ii)\
-        strides[ii] /= sizeof(*(data));
+        strides[ii] = (npy_intp) (_strides[ii] / elemsize);
     
     data = (T*) PyArray_BYTES(tmp);
     np_array = tmp;
-    name = nname;
+    
+    std::memcpy(name, nname, strlen(nname + 1));
+    
     decrefd = false;
-}    
+}
 
 
 template<class T>
 inline void np_wrap<T>::import(const py_ptr to_convert, char * nname,
-                               const int edim = 0)
+                               const int edim)
 {
     static const int typenum = np_type<T>();
     
     np_ptr tmp;
     if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, NPY_ARRAY_IN_ARRAY))
          == nullptr) {
+        _log;
         decrefd = true;
+        _log;
         throw "Failed to convert to numpy array!";
+        _log;
     }
     
     int array_ndim = PyArray_NDIM(tmp);
@@ -319,8 +327,8 @@ inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 
 
 template<class T>
-inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran = 0,
-                              char * name = "")
+inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran,
+                              char * name)
 {
     static const int typenum = np_type<T>();
 

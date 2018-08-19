@@ -206,6 +206,25 @@ inline void np_wrap<T>::import(const py_ptr to_convert, const char * nname,
 
 
 template<class T>
+inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran,
+                              const char * name)
+{
+    static const int typenum = np_type<T>();
+
+    np_ptr tmp;
+    if ((tmp = (np_ptr) PyArray_EMPTY(ndim, shape, typenum, is_fortran))
+         == nullptr) {
+        pyexcf(PyExc_RuntimeError, "Could not create empty array %s!", name);
+        decrefd = true;
+        throw "Array creation failed!";
+        
+    }
+    
+    convert_np_array(tmp, name);
+}
+
+
+template<class T>
 inline void np_wrap<T>::decref()
 {
     decrefd = true;
@@ -333,25 +352,6 @@ template<class T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 {
     return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
-}
-
-
-template<class T>
-inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran,
-                              const char * name)
-{
-    static const int typenum = np_type<T>();
-
-    np_ptr tmp;
-    if ((tmp = (np_ptr) PyArray_EMPTY(ndim, shape, typenum, is_fortran))
-         == nullptr) {
-        pyexcf(PyExc_RuntimeError, "Could not create empty array %s!", name);
-        decrefd = true;
-        throw "Array creation failed!";
-        
-    }
-    
-    convert_np_array(tmp, name);
 }
 
 // turn s into string "s"

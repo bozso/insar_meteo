@@ -27,13 +27,14 @@ pyfun_doc(test, "test");
 static py_ptr test(py_varargs)
 {
     py_ptr _array = nullptr;
-    
-    pyfun_parse_varargs("O", &_array);
-    
     np_wrap<npy_double> array;
     
     try {
+        logg;
+        parse_varargs(args, "O", &_array);
+        logg;
         array.import(_array, "arr", 1);
+        logg;
     }
     catch(const char * e) {
         errorln("%s", e);

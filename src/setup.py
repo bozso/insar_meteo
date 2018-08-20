@@ -29,7 +29,7 @@ macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
 ext_modules = [
     Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp"],
-              define_macros=macros, extra_compile_args=["-std=c++11"])
+              define_macros=macros, extra_compile_args=["-std=c++11", "-save-temps"])
 ]
 
 def main():

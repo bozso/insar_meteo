@@ -45,9 +45,7 @@ typedef PyObject * py_ptr;
 #define prints(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
 #define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
 
-#define _log println("File: %s line: %d", __FILE__, __LINE__)
-
-template<class T>
+template<typename T>
 class np_wrap
 {
     private:
@@ -88,7 +86,7 @@ class np_wrap
         ~np_wrap();
 };
 
-template<class T>
+template<typename T>
 inline const int np_type()
 {
     if (std::is_same<T, npy_double>::value)
@@ -150,7 +148,7 @@ inline const int np_type()
 }
 
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::convert_np_array(const np_ptr tmp, const char * nname)
 {
     uint array_ndim = (uint) PyArray_NDIM(tmp);
@@ -175,7 +173,7 @@ inline void np_wrap<T>::convert_np_array(const np_ptr tmp, const char * nname)
 }
 
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::import(const py_ptr to_convert, const char * nname,
                                const int edim)
 {
@@ -184,11 +182,11 @@ inline void np_wrap<T>::import(const py_ptr to_convert, const char * nname,
     np_ptr tmp;
     if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, typenum, NPY_ARRAY_IN_ARRAY))
          == nullptr) {
-        _log;
+        logg;
         decrefd = true;
-        _log;
+        logg;
         throw "Failed to convert to numpy array!";
-        _log;
+        logg;
     }
     
     int array_ndim = PyArray_NDIM(tmp);
@@ -205,7 +203,7 @@ inline void np_wrap<T>::import(const py_ptr to_convert, const char * nname,
 }
 
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran,
                               const char * name)
 {
@@ -224,7 +222,7 @@ inline void np_wrap<T>::empty(int ndim, npy_intp * shape, int is_fortran,
 }
 
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::decref()
 {
     decrefd = true;
@@ -233,7 +231,7 @@ inline void np_wrap<T>::decref()
 }
 
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::xdecref()
 {
     decrefd = true;
@@ -243,7 +241,7 @@ inline void np_wrap<T>::xdecref()
         PyMem_Del(strides);
 }
 
-template<class T>
+template<typename T>
 np_wrap<T>::~np_wrap()
 {
     if (!decrefd) {
@@ -254,7 +252,7 @@ np_wrap<T>::~np_wrap()
     }
 }        
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::check_matrix(uint rows, uint cols)
 {
     uint tmp = (uint) shape[0];
@@ -272,7 +270,7 @@ inline void np_wrap<T>::check_matrix(uint rows, uint cols)
     }
 }
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::check_rows(uint rows)
 {
     uint tmp = (uint) shape[0];
@@ -283,7 +281,7 @@ inline void np_wrap<T>::check_rows(uint rows)
     }
 }
 
-template<class T>
+template<typename T>
 inline void np_wrap<T>::check_cols(uint cols)
 {
     uint tmp = (uint) shape[0];
@@ -294,61 +292,61 @@ inline void np_wrap<T>::check_cols(uint cols)
     }
 }
 
-template<class T>
+template<typename T>
 inline T* np_wrap<T>::get_data()
 {
     return data;
 }
 
-template<class T>
+template<typename T>
 inline np_ptr np_wrap<T>::get_array()
 {
     return np_array;
 }
 
-template<class T>
+template<typename T>
 inline const uint np_wrap<T>::rows()
 {
     return static_cast<uint>(shape[0]);
 }
 
 
-template<class T>
+template<typename T>
 inline const uint np_wrap<T>::cols()
 {
     return static_cast<uint>(shape[1]);
 }
 
 
-template<class T>
+template<typename T>
 inline const uint np_wrap<T>::get_shape(uint ii)
 {
     return static_cast<uint>(shape[ii]);
 }
 
 
-template<class T>
+template<typename T>
 inline const uint np_wrap<T>::get_stride(uint ii)
 {
     return static_cast<uint>(strides[ii]);
 }
 
 
-template<class T>
+template<typename T>
 inline T& np_wrap<T>::operator()(uint ii)
 {
     return data[ii * strides[0]];
 }
 
 
-template<class T>
+template<typename T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj)
 {
     return data[ii * strides[0] + jj * strides[1]];
 }
 
 
-template<class T>
+template<typename T>
 inline T& np_wrap<T>::operator()(uint ii, uint jj, uint kk)
 {
     return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
@@ -501,10 +499,21 @@ do {\
         return NULL;\
 } while(0)
 
-#define pyfun_parse_varargs(format, ...) \
-do {\
-    if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\
-        return NULL;\
-} while(0)
+template<typename... Args>
+inline void parse_varargs(const py_ptr argument, const char * format,
+                          Args... args)
+{
+    if(!PyArg_ParseTuple(argument, format, args...))
+        throw "Argument parsing failed!";
+}
+
+template<typename... Args>
+inline void parse_kwargs(const py_ptr argument, const py_ptr kwargs,
+                         const char * format, const char ** keywords,
+                         Args... args)
+{
+    if(!PyArg_ParseTupleAndKeywords(argument, kwargs, format, args...))
+        throw "Argument parsing failed!";
+}
 
 #endif

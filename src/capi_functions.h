@@ -28,8 +28,6 @@ typedef unsigned int uint;
 // turn s into string "s"
 #define QUOTE(s) # s
 
-#define FOR(ii, start, stop) for(uint (ii) = (start); (ii) < (stop); ++(ii))
-
 /*************
  * IO macros *
  *************/
@@ -144,8 +142,8 @@ static int _ar_empty_cf(array_descr * ar_dsc, void ** ptr, const int edim,
 
 #define ar_empty_cf(ar_struct, edim, shape, typenum, is_fortran, name)\
 do {\
-    if(_ar_import_check(&((ar_struct)._array), (void **) &((ar_struct).data),\
-                        (edim) (shape), (typenum), (is_fortran), (name)))\
+    if(_ar_empty_cf(&((ar_struct)._array), (void **) &((ar_struct).data),\
+                        (edim), (shape), (typenum), (is_fortran), (name)))\
         goto fail;\
     \
 } while(0)
@@ -285,8 +283,6 @@ do {\
 /******************************
  * Function definition macros *
  ******************************/
-
-//----------------------------------------------------------------------
 
 #define pymeth_noargs(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_NOARGS, fun_name ## __doc__}

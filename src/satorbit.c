@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <tgmath.h>
 
+#include "utils.h"
 #include "satorbit.h"
 
 static inline double norm(cdouble x, cdouble y, cdouble z)

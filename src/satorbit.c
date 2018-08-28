@@ -14,6 +14,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <tgmath.h>
 
@@ -257,3 +261,7 @@ inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
     
     *azi = temp_azi;
 }
+
+#ifdef __cplusplus
+}
+#endif

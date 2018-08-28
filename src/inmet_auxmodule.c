@@ -14,6 +14,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "capi_functions.h"
 #include "satorbit.h"
 #include "utils.h"
@@ -211,3 +215,6 @@ init_table(inmet_aux,
 
 init_module(inmet_aux, "inmet_aux")
             
+#ifdef __cplusplus
+}
+#endif

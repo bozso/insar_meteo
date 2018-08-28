@@ -14,13 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy.distutils.core import Extension, setup
-from distutils.ccompiler import new_compiler
 
 from os.path import join, isfile
 from os import remove
 from shutil import move
 from glob import iglob
-import sys
 
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
 flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]

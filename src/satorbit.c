@@ -193,7 +193,7 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     
     dot_start = dot_product(orb, X, Y, Z, t_start);
     
-    while( abs(dot_middle) > 1.0e-11 && itr < max_iter) {
+    while( fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
         t_middle = (t_start + t_stop) / 2.0;
 
         dot_middle = dot_product(orb, X, Y, Z, t_middle);

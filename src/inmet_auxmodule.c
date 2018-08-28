@@ -134,7 +134,7 @@ static py_ptr azi_inc(py_ptr self, py_ptr args)
     ar_decref(coeffs);
     ar_decref(coords);
     ar_decref(mean_coords);
-    return Py_BuildValue("O", azi_inc);
+    return PyArray_Return(ar_np_array(azi_inc));
 
 fail:
     ar_xdecref(coeffs);
@@ -189,7 +189,7 @@ static py_ptr asc_dsc_select(py_ptr self, py_ptr args, py_ptr kwargs)
     
     ar_decref(arr1);
     ar_decref(arr2);
-    return Py_BuildValue("OI", idx, n_found);
+    return Py_BuildValue("OI", ar_np_array(idx), n_found);
 
 fail:
     ar_xdecref(arr1);

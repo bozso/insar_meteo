@@ -122,6 +122,9 @@ do {\
 #define ar_import(ar_struct, to_convert, typenum, name)\
         ar_import_check((ar_struct), (to_convert), (typenum), 0, (name))
 
+#define ar_import_check_double(ar_struct, to_convert, ndim, name)\
+        ar_import_check((ar_struct), (to_convert), NPY_DOUBLE, (ndim), (name))
+
 static int _ar_empty_cf(array_descr * ar_dsc, void ** ptr, const int edim,
                         npy_intp * shape, const int typenum,
                         const int is_fortran, char * name)
@@ -150,6 +153,12 @@ do {\
 
 #define ar_empty(ar_struct, edim, shape, typenum, name)\
         ar_empty_cf((ar_struct), (edim), (shape), (typenum), 0, (name))
+
+#define ar_empty_double(ar_struct, edim, shape, name)\
+        ar_empty_cf((ar_struct), (edim), (shape), NPY_DOUBLE, 0, (name))
+
+#define ar_empty_bool(ar_struct, edim, shape, name)\
+        ar_empty_cf((ar_struct), (edim), (shape), NPY_BOOL, 0, (name))
 
 #define ar_decref(ar_struct)\
 do {\
@@ -296,18 +305,19 @@ do {\
 
 #define pyfun_doc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
 
-#define parse_keywords(keywords, format, ...) \
+#define parse_varargs(args, format, ...) \
+do {\
+    if (!PyArg_ParseTuple((args), format, __VA_ARGS__))\
+        return NULL;\
+} while(0)
+
+#define parse_keywords(args, kwargs, keywords, format, ...) \
 do {\
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords,\
                                      __VA_ARGS__))\
         return NULL;\
 } while(0)
 
-#define parse_varargs(args, format, ...) \
-do {\
-    if (!PyArg_ParseTuple((args), format, __VA_ARGS__))\
-        return NULL;\
-} while(0)
 
 /***********************************************************
  * Python 2/3 compatible module initialization biolerplate *

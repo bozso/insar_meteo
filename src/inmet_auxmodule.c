@@ -30,7 +30,7 @@ static py_ptr test(py_ptr self, py_ptr args)
     parse_varargs(args, "O", &_array);
     
     ar_double array;
-    ar_import_check(array, _array, NPY_DOUBLE, 1, "array");
+    ar_import_check_double(array, _array, 1, "array");
     
     uint nrows = ar_rows(array);
     
@@ -59,13 +59,12 @@ static py_ptr azi_inc(py_ptr self, py_ptr args)
 
     ar_double coeffs, coords, mean_coords, azi_inc;
     
-    ar_import_check(coeffs, _coeffs, NPY_DOUBLE, 2, "coeffs");
-    ar_import_check(coords, _coords, NPY_DOUBLE, 2, "coords");
-    ar_import_check(mean_coords, _mean_coords, NPY_DOUBLE, 1, "mean_coords");
+    ar_import_check_double(coeffs, _coeffs, 2, "coeffs");
+    ar_import_check_double(coords, _coords, 2, "coords");
+    ar_import_check_double(mean_coords, _mean_coords, 1, "mean_coords");
     
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
-    
     ar_check_matrix(coeffs, 3, deg + 1);
     
     // should be nx3 matrix
@@ -80,7 +79,7 @@ static py_ptr azi_inc(py_ptr self, py_ptr args)
     npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
     
     // matrix holding azimuth and inclination values
-    ar_empty(azi_inc, 2, azi_inc_shape, NPY_DOUBLE, "azi_inc");
+    ar_empty_double(azi_inc, 2, azi_inc_shape, "azi_inc");
     
     // Set up orbit polynomial structure
     orbit_fit orb;
@@ -94,7 +93,7 @@ static py_ptr azi_inc(py_ptr self, py_ptr args)
     
     orb.mean_coords = ar_data(mean_coords);
 
-    double X, Y, Z, lon, lat, h;
+    npy_double X, Y, Z, lon, lat, h;
     
     // coords contains lon, lat, h
     if (is_lonlat) {
@@ -145,64 +144,60 @@ fail:
     return NULL;
 } // end azim_inc
 
-#if 0
+pyfun_doc(asc_dsc_select, "asc_dsc_select");
 
-pyfun_doc(asc_dsc_select,
-"asc_dsc_select");
-
-static py_ptr asc_dsc_select(py_keywords)
+static py_ptr asc_dsc_select(py_ptr self, py_ptr args, py_ptr kwargs)
 {
     char * keywords[] = {"asc", "dsc", "max_sep", NULL};
 
-    py_ptr in_arr1 = NULL, in_arr2 = NULL;
-    npy_double max_sep = 100.0;
+    py_ptr _arr1 = NULL, _arr2 = NULL;
+    double max_sep = 100.0;
 
-    pyfun_parse_keywords(keywords, "OO|d:asc_dsc_select",
-                         &in_arr1, &in_arr2, &max_sep);
+    parse_keywords(args, kwargs, keywords, "OO|d:asc_dsc_select",
+                   &_arr1, &_arr2, &max_sep);
     
-    npy_double max_sep_deg = max_sep / R_earth;
+    double max_sep_deg = max_sep / R_earth;
     max_sep_deg = max_sep_deg * max_sep_deg * RAD2DEG * RAD2DEG;
 
     println("Maximum separation: %6.3lf meters => approx. %E degrees",
-            max_sep, max_sep_deg);
+             max_sep, max_sep_deg);
 
-    np_ptr arr1 = NULL, arr2 = NULL;
-
-    np_import_check_double_in(arr1, in_arr1, 2, "asc");
-    np_import_check_double_in(arr2, in_arr2, 2, "dsc");
+    ar_double arr1, arr2;
+    ar_import_check_double(arr1, _arr1, 2, "asc");
+    ar_import_check_double(arr2, _arr2, 2, "dsc");
     
-    uint n_arr1 = np_rows(arr1), n_arr2 = np_rows(arr2);
+    uint n_arr1 = ar_rows(arr1), n_arr2 = ar_rows(arr2);
     
-    np_ptr idx = (np_ptr) PyArray_ZEROS(1, (npy_intp *) &n_arr1, NPY_BOOL, 0);
+    ar_bool idx;
+    ar_empty_bool(idx, 1, (npy_intp *) &n_arr1, "idx");
     
     uint n_found = 0;
     npy_double dlon, dlat;
     
     FOR(ii, 0, n_arr1) {
         FOR(jj, 0, n_arr2) {
-            dlon = np_delem2(arr1, ii, 0) - np_delem2(arr2, jj, 0);
-            dlat = np_delem2(arr1, ii, 1) - np_delem2(arr2, jj, 1);
+            dlon = ar_elem2(arr1, ii, 0) - ar_elem2(arr2, jj, 0);
+            dlat = ar_elem2(arr1, ii, 1) - ar_elem2(arr2, jj, 1);
             
             if ( (dlon * dlon + dlat * dlat) < max_sep) {
-                np_belem1(idx, ii) = NPY_TRUE;
+                ar_elem1(idx, ii) = NPY_TRUE;
                 n_found++;
                 break;
             }
         }
     }
     
-    Py_DECREF(arr1);
-    Py_DECREF(arr2);
+    ar_decref(arr1);
+    ar_decref(arr2);
     return Py_BuildValue("OI", idx, n_found);
 
 fail:
-    Py_XDECREF(arr1);
-    Py_XDECREF(arr2);
+    ar_xdecref(arr1);
+    ar_xdecref(arr2);
     return NULL;
 }
 // end asc_dsc_select
 
-#endif
 
 /**********************
  * Python boilerplate *
@@ -210,7 +205,9 @@ fail:
 
 init_table(inmet_aux,
            pymeth_varargs(test),
-           pymeth_varargs(azi_inc));
+           pymeth_varargs(azi_inc),
+           pymeth_keywords(asc_dsc_select)
+           );
 
 init_module(inmet_aux, "inmet_aux")
             

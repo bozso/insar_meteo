@@ -17,6 +17,9 @@
 #ifndef NUMPY_CAPI_AUX_H
 #define NUMPY_CAPI_AUX_H
 
+// turn s into string "s"
+#define QUOTE(s) # s
+
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
@@ -45,7 +48,7 @@ static int _np_convert_array_check(np_ptr * array, const py_ptr to_convert,
 
     int array_ndim = PyArray_NDIM(*array);
     
-    if (array_ndim != ndim) {
+    if (ndim > 0 && array_ndim != ndim) {
         PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
                                        "expected to be %d-dimensional", name,
                                         array_ndim, ndim);
@@ -54,6 +57,19 @@ static int _np_convert_array_check(np_ptr * array, const py_ptr to_convert,
     
     return 0;
 }
+
+// Import a numpy array and check the number of its dimensions.
+#define np_import_check(array_out, array_to_convert, typenum, requirements,\
+                        ndim)\
+do {\
+    if (_np_convert_array_check(&(array_out), (array_to_convert), (typenum),\
+                           (requirements), (ndim), QUOTE((array_out)))) {\
+        goto fail;\
+    }\
+} while(0)
+
+#define np_import(array_out, array_to_convert, typenum, requirements)\
+        np_import_check((array_out), (array_to_convert), (typenum), (requirements), 0)\
 
 static int _np_check_matrix(const np_ptr array, const int rows, const int cols,
                             const char * name)
@@ -77,6 +93,13 @@ static int _np_check_matrix(const np_ptr array, const int rows, const int cols,
     return 0;
 }    
 
+// Check whether a matrix has the adequate number of rows and cols.
+#define np_check_matrix(array, rows, cols)\
+do {\
+    if (_np_check_matrix((array), (rows), (cols), QUOTE((array))))\
+        goto fail;\
+} while(0)
+
 static int _np_check_ndim(const np_ptr array, const int ndim, const char * name)
 {
     int tmp = PyArray_NDIM(array);
@@ -88,6 +111,13 @@ static int _np_check_ndim(const np_ptr array, const int ndim, const char * name)
     }
     return 0;
 }
+
+// Check if a numpy array has the correct number of dimensions.
+#define np_check_ndim(array, ndim)\
+do {\
+    if (_np_check_ndim((array), (ndim), QUOTE((array))))\
+        goto fail;\
+} while(0)
 
 static int _np_check_dim(const np_ptr array, const int dim,
                       const int expected_length, const char * name)
@@ -110,102 +140,13 @@ static int _np_check_dim(const np_ptr array, const int dim,
     return 0;
 }
 
-/****************************
- * Numpy convenience macros *
- ****************************/
-
-#define np_ddata(obj) (double *) PyArray_DATA((obj))
-
-#define np_gptr1(obj, ii) PyArray_GETPTR1((obj), (ii))
-#define np_gptr2(obj, ii, jj) PyArray_GETPTR2((obj), (ii), (jj))
-
-#define np_dim(obj, idx) (uint) PyArray_DIM((obj), (idx))
-#define np_ndim(obj) (uint) PyArray_NDIM((obj))
-
-#define np_rows(obj) np_dim((obj), 0)
-#define np_cols(obj) np_dim((obj), 1)
-
-#define np_data(obj) PyArray_DATA((obj))
-
-/* based on
- * https://github.com/sniemi/SamPy/blob/master/sandbox/src1/TCSE3-3rd-examples
- * /src/C/NumPy_macros.h */
-
-// Import a numpy array
-
-#define np_import(array_out, array_to_convert, typenum, requirements, name)\
-do {\
-    if ((array_out) = (np_ptr) PyArray_FROM_OTF(to_convert, typenum,\
-                                                requirements) == NULL) {\
-        PyErr_Format(PyExc_ValueError, "Failed to import array %s",\
-                     (name));\
-        goto fail;\
-    }\
-} while(0)
-
-
-// Import a numpy array and check the number of its dimensions.
-
-#define np_import_check(array_out, array_to_convert, typenum, requirements,\
-                        ndim, name)\
-do {\
-    if (_np_convert_array_check((&(array_out)), (array_to_convert), (typenum),\
-                           (requirements), (ndim), (name))) {\
-        goto fail;\
-    }\
-} while(0)
-
-// Check whether a matrix has the adequate number of rows and cols.
-
-#define np_check_matrix(array, rows, cols, name)\
-do {\
-    if (_np_check_matrix((array), (rows), (cols), (name)))\
-        goto fail;\
-} while(0)
-
-
-// Create an empty numpy array
-
-#define np_empty(array_out, ndim, shape, typenum, is_fortran)\
-do {\
-    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum),\
-                                          (is_fortran));\
-    if ((array_out) == NULL) {\
-        PyErr_Format(PyExc_ValueError, "Failed to create empty array %s",\
-                     QUOTE((array_out)));\
-        goto fail;\
-    }\
-} while(0)
-
-#define np_empty_double(array_out, ndim, shape)\
-        np_empty((array_out), (ndim), (shape), NPY_DOUBLE, 0)
-
-// Check if a numpy array has the correct number of dimensions.
-
-#define np_check_ndim(array, ndim, name)\
-do {\
-    if (_np_check_ndim((array), (ndim), (name)))\
-        goto fail;\
-} while(0)
-
-
 /* Check whether the number of elements for a given dimension
  * in a numpy array is adequate. */
-
-#define np_check_dim(array, dim, expected_length, name)\
+#define np_check_dim(array, dim, expected_length)\
 do {\
-    if (_np_check_dim((array), (dim), (expected_length), (name)))\
+    if (_np_check_dim((array), (dim), (expected_length), QUOTE((array))))\
         goto fail;\
 } while(0)
-
-
-// Check the number of rows or cols in a matrix.
-
-#define np_check_rows(obj, expected, name)\
-        np_check_dim((obj), 0, (expected), (name))
-
-#define np_check_cols(obj, expected, name)\
-        np_check_dim((obj), 1, (expected), (name))
 
 #define np_check_type(array, tp)\
 do {\
@@ -225,9 +166,44 @@ do {\
     }\
 } while(0)
 
+// Create an empty numpy array
+#define np_empty(array_out, ndim, shape, typenum, is_fortran)\
+do {\
+    (array_out) = (np_ptr) PyArray_EMPTY((ndim), (shape), (typenum),\
+                                          (is_fortran));\
+    if ((array_out) == NULL) {\
+        PyErr_Format(PyExc_ValueError, "Failed to create empty array %s",\
+                     QUOTE((array_out)));\
+        goto fail;\
+    }\
+} while(0)
 
-// turn s into string "s"
-#define QUOTE(s) # s
+#define np_empty_double(array_out, ndim, shape)\
+        np_empty((array_out), (ndim), (shape), NPY_DOUBLE, 0)
+
+/****************************
+ * Numpy convenience macros *
+ ****************************/
+
+#define np_ddata(array) (double *) PyArray_DATA((array))
+
+#define np_dim(array, idx) (uint) PyArray_DIM((array), (idx))
+#define np_ndim(array) (uint) PyArray_NDIM((array))
+
+#define np_rows(array) np_dim((array), 0)
+#define np_cols(array) np_dim((array), 1)
+
+#define np_data(array) PyArray_DATA((array))
+
+// Check the number of rows or cols in a matrix.
+
+#define np_check_rows(array, expected)\
+        np_check_dim((array), 0, (expected))
+
+#define np_check_cols(array, expected)\
+        np_check_dim((array), 1, (expected))
+
+#define np_return(array) PyArray_Return((array))
 
 /******************************
  * Function definition macros *

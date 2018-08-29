@@ -21,7 +21,6 @@ extern "C" {
 #include <stdio.h>
 #include <tgmath.h>
 
-#include "utils.h"
 #include "satorbit.h"
 
 static inline double norm(cdouble x, cdouble y, cdouble z)
@@ -30,8 +29,8 @@ static inline double norm(cdouble x, cdouble y, cdouble z)
     return sqrt(x * x + y * y + z * z);
 }
 
-void ell_cart (cdouble lon, cdouble lat, cdouble h,
-               double *x, double *y, double *z)
+void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
+                  double *x, double *y, double *z)
 {
     // from ellipsoidal to cartesian coordinates
     
@@ -44,8 +43,8 @@ void ell_cart (cdouble lon, cdouble lat, cdouble h,
 } // end of ell_cart
 
 
-void cart_ell (cdouble x, cdouble y, cdouble z,
-               double *lon, double *lat, double *h)
+void im_cart_ell (cdouble x, cdouble y, cdouble z,
+                  double *lon, double *lat, double *h)
 {
     // from cartesian to ellipsoidal coordinates
     
@@ -218,9 +217,10 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     calc_pos(orb, t_middle, sat_pos);
 } // end closest_appr
 
-inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
-                         cdouble Z, cdouble lon, cdouble lat,
-                         const uint max_iter, double * azi, double * inc)
+static inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
+                                cdouble Z, cdouble lon, cdouble lat,
+                                const uint max_iter, double * azi,
+                                double * inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
     cart sat;
@@ -260,6 +260,49 @@ inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
         temp_azi += 180.0;
     
     *azi = temp_azi;
+}
+
+void im_azi_inc(const orbit_fit * orb, const double * coords,
+                const size_t n_coords, double * azi_inc, const uint max_iter,
+                const uint is_lonlat)
+{
+    const uint ncols = 3;
+    double X, Y, Z, lon, lat, h;
+    
+    // coords contains lon, lat, h
+    if (is_lonlat) {
+        FOR(ii, 0, n_coords) {
+            lon = ar_elem2(coords, ii, 0, ncols) * DEG2RAD;
+            lat = ar_elem2(coords, ii, 1, ncols) * DEG2RAD;
+            h   = ar_elem2(coords, ii, 2, ncols);
+            
+            // calulate surface WGS-84 Cartesian coordinates
+            im_ell_cart(lon, lat, h, &X, &Y, &Z);
+            
+            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter, 
+                         ar_ptr2(azi_inc, ii, 0, ncols),
+                         ar_ptr2(azi_inc, ii, 1, ncols));
+            
+        }
+        // end for
+    }
+    // coords contains X, Y, Z
+    else {
+        FOR(ii, 0, n_coords) {
+            X = ar_elem2(coords, ii, 0, ncols);
+            Y = ar_elem2(coords, ii, 1, ncols);
+            Z = ar_elem2(coords, ii, 2, ncols);
+            
+            // calulate surface WGS-84 geodetic coordinates
+            im_cart_ell(X, Y, Z, &lon, &lat, &h);
+        
+            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter, 
+                         ar_ptr2(azi_inc, ii, 0, ncols),
+                         ar_ptr2(azi_inc, ii, 1, ncols));
+        }
+        // end for
+    }
+    // end else
 }
 
 #ifdef __cplusplus

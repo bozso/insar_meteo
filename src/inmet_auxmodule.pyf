@@ -3,6 +3,7 @@ python module inmet_aux
     usercode '''
 
 #include "numpy_capi_aux.h"
+#include "satorbit.h"
 #include "utils.h"
 
 pydoc(test, "test");
@@ -13,7 +14,7 @@ static py_ptr test(py_varargs)
     parse_varargs("O", &_array);
     
     np_ptr array = NULL;
-    np_import_check(array, _array, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 1, "array");
+    np_import_check(array, _array, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 1);
     
     uint nrows = np_rows(array);
     
@@ -27,7 +28,7 @@ fail:
     Py_XDECREF(array);
     return NULL;
 }
-
+// end test
 
 pydoc(azi_inc, "azi_inc");
 
@@ -41,8 +42,56 @@ static py_ptr azi_inc(py_varargs)
                   &mean_t, &_mean_coords, &is_centered, &deg, &_coords,
                   &max_iter, &is_lonlat);
     
-    Py_RETURN_NONE;
+    np_ptr coeffs = NULL, coords = NULL, mean_coords = NULL, azi_inc = NULL;
+    
+    np_import_check(coeffs, _coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
+    np_import_check(coords, _coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
+    np_import_check(mean_coords, _mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
+    
+    /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
+     * every row contains the coefficients for the fitted x,y,z polynoms. */
+    np_check_matrix(coeffs, 2, deg + 1);
+    
+    // should be nx3 matrix
+    np_check_cols(coords, 3);
+
+    // should be a 3 element vector
+    np_check_rows(mean_coords, 3);
+    
+    // number of coordinate records
+    uint ncoords = np_rows(coords);
+
+    npy_intp azi_inc_shape[2] = {(npy_intp) ncoords, 2};
+    
+    // matrix holding azimuth and inclination values
+    np_empty_double(azi_inc, 2, azi_inc_shape);
+    
+    // Set up orbit polynomial structure
+    orbit_fit orb = {.mean_t = mean_t, .mean_coords = np_ddata(mean_coords),
+                     .start_t = start_t, .stop_t = stop_t,
+                     .coeffs = np_ddata(coeffs), .is_centered = is_centered,
+                     .deg = deg};
+    
+    im_azi_inc(&orb, np_ddata(coords), ncoords, np_ddata(azi_inc), max_iter,
+               is_lonlat);
+    
+    
+    Py_DECREF(coeffs);
+    Py_DECREF(coords);
+    Py_DECREF(mean_coords);
+    
+    return np_return(azi_inc);
+
+fail:
+    Py_XDECREF(coeffs);
+    Py_XDECREF(coords);
+    Py_XDECREF(mean_coords);
+    Py_XDECREF(azi_inc);
+
+    return NULL;
 }
+// end azi_inc
+
     '''
     
     pymethoddef '''

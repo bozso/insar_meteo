@@ -49,7 +49,7 @@ typedef struct array_descr_t {
     uint ndim;
     npy_intp *strides, *shape;
     np_ptr np_array;
-    char * name;
+    const char * name;
 } array_descr;    
 
 typedef struct ar_double_t {
@@ -62,10 +62,12 @@ typedef struct ar_bool_t {
     array_descr _array;
 } _ar_bool;
 
-#define ar_double(x) _ar_double x = {._array = {.typenum = NPY_DOUBLE } }
-#define ar_bool(x) _ar_bool x = {._array = {.typenum = NPY_BOOL } }
+#define init_array(type, nname) {._array = {.typenum = (type), .name = (nname) } }
 
-static int _setup_ar_dsc(np_ptr array, array_descr * ar_dsc, char * name)
+#define ar_double(x) _ar_double (x) = init_array(NPY_DOUBLE, QUOTE((x)))
+#define ar_bool(x) _ar_bool x = init_array(NPY_BOOL, QUOTE((x)))
+
+static int _setup_ar_dsc(np_ptr array, array_descr * ar_dsc)
 {
     int array_ndim = PyArray_NDIM(array);
     int elemsize = (int) PyArray_ITEMSIZE(array);
@@ -80,7 +82,6 @@ static int _setup_ar_dsc(np_ptr array, array_descr * ar_dsc, char * name)
         ar_dsc->strides[ii] = tmp[ii] / elemsize;
     
     ar_dsc->np_array = array;
-    ar_dsc->name = name;
     
     return 0;
 }
@@ -88,7 +89,7 @@ static int _setup_ar_dsc(np_ptr array, array_descr * ar_dsc, char * name)
 
 static int _ar_import_check(array_descr * ar_dsc, void ** ptr,
                             const py_ptr to_convert, const int requirements,
-                            const int ndim, char * name)
+                            const int ndim)
 {
     np_ptr tmp;
     if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, ar_dsc->typenum, requirements))
@@ -100,58 +101,57 @@ static int _ar_import_check(array_descr * ar_dsc, void ** ptr,
     if (ndim > 0) {
         if (array_ndim != ndim) {
             PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
-                                           "expected to be %d-dimensional", name,
-                                            array_ndim, ndim);
+                                           "expected to be %d-dimensional",
+                                           ar_dsc->name, array_ndim, ndim);
             return 1;
         }
     }
     
-    _setup_ar_dsc(tmp, ar_dsc, name);
+    _setup_ar_dsc(tmp, ar_dsc);
     
     *ptr = PyArray_DATA(tmp);
     
     return 0;
 }
 
-#define ar_import_check(ar_struct, to_convert, edim, nname)\
+#define ar_import_check(ar_struct, to_convert, edim)\
 do {\
     if(_ar_import_check(&((ar_struct)._array), (void **) &((ar_struct).data),\
-                        (to_convert), NPY_ARRAY_IN_ARRAY, (edim),\
-                        (nname)))\
+                        (to_convert), NPY_ARRAY_IN_ARRAY, (edim)))\
         goto fail;\
     \
 } while(0)
 
-#define ar_import(ar_struct, to_convert, name)\
-        ar_import_check((ar_struct), (to_convert), 0, (name))
+#define ar_import(ar_struct, to_convert)\
+        ar_import_check((ar_struct), (to_convert), 0)
 
 static int _ar_empty_cf(array_descr * ar_dsc, void ** ptr, const int edim,
-                        npy_intp * shape, const int is_fortran, char * name)
+                        npy_intp * shape, const int is_fortran)
 {
     np_ptr tmp;
     if ((tmp = (np_ptr) PyArray_EMPTY(edim, shape, ar_dsc->typenum, is_fortran))
          == NULL) {
         PyErr_Format(PyExc_ValueError, "Failed to create empty array: %s",
-                                        name);
+                                        ar_dsc->name);
         return 1;
     }
     
-    _setup_ar_dsc(tmp, ar_dsc, name);
+    _setup_ar_dsc(tmp, ar_dsc);
     *ptr = PyArray_DATA(tmp);
     
     return 0;
 }
 
-#define ar_empty_cf(ar_struct, edim, shape, is_fortran, name)\
+#define ar_empty_cf(ar_struct, edim, shape, is_fortran)\
 do {\
     if(_ar_empty_cf(&((ar_struct)._array), (void **) &((ar_struct).data),\
-                        (edim), (shape), (is_fortran), (name)))\
+                        (edim), (shape), (is_fortran)))\
         goto fail;\
     \
 } while(0)
 
-#define ar_empty(ar_struct, edim, shape, name)\
-        ar_empty_cf((ar_struct), (edim), (shape), 0, (name))
+#define ar_empty(ar_struct, edim, shape)\
+        ar_empty_cf((ar_struct), (edim), (shape), 0)
 
 #define ar_decref(ar_struct)\
 do {\
@@ -172,7 +172,7 @@ do {\
 
 #define ar_ndim(ar_struct) (ar_struct)._array.ndim
 #define ar_stride(ar_struct, dim) (uint) (ar_struct)._array.strides[dim]
-#define ar_strides(ar_struct) (uint) (ar_struct)._array.strides
+#define ar_strides(ar_struct) (ar_struct)._array.strides
 #define ar_dim(ar_struct, dim) (uint) (ar_struct)._array.shape[dim]
 
 #define ar_rows(ar_struct) ar_dim((ar_struct), 0)
@@ -288,6 +288,10 @@ do {\
  * Function definition macros *
  ******************************/
 
+#define py_noargs py_ptr self
+#define py_varargs py_ptr self, py_ptr args
+#define py_keywords py_ptr self, py_ptr args, py_ptr kwargs
+
 #define pymeth_noargs(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_NOARGS, fun_name ## __doc__}
 
@@ -298,136 +302,19 @@ do {\
 {#fun_name, (PyCFunction) fun_name, METH_VARARGS | METH_KEYWORDS, \
  fun_name ## __doc__}
 
-#define pyfun_doc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
+#define pydoc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
 
-#define parse_varargs(args, format, ...) \
+#define parse_varargs(format, ...) \
 do {\
-    if (!PyArg_ParseTuple((args), format, __VA_ARGS__))\
+    if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\
         return NULL;\
 } while(0)
 
-#define parse_keywords(args, kwargs, keywords, format, ...) \
+#define parse_keywords(keywords, format, ...) \
 do {\
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords,\
                                      __VA_ARGS__))\
         return NULL;\
 } while(0)
-
-
-/***********************************************************
- * Python 2/3 compatible module initialization biolerplate *
- ***********************************************************/
-
-#define init_table(module_name, ...)\
-static PyMethodDef module_name ## _methods[] = {\
-    __VA_ARGS__,\
-    {"_error_out", (PyCFunction) error_out, METH_NOARGS, NULL},\
-    {NULL, NULL, 0, NULL}\
-}
-
-/************
- * Python 3 *
- ************/
-#if PY_MAJOR_VERSION >= 3
-
-#define IS_PY3K
-
-#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
-
-struct module_state {
-    PyObject *error;
-};
-
-static PyObject * error_out(PyObject *m)
-{
-    struct module_state *st = GETSTATE(m);
-    PyErr_SetString(st->error, "something bad happened");
-    return NULL;
-}
-
-static int extension_traverse(PyObject *m, visitproc visit, void *arg)
-{
-    Py_VISIT(GETSTATE(m)->error);
-    return 0;
-}
-
-static int extension_clear(PyObject *m)
-{
-    Py_CLEAR(GETSTATE(m)->error);
-    return 0;
-}
-
-// for some reason only works without: do { ... } while(0)
-#define init_module(module_name, module_doc)\
-    static struct PyModuleDef module_name ## _moduledef = {\
-        PyModuleDef_HEAD_INIT,\
-        QUOTE(module_name),\
-        (module_doc),\
-        sizeof(struct module_state),\
-        module_name ## _methods,\
-        NULL,\
-        extension_traverse,\
-        extension_clear,\
-        NULL\
-    };\
-    \
-    PyMODINIT_FUNC PyInit_ ## module_name(void)\
-    {\
-        import_array();\
-        PyObject *module = PyModule_Create(&(module_name ## _moduledef));\
-        \
-        if (module == NULL)\
-            return NULL;\
-        struct module_state *st = GETSTATE(module);\
-        \
-        st->error = PyErr_NewException(QUOTE(module_name)".Error", NULL, NULL);\
-        if (st->error == NULL) {\
-            Py_DECREF(module);\
-            return NULL;\
-        }\
-        \
-        return module;\
-    }\
-
-#else
-
-/************
- * Python 2 *
- ************/
-
-#define GETSTATE(m) (&_state)
-
-struct module_state {
-    PyObject *error;
-};
-
-static struct module_state _state;
-
-static PyObject *
-error_out(PyObject *m) {
-    struct module_state *st = GETSTATE(m);
-    PyErr_SetString(st->error, "something bad happened");
-    return NULL;
-}
-
-// for some reason only works without: do { ... } while(0)
-#define init_module(module_name, module_doc)\
-    void init ## module_name(void)\
-    {\
-        import_array();
-        PyObject *module = Py_InitModule3(QUOTE(module_name),\
-                                          module_name ## _methods, (module_doc));\
-        if (module == NULL)\
-            return;\
-        struct module_state *st = GETSTATE(module);\
-        \
-        st->error = PyErr_NewException(QUOTE(module_name)".Error", NULL, NULL);\
-        if (st->error == NULL) {\
-            Py_DECREF(module);\
-            return;\
-        }\
-    }\
-
-#endif
 
 #endif

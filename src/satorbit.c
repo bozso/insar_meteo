@@ -29,8 +29,8 @@ static inline double norm(cdouble x, cdouble y, cdouble z)
     return sqrt(x * x + y * y + z * z);
 }
 
-void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
-                  double *x, double *y, double *z)
+inline void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
+                         double *x, double *y, double *z)
 {
     // from ellipsoidal to cartesian coordinates
     
@@ -43,8 +43,8 @@ void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
 } // end of ell_cart
 
 
-void im_cart_ell (cdouble x, cdouble y, cdouble z,
-                  double *lon, double *lat, double *h)
+inline void im_cart_ell (cdouble x, cdouble y, cdouble z,
+                         double *lon, double *lat, double *h)
 {
     // from cartesian to ellipsoidal coordinates
     
@@ -186,7 +186,7 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     // first, last and middle time, extending the time window by 5 seconds
     double t_start = orb->start_t - 5.0,
            t_stop  = orb->stop_t + 5.0,
-           t_middle;
+           t_middle = 0.0;
     
     // dot products
     double dot_start, dot_middle = 1.0;
@@ -217,10 +217,10 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     calc_pos(orb, t_middle, sat_pos);
 } // end closest_appr
 
-static inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
-                                cdouble Z, cdouble lon, cdouble lat,
-                                const uint max_iter, double * azi,
-                                double * inc)
+inline void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
+                            cdouble Z, cdouble lon, cdouble lat,
+                            const uint max_iter, double * azi,
+                            double * inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
     cart sat;
@@ -262,13 +262,15 @@ static inline void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
     *azi = temp_azi;
 }
 
-void im_azi_inc(const orbit_fit * orb, const double * coords,
-                const size_t n_coords, double * azi_inc, const uint max_iter,
-                const uint is_lonlat)
+#if 0
+
+static void im_azi_inc(const orbit_fit * orb, const uint max_iter,
+                       const uint is_lonlat, cdouble * coords,
+                       const uint n_coords, double * azi_inc)
 {
     const uint ncols = 3;
     double X, Y, Z, lon, lat, h;
-    
+
     // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, 0, n_coords) {
@@ -304,6 +306,8 @@ void im_azi_inc(const orbit_fit * orb, const double * coords,
     }
     // end else
 }
+
+#endif
 
 #ifdef __cplusplus
 }

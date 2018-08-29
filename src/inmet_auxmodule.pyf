@@ -1,8 +1,9 @@
 !    -*- f90 -*-
 python module inmet_aux
+
     usercode '''
 
-#include "numpy_capi_aux.h"
+#include "capi_functions.h"
 #include "satorbit.h"
 #include "utils.h"
 
@@ -13,22 +14,21 @@ static py_ptr test(py_varargs)
     py_ptr _array;
     parse_varargs("O", &_array);
     
-    np_ptr array = NULL;
-    np_import_check(array, _array, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 1);
+    ar_double(array);
+    ar_import_check(array, _array, 1);
     
-    uint nrows = np_rows(array);
+    uint nrows = ar_rows(array);
     
     FOR(ii, 0, nrows)
-        printf("%lf ", *(double *) PyArray_GETPTR1(array, ii));
+        printf("%lf ", ar_elem1(array, ii));
     printf("\n");
 
-    Py_DECREF(array);
+    ar_decref(array);
     Py_RETURN_NONE;
 fail:
-    Py_XDECREF(array);
+    ar_xdecref(array);
     return NULL;
 }
-// end test
 
 pydoc(azi_inc, "azi_inc");
 
@@ -41,61 +41,148 @@ static py_ptr azi_inc(py_varargs)
     parse_varargs("OdddOIIOII:azi_inc", &_coeffs, &start_t, &stop_t,
                   &mean_t, &_mean_coords, &is_centered, &deg, &_coords,
                   &max_iter, &is_lonlat);
+
+    ar_double(coeffs); ar_double(coords); ar_double(mean_coords);
+    ar_double(azi_inc);
     
-    np_ptr coeffs = NULL, coords = NULL, mean_coords = NULL, azi_inc = NULL;
-    
-    np_import_check(coeffs, _coeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
-    np_import_check(coords, _coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
-    np_import_check(mean_coords, _mean_coords, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 2);
+    ar_import_check(coeffs, _coeffs, 2);
+    ar_import_check(coords, _coords, 2);
+    ar_import_check(mean_coords, _mean_coords, 1);
     
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
-    np_check_matrix(coeffs, 2, deg + 1);
+    ar_check_matrix(coeffs, 3, deg + 1);
     
     // should be nx3 matrix
-    np_check_cols(coords, 3);
+    ar_check_cols(coords, 3);
 
     // should be a 3 element vector
-    np_check_rows(mean_coords, 3);
+    ar_check_rows(mean_coords, 3);
     
-    // number of coordinate records
-    uint ncoords = np_rows(coords);
+    // number of coordinates
+    uint n_coords = ar_rows(coords);
 
-    npy_intp azi_inc_shape[2] = {(npy_intp) ncoords, 2};
+    npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
     
     // matrix holding azimuth and inclination values
-    np_empty_double(azi_inc, 2, azi_inc_shape);
+    ar_empty(azi_inc, 2, azi_inc_shape);
     
     // Set up orbit polynomial structure
-    orbit_fit orb = {.mean_t = mean_t, .mean_coords = np_ddata(mean_coords),
+    orbit_fit orb = {.mean_t = mean_t, .mean_coords = ar_data(mean_coords),
                      .start_t = start_t, .stop_t = stop_t,
-                     .coeffs = np_ddata(coeffs), .is_centered = is_centered,
+                     .coeffs = ar_data(coeffs), .is_centered = is_centered,
                      .deg = deg};
+
+    npy_double X, Y, Z, lon, lat, h;
     
-    im_azi_inc(&orb, np_ddata(coords), ncoords, np_ddata(azi_inc), max_iter,
-               is_lonlat);
-    
-    
-    Py_DECREF(coeffs);
-    Py_DECREF(coords);
-    Py_DECREF(mean_coords);
-    
-    return np_return(azi_inc);
+    // coords contains lon, lat, h
+    if (is_lonlat) {
+        FOR(ii, 0, n_coords) {
+            lon = ar_elem2(coords, ii, 0) * DEG2RAD;
+            lat = ar_elem2(coords, ii, 1) * DEG2RAD;
+            h   = ar_elem2(coords, ii, 2);
+            
+            // calulate surface WGS-84 Cartesian coordinates
+            im_ell_cart(lon, lat, h, &X, &Y, &Z);
+            
+            im_calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
+                         ar_ptr2(azi_inc, ii, 0),
+                         ar_ptr2(azi_inc, ii, 1));
+            
+        }
+        // end for
+    }
+    // coords contains X, Y, Z
+    else {
+        FOR(ii, 0, n_coords) {
+            X = ar_elem2(coords, ii, 0);
+            Y = ar_elem2(coords, ii, 1);
+            Z = ar_elem2(coords, ii, 2);
+            
+            // calulate surface WGS-84 geodetic coordinates
+            im_cart_ell(X, Y, Z, &lon, &lat, &h);
+        
+            im_calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
+                         ar_ptr2(azi_inc, ii, 0),
+                         ar_ptr2(azi_inc, ii, 1));
+        }
+        // end for
+    }
+    // end else
+
+    // Cleanup and return
+    ar_decref(coeffs);
+    ar_decref(coords);
+    ar_decref(mean_coords);
+    return ar_return(azi_inc);
 
 fail:
-    Py_XDECREF(coeffs);
-    Py_XDECREF(coords);
-    Py_XDECREF(mean_coords);
-    Py_XDECREF(azi_inc);
+    ar_xdecref(coeffs);
+    ar_xdecref(coords);
+    ar_xdecref(mean_coords);
+    ar_xdecref(azi_inc);
+    return NULL;
+} // end azim_inc
 
+pydoc(asc_dsc_select, "asc_dsc_select");
+
+static py_ptr asc_dsc_select(py_keywords)
+{
+    char * keywords[] = {"asc", "dsc", "max_sep", NULL};
+
+    py_ptr _arr1 = NULL, _arr2 = NULL;
+    double max_sep = 100.0;
+
+    parse_keywords(keywords, "OO|d:asc_dsc_select", &_arr1, &_arr2, &max_sep);
+    
+    double max_sep_deg = max_sep / R_earth;
+    max_sep_deg = max_sep_deg * max_sep_deg * RAD2DEG * RAD2DEG;
+
+    println("Maximum separation: %6.3lf meters => approx. %E degrees",
+             max_sep, max_sep_deg);
+
+    ar_double(arr1); ar_double(arr2);
+    ar_import_check(arr1, _arr1, 2);
+    ar_import_check(arr2, _arr2, 2);
+    
+    uint n_arr1 = ar_rows(arr1), n_arr2 = ar_rows(arr2);
+    
+    ar_bool(idx);
+    ar_empty(idx, 1, (npy_intp *) &n_arr1);
+    
+    uint n_found = 0;
+    npy_double dlon, dlat;
+    
+    FOR(ii, 0, n_arr1) {
+        FOR(jj, 0, n_arr2) {
+            dlon = ar_elem2(arr1, ii, 0) - ar_elem2(arr2, jj, 0);
+            dlat = ar_elem2(arr1, ii, 1) - ar_elem2(arr2, jj, 1);
+            
+            if ( (dlon * dlon + dlat * dlat) < max_sep) {
+                ar_elem1(idx, ii) = NPY_TRUE;
+                n_found++;
+                break;
+            }
+        }
+    }
+    
+    ar_decref(arr1);
+    ar_decref(arr2);
+    return Py_BuildValue("OI", ar_np_array(idx), n_found);
+
+fail:
+    ar_xdecref(arr1);
+    ar_xdecref(arr2);
     return NULL;
 }
-// end azi_inc
+// end asc_dsc_select
 
     '''
     
     pymethoddef '''
     pymeth_varargs(test),
     pymeth_varargs(azi_inc),
+    pymeth_keywords(asc_dsc_select),
     '''
+
 end python module inmet_aux

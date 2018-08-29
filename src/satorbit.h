@@ -35,14 +35,15 @@ typedef struct orbit_fit_t {
 // cartesian coordinate
 typedef struct cart_t { double x, y, z; } cart;
 
-void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
-                  double *x, double *y, double *z);
+extern void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
+                         double *x, double *y, double *z);
 
-void im_cart_ell (cdouble x, cdouble y, cdouble z,
-                  double *lon, double *lat, double *h);
+extern void im_cart_ell (cdouble x, cdouble y, cdouble z,
+                         double *lon, double *lat, double *h);
 
-void im_azi_inc(const orbit_fit * orbit, const double * coords,
-                const size_t n_coords, double * azi_inc, const uint max_iter,
-                const uint is_lonlat);
+extern void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
+                            cdouble Z, cdouble lon, cdouble lat,
+                            const uint max_iter, double * azi,
+                            double * inc);
 
 #endif

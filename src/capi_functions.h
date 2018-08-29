@@ -304,13 +304,15 @@ do {\
 
 #define pydoc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
 
+#define keywords(...) char * keywords[] = {__VA_ARGS__, NULL}
+
 #define parse_varargs(format, ...) \
 do {\
     if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\
         return NULL;\
 } while(0)
 
-#define parse_keywords(keywords, format, ...) \
+#define parse_keywords(format, ...) \
 do {\
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords,\
                                      __VA_ARGS__))\

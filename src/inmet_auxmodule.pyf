@@ -128,12 +128,13 @@ pydoc(asc_dsc_select, "asc_dsc_select");
 
 static py_ptr asc_dsc_select(py_keywords)
 {
-    char * keywords[] = {"asc", "dsc", "max_sep", NULL};
+    //char * keywords[] = {"asc", "dsc", "max_sep", NULL};
+    keywords("asc", "dsc", "max_sep");
 
     py_ptr _arr1 = NULL, _arr2 = NULL;
     double max_sep = 100.0;
 
-    parse_keywords(keywords, "OO|d:asc_dsc_select", &_arr1, &_arr2, &max_sep);
+    parse_keywords("OO|d:asc_dsc_select", &_arr1, &_arr2, &max_sep);
     
     double max_sep_deg = max_sep / R_earth;
     max_sep_deg = max_sep_deg * max_sep_deg * RAD2DEG * RAD2DEG;

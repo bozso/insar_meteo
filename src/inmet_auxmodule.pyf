@@ -1,0 +1,52 @@
+!    -*- f90 -*-
+python module inmet_aux
+    usercode '''
+
+#include "numpy_capi_aux.h"
+#include "utils.h"
+
+pydoc(test, "test");
+
+static py_ptr test(py_varargs)
+{
+    py_ptr _array;
+    parse_varargs("O", &_array);
+    
+    np_ptr array = NULL;
+    np_import_check(array, _array, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY, 1, "array");
+    
+    uint nrows = np_rows(array);
+    
+    FOR(ii, 0, nrows)
+        printf("%lf ", *(double *) PyArray_GETPTR1(array, ii));
+    printf("\n");
+
+    Py_DECREF(array);
+    Py_RETURN_NONE;
+fail:
+    Py_XDECREF(array);
+    return NULL;
+}
+
+
+pydoc(azi_inc, "azi_inc");
+
+static py_ptr azi_inc(py_varargs)
+{
+    double start_t, stop_t, mean_t;
+    uint is_centered, deg, max_iter, is_lonlat;
+    py_ptr _coeffs = NULL, _coords = NULL, _mean_coords = NULL;    
+
+    parse_varargs("OdddOIIOII:azi_inc", &_coeffs, &start_t, &stop_t,
+                  &mean_t, &_mean_coords, &is_centered, &deg, &_coords,
+                  &max_iter, &is_lonlat);
+    
+    Py_RETURN_NONE;
+}
+    '''
+    
+    pymethoddef '''
+    pymeth_varargs(test),
+    pymeth_varargs(azi_inc),
+    '''
+end python module inmet_aux

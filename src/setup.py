@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy.distutils.core import Extension, setup
+#from numpy.f2py import compile
 
 from os.path import join, isfile
 from os import remove
@@ -26,7 +27,7 @@ macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 #libs=["stdc++"]
 
 ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.c", "satorbit.c"],
+    Extension(name="inmet_aux", sources=["inmet_auxmodule.pyf", "satorbit.c"],
               define_macros=macros, extra_compile_args=["-std=c99"])
 ]
 

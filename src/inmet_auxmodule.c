@@ -33,8 +33,8 @@ static py_ptr test(py_ptr self, py_ptr args)
     py_ptr _array;
     parse_varargs(args, "O", &_array);
     
-    ar_double array;
-    ar_import_check_double(array, _array, 1, "array");
+    ar_double(array);
+    ar_import_check(array, _array, 1, "array");
     
     uint nrows = ar_rows(array);
     
@@ -61,11 +61,12 @@ static py_ptr azi_inc(py_ptr self, py_ptr args)
                   &mean_t, &_mean_coords, &is_centered, &deg, &_coords,
                   &max_iter, &is_lonlat);
 
-    ar_double coeffs, coords, mean_coords, azi_inc;
+    ar_double(coeffs); ar_double(coords); ar_double(mean_coords);
+    ar_double(azi_inc);
     
-    ar_import_check_double(coeffs, _coeffs, 2, "coeffs");
-    ar_import_check_double(coords, _coords, 2, "coords");
-    ar_import_check_double(mean_coords, _mean_coords, 1, "mean_coords");
+    ar_import_check(coeffs, _coeffs, 2, "coeffs");
+    ar_import_check(coords, _coords, 2, "coords");
+    ar_import_check(mean_coords, _mean_coords, 1, "mean_coords");
     
     /* Coefficients array should be a 2 dimensional 3x(deg + 1) matrix where
      * every row contains the coefficients for the fitted x,y,z polynoms. */
@@ -83,7 +84,7 @@ static py_ptr azi_inc(py_ptr self, py_ptr args)
     npy_intp azi_inc_shape[2] = {(npy_intp) n_coords, 2};
     
     // matrix holding azimuth and inclination values
-    ar_empty_double(azi_inc, 2, azi_inc_shape, "azi_inc");
+    ar_empty(azi_inc, 2, azi_inc_shape, "azi_inc");
     
     // Set up orbit polynomial structure
     orbit_fit orb;
@@ -138,7 +139,7 @@ static py_ptr azi_inc(py_ptr self, py_ptr args)
     ar_decref(coeffs);
     ar_decref(coords);
     ar_decref(mean_coords);
-    return PyArray_Return(ar_np_array(azi_inc));
+    return ar_return(azi_inc);
 
 fail:
     ar_xdecref(coeffs);
@@ -166,14 +167,14 @@ static py_ptr asc_dsc_select(py_ptr self, py_ptr args, py_ptr kwargs)
     println("Maximum separation: %6.3lf meters => approx. %E degrees",
              max_sep, max_sep_deg);
 
-    ar_double arr1, arr2;
-    ar_import_check_double(arr1, _arr1, 2, "asc");
-    ar_import_check_double(arr2, _arr2, 2, "dsc");
+    ar_double(arr1); ar_double(arr2);
+    ar_import_check(arr1, _arr1, 2, "asc");
+    ar_import_check(arr2, _arr2, 2, "dsc");
     
     uint n_arr1 = ar_rows(arr1), n_arr2 = ar_rows(arr2);
     
-    ar_bool idx;
-    ar_empty_bool(idx, 1, (npy_intp *) &n_arr1, "idx");
+    ar_bool(idx);
+    ar_empty(idx, 1, (npy_intp *) &n_arr1, "idx");
     
     uint n_found = 0;
     npy_double dlon, dlat;
@@ -201,7 +202,6 @@ fail:
     return NULL;
 }
 // end asc_dsc_select
-
 
 /**********************
  * Python boilerplate *

@@ -22,14 +22,15 @@ from shutil import move
 from glob import iglob
 
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
-flags = ["-O3", "-march=native", "-ffast-math", "-funroll-loops"]
+#flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
+flags = ["-std=c99"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 #          ("F2PY_REPORT_ATEXIT", None)]
 #libs=["stdc++"]
 
 ext_modules = [
     Extension(name="inmet_aux", sources=["inmet_aux.pyf", "satorbit.c"],
-              define_macros=macros, extra_compile_args=["-std=c99"])
+              define_macros=macros, extra_compile_args=flags)
 ]
 
 def main():

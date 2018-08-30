@@ -53,4 +53,16 @@ typedef const double cdouble;
 
 #define ptr_ptr2(array, ii, jj, ncols) array  + (jj) + (ii) * (ncols)
 
+/*************
+ * IO macros *
+ *************/
+
+#define error(text) fprintf(stderr, text)
+#define errorln(text, ...) fprintf(stderr, text"\n", __VA_ARGS__)
+
+#define print(string) printf(string)
+#define println(format, ...) printf(format"\n", __VA_ARGS__)
+
+#define _log println("File: %s line: %d", __FILE__, __LINE__)
+
 #endif

@@ -2,10 +2,10 @@
 python module inmet_aux
 
 interface
-    subroutine azi_inc(start_t, stop_t, mean_t, mean_coords, coeffs, &
-                       is_centered, deg, max_iter, is_lonlat, coords, &
-                       n_coords, azi_inc)
-        intent(c) :: azi_inc
+    subroutine calc_azi_inc(start_t, stop_t, mean_t, mean_coords, coeffs, &
+                            is_centered, deg, max_iter, is_lonlat, coords, &
+                            n_coords, azi_inc)
+        intent(c) :: calc_azi_inc
         intent(c)
         
         double precision intent(in) :: start_t, stop_t, mean_t
@@ -19,7 +19,7 @@ interface
         integer intent(in), depend(coeffs) :: deg
         
         double precision intent(out) :: azi_inc(n_coords,3)
-    end subroutine azi_inc_alt
+    end subroutine calc_azi_inc
     
     subroutine test(array, n, m)
         intent(c) :: test

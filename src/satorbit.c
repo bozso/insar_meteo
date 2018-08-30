@@ -262,10 +262,10 @@ inline void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
     *azi = temp_azi;
 }
 
-void azi_inc(double start_t, double stop_t, double mean_t,
-             double * mean_coords, double * coeffs, int is_centered,
-             int deg, int max_iter, int is_lonlat, double * coords,
-             int n_coords, double * azi_inc)
+void calc_azi_inc(double start_t, double stop_t, double mean_t,
+                  double * mean_coords, double * coeffs, int is_centered,
+                  int deg, int max_iter, int is_lonlat, double * coords,
+                  int n_coords, double * azi_inc)
 {
     // Set up orbit polynomial structure
     orbit_fit orb = {.mean_t = mean_t, .mean_coords = mean_coords,

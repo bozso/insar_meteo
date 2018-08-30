@@ -32,143 +32,71 @@ typedef unsigned int uint;
  * IO macros *
  *************/
 
-#define error(text) PySys_WriteStderr(text)
-#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
+#define py_error(text) PySys_WriteStderr(text)
+#define py_errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
 
-#define print(string) PySys_WriteStdout(string)
-#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
+#define py_print(string) PySys_WriteStdout(string)
+#define py_prints(format, ...) PySys_WriteStdout(format, __VA_ARGS__)
+#define py_println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
 
-#define _log println("File: %s line: %d", __FILE__, __LINE__)
+#define _py_log println("File: %s line: %d", __FILE__, __LINE__)
 
 /************************************
  * Wrapper object for numpy arrays. *
  ************************************/
  
 typedef struct array_descr_t {
-    const int typenum;
     uint ndim;
     npy_intp *strides, *shape;
-    np_ptr np_array;
-    const char * name;
 } array_descr;    
 
 typedef struct ar_double_t {
     npy_double * data;
     array_descr _array;
-} _ar_double;
+} ar_double;
 
 typedef struct ar_bool_t {
     npy_bool * data;
     array_descr _array;
-} _ar_bool;
+} ar_bool;
 
-#define init_array(type, nname) {._array = {.typenum = (type), .name = (nname) } }
 
-#define ar_double(x) _ar_double (x) = init_array(NPY_DOUBLE, QUOTE((x)))
-#define ar_bool(x) _ar_bool x = init_array(NPY_BOOL, QUOTE((x)))
-
-static int _setup_ar_dsc(np_ptr array, array_descr * ar_dsc)
+static int _ar_setup_array_dsc(np_ptr array, array_descr * ar_dsc)
 {
     int array_ndim = PyArray_NDIM(array);
     int elemsize = (int) PyArray_ITEMSIZE(array);
     
     ar_dsc->ndim = (uint) array_ndim;
     ar_dsc->shape = PyArray_DIMS(array);
-    ar_dsc->strides = PyMem_New(npy_intp, array_ndim);
+    if ((ar_dsc->strides = PyMem_New(npy_intp, array_ndim)) == NULL)
+        return 0;
     
     npy_intp * tmp = PyArray_STRIDES(array);
     
     for(int ii = 0; ii < array_ndim; ++ii)
         ar_dsc->strides[ii] = tmp[ii] / elemsize;
     
-    ar_dsc->np_array = array;
-    
     return 0;
 }
 
 
-static int _ar_import_check(array_descr * ar_dsc, void ** ptr,
-                            const py_ptr to_convert, const int requirements,
-                            const int ndim)
-{
-    np_ptr tmp;
-    if ((tmp = (np_ptr) PyArray_FROM_OTF(to_convert, ar_dsc->typenum, requirements))
-         == NULL)
-         return 1;
-    
-    int array_ndim = PyArray_NDIM(tmp);
-    
-    if (ndim > 0) {
-        if (array_ndim != ndim) {
-            PyErr_Format(PyExc_ValueError, "Array %s is %d-dimensional, but "
-                                           "expected to be %d-dimensional",
-                                           ar_dsc->name, array_ndim, ndim);
-            return 1;
-        }
-    }
-    
-    _setup_ar_dsc(tmp, ar_dsc);
-    
-    *ptr = PyArray_DATA(tmp);
-    
-    return 0;
-}
-
-#define ar_import_check(ar_struct, to_convert, edim)\
+#define ar_setup(ar_struct, np_array)\
 do {\
-    if(_ar_import_check(&((ar_struct)._array), (void **) &((ar_struct).data),\
-                        (to_convert), NPY_ARRAY_IN_ARRAY, (edim)))\
+    if(_ar_setup_array_dsc(np_array, &((ar_struct)._array)))\
         goto fail;\
     \
 } while(0)
 
-#define ar_import(ar_struct, to_convert)\
-        ar_import_check((ar_struct), (to_convert), 0)
-
-static int _ar_empty_cf(array_descr * ar_dsc, void ** ptr, const int edim,
-                        npy_intp * shape, const int is_fortran)
-{
-    np_ptr tmp;
-    if ((tmp = (np_ptr) PyArray_EMPTY(edim, shape, ar_dsc->typenum, is_fortran))
-         == NULL) {
-        PyErr_Format(PyExc_ValueError, "Failed to create empty array: %s",
-                                        ar_dsc->name);
-        return 1;
-    }
-    
-    _setup_ar_dsc(tmp, ar_dsc);
-    *ptr = PyArray_DATA(tmp);
-    
-    return 0;
-}
-
-#define ar_empty_cf(ar_struct, edim, shape, is_fortran)\
+#define ar_free(ar_struct)\
 do {\
-    if(_ar_empty_cf(&((ar_struct)._array), (void **) &((ar_struct).data),\
-                        (edim), (shape), (is_fortran)))\
-        goto fail;\
-    \
-} while(0)
-
-#define ar_empty(ar_struct, edim, shape)\
-        ar_empty_cf((ar_struct), (edim), (shape), 0)
-
-#define ar_decref(ar_struct)\
-do {\
-    Py_DECREF((ar_struct)._array.np_array);\
     PyMem_Del((ar_struct)._array.strides);\
 } while(0)
 
-#define ar_xdecref(ar_struct)\
+#define ar_xfree(ar_struct)\
 do {\
-    Py_XDECREF((ar_struct)._array.np_array);\
     if ((ar_struct)._array.strides != NULL)\
         PyMem_Del((ar_struct)._array.strides);\
 } while(0)
-
-#define ar_np_array(ar_struct) (ar_struct)._array.np_array
-
-#define ar_return(ar_struct) PyArray_Return((ar_struct)._array.np_array)
 
 #define ar_ndim(ar_struct) (ar_struct)._array.ndim
 #define ar_stride(ar_struct, dim) (uint) (ar_struct)._array.strides[dim]
@@ -204,67 +132,6 @@ do {\
                          + (jj) * (ar_struct)._array.strides[1]\
                          + (kk) * (ar_struct)._array.strides[2]
 
-static int _ar_check_matrix(array_descr * ar_dsc, const uint rows,
-                            const uint cols)
-{
-    uint tmp = (uint) ar_dsc->shape[0];
-    if (rows != tmp) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "
-                                       "(expected %d)", ar_dsc->name, tmp, rows);
-        return 1;
-    }
-    
-    tmp = (uint) ar_dsc->shape[1];
-    if (cols != tmp) {\
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "
-                                       "(expected %d)", ar_dsc->name, tmp, cols);
-        return 1;
-    }
-    
-    return 0;
-}
-
-#define ar_check_matrix(ar_struct, rows, cols)\
-do {\
-    if(_ar_check_matrix(&((ar_struct)._array), rows, cols))\
-        goto fail;\
-} while(0)
-
-static int _ar_check_rows(array_descr * ar_dsc, const uint rows)\
-{
-    uint tmp = (uint) ar_dsc->shape[0];
-    if (rows != tmp) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of rows=%d "
-                                       "(expected %d)", ar_dsc->name, tmp, rows);
-        return 1;
-    }
-    return 0;
-}
-
-static int _ar_check_cols(array_descr * ar_dsc, const uint cols)\
-{
-    uint tmp = (uint) ar_dsc->shape[1];
-    if (cols != tmp) {
-        PyErr_Format(PyExc_ValueError, "Array %s has wrong number of cols=%d "
-                                       "(expected %d)", ar_dsc->name, tmp, cols);
-        return 1;
-    }
-    return 0;
-}
-
-#define ar_check_rows(ar_struct, rows)\
-do {\
-    if(_ar_check_rows(&((ar_struct)._array), rows))\
-        goto fail;\
-} while(0)
-
-#define ar_check_cols(ar_struct, cols)\
-do {\
-    if(_ar_check_cols(&((ar_struct)._array), cols))\
-        goto fail;\
-} while(0)
-
-
 #define np_check_type(array, tp)\
 do {\
     if (PyArray_TYPE(array) != (tp)) {\
@@ -282,7 +149,6 @@ do {\
         goto fail;\
     }\
 } while(0)
-
 
 /******************************
  * Function definition macros *

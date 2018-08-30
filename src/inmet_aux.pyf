@@ -34,31 +34,31 @@ end interface
 !    usercode '''
 !
 !#include "capi_functions.h"
-!#include "satorbit.h"
 !#include "utils.h"
 !
-!pydoc(test, "test");
+!pydoc(testa, "test");
 !
-!static py_ptr test(py_varargs)
+!static py_ptr testa(py_varargs)
 !{
-!    py_ptr _array;
-!    parse_varargs("O", &_array);
+!    np_ptr _array;
+!    parse_varargs("O!", &PyArray_Type, &_array);
 !    
-!    ar_double(array);
-!    ar_import_check(array, _array, 1);
+!    ar_double array;
+!    ar_setup(array, _array);
 !    
 !    uint nrows = ar_rows(array);
 !    
 !    FOR(ii, 0, nrows)
-!        printf("%lf ", ar_elem1(array, ii));
-!    printf("\n");
+!        py_prints("%lf ", ar_elem1(array, ii));
+!    py_prints("\n");
 !
-!    ar_decref(array);
+!    ar_free(array);
 !    Py_RETURN_NONE;
 !fail:
-!    ar_xdecref(array);
+!    ar_xfree(array);
 !    return NULL;
 !}
+!    '''
 !
 !pydoc(azi_inc, "azi_inc");
 !
@@ -208,12 +208,8 @@ end interface
 !}
 !// end asc_dsc_select
 !
-!    '''
-!    
 !    pymethoddef '''
-!    pymeth_varargs(test),
-!    pymeth_varargs(azi_inc),
-!    pymeth_keywords(asc_dsc_select),
+!    pymeth_varargs(testa),
 !    '''
-!
+
 end python module inmet_aux

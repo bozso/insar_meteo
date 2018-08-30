@@ -23,6 +23,8 @@ from gnuplot import Gnuplot, linedef
 from inmet.utils import get_par
 import inmet.inmet_aux as ina
 
+__all__ = ("Satorbit")
+
 class Satorbit(object):
     def __init__(self, path, mode):
         
@@ -173,9 +175,9 @@ class Satorbit(object):
 
     def azi_inc(fit_file, coords, is_lonlat=True, max_iter=1000):
         
-        return ina.azi_inc(self.coeffs, self.t_start, self.t_stop, self.t_mean,
-                           self.mean_coords, self.centered, self.deg,
-                           coords, max_iter, is_lonlat)
+        return ina.azi_inc(self.t_start, self.t_stop, self.t_mean,
+                           self.mean_coords, self.centered, self.coeffs,
+                           self.deg, max_iter, is_lonlat, coords)
 
     def plot_orbit(self, plotfile, nsamp=100):
         

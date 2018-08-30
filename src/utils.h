@@ -49,4 +49,8 @@ typedef const double cdouble;
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
+#define ptr_elem2(array, ii, jj, ncols) array[(jj) + (ii) * (ncols)]
+
+#define ptr_ptr2(array, ii, jj, ncols) array  + (jj) + (ii) * (ncols)
+
 #endif

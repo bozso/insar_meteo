@@ -262,52 +262,55 @@ inline void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
     *azi = temp_azi;
 }
 
-#if 0
-
-static void im_azi_inc(const orbit_fit * orb, const uint max_iter,
-                       const uint is_lonlat, cdouble * coords,
-                       const uint n_coords, double * azi_inc)
+void im_azi_inc(cdouble start_t, cdouble stop_t, cdouble mean_t,
+                cdouble * mean_coords, cdouble * coeffs, const int is_centered,
+                const int deg, const int max_iter, const int is_lonlat,
+                cdouble * coords, const int n_coords, double * azi_inc)
 {
+    // Set up orbit polynomial structure
+    orbit_fit orb = {.mean_t = mean_t, .mean_coords = mean_coords,
+                     .start_t = start_t, .stop_t = stop_t,
+                     .coeffs = coeffs, .is_centered = (uint) is_centered,
+                     .deg = (uint) deg};
+    
     const uint ncols = 3;
     double X, Y, Z, lon, lat, h;
 
     // coords contains lon, lat, h
     if (is_lonlat) {
-        FOR(ii, 0, n_coords) {
-            lon = ar_elem2(coords, ii, 0, ncols) * DEG2RAD;
-            lat = ar_elem2(coords, ii, 1, ncols) * DEG2RAD;
-            h   = ar_elem2(coords, ii, 2, ncols);
+        FOR(ii, 0, (uint) n_coords) {
+            lon = ptr_elem2(coords, ii, 0, ncols) * DEG2RAD;
+            lat = ptr_elem2(coords, ii, 1, ncols) * DEG2RAD;
+            h   = ptr_elem2(coords, ii, 2, ncols);
             
             // calulate surface WGS-84 Cartesian coordinates
             im_ell_cart(lon, lat, h, &X, &Y, &Z);
             
-            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter, 
-                         ar_ptr2(azi_inc, ii, 0, ncols),
-                         ar_ptr2(azi_inc, ii, 1, ncols));
+            im_calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
+                            ptr_ptr2(azi_inc, ii, 0, ncols),
+                            ptr_ptr2(azi_inc, ii, 1, ncols));
             
         }
         // end for
     }
     // coords contains X, Y, Z
     else {
-        FOR(ii, 0, n_coords) {
-            X = ar_elem2(coords, ii, 0, ncols);
-            Y = ar_elem2(coords, ii, 1, ncols);
-            Z = ar_elem2(coords, ii, 2, ncols);
+        FOR(ii, 0, (uint) n_coords) {
+            X = ptr_elem2(coords, ii, 0, ncols);
+            Y = ptr_elem2(coords, ii, 1, ncols);
+            Z = ptr_elem2(coords, ii, 2, ncols);
             
             // calulate surface WGS-84 geodetic coordinates
             im_cart_ell(X, Y, Z, &lon, &lat, &h);
         
-            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter, 
-                         ar_ptr2(azi_inc, ii, 0, ncols),
-                         ar_ptr2(azi_inc, ii, 1, ncols));
+            im_calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, 
+                            ptr_ptr2(azi_inc, ii, 0, ncols),
+                            ptr_ptr2(azi_inc, ii, 1, ncols));
         }
         // end for
     }
     // end else
 }
-
-#endif
 
 #ifdef __cplusplus
 }

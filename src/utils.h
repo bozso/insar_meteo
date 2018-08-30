@@ -17,7 +17,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-typedef unsigned int uint;
+//typedef size_t uint;
+//typedef const size_t cuint;
 typedef const double cdouble;
 
 /*******************************
@@ -46,8 +47,8 @@ typedef const double cdouble;
  * REQUIRES C99 standard! *
  **************************/
 
-#define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
-#define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
+#define FOR(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
+#define FORS(ii, min, max, step) for(size_t (ii) = (min); (ii) < (max); (ii) += (step))
 
 #define ptr_elem2(array, ii, jj, ncols) array[(jj) + (ii) * (ncols)]
 

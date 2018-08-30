@@ -71,7 +71,7 @@ static void calc_pos(const orbit_fit * orb, double time, cart * pos)
 {
     // Calculate satellite position based on fitted polynomial orbits at time
     
-    uint n_poly = orb->deg + 1, is_centered = orb->is_centered;
+    size_t n_poly = orb->deg + 1, is_centered = orb->is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
     const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
@@ -117,7 +117,7 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
     
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
-    uint n_poly = orb->deg + 1;
+    size_t n_poly = orb->deg + 1;
     
     const double *coeffs = orb->coeffs, *mean_coords = orb->mean_coords;
     
@@ -179,7 +179,7 @@ static double dot_product(const orbit_fit * orb, cdouble X, cdouble Y,
 // end dot_product
 
 static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
-                         cdouble Z, const uint max_iter, cart * sat_pos)
+                         cdouble Z, const size_t max_iter, cart * sat_pos)
 {
     // Compute the sat position using closest approche.
     
@@ -192,7 +192,7 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
     double dot_start, dot_middle = 1.0;
 
     // iteration counter
-    uint itr = 0;
+    size_t itr = 0;
     
     dot_start = dot_product(orb, X, Y, Z, t_start);
     
@@ -219,7 +219,7 @@ static void closest_appr(const orbit_fit * orb, cdouble X, cdouble Y,
 
 inline void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
                             cdouble Z, cdouble lon, cdouble lat,
-                            const uint max_iter, double * azi,
+                            const size_t max_iter, double * azi,
                             double * inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
@@ -270,15 +270,16 @@ void calc_azi_inc(double start_t, double stop_t, double mean_t,
     // Set up orbit polynomial structure
     orbit_fit orb = {.mean_t = mean_t, .mean_coords = mean_coords,
                      .start_t = start_t, .stop_t = stop_t,
-                     .coeffs = coeffs, .is_centered = (uint) is_centered,
-                     .deg = (uint) deg};
+                     .coeffs = coeffs, .is_centered = (size_t) is_centered,
+                     .deg = (size_t) deg};
     
-    const uint ncols = 3;
+    const size_t ncols = 3;
+    const size_t nrows = (size_t) n_coords;
     double X, Y, Z, lon, lat, h;
 
     // coords contains lon, lat, h
     if (is_lonlat) {
-        FOR(ii, 0, (uint) n_coords) {
+        FOR(ii, 0, nrows) {
             lon = ptr_elem2(coords, ii, 0, ncols) * DEG2RAD;
             lat = ptr_elem2(coords, ii, 1, ncols) * DEG2RAD;
             h   = ptr_elem2(coords, ii, 2, ncols);
@@ -295,7 +296,7 @@ void calc_azi_inc(double start_t, double stop_t, double mean_t,
     }
     // coords contains X, Y, Z
     else {
-        FOR(ii, 0, (uint) n_coords) {
+        FOR(ii, 0, nrows) {
             X = ptr_elem2(coords, ii, 0, ncols);
             Y = ptr_elem2(coords, ii, 1, ncols);
             Z = ptr_elem2(coords, ii, 2, ncols);
@@ -314,8 +315,11 @@ void calc_azi_inc(double start_t, double stop_t, double mean_t,
 
 void test(double * array, int n, int m)
 {
-    FOR(ii, 0, n) {
-        FOR(jj, 0, m)
+    const size_t nn = (size_t) n;
+    const size_t mm = (size_t) m;
+    
+    FOR(ii, 0, nn) {
+        FOR(jj, 0, mm)
             printf("%lf ", ptr_elem2(array, ii, jj, m));
         printf("\n");
     }

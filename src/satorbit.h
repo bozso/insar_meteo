@@ -29,7 +29,7 @@ typedef struct orbit_fit_t {
     double * mean_coords;
     double start_t, stop_t;
     double * coeffs;
-    uint is_centered, deg;
+    size_t is_centered, deg;
 } orbit_fit;
 
 // cartesian coordinate
@@ -43,7 +43,7 @@ extern void im_cart_ell (cdouble x, cdouble y, cdouble z,
 
 extern void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
                             cdouble Z, cdouble lon, cdouble lat,
-                            const uint max_iter, double * azi,
+                            size_t max_iter, double * azi,
                             double * inc);
 
 void calc_azi_inc(double start_t, double stop_t, double mean_t,

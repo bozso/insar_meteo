@@ -46,10 +46,11 @@ extern void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
                             const uint max_iter, double * azi,
                             double * inc);
 
-void im_azi_inc(cdouble start_t, cdouble stop_t, cdouble mean_t,
-                cdouble * mean_coords, cdouble * coeffs, const int is_centered,
-                const int deg, const int max_iter, const int is_lonlat,
-                cdouble * coords, const int n_coords, double * azi_inc);
+void azi_inc(double start_t, double stop_t, double mean_t,
+             double * mean_coords, double * coeffs, int is_centered,
+             int deg, int max_iter, int is_lonlat, double * coords,
+             int n_coords, double * azi_inc);
 
+void test(double * array, int n, int m);
 
 #endif

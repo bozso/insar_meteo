@@ -18,10 +18,13 @@
 #define SATORBIT_H
 
 #include <cmath>
+#include "utils.hpp"
 
-/************************
- * Structs and typedefs *
- ************************/
+namespace inmet {
+
+/***********
+ * Structs *
+ ***********/
 
 // structure for storing fitted orbit polynom coefficients
 struct orbit_fit {
@@ -32,35 +35,34 @@ struct orbit_fit {
     size_t is_centered, deg;
 };
 
+// cartesian coordinate
+struct cart { double x, y, z; };
+
 template<typename T>
 static inline T norm(const T x, const T y, const T z)
 {
     return sqrt(x * x + y * y + z * z);
 }
 
-// cartesian coordinate
-struct cart { double x, y, z; };
-
-inline void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
-                         double *x, double *y, double *z)
+// from ellipsoidal to cartesian coordinates
+template<typename T>
+inline void ell_cart (const T lon, const T lat, const T h,
+                      T& x, T& y, T& z)
 {
-    // from ellipsoidal to cartesian coordinates
-    
-    double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
+    T n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
 
-    *x = (              n + h) * cos(lat) * cos(lon);
-    *y = (              n + h) * cos(lat) * sin(lon);
-    *z = ( (1.0 - E2) * n + h) * sin(lat);
+    x = (              n + h) * cos(lat) * cos(lon);
+    y = (              n + h) * cos(lat) * sin(lon);
+    z = ( (1.0 - E2) * n + h) * sin(lat);
 
-} // end of ell_cart
+} // ell_cart
 
-
-inline void im_cart_ell (cdouble x, cdouble y, cdouble z,
-                         double *lon, double *lat, double *h)
+// from cartesian to ellipsoidal coordinates
+template<typename T>
+inline void im_cart_ell (const T x, const T y, const T z,
+                         T& lon, T& lat, T& h)
 {
-    // from cartesian to ellipsoidal coordinates
-    
-    double n, p, o, so, co;
+    T n, p, o, so, co;
 
     n = (WA * WA - WB * WB);
     p = sqrt(x * x + y * y);
@@ -71,35 +73,25 @@ inline void im_cart_ell (cdouble x, cdouble y, cdouble z,
     so = sin(o); co = cos(o);
     n= WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
 
-    *lat = o;
+    lat = o;
     
     o = atan(y/x); if(x < 0.0) o += M_PI;
-    *lon = o;
-    *h = p / co - n;
-}
-// end of cart_ell
+    lon = o;
+    h = p / co - n;
+} // cart_ell
 
-
-extern void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
-                         double *x, double *y, double *z);
-
-extern void im_cart_ell (cdouble x, cdouble y, cdouble z,
-                         double *lon, double *lat, double *h);
-
-extern void im_calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y,
-                            cdouble Z, cdouble lon, cdouble lat,
-                            size_t max_iter, double * azi,
-                            double * inc);
-
-void calc_azi_inc(double start_t, double stop_t, double mean_t,
-                  double * mean_coords, double * coeffs, int is_centered,
-                  int deg, int max_iter, int is_lonlat, double * coords,
-                  int n_coords, double * azi_inc);
 
 extern "C"{
 
+void azi_inc(double start_t, double stop_t, double mean_t,
+             double * mean_coords, double * coeffs, int is_centered,
+             int deg, int max_iter, int is_lonlat, double * _coords,
+             int n_coords, double * _azi_inc);
+
 void test(double * array, int n, int m);
 
-}
+} // extern "C"
+
+} //namespace inmet
 
 #endif

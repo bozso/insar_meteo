@@ -23,7 +23,7 @@ from glob import iglob
 
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
 #flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-flags = []
+flags = ["-std=c++98"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 #          ("F2PY_REPORT_ATEXIT", None)]
 #libs=["stdc++"]

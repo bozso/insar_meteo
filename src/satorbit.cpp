@@ -14,58 +14,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <iostream>
 
-#include <stdio.h>
-#include <tgmath.h>
+//#include <stdio.h>
+#include <cmath>
 
-#include "satorbit.h"
-
-static inline double norm(cdouble x, cdouble y, cdouble z)
-{
-    // vector norm
-    return sqrt(x * x + y * y + z * z);
-}
-
-inline void im_ell_cart (cdouble lon, cdouble lat, cdouble h,
-                         double *x, double *y, double *z)
-{
-    // from ellipsoidal to cartesian coordinates
-    
-    double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
-
-    *x = (              n + h) * cos(lat) * cos(lon);
-    *y = (              n + h) * cos(lat) * sin(lon);
-    *z = ( (1.0 - E2) * n + h) * sin(lat);
-
-} // end of ell_cart
-
-
-inline void im_cart_ell (cdouble x, cdouble y, cdouble z,
-                         double *lon, double *lat, double *h)
-{
-    // from cartesian to ellipsoidal coordinates
-    
-    double n, p, o, so, co;
-
-    n = (WA * WA - WB * WB);
-    p = sqrt(x * x + y * y);
-
-    o = atan(WA / p / WB * z);
-    so = sin(o); co = cos(o);
-    o = atan( (z + n / WB * so * so * so) / (p - n / WA * co * co * co) );
-    so = sin(o); co = cos(o);
-    n= WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
-
-    *lat = o;
-    
-    o = atan(y/x); if(x < 0.0) o += M_PI;
-    *lon = o;
-    *h = p / co - n;
-}
-// end of cart_ell
+#include "satorbit.hpp"
+#include "array.hpp"
+#include "utils.hpp"
 
 static void calc_pos(const orbit_fit * orb, double time, cart * pos)
 {
@@ -313,19 +269,28 @@ void calc_azi_inc(double start_t, double stop_t, double mean_t,
     // end else
 }
 
-void test(double * array, int n, int m)
+using namespace std;
+
+// Functions to be exported to Python need to be callable from C
+
+extern "C" {
+
+void test(double * _array, int n, int m)
 {
-    const size_t nn = (size_t) n;
-    const size_t mm = (size_t) m;
+    int tmp[2] = {n, m};
+    array<double, 2> arr(_array, tmp);
     
-    FOR(ii, 0, nn) {
-        FOR(jj, 0, mm)
-            printf("%lf ", ptr_elem2(array, ii, jj, m));
-        printf("\n");
+    FOR(ii, 0, arr.get_rows()) {
+        FOR(jj, 0, arr.get_cols())
+            cout << arr(ii,jj) << " ";
+        cout << endl;
     }
-    printf("\n");
+    
+    //ar_double array;
+    
+    //cout << norm(1.0, 2.0, 3.0) << endl;
+    //cout << norm(1, 2, 3) << endl;
 }
 
-#ifdef __cplusplus
 }
-#endif
+// end extern "C"

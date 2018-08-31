@@ -17,8 +17,10 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-//typedef size_t uint;
-//typedef const size_t cuint;
+#include <cstdio>
+
+typedef unsigned int uint;
+typedef const unsigned int cuint;
 typedef const double cdouble;
 
 /*******************************
@@ -47,23 +49,13 @@ typedef const double cdouble;
  * REQUIRES C99 standard! *
  **************************/
 
-#define FOR(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
-#define FORS(ii, min, max, step) for(size_t (ii) = (min); (ii) < (max); (ii) += (step))
-
-#define ptr_elem2(array, ii, jj, ncols) array[(jj) + (ii) * (ncols)]
-
-#define ptr_ptr2(array, ii, jj, ncols) array  + (jj) + (ii) * (ncols)
+#define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
+#define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
 /*************
  * IO macros *
  *************/
 
-#define error(text) fprintf(stderr, text)
-#define errorln(text, ...) fprintf(stderr, text"\n", __VA_ARGS__)
-
-#define print(string) printf(string)
-#define println(format, ...) printf(format"\n", __VA_ARGS__)
-
-#define _log println("File: %s line: %d", __FILE__, __LINE__)
+#define _log fprintf(stderr, "File: %s line: %d", __FILE__, __LINE__)
 
 #endif

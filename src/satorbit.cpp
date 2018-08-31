@@ -226,10 +226,8 @@ void azi_inc(double start_t, double stop_t, double mean_t,
              int n_coords, double * _azi_inc)
 {
     // Set up orbit polynomial structure
-    orbit_fit orb = {.mean_t = mean_t, .mean_coords = mean_coords,
-                     .start_t = start_t, .stop_t = stop_t,
-                     .coeffs = coeffs, .is_centered = uint(is_centered),
-                     .deg = uint(deg)};
+    orbit_fit orb(mean_t, start_t, stop_t, mean_coords, coeffs,
+                  uint(is_centered), uint(deg));
     
     uint nrows = (uint) n_coords;
     

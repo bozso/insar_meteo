@@ -17,8 +17,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <cstdio>
-
 typedef unsigned int uint;
 typedef const unsigned int cuint;
 typedef const double cdouble;
@@ -56,6 +54,6 @@ typedef const double cdouble;
  * IO macros *
  *************/
 
-#define _log fprintf(stderr, "File: %s line: %d", __FILE__, __LINE__)
+#define _log cerr << "File: " __FILE__ << " line: " __LINE__ << endl;
 
 #endif

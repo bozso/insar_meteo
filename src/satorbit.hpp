@@ -107,16 +107,15 @@ inline void im_cart_ell (const T x, const T y, const T z,
 } // cart_ell
 
 
-extern "C"{
-
 void azi_inc(double start_t, double stop_t, double mean_t,
              double * mean_coords, double * coeffs, int is_centered,
              int deg, int max_iter, int is_lonlat, double * _coords,
              int n_coords, double * _azi_inc);
 
-void test(double * array, int n, int m);
+void asc_dsc_select(double * _arr1, double * _arr2, double max_sep,
+                    int rows1, int rows2, int cols, int * _idx, int nfound);
 
-} // extern "C"
+void test(double * array, int n, int m);
 
 } //namespace inmet
 

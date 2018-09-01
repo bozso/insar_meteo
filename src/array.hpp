@@ -1,6 +1,17 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#define CONCAT(a,b) a ## b
+#define QUOTE(a) #a
+
+#include "Python.h"
+#include "numpy/arrayobject.h"
+
+typedef PyArrayObject* np_ptr;
+typedef PyObject* py_ptr;
+
+#include <stdarg.h>
+
 /******************************
  * Wrapper object for arrays. *
  ******************************/
@@ -12,11 +23,16 @@ struct array {
     
     array() {};
     
-    array(T * _data, int * _shape) {
+    array(T * _data, ...) {
+        va_list vl;
         unsigned int shape_sum = 0;
-    
+        
+        va_start(vl, _data);
+        
         for(unsigned int ii = 0; ii < ndim; ++ii)
-            shape[ii] = static_cast<unsigned int>(_shape[ii]);
+            shape[ii] = static_cast<unsigned int>(va_arg(vl, int));
+        
+        va_end(vl);
         
         for(unsigned int ii = 0; ii < ndim; ++ii) {
             shape_sum = 1;
@@ -28,20 +44,25 @@ struct array {
         }
         data = _data;
     }
-    
-    unsigned int get_shape(unsigned int ii)
+        
+    const unsigned int get_shape(unsigned int ii)
     {
         return shape[ii];
     }
 
-    unsigned int get_rows()
+    const unsigned int rows()
     {
         return shape[0];
     }
     
-    unsigned int get_cols()
+    const unsigned int cols()
     {
         return shape[1];
+    }
+    
+    T* get_data()
+    {
+        return data;
     }
     
     T& operator()(unsigned int ii)
@@ -66,5 +87,183 @@ struct array {
                     + ll * strides[3]];
     }
 };
+
+typedef array<double, 3> array3d;
+typedef array<double, 2> array2d;
+typedef array<double, 1> array1d;
+
+typedef array<int, 3> array3i;
+typedef array<int, 2> array2i;
+typedef array<int, 1> array1i;
+
+
+/*************
+ * IO macros *
+ *************/
+
+#define error(text) PySys_WriteStderr(text)
+#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
+
+#define print(string) PySys_WriteStdout(string)
+#define prints(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
+#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
+
+
+/******************************
+ * Function definition macros *
+ ******************************/
+
+#define py_noargs py_ptr self
+#define py_varargs py_ptr self, py_ptr args
+#define py_keywords py_ptr self, py_ptr args, py_ptr kwargs
+
+#define pymeth_noargs(fun_name) \
+{#fun_name, (PyCFunction) fun_name, METH_NOARGS, fun_name ## __doc__}
+
+#define pymeth_varargs(fun_name) \
+{#fun_name, (PyCFunction) fun_name, METH_VARARGS, fun_name ## __doc__}
+
+#define pymeth_keywords(fun_name) \
+{#fun_name, (PyCFunction) fun_name, METH_VARARGS | METH_KEYWORDS, \
+ fun_name ## __doc__}
+
+#define pydoc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
+
+#define keywords(...) char * keywords[] = {__VA_ARGS__, NULL}
+
+#define parse_varargs(format, ...) \
+do {\
+    if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\
+        return NULL;\
+} while(0)
+
+#define parse_keywords(format, ...) \
+do {\
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, format, keywords,\
+                                     __VA_ARGS__))\
+        return NULL;\
+} while(0)
+
+
+// Python 3
+#if PY_VERSION_HEX >= 0x03000000
+
+#define PyString_Check PyBytes_Check
+#define PyString_GET_SIZE PyBytes_GET_SIZE
+#define PyString_AS_STRING PyBytes_AS_STRING
+#define PyString_FromString PyBytes_FromString
+#define PyUString_FromStringAndSize PyUnicode_FromStringAndSize
+#define PyString_ConcatAndDel PyBytes_ConcatAndDel
+#define PyString_AsString PyBytes_AsString
+
+#define PyInt_Check PyLong_Check
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt_AS_LONG PyLong_AsLong
+#define PyInt_AsLong PyLong_AsLong
+
+#define PyNumber_Int PyNumber_Long
+
+#define init_methods(module_name, ...)\
+static PyMethodDef CONCAT(module_name, _methods)[] = {\
+    __VA_ARGS__,\
+    {NULL, NULL}\
+};\
+\
+static struct PyModuleDef CONCAT(module_name, _moduledef) = {\
+    PyModuleDef_HEAD_INIT,\
+    QUOTE(module_name),\
+    NULL,\
+    -1,\
+    CONCAT(module_name, _methods),\
+    NULL,\
+    NULL,\
+    NULL,\
+    NULL\
+};
+
+#define RETVAL m
+
+#define init_module(module_name, module_doc, version)\
+static PyObject * CONCAT(module_name, _error);\
+static PyObject * CONCAT(module_name, _module);\
+PyMODINIT_FUNC CONCAT(PyInit_, module_name)(void) {\
+    PyObject *m,*d, *s;\
+    \
+    m = CONCAT(module_name, _module) = \
+    PyModule_Create(&(CONCAT(module_name, _moduledef)));\
+    \
+    import_array();\
+    \
+    if (PyErr_Occurred()) {\
+        PyErr_SetString(PyExc_ImportError, "can't initialize module "\
+                                           QUOTE(module_name) \
+                                           "(failed to import numpy)");\
+        return RETVAL;\
+    }\
+    \
+    d = PyModule_GetDict(m);\
+        s = PyString_FromString("$Revision: " QUOTE(version) " $");\
+    \
+    PyDict_SetItemString(d, "__version__", s);\
+    \
+    s = PyUnicode_FromString(module_doc);\
+    \
+    PyDict_SetItemString(d, "__doc__", s);\
+    \
+    CONCAT(module_name, _error) = PyErr_NewException(QUOTE(module_name)".error",\
+                                                     NULL, NULL);\
+    \
+    Py_DECREF(s);\
+    \
+    return RETVAL;\
+}
+
+#else // Python 2
+
+#define init_methods(module_name, ...)\
+static PyMethodDef CONCAT(module_name, _methods)[] = {\
+    __VA_ARGS__,\
+    {NULL, NULL}\
+};
+
+#define RETVAL
+
+#define init_module(module_name, module_doc, version)\
+static PyObject * CONCAT(module_name, _error)\
+static PyObject * CONCAT(module_name, _module)\
+PyMODINIT_FUNC CONCAT(init, module_name)(void) {\
+    PyObject *m,*d, *s;\
+    \
+    import_array();\
+    \
+    m = inmet_aux_module = Py_InitModule(QUOTE(module_name),\
+                                         CONCAT(module_name, _methods));\
+    \
+    if (PyErr_Occurred()) {\
+        PyErr_SetString(PyExc_ImportError, "can't initialize module "\
+                                           QUOTE(module_name) \
+                                           "(failed to import numpy)");\
+        return RETVAL;\
+    }\
+    \
+    d = PyModule_GetDict(m);\
+    \
+    s = PyString_FromString("$Revision: " QUOTE(version) " $");\
+    \
+    PyDict_SetItemString(d, "__version__", s);\
+    \
+    s = PyString_FromString(module_doc);\
+    \
+    PyDict_SetItemString(d, "__doc__", s);\
+    \
+    CONCAT(module_name, _error) = PyErr_NewException(QUOTE(module_name)".error",\
+                                                     NULL, NULL);\
+    Py_DECREF(s);\
+    return RETVAL;\
+}
+
+#define PyUString_FromStringAndSize PyString_FromStringAndSize
+
+#endif // Python 2/3
 
 #endif

@@ -231,11 +231,7 @@ void azi_inc(double start_t, double stop_t, double mean_t,
     
     uint nrows = (uint) n_coords;
     
-    int coords_shape[2]  = {n_coords, 3},
-        azi_inc_shape[2] = {n_coords, 3};
-    
-    array<double, 2> coords(_coords, coords_shape),
-                     azi_inc(_azi_inc, azi_inc_shape);
+    array2d coords(_coords, n_coords, 3), azi_inc(_azi_inc, n_coords, 3);
     
     double X, Y, Z, lon, lat, h;
     X = Y = Z = lon = lat = h = 0.0;
@@ -271,13 +267,35 @@ void azi_inc(double start_t, double stop_t, double mean_t,
     } // else
 } // azi_inc
 
+void asc_dsc_select(double * _arr1, double * _arr2, double max_sep,
+                    int rows1, int rows2, int cols, int * _idx, int nfound)
+{
+    nfound = 0;
+    double dlon = 0, dlat = 0;
+    
+    array2d arr1(_arr1, rows1, cols), arr2(_arr2, rows2, cols);
+    array1i idx(_idx, rows1, 1);
+    
+    FOR(ii, 0, arr1.rows()) {
+        FOR(jj, 0, arr2.rows()) {
+            dlon = arr1(ii, 0) - arr2(jj, 0);
+            dlat = arr1(ii, 1) - arr2(jj, 1);
+            
+            if ((dlon * dlon + dlat * dlat) < max_sep) {
+                idx(ii) = 1;
+                nfound++;
+                break;
+            }
+        }
+    }    
+}
+
 void test(double * _array, int n, int m)
 {
-    int tmp[2] = {n, m};
-    array<double, 2> arr(_array, tmp);
+    array2d arr(_array, n, m);
     
-    FOR(ii, 0, arr.get_rows()) {
-        FOR(jj, 0, arr.get_cols())
+    FOR(ii, 0, arr.rows()) {
+        FOR(jj, 0, arr.cols())
             cout << arr(ii,jj) << " ";
         cout << endl;
     }

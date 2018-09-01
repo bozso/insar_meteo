@@ -20,6 +20,18 @@ interface
         
         double precision intent(out) :: azi_inc(n_coords,3)
     end subroutine azi_inc
+
+    subroutine asc_dsc_select(arr1, arr2, max_sep, rows1, rows2, cols, idx, nfound)
+        intent(c) :: asc_dsc_select
+        intent(c)
+        
+        double precision, intent(in) :: arr1(rows1,cols), arr2(rows2,cols)
+        double precision, intent(in) :: max_sep
+        
+        integer, intent(in,hide) :: rows1, rows2, cols
+        integer, intent(out) :: idx(rows1)
+        integer, intent(inout) :: nfound
+    end subroutine
     
     subroutine test(array, n, m)
         intent(c) :: test

@@ -1,5 +1,5 @@
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef CAPI_FUNCTIONS_H
+#define CAPI_FUNCTIONS_H
 
 #define CONCAT(a,b) a ## b
 #define QUOTE(a) #a
@@ -7,7 +7,27 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
+#define pyexc(exc_type, format, ...)\
+        PyErr_Format((exc_type), (format), __VA_ARGS__)\
+
+#define pyexcs(exc_type, string)\
+        PyErr_Format((exc_type), (string))\
+
+/*************
+ * IO macros *
+ *************/
+
+#define errors(text) PySys_WriteStderr(text)
+#define error(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
+#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
+
+#define prints(string) PySys_WriteStdout(string)
+#define print(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
+#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
+
+
 typedef PyArrayObject* np_ptr;
+//typedef PyArray_Type np_type;
 typedef PyObject* py_ptr;
 
 #include <stdarg.h>
@@ -88,6 +108,90 @@ struct array {
     }
 };
 
+template<typename T>
+struct arraynd {
+    unsigned int *strides;
+    npy_intp *shape;
+    T * data;
+    
+    arraynd() {};
+    
+    int import(np_ptr _array) {
+        unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+        shape = PyArray_DIMS(_array);
+        
+        int elemsize = int(PyArray_ITEMSIZE(_array));
+        
+        if ((strides = PyMem_New(unsigned int, ndim)) == NULL) {
+            pyexcs(PyExc_MemoryError, "Failed to allocate memory for array "
+                                      "strides!");
+            strides = NULL;
+            data = NULL;
+            return 1;
+        }
+        
+        npy_intp * _strides = PyArray_STRIDES(_array);
+        
+        for(unsigned int ii = 0; ii < ndim; ++ii)
+            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
+                                                    / elemsize);
+        
+        data = static_cast<T*>(PyArray_DATA(_array));
+        
+        return 0;
+    }
+    
+    ~arraynd()
+    {
+        if (strides != NULL) {
+            PyMem_Del(strides);
+            strides = NULL;
+        }
+    }
+    
+    const unsigned int get_shape(unsigned int ii)
+    {
+        return static_cast<unsigned int>(shape[ii]);
+    }
+
+    const unsigned int rows()
+    {
+        return static_cast<unsigned int>(shape[0]);
+    }
+    
+    const unsigned int cols()
+    {
+        return static_cast<unsigned int>(shape[1]);
+    }
+    
+    T* get_data()
+    {
+        return data;
+    }
+    
+    T& operator()(unsigned int ii)
+    {
+        return data[ii * strides[0]];
+    }
+
+    T& operator()(unsigned int ii, unsigned int jj)
+    {
+        return data[ii * strides[0] + jj * strides[1]];
+    }
+    
+    T& operator()(unsigned int ii, unsigned int jj, unsigned int kk)
+    {
+        return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+    }
+
+    T& operator()(unsigned int ii, unsigned int jj, unsigned int kk,
+                  unsigned int ll)
+    {
+        return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
+                    + ll * strides[3]];
+    }
+};
+
 typedef array<double, 3> array3d;
 typedef array<double, 2> array2d;
 typedef array<double, 1> array1d;
@@ -96,17 +200,8 @@ typedef array<int, 3> array3i;
 typedef array<int, 2> array2i;
 typedef array<int, 1> array1i;
 
-
-/*************
- * IO macros *
- *************/
-
-#define error(text) PySys_WriteStderr(text)
-#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
-
-#define print(string) PySys_WriteStdout(string)
-#define prints(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
-#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
+typedef arraynd<double> arrayd;
+typedef arraynd<int> arrayi;
 
 
 /******************************
@@ -145,6 +240,11 @@ do {\
 } while(0)
 
 
+
+/********************************
+ * Module initialization macros *
+ ********************************/
+
 // Python 3
 #if PY_VERSION_HEX >= 0x03000000
 
@@ -166,7 +266,7 @@ do {\
 #define init_methods(module_name, ...)\
 static PyMethodDef CONCAT(module_name, _methods)[] = {\
     __VA_ARGS__,\
-    {NULL, NULL}\
+    {NULL, NULL, 0, NULL} /* Sentinel */\
 };\
 \
 static struct PyModuleDef CONCAT(module_name, _moduledef) = {\
@@ -220,10 +320,12 @@ PyMODINIT_FUNC CONCAT(PyInit_, module_name)(void) {\
 
 #else // Python 2
 
+#define PyUString_FromStringAndSize PyString_FromStringAndSize
+
 #define init_methods(module_name, ...)\
 static PyMethodDef CONCAT(module_name, _methods)[] = {\
     __VA_ARGS__,\
-    {NULL, NULL}\
+    {NULL, NULL, 0, NULL} /* Sentinel */\
 };
 
 #define RETVAL
@@ -261,8 +363,6 @@ PyMODINIT_FUNC CONCAT(init, module_name)(void) {\
     Py_DECREF(s);\
     return RETVAL;\
 }
-
-#define PyUString_FromStringAndSize PyString_FromStringAndSize
 
 #endif // Python 2/3
 

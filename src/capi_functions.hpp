@@ -26,22 +26,26 @@
 #define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
 
 
+#define np_type PyArray_Type
+
 typedef PyArrayObject* np_ptr;
-//typedef PyArray_Type np_type;
 typedef PyObject* py_ptr;
 
 #include <stdarg.h>
 
-/******************************
- * Wrapper object for arrays. *
- ******************************/
+/*************************************
+ * Wrapper objects for numpy arrays. *
+ *************************************/
 
 template<typename T, unsigned int ndim>
 struct array {
     unsigned int shape[ndim], strides[ndim];
     T * data;
     
-    array() {};
+    array()
+    {
+        data = NULL;
+    };
     
     array(T * _data, ...) {
         va_list vl;
@@ -63,6 +67,34 @@ struct array {
             strides[ii] = shape_sum;
         }
         data = _data;
+    }
+
+    int import(np_ptr _array)
+    {
+        int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+        if (ndim != _ndim) {
+            pyexc(PyExc_TypeError, "numpy array expected to be %u "
+                                   "dimensional but we got %u dimensional "
+                                   "array!", ndim, _ndim);
+            return 1;
+            
+        }
+        npy_intp * _shape = PyArray_DIMS(_array);
+
+        for(unsigned int ii = 0; ii < ndim; ++ii)
+            shape[ii] = static_cast<unsigned int>(_shape[ii]);
+
+        int elemsize = int(PyArray_ITEMSIZE(_array));
+        
+        npy_intp * _strides = PyArray_STRIDES(_array);
+        
+        for(unsigned int ii = 0; ii < ndim; ++ii)
+            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
+                                                    / elemsize);
+        
+        data = static_cast<T*>(PyArray_DATA(_array));
+        
+        return 0;
     }
         
     const unsigned int get_shape(unsigned int ii)
@@ -114,7 +146,12 @@ struct arraynd {
     npy_intp *shape;
     T * data;
     
-    arraynd() {};
+    arraynd()
+    {
+        strides = NULL;
+        shape = NULL;
+        data = NULL;
+    };
     
     int import(np_ptr _array) {
         unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
@@ -125,8 +162,6 @@ struct arraynd {
         if ((strides = PyMem_New(unsigned int, ndim)) == NULL) {
             pyexcs(PyExc_MemoryError, "Failed to allocate memory for array "
                                       "strides!");
-            strides = NULL;
-            data = NULL;
             return 1;
         }
         

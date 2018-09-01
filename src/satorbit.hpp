@@ -17,10 +17,7 @@
 #ifndef SATORBIT_H
 #define SATORBIT_H
 
-#include <cmath>
 #include "utils.hpp"
-
-namespace inmet {
 
 /***********
  * Structs *
@@ -64,47 +61,6 @@ struct cart {
     }
 };
 
-template<typename T>
-static inline T norm(const T x, const T y, const T z)
-{
-    return sqrt(x * x + y * y + z * z);
-}
-
-// from ellipsoidal to cartesian coordinates
-template<typename T>
-inline void ell_cart (const T lon, const T lat, const T h,
-                      T& x, T& y, T& z)
-{
-    T n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
-
-    x = (              n + h) * cos(lat) * cos(lon);
-    y = (              n + h) * cos(lat) * sin(lon);
-    z = ( (1.0 - E2) * n + h) * sin(lat);
-
-} // ell_cart
-
-// from cartesian to ellipsoidal coordinates
-template<typename T>
-inline void im_cart_ell (const T x, const T y, const T z,
-                         T& lon, T& lat, T& h)
-{
-    T n, p, o, so, co;
-
-    n = (WA * WA - WB * WB);
-    p = sqrt(x * x + y * y);
-
-    o = atan(WA / p / WB * z);
-    so = sin(o); co = cos(o);
-    o = atan( (z + n / WB * so * so * so) / (p - n / WA * co * co * co) );
-    so = sin(o); co = cos(o);
-    n= WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
-
-    lat = o;
-    
-    o = atan(y/x); if(x < 0.0) o += M_PI;
-    lon = o;
-    h = p / co - n;
-} // cart_ell
 
 
 void azi_inc(double start_t, double stop_t, double mean_t,
@@ -116,7 +72,5 @@ void asc_dsc_select(double * _arr1, double * _arr2, double max_sep,
                     int rows1, int rows2, int cols, int * _idx, int nfound);
 
 void test(double * array, int n, int m);
-
-} //namespace inmet
 
 #endif

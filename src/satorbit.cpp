@@ -14,17 +14,53 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <cmath>
+#include <tgmath.h>
 
 #include "satorbit.hpp"
-#include "array.hpp"
 
 using namespace std;
-using namespace inmet;
+
+static inline double norm(cdouble x, cdouble y, cdouble z)
+{
+    return sqrt(x * x + y * y + z * z);
+}
+
+// from ellipsoidal to cartesian coordinates
+inline void ell_cart (cdouble lon, cdouble lat, cdouble h,
+                      double& x, double& y, double& z)
+{
+    double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
+
+    x = (              n + h) * cos(lat) * cos(lon);
+    y = (              n + h) * cos(lat) * sin(lon);
+    z = ( (1.0 - E2) * n + h) * sin(lat);
+
+} // ell_cart
+
+// from cartesian to ellipsoidal coordinates
+inline void im_cart_ell (cdouble x, cdouble y, cdouble z,
+                         double& lon, double& lat, double& h)
+{
+    double n, p, o, so, co;
+
+    n = (WA * WA - WB * WB);
+    p = sqrt(x * x + y * y);
+
+    o = atan(WA / p / WB * z);
+    so = sin(o); co = cos(o);
+    o = atan( (z + n / WB * so * so * so) / (p - n / WA * co * co * co) );
+    so = sin(o); co = cos(o);
+    n = WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
+
+    lat = o;
+    
+    o = atan(y/x); if(x < 0.0) o += M_PI;
+    lon = o;
+    h = p / co - n;
+} // cart_ell
 
 // Calculate satellite position based on fitted polynomial orbits at time
-static void calc_pos(const orbit_fit& orb, double time, cart& pos)
+static inline void calc_pos(const orbit_fit& orb, double time, cart& pos)
 {
     uint n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
@@ -64,8 +100,8 @@ static void calc_pos(const orbit_fit& orb, double time, cart& pos)
     pos.x = x; pos.y = y; pos.z = z;
 } // calc_pos
 
-static double dot_product(const orbit_fit& orb, cdouble X, cdouble Y,
-                          cdouble Z, double time)
+static inline double dot_product(const orbit_fit& orb, cdouble X, cdouble Y,
+                                 cdouble Z, double time)
 {
     /* Calculate dot product between satellite velocity vector and
      * and vector between ground position and satellite position. */
@@ -134,8 +170,8 @@ static double dot_product(const orbit_fit& orb, cdouble X, cdouble Y,
 } // dot_product
 
 // Compute the sat position using closest approche.
-static void closest_appr(const orbit_fit& orb, cdouble X, cdouble Y,
-                         cdouble Z, cuint max_iter, cart& sat_pos)
+static inline void closest_appr(const orbit_fit& orb, cdouble X, cdouble Y,
+                                cdouble Z, cuint max_iter, cart& sat_pos)
 {
     // first, last and middle time, extending the time window by 5 seconds
     double t_start = orb.start_t - 5.0,

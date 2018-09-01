@@ -1,15 +1,15 @@
 
-#include "array.hpp"
+#include "capi_functions.hpp"
 #include "utils.hpp"
 
 pydoc(test, "test");
 
 static py_ptr test(py_varargs)
 {
-    arrayd arr;
+    array2d arr;
     np_ptr _arr = NULL;
     
-    parse_varargs("O!", &PyArray_Type, &_arr);
+    parse_varargs("O!", &np_type, &_arr);
     
     if(arr.import(_arr))
         return NULL;

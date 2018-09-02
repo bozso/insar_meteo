@@ -14,9 +14,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <tgmath.h>
-
 #include "satorbit.hpp"
+#include <cmath>
 
 using namespace std;
 
@@ -24,40 +23,6 @@ static inline double norm(cdouble x, cdouble y, cdouble z)
 {
     return sqrt(x * x + y * y + z * z);
 }
-
-// from ellipsoidal to cartesian coordinates
-inline void ell_cart (cdouble lon, cdouble lat, cdouble h,
-                      double& x, double& y, double& z)
-{
-    double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
-
-    x = (              n + h) * cos(lat) * cos(lon);
-    y = (              n + h) * cos(lat) * sin(lon);
-    z = ( (1.0 - E2) * n + h) * sin(lat);
-
-} // ell_cart
-
-// from cartesian to ellipsoidal coordinates
-inline void im_cart_ell (cdouble x, cdouble y, cdouble z,
-                         double& lon, double& lat, double& h)
-{
-    double n, p, o, so, co;
-
-    n = (WA * WA - WB * WB);
-    p = sqrt(x * x + y * y);
-
-    o = atan(WA / p / WB * z);
-    so = sin(o); co = cos(o);
-    o = atan( (z + n / WB * so * so * so) / (p - n / WA * co * co * co) );
-    so = sin(o); co = cos(o);
-    n = WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
-
-    lat = o;
-    
-    o = atan(y/x); if(x < 0.0) o += M_PI;
-    lon = o;
-    h = p / co - n;
-} // cart_ell
 
 // Calculate satellite position based on fitted polynomial orbits at time
 static inline void calc_pos(const orbit_fit& orb, double time, cart& pos)
@@ -207,9 +172,42 @@ static inline void closest_appr(const orbit_fit& orb, cdouble X, cdouble Y,
     calc_pos(orb, t_middle, sat_pos);
 } // closest_appr
 
-static inline void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
-                                cdouble Z, cdouble lon, cdouble lat,
-                                cuint max_iter, double& azi, double& inc)
+void ell_cart (cdouble lon, cdouble lat, cdouble h,
+               double& x, double& y, double& z)
+{
+    double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
+
+    x = (              n + h) * cos(lat) * cos(lon);
+    y = (              n + h) * cos(lat) * sin(lon);
+    z = ( (1.0 - E2) * n + h) * sin(lat);
+
+} // ell_cart
+
+void cart_ell(cdouble x, cdouble y, cdouble z,
+              double& lon, double& lat, double& h)
+{
+    double n, p, o, so, co;
+
+    n = (WA * WA - WB * WB);
+    p = sqrt(x * x + y * y);
+
+    o = atan(WA / p / WB * z);
+    so = sin(o); co = cos(o);
+    o = atan( (z + n / WB * so * so * so) / (p - n / WA * co * co * co) );
+    so = sin(o); co = cos(o);
+    n = WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
+
+    lat = o;
+    
+    o = atan(y/x); if(x < 0.0) o += M_PI;
+    lon = o;
+    h = p / co - n;
+} // cart_ell
+
+
+void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
+                  cdouble Z, cdouble lon, cdouble lat,
+                  cuint max_iter, double& azi, double& inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
     cart sat;
@@ -250,58 +248,9 @@ static inline void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
         temp_azi += 180.0;
     
     azi = temp_azi;
-}
+} // calc_azi_inc
 
-// Functions to be exported to Python need to be callable from C
-
-extern "C" {
-
-void azi_inc(double start_t, double stop_t, double mean_t,
-             double * mean_coords, double * coeffs, int is_centered,
-             int deg, int max_iter, int is_lonlat, double * _coords,
-             int n_coords, double * _azi_inc)
-{
-    // Set up orbit polynomial structure
-    orbit_fit orb(mean_t, start_t, stop_t, mean_coords, coeffs,
-                  uint(is_centered), uint(deg));
-    
-    uint nrows = (uint) n_coords;
-    
-    array2d coords(_coords, n_coords, 3), azi_inc(_azi_inc, n_coords, 3);
-    
-    double X, Y, Z, lon, lat, h;
-    X = Y = Z = lon = lat = h = 0.0;
-    
-    // coords contains lon, lat, h
-    if (is_lonlat) {
-        FOR(ii, 0, nrows) {
-            lon = coords(ii, 0) * DEG2RAD;
-            lat = coords(ii, 1) * DEG2RAD;
-            h   = coords(ii, 2);
-            
-            // calulate surface WGS-84 Cartesian coordinates
-            ell_cart(lon, lat, h, X, Y, Z);
-            
-            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                         azi_inc(ii, 0), azi_inc(ii, 1));
-            
-        } // for
-    }
-    // coords contains X, Y, Z
-    else {
-        FOR(ii, 0, nrows) {
-            X = coords(ii, 0);
-            Y = coords(ii, 1);
-            Z = coords(ii, 2);
-            
-            // calulate surface WGS-84 geodetic coordinates
-            im_cart_ell(X, Y, Z, lon, lat, h);
-        
-            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                         azi_inc(ii, 0), azi_inc(ii, 1));
-        } // for
-    } // else
-} // azi_inc
+#if 0
 
 void asc_dsc_select(double * _arr1, double * _arr2, double max_sep,
                     int rows1, int rows2, int cols, int * _idx, int nfound)
@@ -337,4 +286,4 @@ void test(double * _array, int n, int m)
     }
 } // test
 
-} // extern "C"
+#endif

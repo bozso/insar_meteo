@@ -29,7 +29,7 @@ macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 #libs=["stdc++"]
 
 ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp"],
+    Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp", "satorbit.cpp"],
               define_macros=macros, extra_compile_args=flags)
 ]
 

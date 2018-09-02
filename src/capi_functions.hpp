@@ -261,6 +261,8 @@ typedef arraynd<int> arrayi;
 
 #define keywords(...) char * keywords[] = {__VA_ARGS__, NULL}
 
+#define np_array(_array) &PyArray_Type, &(_array)
+
 #define parse_varargs(format, ...) \
 do {\
     if (!PyArg_ParseTuple(args, format, __VA_ARGS__))\

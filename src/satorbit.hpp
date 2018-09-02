@@ -61,16 +61,14 @@ struct cart {
     }
 };
 
+void ell_cart (cdouble lon, cdouble lat, cdouble h,
+               double& x, double& y, double& z);
 
+void cart_ell(cdouble x, cdouble y, cdouble z,
+              double& lon, double& lat, double& h);
 
-void azi_inc(double start_t, double stop_t, double mean_t,
-             double * mean_coords, double * coeffs, int is_centered,
-             int deg, int max_iter, int is_lonlat, double * _coords,
-             int n_coords, double * _azi_inc);
-
-void asc_dsc_select(double * _arr1, double * _arr2, double max_sep,
-                    int rows1, int rows2, int cols, int * _idx, int nfound);
-
-void test(double * array, int n, int m);
+void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
+                  cdouble Z, cdouble lon, cdouble lat,
+                  cuint max_iter, double& azi, double& inc);
 
 #endif

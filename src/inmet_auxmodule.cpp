@@ -3,16 +3,18 @@
 #include "utils.hpp"
 #include "satorbit.hpp"
 
+typedef PyArrayObject* np_ptr;
+typedef PyObject* py_ptr;
+
 pydoc(test, "test");
 
 static py_ptr test(py_varargs)
 {
-    array2d arr;
-    np_ptr _arr = NULL;
+    array1d arr;
     
-    parse_varargs("O!", &np_type, &_arr);
+    parse_varargs("O!", np_array(arr));
     
-    if(arr.import(_arr))
+    if(arr.import())
         return NULL;
     
     FOR(ii, 0, arr.rows()) {
@@ -30,25 +32,23 @@ static py_ptr azi_inc(py_varargs)
 {
     double mean_t = 0.0, start_t = 0.0, stop_t = 0.0;
     uint is_centered = 0, deg = 0, is_lonlat = 0, max_iter = 0;
-    np_ptr _coords = NULL, _azi_inc = NULL, _mean_coords = NULL, _coeffs = NULL;
+
+    array1d mean_coords;
+    array2d coeffs, coords, azi_inc;
     
     parse_varargs("dddIIO!O!O!O!II", &mean_t, &start_t, &stop_t, &is_centered,
-                  &deg, np_array(_mean_coords), np_array(_mean_coords),
-                  np_array(_coords), np_array(_azi_inc), &is_lonlat, &max_iter);
+                  &deg, np_array(mean_coords), np_array(mean_coords),
+                  np_array(coords), np_array(azi_inc), &is_lonlat, &max_iter);
     
-    array1d mean_coords;
-    array2d coeffs;
     
-    if (mean_coords.import(_mean_coords) or coeffs.import(_coeffs))
+    if (mean_coords.import() or coeffs.import())
         return NULL;
     
     // Set up orbit polynomial structure
     orbit_fit orb(mean_t, start_t, stop_t, mean_coords.get_data(),
                   coeffs.get_data(), is_centered, deg);
     
-    array2d coords, azi_inc;
-    
-    if (coords.import(_coords) or azi_inc.import(_azi_inc))
+    if (coords.import() or azi_inc.import())
         return NULL;
     
     uint nrows = coords.rows();

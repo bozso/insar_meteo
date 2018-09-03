@@ -17,6 +17,8 @@
  * IO macros *
  *************/
 
+#define _log PySys_WriteStderr("FILE: %s :: LINE: %d\n", __FILE__, __LINE__)
+
 #define errors(text) PySys_WriteStderr(text)
 #define error(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
 #define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
@@ -24,12 +26,6 @@
 #define prints(string) PySys_WriteStdout(string)
 #define print(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
 #define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
-
-
-#define np_type PyArray_Type
-
-typedef PyArrayObject* np_ptr;
-typedef PyObject* py_ptr;
 
 #include <stdarg.h>
 
@@ -40,11 +36,13 @@ typedef PyObject* py_ptr;
 template<typename T, unsigned int ndim>
 struct array {
     unsigned int shape[ndim], strides[ndim];
+    PyArrayObject *_array;
     T * data;
     
     array()
     {
         data = NULL;
+        _array = NULL;
     };
     
     array(T * _data, ...) {
@@ -69,9 +67,10 @@ struct array {
         data = _data;
     }
 
-    int import(np_ptr _array)
+    int import(PyArrayObject *__array)
     {
-        int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+        int _ndim = static_cast<unsigned int>(PyArray_NDIM(__array));
+        
         if (ndim != _ndim) {
             pyexc(PyExc_TypeError, "numpy array expected to be %u "
                                    "dimensional but we got %u dimensional "
@@ -79,6 +78,38 @@ struct array {
             return 1;
             
         }
+        npy_intp * _shape = PyArray_DIMS(__array);
+
+        for(unsigned int ii = 0; ii < ndim; ++ii)
+            shape[ii] = static_cast<unsigned int>(_shape[ii]);
+
+        int elemsize = int(PyArray_ITEMSIZE(__array));
+        
+        npy_intp * _strides = PyArray_STRIDES(__array);
+        
+        for(unsigned int ii = 0; ii < ndim; ++ii)
+            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
+                                                    / elemsize);
+        
+        data = static_cast<T*>(PyArray_DATA(__array));
+        
+        _array = __array;
+        
+        return 0;
+    }
+
+    int import()
+    {
+        int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+        
+        if (ndim != _ndim) {
+            pyexc(PyExc_TypeError, "numpy array expected to be %u "
+                                   "dimensional but we got %u dimensional "
+                                   "array!", ndim, _ndim);
+            return 1;
+            
+        }
+        
         npy_intp * _shape = PyArray_DIMS(_array);
 
         for(unsigned int ii = 0; ii < ndim; ++ii)
@@ -96,7 +127,12 @@ struct array {
         
         return 0;
     }
-        
+    
+    const PyArrayObject * get_array()
+    {
+        return _array;
+    }
+    
     const unsigned int get_shape(unsigned int ii)
     {
         return shape[ii];
@@ -144,6 +180,7 @@ template<typename T>
 struct arraynd {
     unsigned int *strides;
     npy_intp *shape;
+    PyArrayObject *_array;
     T * data;
     
     arraynd()
@@ -151,9 +188,35 @@ struct arraynd {
         strides = NULL;
         shape = NULL;
         data = NULL;
+        _array = NULL;
     };
     
-    int import(np_ptr _array) {
+    int import(PyArrayObject * __array) {
+        unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(__array));
+        shape = PyArray_DIMS(__array);
+        
+        int elemsize = int(PyArray_ITEMSIZE(__array));
+        
+        if ((strides = PyMem_New(unsigned int, ndim)) == NULL) {
+            pyexcs(PyExc_MemoryError, "Failed to allocate memory for array "
+                                      "strides!");
+            return 1;
+        }
+        
+        npy_intp * _strides = PyArray_STRIDES(__array);
+        
+        for(unsigned int ii = 0; ii < ndim; ++ii)
+            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
+                                                    / elemsize);
+        
+        data = static_cast<T*>(PyArray_DATA(__array));
+        
+        _array = __array;
+        
+        return 0;
+    }
+
+    int import() {
         unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
         shape = PyArray_DIMS(_array);
         
@@ -182,6 +245,11 @@ struct arraynd {
             PyMem_Del(strides);
             strides = NULL;
         }
+    }
+
+    const PyArrayObject * get_array()
+    {
+        return _array;
     }
     
     const unsigned int get_shape(unsigned int ii)
@@ -227,25 +295,25 @@ struct arraynd {
     }
 };
 
-typedef array<double, 3> array3d;
-typedef array<double, 2> array2d;
-typedef array<double, 1> array1d;
+typedef array<npy_double, 3> array3d;
+typedef array<npy_double, 2> array2d;
+typedef array<npy_double, 1> array1d;
 
-typedef array<int, 3> array3i;
-typedef array<int, 2> array2i;
-typedef array<int, 1> array1i;
+typedef array<npy_int, 3> array3i;
+typedef array<npy_int, 2> array2i;
+typedef array<npy_int, 1> array1i;
 
-typedef arraynd<double> arrayd;
-typedef arraynd<int> arrayi;
+typedef arraynd<npy_double> arrayd;
+typedef arraynd<npy_int> arrayi;
 
 
 /******************************
  * Function definition macros *
  ******************************/
 
-#define py_noargs py_ptr self
-#define py_varargs py_ptr self, py_ptr args
-#define py_keywords py_ptr self, py_ptr args, py_ptr kwargs
+#define py_noargs PyObject *self
+#define py_varargs PyObject *self, PyObject *args
+#define py_keywords PyObject *self, PyObject *args, PyObject *kwargs
 
 #define pymeth_noargs(fun_name) \
 {#fun_name, (PyCFunction) fun_name, METH_NOARGS, fun_name ## __doc__}
@@ -261,7 +329,7 @@ typedef arraynd<int> arrayi;
 
 #define keywords(...) char * keywords[] = {__VA_ARGS__, NULL}
 
-#define np_array(_array) &PyArray_Type, &(_array)
+#define np_array(__array) &PyArray_Type, &((__array)._array)
 
 #define parse_varargs(format, ...) \
 do {\
@@ -275,7 +343,6 @@ do {\
                                      __VA_ARGS__))\
         return NULL;\
 } while(0)
-
 
 
 /********************************

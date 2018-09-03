@@ -54,6 +54,4 @@ typedef const double cdouble;
  * IO macros *
  *************/
 
-#define _log cerr << "File: " __FILE__ << " line: " __LINE__ << endl;
-
 #endif

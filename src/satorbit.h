@@ -17,58 +17,29 @@
 #ifndef SATORBIT_H
 #define SATORBIT_H
 
-#include "utils.hpp"
+#include "utils.h"
 
 /***********
  * Structs *
  ***********/
 
 // structure for storing fitted orbit polynom coefficients
-struct orbit_fit {
+typedef struct orbit_fit_t {
     double mean_t, start_t, stop_t;
     double *mean_coords, *coeffs;
     uint is_centered, deg;
-    
-    orbit_fit() {};
-    
-    orbit_fit(double _mean_t, double _start_t, double _stop_t,
-              double * _mean_coords, double * _coeffs, uint _is_centered,
-              uint _deg)
-    {
-        mean_t = _mean_t;
-        start_t = _start_t;
-        stop_t = _stop_t;
-        
-        mean_coords = _mean_coords;
-        coeffs = _coeffs;
-        
-        is_centered = _is_centered;
-        deg = _deg;
-    }
-};
+} orbit_fit;
 
 // cartesian coordinate
-struct cart {
+typedef struct cart_t {
     double x, y, z;
-    
-    cart() {};
-    
-    cart(double _x, double _y, double _z)
-    {
-        x = _x;
-        y = _y;
-        z = _z;
-    }
-};
+} cart;
 
-void ell_cart (cdouble lon, cdouble lat, cdouble h,
-               double& x, double& y, double& z);
+void ell_cart (cdouble, cdouble, cdouble, double *, double *, double *);
 
-void cart_ell(cdouble x, cdouble y, cdouble z,
-              double& lon, double& lat, double& h);
+void cart_ell(cdouble, cdouble, cdouble, double *, double *, double *);
 
-void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
-                  cdouble Z, cdouble lon, cdouble lat,
-                  cuint max_iter, double& azi, double& inc);
+void calc_azi_inc(const orbit_fit *, cdouble, cdouble, cdouble, cdouble,
+                  cdouble, cdouble, cuint, double *, double *);
 
 #endif

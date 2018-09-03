@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from numpy.distutils.core import Extension, setup
-#from numpy.f2py import compile
 
 from os.path import join, isfile
 from os import remove
@@ -23,13 +22,11 @@ from glob import iglob
 
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
 #flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-flags = ["-std=c++98"]
+flags = ["-std=c99", "-Wno-strict-prototypes"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
-#          ("F2PY_REPORT_ATEXIT", None)]
-#libs=["stdc++"]
 
 ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp", "satorbit.cpp"],
+    Extension(name="inmet_aux", sources=["inmet_auxmodule.c"],
               define_macros=macros, extra_compile_args=flags)
 ]
 

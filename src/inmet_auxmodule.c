@@ -1,7 +1,6 @@
-
-#include "capi_functions.hpp"
-#include "utils.hpp"
-#include "satorbit.hpp"
+#include "capi_functions.h"
+#include "utils.h"
+//#include "satorbit.h"
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
@@ -10,21 +9,26 @@ pydoc(test, "test");
 
 static py_ptr test(py_varargs)
 {
-    array1d arr;
+    ar_double array;
     
-    parse_varargs("O!", np_array(arr));
+    parse_varargs("O!", np_array(array));
     
-    if(arr.import())
-        return NULL;
+    ar_import(array, 1);
     
-    FOR(ii, 0, arr.rows()) {
-        FOR(jj, 0, arr.cols())
-            print("%lf ", arr(ii,jj));
-        prints("\n");
-    }
-    
+    FOR(ii, 0, ar_rows(array))
+        print("%lf ", ar_elem1(array, ii));
+
+    prints("\n");
+
+    ar_free(array);
     Py_RETURN_NONE;
+
+fail:
+    ar_xfree(array);
+    return NULL;
 }
+
+#if 0
 
 pydoc(azi_inc, "azi_inc");
 
@@ -89,9 +93,10 @@ static py_ptr azi_inc(py_varargs)
     Py_RETURN_NONE;
 } // azi_inc
 
+#endif
 
 init_methods(inmet_aux,
-             pymeth_varargs(test),
-             pymeth_varargs(azi_inc))
+             pymeth_varargs(test))
+             //pymeth_varargs(azi_inc))
              
 init_module(inmet_aux, "inmet_aux", 0.1)

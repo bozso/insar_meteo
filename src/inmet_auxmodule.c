@@ -14,7 +14,8 @@ static py_ptr test(py_varargs)
     
     parse_varargs("O!", np_array(array));
     
-    ar_import(array, 1);
+    if (ar_import(array, 2))
+        goto fail;
     
     FOR(ii, 0, ar_rows(array))
         print("%lf ", ar_elem1(array, ii));
@@ -42,10 +43,9 @@ static py_ptr azi_inc(py_varargs)
                   &deg, np_array(mean_coords), np_array(mean_coords),
                   np_array(coords), np_array(azi_inc), &is_lonlat, &max_iter);
     
-    ar_import(mean_coords, 1);
-    ar_import(coeffs, 2);
-    ar_import(coords, 2);
-    ar_import(azi_inc, 2);
+    if (ar_import(mean_coords, 1) or ar_import(coeffs, 2) or
+        ar_import(coords, 2) or ar_import(azi_inc, 2))
+        goto fail;
     
     // Set up orbit polynomial structure
     orbit_fit orb = {mean_t, start_t, stop_t, mean_coords.data,
@@ -100,8 +100,10 @@ fail:
     return NULL;
 } // azi_inc
 
-init_methods(inmet_aux,
+#define mod_name inmet_aux
+
+init_methods(mod_name,
              pymeth_varargs(test),
              pymeth_varargs(azi_inc))
              
-init_module(inmet_aux, "inmet_aux", 0.1)
+init_module(mod_name, "inmet_aux", 0.1)

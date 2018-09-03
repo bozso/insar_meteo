@@ -49,8 +49,9 @@ typedef struct ar_bool_t {
 } ar_bool;
 
 
-static int _ar_setup(ar_dsc, edim, _array)
+static int _ar_setup(ar_dsc, data, edim, _array)
     array_descr * ar_dsc;
+    void **data;
     unsigned int edim;
     PyArrayObject * _array;
 {
@@ -61,8 +62,13 @@ static int _ar_setup(ar_dsc, edim, _array)
 
     unsigned int _ndim = (unsigned int) PyArray_NDIM(_array);
     
-    if (_ndim != edim)
+    if (_ndim != edim) {
+        pyexc(PyExc_TypeError, "numpy array expected to be %u "
+                               "dimensional but we got %u dimensional "
+                               "array!", edim, _ndim);
+
         return 1;
+    }
     
     ar_dsc->ndim = _ndim;
     
@@ -83,19 +89,17 @@ static int _ar_setup(ar_dsc, edim, _array)
     
     ar_dsc->np_array = _array;
     
+    *data = PyArray_DATA(_array);
+    
     return 0;
 }
 
 #define ar_setup(ar_struct, np_ptr, edim)\
-do {\
-    if (_ar_setup( &((ar_struct)._array), (edim), (np_ptr)))\
-        goto fail;\
-    (ar_struct).data = PyArray_DATA((np_ptr));\
-    \
-} while(0)
+        _ar_setup(&((ar_struct)._array), (void **) &((ar_struct).data), (edim), (np_ptr))
 
-static int _ar_import(ar_dsc, edim)
+static int _ar_import(ar_dsc, data, edim)
     array_descr * ar_dsc;
+    void **data;
     unsigned int edim;
 {
     ar_dsc->shape = NULL;
@@ -106,8 +110,13 @@ static int _ar_import(ar_dsc, edim)
     
     unsigned int _ndim = (unsigned int) PyArray_NDIM(_array);
     
-    if (_ndim != edim)
+    if (_ndim != edim) {
+        pyexc(PyExc_TypeError, "numpy array expected to be %u "
+                               "dimensional but we got %u dimensional "
+                               "array!", edim, _ndim);
+
         return 1;
+    }
     
     ar_dsc->ndim = _ndim;
     
@@ -125,17 +134,14 @@ static int _ar_import(ar_dsc, edim)
     
     for(ii = 0; ii < _ndim; ++ii)
         ar_dsc->strides[ii] = (unsigned int) ((double) _strides[ii] / elemsize);
+
+    *data = PyArray_DATA(_array);
     
     return 0;
 }
 
 #define ar_import(ar_struct, edim)\
-do {\
-    if (_ar_import(&((ar_struct)._array), (edim)))\
-        goto fail;\
-    (ar_struct).data = PyArray_DATA((ar_struct)._array.np_array);\
-    \
-} while(0)
+        _ar_import(&((ar_struct)._array), (void **) &((ar_struct).data), (edim))
 
 void _ar_free(ar_dsc)
     array_descr * ar_dsc;
@@ -245,6 +251,13 @@ do {\
  * Module initialization macros *
  ********************************/
 
+#define init_methods(module_name, ...)\
+static PyMethodDef CONCAT(module_name, _methods)[] = {\
+    __VA_ARGS__,\
+    {NULL, NULL, 0, NULL}\
+};
+
+
 // Python 3
 #if PY_VERSION_HEX >= 0x03000000
 
@@ -263,12 +276,9 @@ do {\
 
 #define PyNumber_Int PyNumber_Long
 
-#define init_methods(module_name, ...)\
-static PyMethodDef CONCAT(module_name, _methods)[] = {\
-    __VA_ARGS__,\
-    {NULL, NULL, 0, NULL} /* Sentinel */\
-};\
-\
+#define RETVAL m
+
+#define init_module(module_name, module_doc, version)\
 static struct PyModuleDef CONCAT(module_name, _moduledef) = {\
     PyModuleDef_HEAD_INIT,\
     QUOTE(module_name),\
@@ -279,11 +289,8 @@ static struct PyModuleDef CONCAT(module_name, _moduledef) = {\
     NULL,\
     NULL,\
     NULL\
-};
-
-#define RETVAL m
-
-#define init_module(module_name, module_doc, version)\
+};\
+\
 static PyObject * CONCAT(module_name, _error);\
 static PyObject * CONCAT(module_name, _module);\
 PyMODINIT_FUNC CONCAT(PyInit_, module_name)(void) {\
@@ -322,17 +329,11 @@ PyMODINIT_FUNC CONCAT(PyInit_, module_name)(void) {\
 
 #define PyUString_FromStringAndSize PyString_FromStringAndSize
 
-#define init_methods(module_name, ...)\
-static PyMethodDef CONCAT(module_name, _methods)[] = {\
-    __VA_ARGS__,\
-    {NULL, NULL, 0, NULL} /* Sentinel */\
-};
-
 #define RETVAL
 
 #define init_module(module_name, module_doc, version)\
-static PyObject * CONCAT(module_name, _error)\
-static PyObject * CONCAT(module_name, _module)\
+static PyObject * CONCAT(module_name, _error);\
+static PyObject * CONCAT(module_name, _module);\
 PyMODINIT_FUNC CONCAT(init, module_name)(void) {\
     PyObject *m,*d, *s;\
     \

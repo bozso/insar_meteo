@@ -71,4 +71,4 @@ void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
                   cdouble Z, cdouble lon, cdouble lat,
                   cuint max_iter, double& azi, double& inc);
 
-#endif
+#endif // SATORBIT_HPP

@@ -49,7 +49,7 @@ typedef struct ar_bool_t {
 } ar_bool;
 
 
-static int _ar_setup(ar_dsc, data, edim, _array)
+static int _ar_import_from_np(ar_dsc, data, edim, _array)
     array_descr * ar_dsc;
     void **data;
     unsigned int edim;
@@ -94,8 +94,9 @@ static int _ar_setup(ar_dsc, data, edim, _array)
     return 0;
 }
 
-#define ar_setup(ar_struct, np_ptr, edim)\
-        _ar_setup(&((ar_struct)._array), (void **) &((ar_struct).data), (edim), (np_ptr))
+#define ar_import_from_np(ar_struct, np_ptr, edim)\
+        _ar_import_from_np(&((ar_struct)._array), (void **)\
+                           &((ar_struct).data), (edim), (np_ptr))
 
 static int _ar_import(ar_dsc, data, edim)
     array_descr * ar_dsc;
@@ -110,7 +111,7 @@ static int _ar_import(ar_dsc, data, edim)
     
     unsigned int _ndim = (unsigned int) PyArray_NDIM(_array);
     
-    if (_ndim != edim) {
+    if (edim > 0 and _ndim != edim) {
         pyexc(PyExc_TypeError, "numpy array expected to be %u "
                                "dimensional but we got %u dimensional "
                                "array!", edim, _ndim);
@@ -140,8 +141,11 @@ static int _ar_import(ar_dsc, data, edim)
     return 0;
 }
 
-#define ar_import(ar_struct, edim)\
+#define ar_import_check(ar_struct, edim)\
         _ar_import(&((ar_struct)._array), (void **) &((ar_struct).data), (edim))
+
+#define ar_import(ar_struct)\
+        _ar_import(&((ar_struct)._array), (void **) &((ar_struct).data), 0)
 
 void _ar_free(ar_dsc)
     array_descr * ar_dsc;

@@ -25,8 +25,8 @@ def compile_project(c_file, *adds, macros=None, flags=None, inc_dirs=None,
     sources.extend(adds)
     
     ccomp = new_compiler()
-    obj = [ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,
-                         macros=macros)[0] for source in sources]
+    obj = (ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,
+                         macros=macros)[0] for source in sources)
     
     ccomp.link_executable(obj, join(outdir, c_basename), libraries=libs,
                           library_dirs=lib_dirs, extra_postargs=flags)
@@ -35,7 +35,7 @@ def compile_project(c_file, *adds, macros=None, flags=None, inc_dirs=None,
 def compile_exe(obj, *objects, macros=None, flags=None, inc_dirs=None,
                 lib_dirs=None, libs=None, outdir="."):
     
-    objs = [obj]
+    objs = (obj)
     objs.extend(objects)
     
     ccomp = new_compiler()
@@ -44,9 +44,9 @@ def compile_exe(obj, *objects, macros=None, flags=None, inc_dirs=None,
                           library_dirs=lib_dirs, extra_postargs=flags)
 
 
-def compile_object(*sources, macros=None, flags=None, inc_dirs=None):
+def compile_objects(*sources, macros=None, flags=None, inc_dirs=None):
     
     ccomp = new_compiler()
     
-    return [ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,
-                          macros=macros)[0] for source in sources]
+    return (ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,
+                          macros=macros)[0] for source in sources)

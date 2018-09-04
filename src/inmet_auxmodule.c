@@ -14,7 +14,7 @@ static py_ptr test(py_varargs)
     
     parse_varargs("O!", np_array(array));
     
-    if (ar_import(array, 2))
+    if (ar_import_check(array, 2))
         goto fail;
     
     FOR(ii, 0, ar_rows(array))
@@ -43,8 +43,8 @@ static py_ptr azi_inc(py_varargs)
                   &deg, np_array(mean_coords), np_array(mean_coords),
                   np_array(coords), np_array(azi_inc), &is_lonlat, &max_iter);
     
-    if (ar_import(mean_coords, 1) or ar_import(coeffs, 2) or
-        ar_import(coords, 2) or ar_import(azi_inc, 2))
+    if (ar_import_check(mean_coords, 1) or ar_import_check(coeffs, 2) or
+        ar_import_check(coords, 2) or ar_import_check(azi_inc, 2))
         goto fail;
     
     // Set up orbit polynomial structure
@@ -66,7 +66,7 @@ static py_ptr azi_inc(py_varargs)
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, &X, &Y, &Z);
             
-            calc_azi_inc(&orb, X, Y, Z, lon, lat, h, max_iter,
+            calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter,
                          ar_ptr2(azi_inc, ii, 0), ar_ptr2(azi_inc, ii, 1));
             
         } // for
@@ -81,7 +81,7 @@ static py_ptr azi_inc(py_varargs)
             // calulate surface WGS-84 geodetic coordinates
             cart_ell(X, Y, Z, &lon, &lat, &h);
         
-            calc_azi_inc(&orb, X, Y, Z, lon, lat, h, max_iter,
+            calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter,
                          ar_ptr2(azi_inc, ii, 0), ar_ptr2(azi_inc, ii, 1));
         } // for
     } // else

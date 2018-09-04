@@ -228,9 +228,9 @@ void cart_ell(x, y, z, lon, lat, h)
 } // cart_ell
 
 
-void calc_azi_inc(orb, X, Y, Z, lon, lat, h, max_iter, azi, inc)
+void calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter, azi, inc)
     const orbit_fit * orb;
-    cdouble X, Y, Z, lon, lat, h;
+    cdouble X, Y, Z, lon, lat;
     cuint max_iter;
     double *azi, *inc;
 {

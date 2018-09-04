@@ -35,11 +35,14 @@ typedef struct cart_t {
     double x, y, z;
 } cart;
 
-void ell_cart (cdouble, cdouble, cdouble, double *, double *, double *);
+void ell_cart(cdouble lon, cdouble lat, cdouble h,
+              double *x, double *y, double *z);
 
-void cart_ell(cdouble, cdouble, cdouble, double *, double *, double *);
+void cart_ell(cdouble x, cdouble y, cdouble z,
+              double *lon, double *lat, double *h;);
 
-void calc_azi_inc(const orbit_fit *, cdouble, cdouble, cdouble, cdouble,
-                  cdouble, cdouble, cuint, double *, double *);
+void calc_azi_inc(const orbit_fit * orb, cdouble X, cdouble Y, cdouble Z,
+                  cdouble lon, cdouble lat, cuint max_iter,
+                  double *azi, double *inc);
 
 #endif

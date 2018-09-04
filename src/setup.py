@@ -22,11 +22,11 @@ from glob import iglob
 
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
 #flags = ["-std=c99", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-flags = ["-std=c99", "-Wno-strict-prototypes"]
+flags = ["-std=c++98"]
 macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
 ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.c", "satorbit.c"],
+    Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp"],
               define_macros=macros, extra_compile_args=flags)
 ]
 

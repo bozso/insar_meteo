@@ -1,34 +1,41 @@
-#include <iso646.h>
-#include "capi_functions.h"
-#include "utils.h"
-#include "satorbit.h"
+#include "capi_functions.hpp"
+#include "utils.hpp"
+//#include "satorbit.hpp"
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
+
+typedef array<npy_double, 3> array3d;
+typedef array<npy_double, 2> array2d;
+typedef array<npy_double, 1> array1d;
+
+typedef array<npy_int, 3> array3i;
+typedef array<npy_int, 2> array2i;
+typedef array<npy_int, 1> array1i;
+
+typedef arraynd<npy_double> arrayd;
+typedef arraynd<npy_int> arrayi;
 
 pydoc(test, "test");
 
 static py_ptr test(py_varargs)
 {
-    ar_double array;
+    array1d arr;
     
-    parse_varargs("O!", np_array(array));
+    parse_varargs("O!", np_array(arr));
     
-    if (ar_import_check(array, 2))
-        goto fail;
+    if (arr.import())
+        return NULL;
     
-    FOR(ii, 0, ar_rows(array))
-        print("%lf ", ar_elem1(array, ii));
+    FOR(ii, 0, arr.rows())
+        print("%lf ", arr(ii));
 
     prints("\n");
 
-    ar_free(array);
     Py_RETURN_NONE;
-
-fail:
-    ar_xfree(array);
-    return NULL;
 }
+
+#if 0
 
 pydoc(azi_inc, "azi_inc");
 
@@ -100,10 +107,10 @@ fail:
     return NULL;
 } // azi_inc
 
-#define mod_name inmet_aux
+#endif 
 
-init_methods(mod_name,
-             pymeth_varargs(test),
-             pymeth_varargs(azi_inc))
+init_methods(inmet_aux,
+             pymeth_varargs(test))
+             //pymeth_varargs(azi_inc))
              
-init_module(mod_name, "inmet_aux", 0.1)
+init_module(inmet_aux, "inmet_aux", 0.1)

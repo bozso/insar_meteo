@@ -5,16 +5,10 @@
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
 
-typedef array<npy_double, 3> array3d;
 typedef array<npy_double, 2> array2d;
 typedef array<npy_double, 1> array1d;
 
-typedef array<npy_int, 3> array3i;
-typedef array<npy_int, 2> array2i;
-typedef array<npy_int, 1> array1i;
-
-typedef arraynd<npy_double> arrayd;
-typedef arraynd<npy_int> arrayi;
+typedef array<npy_bool, 1> array1b;
 
 pydoc(test, "test");
 

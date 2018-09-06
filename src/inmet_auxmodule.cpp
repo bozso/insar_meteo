@@ -24,7 +24,7 @@ static py_ptr test(py_varargs)
     
     parse_varargs("O!", np_array(arr));
     
-    if (arr.import())
+    if (import(arr))
         return NULL;
     
     FOR(ii, 0, arr.rows())
@@ -49,8 +49,8 @@ static py_ptr azi_inc(py_varargs)
                   &deg, np_array(mean_coords), np_array(mean_coords),
                   np_array(coords), np_array(azi_inc), &is_lonlat, &max_iter);
     
-    if (mean_coords.import() or coeffs.import() or
-        coords.import() or azi_inc.import())
+    if (import(mean_coords) or import(coeffs) or
+        import(coords) or import(azi_inc))
         return NULL;
     
     // Set up orbit polynomial structure

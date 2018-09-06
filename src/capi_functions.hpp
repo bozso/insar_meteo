@@ -63,67 +63,6 @@ struct array {
         data = _data;
     }
 
-    int import(PyArrayObject *__array)
-    {
-        int _ndim = static_cast<unsigned int>(PyArray_NDIM(__array));
-        
-        if (ndim != _ndim) {
-            pyexc(PyExc_TypeError, "numpy array expected to be %u "
-                                   "dimensional but we got %u dimensional "
-                                   "array!", ndim, _ndim);
-            return 1;
-            
-        }
-        npy_intp * _shape = PyArray_DIMS(__array);
-
-        for(unsigned int ii = 0; ii < ndim; ++ii)
-            shape[ii] = static_cast<unsigned int>(_shape[ii]);
-
-        int elemsize = int(PyArray_ITEMSIZE(__array));
-        
-        npy_intp * _strides = PyArray_STRIDES(__array);
-        
-        for(unsigned int ii = 0; ii < ndim; ++ii)
-            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
-                                                    / elemsize);
-        
-        data = static_cast<T*>(PyArray_DATA(__array));
-        
-        _array = __array;
-        
-        return 0;
-    }
-
-    int import()
-    {
-        int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
-        
-        if (ndim != _ndim) {
-            pyexc(PyExc_TypeError, "numpy array expected to be %u "
-                                   "dimensional but we got %u dimensional "
-                                   "array!", ndim, _ndim);
-            return 1;
-            
-        }
-        
-        npy_intp * _shape = PyArray_DIMS(_array);
-
-        for(unsigned int ii = 0; ii < ndim; ++ii)
-            shape[ii] = static_cast<unsigned int>(_shape[ii]);
-
-        int elemsize = int(PyArray_ITEMSIZE(_array));
-        
-        npy_intp * _strides = PyArray_STRIDES(_array);
-        
-        for(unsigned int ii = 0; ii < ndim; ++ii)
-            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
-                                                    / elemsize);
-        
-        data = static_cast<T*>(PyArray_DATA(_array));
-        
-        return 0;
-    }
-    
     const PyArrayObject * get_array()
     {
         return _array;
@@ -172,6 +111,71 @@ struct array {
     }
 };
 
+template<typename T, unsigned int ndim>
+static int import(array<T,ndim>& arr, PyArrayObject *_array)
+{
+    int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+    
+    if (ndim != _ndim) {
+        pyexc(PyExc_TypeError, "numpy array expected to be %u "
+                               "dimensional but we got %u dimensional "
+                               "array!", ndim, _ndim);
+        return 1;
+        
+    }
+    npy_intp * _shape = PyArray_DIMS(_array);
+
+    for(unsigned int ii = 0; ii < ndim; ++ii)
+        arr.shape[ii] = static_cast<unsigned int>(_shape[ii]);
+
+    int elemsize = int(PyArray_ITEMSIZE(_array));
+    
+    npy_intp * _strides = PyArray_STRIDES(_array);
+    
+    for(unsigned int ii = 0; ii < ndim; ++ii)
+        arr.strides[ii] = static_cast<unsigned int>(double(_strides[ii])
+                                                    / elemsize);
+    
+    arr.data = static_cast<T*>(PyArray_DATA(_array));
+    
+    arr._array = _array;
+    
+    return 0;
+}
+
+template<typename T, unsigned int ndim>
+static int import(array<T,ndim>& arr)
+{
+    PyArrayObject * _array = arr._array;
+    int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+    
+    if (ndim != _ndim) {
+        pyexc(PyExc_TypeError, "numpy array expected to be %u "
+                               "dimensional but we got %u dimensional "
+                               "array!", ndim, _ndim);
+        return 1;
+        
+    }
+    
+    npy_intp * _shape = PyArray_DIMS(_array);
+
+    for(unsigned int ii = 0; ii < ndim; ++ii)
+        arr.shape[ii] = static_cast<unsigned int>(_shape[ii]);
+
+    int elemsize = int(PyArray_ITEMSIZE(_array));
+    
+    npy_intp * _strides = PyArray_STRIDES(_array);
+    
+    for(unsigned int ii = 0; ii < ndim; ++ii)
+        arr.strides[ii] = static_cast<unsigned int>(double(_strides[ii])
+                                                    / elemsize);
+    
+    arr.data = static_cast<T*>(PyArray_DATA(_array));
+    
+    return 0;
+}
+
+
 template<typename T>
 struct arraynd {
     unsigned int *strides;
@@ -186,54 +190,6 @@ struct arraynd {
         data = NULL;
         _array = NULL;
     };
-    
-    int import(PyArrayObject * __array) {
-        unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(__array));
-        shape = PyArray_DIMS(__array);
-        
-        int elemsize = int(PyArray_ITEMSIZE(__array));
-        
-        if ((strides = PyMem_New(unsigned int, ndim)) == NULL) {
-            pyexcs(PyExc_MemoryError, "Failed to allocate memory for array "
-                                      "strides!");
-            return 1;
-        }
-        
-        npy_intp * _strides = PyArray_STRIDES(__array);
-        
-        for(unsigned int ii = 0; ii < ndim; ++ii)
-            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
-                                                    / elemsize);
-        
-        data = static_cast<T*>(PyArray_DATA(__array));
-        
-        _array = __array;
-        
-        return 0;
-    }
-
-    int import() {
-        unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
-        shape = PyArray_DIMS(_array);
-        
-        int elemsize = int(PyArray_ITEMSIZE(_array));
-        
-        if ((strides = PyMem_New(unsigned int, ndim)) == NULL) {
-            pyexcs(PyExc_MemoryError, "Failed to allocate memory for array "
-                                      "strides!");
-            return 1;
-        }
-        
-        npy_intp * _strides = PyArray_STRIDES(_array);
-        
-        for(unsigned int ii = 0; ii < ndim; ++ii)
-            strides[ii] = static_cast<unsigned int>(  double(_strides[ii])
-                                                    / elemsize);
-        
-        data = static_cast<T*>(PyArray_DATA(_array));
-        
-        return 0;
-    }
     
     ~arraynd()
     {
@@ -291,6 +247,58 @@ struct arraynd {
     }
 };
 
+template<typename T>
+static int import(arraynd<T>& arr, PyArrayObject * _array) {
+    unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+    arr.shape = PyArray_DIMS(_array);
+    
+    int elemsize = int(PyArray_ITEMSIZE(_array));
+    
+    if ((arr.strides = PyMem_New(unsigned int, ndim)) == NULL) {
+        pyexcs(PyExc_MemoryError, "Failed to allocate memory for array "
+                                  "strides!");
+        return 1;
+    }
+    
+    npy_intp * _strides = PyArray_STRIDES(_array);
+    
+    for(unsigned int ii = 0; ii < ndim; ++ii)
+        arr.strides[ii] = static_cast<unsigned int>(double(_strides[ii])
+                                                    / elemsize);
+    
+    arr.data = static_cast<T*>(PyArray_DATA(_array));
+    
+    arr._array = _array;
+    
+    return 0;
+}
+
+template<typename T>
+static int import(arraynd<T>& arr) {
+    
+    PyArrayObject *_array = arr._array;
+    
+    unsigned int ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+    arr.shape = PyArray_DIMS(_array);
+    
+    int elemsize = int(PyArray_ITEMSIZE(_array));
+    
+    if ((arr.strides = PyMem_New(unsigned int, ndim)) == NULL) {
+        pyexcs(PyExc_MemoryError, "Failed to allocate memory for array "
+                                  "strides!");
+        return 1;
+    }
+    
+    npy_intp * _strides = PyArray_STRIDES(_array);
+    
+    for(unsigned int ii = 0; ii < ndim; ++ii)
+        arr.strides[ii] = static_cast<unsigned int>(double(_strides[ii])
+                                                    / elemsize);
+    
+    arr.data = static_cast<T*>(PyArray_DATA(_array));
+    
+    return 0;
+}
 
 /******************************
  * Function definition macros *

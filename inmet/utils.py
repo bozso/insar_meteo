@@ -56,6 +56,7 @@ def cmd(Cmd, *args, debug=False):
     
     if debug:
         print(Cmd)
+        return None
     
     try:
         cmd_out = check_output(split(Cmd), stderr=sub.STDOUT)

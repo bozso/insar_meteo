@@ -16,7 +16,7 @@ static py_ptr test(py_varargs)
 {
     array1d arr;
     
-    parse_varargs("O!", np_array(arr));
+    parse_varargs("O", array_type(arr));
     
     if (import(arr))
         return NULL;
@@ -29,6 +29,8 @@ static py_ptr test(py_varargs)
     Py_RETURN_NONE;
 }
 
+#if 0
+
 pydoc(azi_inc, "azi_inc");
 
 static py_ptr azi_inc(py_varargs)
@@ -39,9 +41,9 @@ static py_ptr azi_inc(py_varargs)
     array1d mean_coords;
     array2d coeffs, coords, azi_inc;
     
-    parse_varargs("dddIIO!O!O!O!II", &mean_t, &start_t, &stop_t, &is_centered,
-                  &deg, np_array(mean_coords), np_array(mean_coords),
-                  np_array(coords), np_array(azi_inc), &is_lonlat, &max_iter);
+    parse_varargs("dddIIOOOOII", &mean_t, &start_t, &stop_t, &is_centered,
+                  &deg, array_type(mean_coords), array_type(mean_coords),
+                  array_type(coords), array_type(azi_inc), &is_lonlat, &max_iter);
     
     if (import(mean_coords) or import(coeffs) or
         import(coords) or import(azi_inc))
@@ -89,8 +91,133 @@ static py_ptr azi_inc(py_varargs)
     Py_RETURN_NONE;
 } // azi_inc
 
-init_methods(inmet_aux,
-             pymeth_varargs(test),
-             pymeth_varargs(azi_inc))
-             
-init_module(inmet_aux, "inmet_aux", 0.1)
+pydoc(asc_dsc_select, "asc_dsc_select");
+
+static py_ptr asc_dsc_select(py_keywords)
+{
+    keywords("array1", "array2", "max_sep");
+    
+    array2d arr1, arr2;
+    array1b idx;
+    double max_sep = 100.0;
+    
+    parse_keywords("OOO|d:asc_dsc_select",
+                   array_type(arr1), array_type(arr2), array_type(idx), &max_sep);
+    
+    max_sep /=  R_earth;
+    max_sep = (max_sep * RAD2DEG) * (max_sep * RAD2DEG);
+    
+    npy_double dlon, dlat;
+    uint nfound = 0;
+    
+    FOR(ii, 0, arr1.rows()) {
+        FOR(jj, 0, arr2.rows()) {
+            dlon = arr1(ii,0) - arr2(jj,0);
+            dlat = arr1(ii,1) - arr2(jj,1);
+            
+            if ((dlon * dlon + dlat * dlat) < max_sep) {
+                idx(ii) = NPY_TRUE;
+                nfound++;
+                break;
+            }
+        }
+    }
+    
+    return Py_BuildValue("I", &nfound);
+}
+
+pydoc(dominant, "dominant");
+
+static py_ptr dominant(py_keywords)
+{
+    keywords("asc_data", "dsc_data", "cluster_sep");
+    
+    array2d asc, dsc, clustered;
+    double max_sep = 100.0;
+    
+    parse_keywords("OOO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
+    
+    uint ncluster = 0, nhermite = 0;
+    
+    
+    bool *asc_selected = new bool[asc.rows()],
+         *dsc_selected = new bool[dsc.rows()];
+    
+    delete[] asc_selected;
+    delete[] dsc_selected;
+    
+    Py_BuildValue("NII", clustered.get_obj(), ncluster, nhermite);
+}
+
+#endif
+
+#define version "0.0.1"
+#define module_name "inmet_aux"
+static const char* module_doc = "inmet_aux";
+
+
+static PyObject * module_error;
+static PyObject * module;
+
+static PyMethodDef module_methods[] = {
+    pymeth_varargs(test),
+    //pymeth_varargs(azi_inc),
+    //pymeth_keywords(asc_dsc_select),
+    //pymeth_keywords(dominant),
+    {NULL, NULL, 0, NULL}
+};
+
+#if PY_VERSION_HEX >= 0x03000000
+static struct PyModuleDef module_def = {
+    PyModuleDef_HEAD_INIT,
+    module_name,
+    NULL,
+    -1,
+    module_methods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+#endif
+
+#if PY_VERSION_HEX >= 0x03000000
+#define RETVAL m
+PyMODINIT_FUNC CONCAT(PyInit_, inmet_aux)(void) {
+#else
+#define RETVAL
+PyMODINIT_FUNC CONCAT(init, inmet_aux)(void) {
+#endif
+    PyObject *m, *d, *s;
+#if PY_VERSION_HEX >= 0x03000000
+    m = module = PyModule_Create(&module_def);
+#else
+    m = module = Py_InitModule(module_name, module_methods);
+#endif
+    import_array();
+    
+    if (PyErr_Occurred()) {
+        PyErr_SetString(PyExc_ImportError, "can't initialize module"
+                        module_name "(failed to import numpy)");
+        return RETVAL;
+    }
+    d = PyModule_GetDict(m);
+    s = PyString_FromString("$Revision: $");
+    
+    PyDict_SetItemString(d, "__version__", s);
+
+#if PY_VERSION_HEX >= 0x03000000
+    s = PyUnicode_FromString(
+#else
+    s = PyString_FromString(
+#endif
+    module_doc);
+  
+    PyDict_SetItemString(d, "__doc__", s);
+
+    module_error = PyErr_NewException(module_name ".error", NULL, NULL);
+
+    Py_DECREF(s);
+
+    return RETVAL;
+}

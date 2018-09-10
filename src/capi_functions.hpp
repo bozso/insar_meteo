@@ -75,12 +75,12 @@ struct array {
         data = _data;
     }
 
-    const PyArrayObject * get_array()
+    PyArrayObject * get_array()
     {
         return _array;
     }
 
-    const PyObject * get_obj()
+    PyObject * get_obj()
     {
         return _obj;
     }

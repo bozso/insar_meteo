@@ -29,8 +29,6 @@ static py_ptr test(py_varargs)
     Py_RETURN_NONE;
 }
 
-#if 0
-
 pydoc(azi_inc, "azi_inc");
 
 static py_ptr azi_inc(py_varargs)
@@ -41,12 +39,16 @@ static py_ptr azi_inc(py_varargs)
     array1d mean_coords;
     array2d coeffs, coords, azi_inc;
     
-    parse_varargs("dddIIOOOOII", &mean_t, &start_t, &stop_t, &is_centered,
+    parse_varargs("dddIIOOOII", &mean_t, &start_t, &stop_t, &is_centered,
                   &deg, array_type(mean_coords), array_type(mean_coords),
-                  array_type(coords), array_type(azi_inc), &is_lonlat, &max_iter);
+                  array_type(coords), &is_lonlat, &max_iter);
     
-    if (import(mean_coords) or import(coeffs) or
-        import(coords) or import(azi_inc))
+    if (import(mean_coords) or import(coeffs) or import(coords))
+        return NULL;
+    
+    npy_intp azi_inc_shape[2] = {(npy_intp) coords.rows(), 2};
+    
+    if (empty(azi_inc, azi_inc_shape))
         return NULL;
     
     // Set up orbit polynomial structure
@@ -86,9 +88,9 @@ static py_ptr azi_inc(py_varargs)
             calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter,
                          azi_inc(ii, 0), azi_inc(ii, 1));
         } // for
-    } // else
+    } // if
     
-    Py_RETURN_NONE;
+    return Py_BuildValue("N", azi_inc);
 } // azi_inc
 
 pydoc(asc_dsc_select, "asc_dsc_select");
@@ -101,8 +103,13 @@ static py_ptr asc_dsc_select(py_keywords)
     array1b idx;
     double max_sep = 100.0;
     
-    parse_keywords("OOO|d:asc_dsc_select",
-                   array_type(arr1), array_type(arr2), array_type(idx), &max_sep);
+    parse_keywords("OO|d:asc_dsc_select", array_type(arr1), array_type(arr2),
+                                          &max_sep);
+    
+    npy_intp idx_shape = (npy_intp) arr1.rows();
+
+    if (empty(idx, &idx_shape))
+        return NULL;
     
     max_sep /=  R_earth;
     max_sep = (max_sep * RAD2DEG) * (max_sep * RAD2DEG);
@@ -123,8 +130,8 @@ static py_ptr asc_dsc_select(py_keywords)
         }
     }
     
-    return Py_BuildValue("I", &nfound);
-}
+    return Py_BuildValue("NI", idx, nfound);
+} // asc_dsc_select
 
 pydoc(dominant, "dominant");
 
@@ -135,7 +142,7 @@ static py_ptr dominant(py_keywords)
     array2d asc, dsc, clustered;
     double max_sep = 100.0;
     
-    parse_keywords("OOO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
+    parse_keywords("OO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
     
     uint ncluster = 0, nhermite = 0;
     
@@ -146,10 +153,9 @@ static py_ptr dominant(py_keywords)
     delete[] asc_selected;
     delete[] dsc_selected;
     
-    Py_BuildValue("NII", clustered.get_obj(), ncluster, nhermite);
-}
+    return Py_BuildValue("NII", clustered.get_array(), ncluster, nhermite);
+} // dominant
 
-#endif
 
 #define version "0.0.1"
 #define module_name "inmet_aux"
@@ -161,9 +167,9 @@ static PyObject * module;
 
 static PyMethodDef module_methods[] = {
     pymeth_varargs(test),
-    //pymeth_varargs(azi_inc),
-    //pymeth_keywords(asc_dsc_select),
-    //pymeth_keywords(dominant),
+    pymeth_varargs(azi_inc),
+    pymeth_keywords(asc_dsc_select),
+    pymeth_keywords(dominant),
     {NULL, NULL, 0, NULL}
 };
 

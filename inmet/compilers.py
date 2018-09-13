@@ -25,8 +25,9 @@ def compile_project(c_file, *adds, macros=None, flags=None, inc_dirs=None,
     sources.extend(adds)
     
     ccomp = new_compiler()
-    obj = (ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,
-                         macros=macros)[0] for source in sources)
+    obj = tuple(ccomp.compile([source], extra_postargs=flags,
+                              include_dirs=inc_dirs, macros=macros)[0]
+                              for source in sources)
     
     ccomp.link_executable(obj, join(outdir, c_basename), libraries=libs,
                           library_dirs=lib_dirs, extra_postargs=flags)

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-_steps = frozenset(("data_select", "dominant", "poly_orbit", "integrate"))
+_steps = ("data_select", "dominant", "poly_orbit", "integrate")
 
 daisy__doc__  = \
 """

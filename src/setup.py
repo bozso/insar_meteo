@@ -13,32 +13,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from numpy.distutils.core import Extension, setup
+from os.path import join
 
-from os.path import join, isfile
-from os import remove
-from shutil import move
-from glob import iglob
+from inmet.compilers import compile_project
 
 #lib_dirs = ["/home/istvan/miniconda3/lib"]
 #flags = ["-std=c++98", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
 flags = ["-std=c++98"]
-macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
-
-ext_modules = [
-    Extension(name="inmet_aux", sources=["inmet_auxmodule.cpp"],
-              define_macros=macros, extra_compile_args=flags)
-]
+#macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
 
 def main():
-    setup(ext_modules=ext_modules)
-    
-    for so in iglob("*.so"):
-        dst = join("..", "inmet", so)
-        
-        if isfile(dst):
-            remove(dst)
-        move(so, dst)
+    compile_project("inmet.cpp", "satorbit.cpp", flags=flags,
+                    libs=["stdc++", "m"], outdir=join("..", "bin"))
 
 if __name__ == "__main__":
     main()

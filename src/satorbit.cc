@@ -14,8 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "satorbit.hpp"
 #include <cmath>
+
+#include "satorbit.hh"
 
 using namespace std;
 

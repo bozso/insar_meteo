@@ -14,8 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "utils.hpp"
 #include <string>
+
+#include "utils.hh"
 
 #define Modules "azi_inc, fit_orbit, eval_orbit"
 

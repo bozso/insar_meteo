@@ -16,13 +16,15 @@
 
 #include <cmath>
 #include <vector>
+#include <armadillo>
 
-#include "utils.hpp"
-#include "main_functions.hpp"
+#include "utils.hh"
+#include "main_functions.hh"
 
 #define min_arg 2
 
 using namespace std;
+using namespace arma;
 
 /************************
  * Auxilliary functions *
@@ -190,7 +192,7 @@ int fit_orbit(int argc, char **argv)
     
     FOR(ii, 0, 3)
         FOR(jj, 0, deg + 1)
-            fprintf(fit_file, "%lf ", fit(ii, jj));
+            write(fit_file, "%lf ", fit(ii, jj));
 
     //fprintf(fit_file, "\nRMS of residuals (x, y, z) [m]: (%lf, %lf, %lf)\n",
     //                  residual[0], residual[1], residual[2]);

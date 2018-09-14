@@ -17,21 +17,21 @@ from os.path import join
 
 from inmet.compilers import Compiler
 
-#lib_dirs = ["/home/istvan/miniconda3/lib"]
-#flags = ["-std=c++98", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-flags = ["-std=c++98"]
-#macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
-
 def main():
+    #lib_dirs = ["/home/istvan/miniconda3/lib"]
+    inc_dirs = ["/home/istvan/miniconda3/include"]
+    #flags = ["-std=c++98", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
+    flags = ["-std=c++98"]
+    #macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     
     comp = Compiler()
     
-    comp.add_obj("utils.cpp", flags=flags)
-    comp.add_obj("satorbit.cpp", flags=flags)
-    comp.add_obj("main_functions.cpp", flags=flags)
+    comp.add_obj("utils.cc", flags=flags)
+    comp.add_obj("satorbit.cc", flags=flags)
+    comp.add_obj("main_functions.cc", flags=flags, inc_dirs=inc_dirs)
     
-    comp.make_exe("inmet.cpp", flags=flags, outdir=join("..", "bin"),
-                  libs=["stdc++", "m"])
+    #comp.make_exe("inmet.cc", flags=flags, outdir=join("..", "bin"),
+                  #libs=["stdc++", "m"])
 
 if __name__ == "__main__":
     main()

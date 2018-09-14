@@ -67,8 +67,7 @@ struct File {
 };
 
 static bool open(File& file, const char * path, const char * mode);
-
-#define write(file, fmt, ...) fprintf((file)._file, fmt, __VA_ARGS__)
-#define read(file, fmt, ...) fscanf((file)._file, fmt, __VA_ARGS__)
+bool write(File& file, const char * fmt, ...);
+bool read(File& file, const char * fmt, ...);
 
 #endif // UTILS_HPP

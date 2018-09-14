@@ -17,7 +17,7 @@
 #ifndef SATORBIT_H
 #define SATORBIT_H
 
-#include "utils.hpp"
+#include "utils.hh"
 
 /***********
  * Structs *

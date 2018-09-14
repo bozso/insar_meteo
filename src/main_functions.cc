@@ -15,15 +15,55 @@
  */
 
 #include <cmath>
+#include <vector>
 
+#include "utils.hpp"
 #include "main_functions.hpp"
 
 #define min_arg 2
+
+using namespace std;
 
 /************************
  * Auxilliary functions *
  * **********************/
 
+struct argparse {
+    int argc;
+    char **argv;
+    const char * usage;
+    
+    argparse(int _argc, char **_argv, const char * _usage):
+        argc(_argc), argv(_argv), usage(_usage) {};
+    
+    void print_usage() const
+    {
+        error("Usage: \n%s\n", usage);
+    }
+};
+
+static bool check_narg(const argparse& ap, int req_arg)
+{
+    if (ap.argc != (req_arg + min_arg)) {
+        errorln("\n Required number of arguments is %d, current number of "
+                "arguments: %d!\n", req_arg, ap.argc - min_arg);
+        ap.print_usage();
+        return true;
+    }
+    return false;
+};
+
+template<typename T>
+static bool get_arg(const argparse& ap, const uint idx, const char * fmt,
+                    T& target)
+{
+    if (sscanf(ap.argv[1 + idx], fmt, &target) != 1) {
+        errorln("Invalid argument: %s", ap.argv[1 + idx]);
+        ap.print_usage();
+        return true;
+    }
+    return false;
+}
 
 /***********************************************
  * Main functions - calleble from command line *
@@ -31,7 +71,7 @@
 
 int fit_orbit(int argc, char **argv)
 {
-    aux_checkarg(4,
+    argparse ap(argc, argv, 
     "\n Usage: inmet fit_orbit <coords> <deg> <is_centered> <fit_file>\
      \n \
      \n coords      - (ascii, in) file with (t,x,y,z) coordinates\
@@ -40,15 +80,17 @@ int fit_orbit(int argc, char **argv)
      \n               coordinates, 0 = no centering\
      \n fit_file    - (ascii, out) contains fitted orbit polynom parameters\
      \n\n");
-
-    FILE *incoords, *fit_file;
-    uint deg = (uint) atoi(argv[3]);
-    uint is_centered = (uint) atoi(argv[4]);
-    uint idx = 0, ndata = 0;
     
-    aux_open(incoords, argv[2], "r");
+    uint deg = 0, is_centered = 0;
     
-    aux_malloc(orbits, orbit, BUFSIZE);
+    if (check_narg(ap, 4) or
+        get_arg(ap, 2, "%u", deg) or get_arg(ap, 2, "%u", is_centered))
+        return 1;
+    
+    File incoords, fit_file;
+    
+    if (open(incoords, argv[2], "r") or open(fit_file, argv[5], "w"))
+        return 1;
     
     double t_mean = 0.0,  // mean value of times
            t, x, y, z,    // temp storage variables
@@ -57,200 +99,114 @@ int fit_orbit(int argc, char **argv)
            z_mean = 0.0,
            t_min, t_max, res_tmp;
     
-    gsl_vector *tau, // vector for QR decompisition
-               *res; // vector for holding residual values
     
-    // matrices
-    gsl_matrix *design, *obs, *fit;
-    
-    // vector views of matrix columns and rows
-    gsl_vector_view fit_view;
-    
+    vector<orbit_rec> orbits;
+    uint ndata = 0;
+
     if (is_centered) {
-        while(fscanf(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
-            ndata++;
-            
+        while(read(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
             t_mean += t;
             x_mean += x;
             y_mean += y;
             z_mean += z;
             
-            orbits[idx].t = t;
-            orbits[idx].x = x;
-            orbits[idx].y = y;
-            orbits[idx].z = z;
-
-            idx++;
+            orbit_rec tmp = {t, x, y, z};
             
-            if (idx >= max_idx) {
-                aux_realloc(orbits, orbit, 2 * idx);
-                max_idx = 2 * idx - 1;
-            }
+            orbits.push_back(tmp);
         }
-
+        ndata = orbits.size();
+        
         // calculate means
-        t_mean /= (double) ndata;
+        t_mean /= double(ndata);
     
-        x_mean /= (double) ndata;
-        y_mean /= (double) ndata;
-        z_mean /= (double) ndata;
+        x_mean /= double(ndata);
+        y_mean /= double(ndata);
+        z_mean /= double(ndata);
     }
     else {
-        while(fscanf(incoords, "%lf %lf %lf %lf\n",
-                     &orbits[idx].t, &orbits[idx].x, &orbits[idx].y,
-                     &orbits[idx].z) > 0) {
-            idx++;
-            ndata++;
-            
-            if (idx >= max_idx) {
-                aux_realloc(orbits, orbit, 2 * idx);
-                max_idx = 2 * idx - 1;
-            }
+        orbit_rec tmp = {0};
+        
+        while(read(incoords, "%lf %lf %lf %lf\n",
+                     &tmp.t, &tmp.x, &tmp.y, &tmp.z) > 0) {
+            orbits.push_back(tmp);
         }
+        
+        ndata = orbits.size();
     }
     
     t_min = orbits[0].t;
+    t_max = orbits[0].t;
     
     FOR(ii, 1, ndata) {
         t = orbits[ii].t;
         
         if (t < t_min)
             t_min = t;
-    }
 
-    t_max = orbits[0].t;
-
-    FOR(ii, 1, ndata) {
-        t = orbits[ii].t;
-        
         if (t > t_max)
             t_max = t;
-    }
-    
-    if (ndata < (deg + 1)) {
-        errorln("Underdetermined system, we have less data points (%d) than\
-                 \nunknowns (%d)!", ndata, deg + 1);
-        error = err_num;
-        goto fail;
+
     }
 
-    obs = gsl_matrix_alloc(ndata, 3);
-    fit = gsl_matrix_alloc(3, deg + 1);
+    mat obs(ndata, 3);
+    mat fit(3, deg + 1);
 
-    design = gsl_matrix_alloc(ndata, deg + 1);
-    
-    tau = gsl_vector_alloc(deg + 1);
-    res = gsl_vector_alloc(ndata);
+    mat design(ndata, deg + 1);
     
     FOR(ii, 0, ndata) {
         // fill up matrix that contains coordinate values
-        Mset(obs, ii, 0, orbits[ii].x - x_mean);
-        Mset(obs, ii, 1, orbits[ii].y - y_mean);
-        Mset(obs, ii, 2, orbits[ii].z - z_mean);
+        obs(ii, 0) = orbits[ii].x - x_mean;
+        obs(ii, 1) = orbits[ii].y - y_mean;
+        obs(ii, 2) = orbits[ii].z - z_mean;
         
         t = orbits[ii].t - t_mean;
         
         // fill up design matrix
         
         // first column is ones
-        Mset(design, ii, 0, 1.0);
+        design(ii, 0) = 1.0;
         
         // second column is t values
-        Mset(design, ii, 1, t);
+        design(ii, 1) = t;
         
         // further columns contain the power of t values
         FOR(jj, 2, deg + 1)
-            *Mptr(design, ii, jj) = Mget(design, ii, jj - 1) * t;
+            design(ii, jj) = design(ii, jj - 1) * t;
     }
 
-    free(orbits); orbits = NULL;
     
-    // factorize design matrix
-    if (gsl_linalg_QR_decomp(design, tau)) {
-        error("QR decomposition failed.\n");
-        error = err_num;
-        goto fail;
-    }
-    
-    // do the fit for x, y, z
-    FOR(ii, 0, 3) {
-        fit_view = gsl_matrix_row(fit, ii);
-        gsl_vector_const_view coord = gsl_matrix_const_column(obs, ii);
-        
-        if (gsl_linalg_QR_lssolve(design, tau, &coord.vector, &fit_view.vector,
-                                  res)) {
-            error("Solving of linear system failed!\n");
-            error = err_num;
-            goto fail;
-        }
-        
-        res_tmp = 0.0;
-        
-        // calculate RMS of residual values
-        FOR(jj, 0, ndata)
-            res_tmp += Vget(res, jj) * Vget(res, jj);
-        
-        residual[ii] = sqrt(res_tmp / ndata);
-    }
-    
-    aux_open(fit_file, argv[5], "w");
-    
-    fprintf(fit_file, "centered: %u\n", is_centered);
+    write(fit_file, "centered: %u\n", is_centered);
     
     if (is_centered) {
-        fprintf(fit_file, "t_mean: %lf\n", t_mean);
-        fprintf(fit_file, "coords_mean: %lf %lf %lf\n",
+        write(fit_file, "t_mean: %lf\n", t_mean);
+        write(fit_file, "coords_mean: %lf %lf %lf\n",
                                         x_mean, y_mean, z_mean);
     }
     
-    fprintf(fit_file, "t_min: %lf\n", t_min);
-    fprintf(fit_file, "t_max: %lf\n", t_max);
-    fprintf(fit_file, "deg: %u\n", deg);
-    fprintf(fit_file, "coeffs: ");
+    write(fit_file, "t_min: %lf\n", t_min);
+    write(fit_file, "t_max: %lf\n", t_max);
+    write(fit_file, "deg: %u\n", deg);
+    write(fit_file, "coeffs: ");
     
     FOR(ii, 0, 3)
         FOR(jj, 0, deg + 1)
-            fprintf(fit_file, "%lf ", Mget(fit, ii, jj));
+            fprintf(fit_file, "%lf ", fit(ii, jj));
 
-    fprintf(fit_file, "\nRMS of residuals (x, y, z) [m]: (%lf, %lf, %lf)\n",
-                      residual[0], residual[1], residual[2]);
+    //fprintf(fit_file, "\nRMS of residuals (x, y, z) [m]: (%lf, %lf, %lf)\n",
+    //                  residual[0], residual[1], residual[2]);
     
-    fprintf(fit_file, "\n");
+    write(fit_file, "\n");
     
-    gsl_matrix_free(design);
-    gsl_matrix_free(obs);
-    gsl_matrix_free(fit);
-    
-    gsl_vector_free(tau);
-    gsl_vector_free(res);
-        
-    fclose(incoords);
-    fclose(fit_file);
-    
-    return error;
-
-fail:
-    gsl_matrix_free(design);
-    gsl_matrix_free(obs);
-    gsl_matrix_free(fit);
-    
-    gsl_vector_free(tau);
-    gsl_vector_free(res);
-    
-    aux_free(orbits);
-    
-    aux_close(incoords);
-    aux_close(fit_file);
-    
-    return error;
+    return 0;
 }
 
+#if 0
 
 int eval_orbit(int argc, char **argv)
 {
     int error = err_succes;
 
-    aux_checkarg(4,
+    checkarg(argc, 4,
     "\n Usage: inmet eval_orbit [fit_file] [steps] [multiply] [outfile]\
      \n \
      \n fit_file    - (ascii, in) contains fitted orbit polynom parameters\
@@ -303,7 +259,7 @@ int azi_inc(int argc, char **argv)
 {
     int error = err_succes;
     
-    aux_checkarg(5,
+    checkarg(argc, 5,
     "\n Usage: inmet azi_inc [fit_file] [coords] [mode] [max_iter] [outfile]\
      \n \
      \n fit_file - (ascii, in) contains fitted orbit polynom parameters\
@@ -378,7 +334,9 @@ fail:
     return error;
 }
 
-#if 1
+#endif
+
+#if 0
 
 #define SIZE 2500
 

@@ -17,31 +17,6 @@
 #ifndef MAIN_FUN_H
 #define MAIN_FUN_H
 
-/*******************************
- * WGS-84 ELLIPSOID PARAMETERS *
- *******************************/
-
-// RADIUS OF EARTH
-#define R_earth 6372000.0
-
-#define WA  6378137.0
-#define WB  6356752.3142
-
-// (WA^2 - WB^2) / WA^2
-#define E2  6.694380e-03
-
-/************************
- * DEGREES, RADIANS, PI *
- ************************/
-
-#ifndef M_PI
-#define M_PI 3.14159265358979
-#endif
-
-#define DEG2RAD 1.745329e-02
-#define RAD2DEG 5.729578e+01
-#define distance(x, y, z) sqrt((y)*(y)+(x)*(x)+(z)*(z))
-
 /***************
  * Error codes *
  ***************/
@@ -54,6 +29,8 @@ enum err_code {
     err_arg = -4
 };
 
+#if 0
+
 struct _errdsc {
     int code;
     char * message;
@@ -64,6 +41,8 @@ struct _errdsc {
     { err_num, "Numerical error encountered!" },
     { err_arg, "Command line argument error encountered!" }
 };
+
+#endif
 
 // WGS-84 surface coordinates
 struct llh { double lon, lat, h; } llh; 

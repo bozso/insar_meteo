@@ -51,3 +51,34 @@ def compile_objects(*sources, macros=None, flags=None, inc_dirs=None):
     
     return (ccomp.compile([source], extra_postargs=flags, include_dirs=inc_dirs,
                           macros=macros)[0] for source in sources)
+
+
+class Compiler(object):
+    
+    def __init__(self, **kwargs):
+        self.compiler = new_compiler(**kwargs)
+        self.objects = []
+    
+    def add_obj(self,source, macros=None, flags=None, inc_dirs=None,
+                outdir="."):
+        
+        obj = self.compiler.compile([source], extra_postargs=flags,
+                                    include_dirs=inc_dirs,
+                                    macros=macros, output_dir=outdir)[0]
+
+        self.objects.append(obj)
+        
+    def make_exe(self, source, macros=None, flags=None, inc_dirs=None,
+                 lib_dirs=None, libs=None, outdir="."):
+        
+        c_basename = basename(source).split(".")[0]
+        
+        obj = self.compiler.compile([source], extra_postargs=flags,
+                                    include_dirs=inc_dirs, macros=macros,
+                                    output_dir=outdir)[0]
+        
+        self.objects.append(obj)
+        
+        self.compiler.link_executable(self.objects, join(outdir, c_basename),
+                                      libraries=libs, library_dirs=lib_dirs,
+                                      extra_postargs=flags)

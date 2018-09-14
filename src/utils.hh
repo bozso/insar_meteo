@@ -7,6 +7,8 @@ typedef unsigned int uint;
 typedef const unsigned int cuint;
 typedef const double cdouble;
 
+#define min_arg 2
+
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
  *******************************/
@@ -46,26 +48,27 @@ typedef const double cdouble;
 #define print(string, ...) printf(string, __VA_ARGS__)
 #define println(format, ...) printf(format"\n", __VA_ARGS__)
 
-#define aux_checkarg(num, doc)\
-do {\
-    if (argc != ((num) + min_arg)) {\
-        errorln("\n Required number of arguments is %d, current number of arguments: %d!",\
-                 (num), argc - min_arg);\
-        printf((doc));\
-        return err_arg;\
-    }\
-} while(0)
+struct File {
+    FILE * _file;
+    
+    File()
+    {
+        _file = NULL;
+    }
+    
+    ~File()
+    {
+        if (_file != NULL)
+        {
+            fclose(_file);
+            _file = NULL;
+        }
+    }
+};
 
-int aux_open()
+static bool open(File& file, const char * path, const char * mode);
 
-#define aux_open(file, path, mode)\
-do {\
-    if (((file) = fopen((path), (mode))) == NULL)\
-    {\
-        errorln("FILE: %s, LINE: %d :: Failed to open file %s!", __FILE__, __LINE__, path);\
-        perror("Error");\
-        return errno;\
-    }\
-} while(0)
+#define write(file, fmt, ...) fprintf((file)._file, fmt, __VA_ARGS__)
+#define read(file, fmt, ...) fscanf((file)._file, fmt, __VA_ARGS__)
 
 #endif // UTILS_HPP

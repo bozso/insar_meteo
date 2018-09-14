@@ -13,6 +13,33 @@ bool open(File& file, const char * path, const char * mode)
     return false;
 }
 
+bool println(char * fmt, ...)
+{
+    va_list ap;
+    
+    va_start(ap, fmt);
+    vprintf(fmt, ap), puts("\n");
+    va_end(ap);
+}
+
+bool errorln(const char * fmt, ...)
+{
+    va_list ap;
+    
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap), fputs("\n", stderr);
+    va_end(ap);
+}
+
+bool error(const char * fmt, ...)
+{
+    va_list ap;
+    
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+}
+
 bool write(File& file, const char * fmt, ...)
 {
     FILE * tmp = file._file;

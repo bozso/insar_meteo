@@ -25,9 +25,9 @@ using namespace std;
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        errorln("At least one argument, the module name, is required.\
-                 \nModules to choose from: %s.", Modules);
-        printf("Use --help or -h as the first argument to print the help message.\n");
+        error("\nAt least one argument, the module name, is required.\
+                 \n\nModules to choose from: %s.\n\n", Modules);
+        error("Use --help or -h as the first argument to print the help message.\n");
         return 1;
     }
     

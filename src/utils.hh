@@ -41,12 +41,10 @@ typedef const double cdouble;
  * IO macros *
  *************/
 
-#define error(text, ...) fprintf(stderr, text, __VA_ARGS__)
-#define errors(text) fprintf(stderr, text)
-#define errorln(text, ...) fprintf(stderr, text"\n", __VA_ARGS__)
+bool error(const char * fmt, ...);
+bool errorln(const char * fmt, ...);
 
-#define print(string, ...) printf(string, __VA_ARGS__)
-#define println(format, ...) printf(format"\n", __VA_ARGS__)
+bool println(const char * fmt, ...);
 
 struct File {
     FILE * _file;
@@ -66,7 +64,7 @@ struct File {
     }
 };
 
-static bool open(File& file, const char * path, const char * mode);
+bool open(File& file, const char * path, const char * mode);
 bool write(File& file, const char * fmt, ...);
 bool read(File& file, const char * fmt, ...);
 

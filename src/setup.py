@@ -30,8 +30,8 @@ def main():
     comp.add_obj("satorbit.cc", flags=flags)
     comp.add_obj("main_functions.cc", flags=flags, inc_dirs=inc_dirs)
     
-    #comp.make_exe("inmet.cc", flags=flags, outdir=join("..", "bin"),
-                  #libs=["stdc++", "m"])
+    comp.make_exe("inmet.cc", flags=flags, outdir=join("..", "bin"),
+                  libs=["stdc++", "m"])
 
 if __name__ == "__main__":
     main()

@@ -16,15 +16,17 @@
 
 #include <cmath>
 #include <vector>
-#include <armadillo>
+#include <Eigen/Core>
+#include <Eigen/Cholesky>
 
 #include "utils.hh"
 #include "main_functions.hh"
+//#include "armadillo_bones.hh"
 
 #define min_arg 2
 
 using namespace std;
-using namespace arma;
+using namespace Eigen;
 
 /************************
  * Auxilliary functions *
@@ -150,10 +152,10 @@ int fit_orbit(int argc, char **argv)
 
     }
 
-    mat obs(ndata, 3);
-    mat fit(3, deg + 1);
+    MatrixXd obs(ndata, 3);
+    MatrixXd fit(3, deg + 1);
 
-    mat design(ndata, deg + 1);
+    MatrixXd design(ndata, deg + 1);
     
     FOR(ii, 0, ndata) {
         // fill up matrix that contains coordinate values
@@ -175,7 +177,8 @@ int fit_orbit(int argc, char **argv)
         FOR(jj, 2, deg + 1)
             design(ii, jj) = design(ii, jj - 1) * t;
     }
-
+    
+    fit = (design.transpose() * design).ldlt().solve(design.transpose() * obs);
     
     write(fit_file, "centered: %u\n", is_centered);
     

@@ -3,9 +3,17 @@
 
 #include <stdio.h>
 
+namespace utils {
+
 typedef unsigned int uint;
 typedef const unsigned int cuint;
 typedef const double cdouble;
+
+#define OK 0
+#ifndef EIO
+#define EIO 1
+#endif
+#define EARG 2
 
 #define min_arg 2
 
@@ -37,14 +45,14 @@ typedef const double cdouble;
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
-/*************
- * IO macros *
- *************/
+/****************
+ * IO functions *
+ ****************/
 
-bool error(const char * fmt, ...);
-bool errorln(const char * fmt, ...);
+void error(const char * fmt, ...);
+void errorln(const char * fmt, ...);
 
-bool println(const char * fmt, ...);
+void println(const char * fmt, ...);
 
 struct File {
     FILE * _file;
@@ -65,7 +73,16 @@ struct File {
 };
 
 bool open(File& file, const char * path, const char * mode);
-bool write(File& file, const char * fmt, ...);
-bool read(File& file, const char * fmt, ...);
+
+int fprint(File& file, const char * fmt, ...);
+int fscan(File& file, const char * fmt, ...);
+
+#define ut_check(condition)\
+do {\
+    if ((condition))\
+        goto fail;\
+} while (0)
+
+} // utils
 
 #endif // UTILS_HPP

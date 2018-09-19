@@ -19,6 +19,8 @@
 
 #include "utils.hh"
 
+using namespace utils;
+
 /***********
  * Structs *
  ***********/

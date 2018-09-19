@@ -2,6 +2,7 @@
 
 #include "utils.hh"
 
+namespace utils {
 
 bool open(File& file, const char * path, const char * mode)
 {
@@ -13,7 +14,7 @@ bool open(File& file, const char * path, const char * mode)
     return false;
 }
 
-bool println(char * fmt, ...)
+void println(char * fmt, ...)
 {
     va_list ap;
     
@@ -22,7 +23,7 @@ bool println(char * fmt, ...)
     va_end(ap);
 }
 
-bool errorln(const char * fmt, ...)
+void errorln(const char * fmt, ...)
 {
     va_list ap;
     
@@ -31,7 +32,7 @@ bool errorln(const char * fmt, ...)
     va_end(ap);
 }
 
-bool error(const char * fmt, ...)
+void error(const char * fmt, ...)
 {
     va_list ap;
     
@@ -40,35 +41,30 @@ bool error(const char * fmt, ...)
     va_end(ap);
 }
 
-bool write(File& file, const char * fmt, ...)
+int fprint(File& file, const char * fmt, ...)
 {
+    int ret = 0;
     FILE * tmp = file._file;
     va_list ap;
     
     va_start(ap, fmt);
-    vfprintf(tmp, fmt, ap);
+    ret = vfprintf(tmp, fmt, ap);
     va_end(ap);
+
+    return ret;
 }
 
-bool read(File& file, const char * fmt, ...)
+int fscan(File& file, const char * fmt, ...)
 {
+    int ret = 0;
     FILE * tmp = file._file;
     va_list ap;
     
     va_start(ap, fmt);
-    vfscanf(tmp, fmt, ap);
+    
+    ret = vfscanf(tmp, fmt, ap);
     va_end(ap);
+    return ret;
 }
 
-#if 0
-
-bool error(const char * fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
 }
-
-#endif

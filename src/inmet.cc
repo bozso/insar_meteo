@@ -21,6 +21,7 @@
 #define Modules "azi_inc, fit_orbit, eval_orbit"
 
 using namespace std;
+using namespace utils;
 
 int main(int argc, char **argv)
 {

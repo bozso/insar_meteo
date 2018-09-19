@@ -18,6 +18,30 @@ from subprocess import check_output, CalledProcessError
 from shlex import split
 import logging
 
+class Command(object):
+    def __init__(self, executable_name):
+        self.exe = executable_name
+    
+    def __call__(self, *args, debug=False):
+        Cmd = self.exe + " " + " ".join(proc_arg(arg) for arg in args)
+        
+        logger.debug("Issued command \"{}\"".format(Cmd))
+        
+        if debug:
+            print(Cmd)
+            return
+        
+        try:
+            proc = subprocess.check_output(split(Cmd), stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            logger.error("Non zero returncode from command: '{}'".format(Cmd))
+            logger.error("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
+            logger.error("RETURNCODE was: {}".format(e.returncode))
+    
+            raise e
+    
+        return proc
+
 def cmd(Cmd, *args, debug=False):
     """
     Calls a command line program. Arbitrary number of arguments can be passed

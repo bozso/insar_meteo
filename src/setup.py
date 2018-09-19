@@ -18,8 +18,8 @@ from os.path import join
 from inmet.compilers import Compiler
 
 def main():
-    #lib_dirs = ["/home/istvan/miniconda3/lib"]
-    inc_dirs = ["/home/istvan/miniconda3/include/eigen3"]
+    lib_dirs = ["/home/istvan/miniconda3/lib"]
+    inc_dirs = ["/home/istvan/miniconda3/include"]
     #flags = ["-std=c++98", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     flags = ["-std=c++98"]
     #macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
@@ -31,7 +31,7 @@ def main():
     comp.add_obj("main_functions.cc", flags=flags, inc_dirs=inc_dirs)
     
     comp.make_exe("inmet.cc", flags=flags, outdir=join("..", "bin"),
-                  libs=["stdc++", "m"])
+                  libs=["stdc++", "m", "armadillo"], lib_dirs=lib_dirs)
 
 if __name__ == "__main__":
     main()

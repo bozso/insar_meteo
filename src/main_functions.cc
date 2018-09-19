@@ -16,17 +16,19 @@
 
 #include <cmath>
 #include <vector>
-#include <Eigen/Core>
-#include <Eigen/Cholesky>
+#include <errno.h>
+#include <armadillo>
+//#include <Eigen/Core>
+//#include <Eigen/Cholesky>
 
 #include "utils.hh"
 #include "main_functions.hh"
-//#include "armadillo_bones.hh"
 
 #define min_arg 2
 
 using namespace std;
-using namespace Eigen;
+using namespace utils;
+using namespace arma;
 
 /************************
  * Auxilliary functions *
@@ -48,7 +50,12 @@ struct argparse {
 
 static bool check_narg(const argparse& ap, int req_arg)
 {
-    if (ap.argc != (req_arg + min_arg)) {
+    string first_arg(ap.argv[2]);
+    if (first_arg == "-h" or first_arg == "--help") {
+        ap.print_usage();
+        return true;
+    }
+    else if (ap.argc != (req_arg + min_arg)) {
         errorln("\n Required number of arguments is %d, current number of "
                 "arguments: %d!\n", req_arg, ap.argc - min_arg);
         ap.print_usage();
@@ -89,12 +96,12 @@ int fit_orbit(int argc, char **argv)
     
     if (check_narg(ap, 4) or
         get_arg(ap, 2, "%u", deg) or get_arg(ap, 2, "%u", is_centered))
-        return 1;
+        return EARG;
     
     File incoords, fit_file;
     
     if (open(incoords, argv[2], "r") or open(fit_file, argv[5], "w"))
-        return 1;
+        return EIO;
     
     double t_mean = 0.0,  // mean value of times
            t, x, y, z,    // temp storage variables
@@ -108,7 +115,7 @@ int fit_orbit(int argc, char **argv)
     uint ndata = 0;
 
     if (is_centered) {
-        while(read(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
+        while(fscan(incoords, "%lf %lf %lf %lf\n", &t, &x, &y, &z) > 0) {
             t_mean += t;
             x_mean += x;
             y_mean += y;
@@ -130,7 +137,7 @@ int fit_orbit(int argc, char **argv)
     else {
         orbit_rec tmp = {0};
         
-        while(read(incoords, "%lf %lf %lf %lf\n",
+        while(fscan(incoords, "%lf %lf %lf %lf\n",
                      &tmp.t, &tmp.x, &tmp.y, &tmp.z) > 0) {
             orbits.push_back(tmp);
         }
@@ -152,10 +159,10 @@ int fit_orbit(int argc, char **argv)
 
     }
 
-    MatrixXd obs(ndata, 3);
-    MatrixXd fit(3, deg + 1);
+    mat obs(ndata, 3);
+    mat fit(3, deg + 1);
 
-    MatrixXd design(ndata, deg + 1);
+    mat design(ndata, deg + 1);
     
     FOR(ii, 0, ndata) {
         // fill up matrix that contains coordinate values
@@ -178,31 +185,38 @@ int fit_orbit(int argc, char **argv)
             design(ii, jj) = design(ii, jj - 1) * t;
     }
     
-    fit = (design.transpose() * design).ldlt().solve(design.transpose() * obs);
+    fit = solve(design.t() * design, design.t() * obs);
     
-    write(fit_file, "centered: %u\n", is_centered);
+    ut_check(fprint(fit_file, "centered: %u\n", is_centered) < 0);
     
     if (is_centered) {
-        write(fit_file, "t_mean: %lf\n", t_mean);
-        write(fit_file, "coords_mean: %lf %lf %lf\n",
-                                        x_mean, y_mean, z_mean);
+        ut_check(fprint(fit_file, "t_mean: %lf\n", t_mean) < 0);
+        ut_check(fprint(fit_file, "coords_mean: %lf %lf %lf\n",
+                                             x_mean, y_mean, z_mean) < 0);
     }
     
-    write(fit_file, "t_min: %lf\n", t_min);
-    write(fit_file, "t_max: %lf\n", t_max);
-    write(fit_file, "deg: %u\n", deg);
-    write(fit_file, "coeffs: ");
+    ut_check(fprint(fit_file, "t_min: %lf\n", t_min) < 0);
+    ut_check(fprint(fit_file, "t_max: %lf\n", t_max) < 0);
+    ut_check(fprint(fit_file, "deg: %u\n", deg) < 0);
+    ut_check(fprint(fit_file, "coeffs: ") < 0);
     
     FOR(ii, 0, 3)
         FOR(jj, 0, deg + 1)
-            write(fit_file, "%lf ", fit(ii, jj));
+            ut_check(fprint(fit_file, "%lf ", fit(ii, jj)) < 0);
 
     //fprintf(fit_file, "\nRMS of residuals (x, y, z) [m]: (%lf, %lf, %lf)\n",
     //                  residual[0], residual[1], residual[2]);
     
-    write(fit_file, "\n");
+    ut_check(fprint(fit_file, "\n") < 0);
     
-    return 0;
+fail: {
+    errorln("Saving of fitted polynom values to file \"%s\" failed!",
+            argv[5]);
+    perror("fprint()");
+    return EIO;
+}
+    
+    return OK;
 }
 
 #if 0

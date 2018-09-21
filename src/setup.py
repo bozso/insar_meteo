@@ -21,12 +21,13 @@ def main():
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     inc_dirs = ["/home/istvan/miniconda3/include"]
     #flags = ["-std=c++98", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-    flags = ["-std=c++98"]
+    flags = ["-std=c++03"]
     #macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     
     comp = Compiler()
     
     comp.add_obj("utils.cc", flags=flags)
+    comp.add_obj("aramdillo.cc", flags=flags, inc_dirs=inc_dirs)
     comp.add_obj("satorbit.cc", flags=flags)
     comp.add_obj("main_functions.cc", flags=flags, inc_dirs=inc_dirs)
     

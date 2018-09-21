@@ -17,10 +17,9 @@
 #include <cmath>
 #include <vector>
 #include <errno.h>
-#include <armadillo>
-//#include <Eigen/Core>
-//#include <Eigen/Cholesky>
 
+
+#include "armadillo.hh"
 #include "utils.hh"
 #include "main_functions.hh"
 

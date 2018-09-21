@@ -16,16 +16,15 @@
 from argparse import ArgumentParser
 from subprocess import check_output, CalledProcessError
 from shlex import split
-import logging
+from logging import getLogger
 
-class Command(object):
-    def __init__(self, executable_name):
-        self.exe = executable_name
-    
-    def __call__(self, *args, debug=False):
-        Cmd = self.exe + " " + " ".join(proc_arg(arg) for arg in args)
+log = getLogger("inmet.utils")
+
+def _make_cmd(command):
+    def f(*args, debug=False):
+        Cmd = command + " " + " ".join(proc_arg(arg) for arg in args)
         
-        logger.debug("Issued command \"{}\"".format(Cmd))
+        log.debug("Issued command is \"{}\"".format(Cmd))
         
         if debug:
             print(Cmd)
@@ -34,13 +33,34 @@ class Command(object):
         try:
             proc = subprocess.check_output(split(Cmd), stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            logger.error("Non zero returncode from command: '{}'".format(Cmd))
-            logger.error("OUTPUT OF THE COMMAND: \n{}".format(e.output.decode()))
-            logger.error("RETURNCODE was: {}".format(e.returncode))
+            log.error("\nNon zero returncode from command: \n'{}'\n".format(Cmd))
+            log.error("\nOUTPUT OF THE COMMAND: \n\n{}".format(e.output.decode()))
+            log.error("\nRETURNCODE was: {}".format(e.returncode))
     
             raise e
     
         return proc
+    return f
+
+class Inmet(object):
+
+    _commands = (
+     "fit_orbit", "eval_orbit", "azi_inc"
+     )
+
+    def __init__(self):
+        for cmd in self._commands:
+            setattr(self, cmd, _make_cmd("inmet " + cmd))
+    
+    def __getattr__(self, command, *args, **kwargs):
+        
+        raise ValueError("Command \"{}\" not yet initilaized!".format(command))
+        
+        def f(*args, **kwargs):
+            cmd(command, *args, **kwargs)
+        return f
+
+im = Inmet()
 
 def cmd(Cmd, *args, debug=False):
     """
@@ -180,7 +200,10 @@ def get_par(parameter, search):
 
     return parameter_value
 
-def setup_log(logger_name, filename=None, formatter=None, loglevel="debug"):
+_default_log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+def setup_log(logger_name, filename=None, formatter=_default_log_format,
+              loglevel="debug"):
     
     logger = logging.getLogger(logger_name)
     
@@ -191,10 +214,7 @@ def setup_log(logger_name, filename=None, formatter=None, loglevel="debug"):
     
     logger.setLevel(level)
 
-    if formatter is None:
-        form = logging.Formatter(_default_log_format)
-    else:
-        form = logging.Formatter(formatter)
+    form = logging.Formatter(formatter, datefmt="%Y.%m.%d %H:%M:%S")
 
     
     if filename is not None:

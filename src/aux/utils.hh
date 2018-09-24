@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#include "utils.hh"
+
 namespace utils {
 
 typedef unsigned int uint;
@@ -45,6 +47,19 @@ typedef const double cdouble;
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
+/****************
+ * IO functions *
+ ****************/
+
+void error(const char * fmt, ...);
+void errorln(const char * fmt, ...);
+
+void println(const char * fmt, ...);
+
+/********************
+ * Argument parsing *
+ ********************/
+
 struct argparse {
     int argc;
     char **argv;
@@ -72,15 +87,6 @@ bool get_arg(const argparse& ap, const uint idx, const char * fmt, T& target)
     return false;
 }
 
-
-/****************
- * IO functions *
- ****************/
-
-void error(const char * fmt, ...);
-void errorln(const char * fmt, ...);
-
-void println(const char * fmt, ...);
 
 struct File {
     FILE * _file;

@@ -1,14 +1,15 @@
 #include <stdarg.h>
+#include <string>
 
 #include "utils.hh"
 
 #define min_arg 2
 
-namespace utils {
+using namespace utils;
 
 bool check_narg(const argparse& ap, int req_arg)
 {
-    string first_arg(ap.argv[2]);
+    std::string first_arg(ap.argv[2]);
     if (first_arg == "-h" or first_arg == "--help") {
         ap.print_usage();
         return true;
@@ -84,6 +85,4 @@ int fscan(File& file, const char * fmt, ...)
     ret = vfscanf(tmp, fmt, ap);
     va_end(ap);
     return ret;
-}
-
 }

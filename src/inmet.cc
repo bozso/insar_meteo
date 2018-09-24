@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "utils.hh"
+#include "aux/utils.hh"
 
 #define Modules "azi_inc, fit_orbit, eval_orbit"
 

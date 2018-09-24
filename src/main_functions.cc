@@ -17,14 +17,16 @@
 #include <cmath>
 #include <vector>
 #include <errno.h>
+#include <armadillo>
 
 
-#include "utils.hh"
+#include "aux/utils.hh"
 #include "main_functions.hh"
 
 
 using namespace std;
 using namespace utils;
+using namespace arma;
 
 
 /************************

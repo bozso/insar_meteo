@@ -19,61 +19,18 @@
 #include <errno.h>
 
 
-#include "armadillo.hh"
 #include "utils.hh"
 #include "main_functions.hh"
 
-#define min_arg 2
 
 using namespace std;
 using namespace utils;
-using namespace arma;
+
 
 /************************
  * Auxilliary functions *
  * **********************/
 
-struct argparse {
-    int argc;
-    char **argv;
-    const char * usage;
-    
-    argparse(int _argc, char **_argv, const char * _usage):
-        argc(_argc), argv(_argv), usage(_usage) {};
-    
-    void print_usage() const
-    {
-        error("Usage: \n%s\n", usage);
-    }
-};
-
-static bool check_narg(const argparse& ap, int req_arg)
-{
-    string first_arg(ap.argv[2]);
-    if (first_arg == "-h" or first_arg == "--help") {
-        ap.print_usage();
-        return true;
-    }
-    else if (ap.argc != (req_arg + min_arg)) {
-        errorln("\n Required number of arguments is %d, current number of "
-                "arguments: %d!\n", req_arg, ap.argc - min_arg);
-        ap.print_usage();
-        return true;
-    }
-    return false;
-};
-
-template<typename T>
-static bool get_arg(const argparse& ap, const uint idx, const char * fmt,
-                    T& target)
-{
-    if (sscanf(ap.argv[1 + idx], fmt, &target) != 1) {
-        errorln("Invalid argument: %s", ap.argv[1 + idx]);
-        ap.print_usage();
-        return true;
-    }
-    return false;
-}
 
 /***********************************************
  * Main functions - calleble from command line *

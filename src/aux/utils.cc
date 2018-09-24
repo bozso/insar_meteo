@@ -2,7 +2,26 @@
 
 #include "utils.hh"
 
+#define min_arg 2
+
 namespace utils {
+
+bool check_narg(const argparse& ap, int req_arg)
+{
+    string first_arg(ap.argv[2]);
+    if (first_arg == "-h" or first_arg == "--help") {
+        ap.print_usage();
+        return true;
+    }
+    else if (ap.argc != (req_arg + min_arg)) {
+        errorln("\n Required number of arguments is %d, current number of "
+                "arguments: %d!\n", req_arg, ap.argc - min_arg);
+        ap.print_usage();
+        return true;
+    }
+    return false;
+};
+
 
 bool open(File& file, const char * path, const char * mode)
 {

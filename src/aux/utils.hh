@@ -45,6 +45,34 @@ typedef const double cdouble;
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
+struct argparse {
+    int argc;
+    char **argv;
+    const char * usage;
+    
+    argparse(int _argc, char **_argv, const char * _usage):
+        argc(_argc), argv(_argv), usage(_usage) {};
+    
+    void print_usage() const
+    {
+        printf("Usage: \n%s\n", usage);
+    }
+};
+
+bool check_narg(const argparse& ap, int req_arg);
+
+template<typename T>
+bool get_arg(const argparse& ap, const uint idx, const char * fmt, T& target)
+{
+    if (sscanf(ap.argv[1 + idx], fmt, &target) != 1) {
+        errorln("Invalid argument: %s", ap.argv[1 + idx]);
+        ap.print_usage();
+        return true;
+    }
+    return false;
+}
+
+
 /****************
  * IO functions *
  ****************/

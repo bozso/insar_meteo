@@ -96,7 +96,7 @@ void error(const char * fmt, ...)
     va_end(ap);
 }
 
-int fprint(outfile& file, const char * fmt, ...)
+int print(outfile& file, const char * fmt, ...)
 {
     int ret = 0;
     va_list ap;
@@ -108,7 +108,7 @@ int fprint(outfile& file, const char * fmt, ...)
     return ret;
 }
 
-int fscan(infile& file, const char * fmt, ...)
+int scan(infile& file, const char * fmt, ...)
 {
     int ret = 0;
     va_list ap;
@@ -118,6 +118,16 @@ int fscan(infile& file, const char * fmt, ...)
     va_end(ap);
 
     return ret;
+}
+
+int read(infile& file, const size_t size, const size_t num, void * ptr)
+{
+    return fread(ptr, size, num, file._file);
+}
+
+int write(outfile& file, const size_t size, const size_t num, void * ptr)
+{
+    return fwrite(ptr, size, num, file._file);
 }
 
 }

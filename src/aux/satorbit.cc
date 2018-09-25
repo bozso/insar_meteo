@@ -18,6 +18,9 @@
 
 #include "satorbit.hh"
 
+using namespace utils;
+using namespace Eigen;
+
 static inline double norm(cdouble x, cdouble y, cdouble z)
 {
     return sqrt(x * x + y * y + z * z);

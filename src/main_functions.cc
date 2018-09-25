@@ -16,14 +16,17 @@
 
 #include <cmath>
 #include <vector>
-#include <errno.h>
+#include <string>
 
-#include "aux/utils.hh"
+#include "utils.hh"
+#include "satorbit.hh"
+#include "eigen_aux.hh"
 #include "main_functions.hh"
 
 
 using namespace std;
 using namespace utils;
+using namespace Eigen;
 
 
 /************************
@@ -49,16 +52,16 @@ int azi_inc(int argc, char **argv)
     
     uint max_iter = 0;
     
-    if (check_narg(ap, 5) or get_arg(ap, 4, max_iter))
+    if (check_narg(ap, 5) or get_arg(ap, 4, "%u", max_iter))
         return EARG;
     
-    infile coords;
+    infile coords_file;
     outfile out_file;
     
-    if (open(coords, argv[3]) or open(out_file, argv[6]))
+    if (open(coords_file, argv[3]) or open(out_file, argv[6]))
         return EIO;
     
-    double coords[3];
+    double coords[3], _azi_inc[2];
     poly_fit orb;
 
     // topocentric parameters in PS local system
@@ -73,50 +76,43 @@ int azi_inc(int argc, char **argv)
     
     string mode(argv[4]);
     
+    size_t sdouble = sizeof(double);
+    
     // infile contains lon, lat, h
-    if (mode == "llh")) {
-        while (fread(coords, sizeof(double), 3, infile) > 0) {
+    if (mode == "llh") {
+        while (read(coords_file, sdouble, 3, coords) > 0) {
             lon = coords[0] * DEG2RAD;
             lat = coords[1] * DEG2RAD;
             h   = coords[2];
             
             // calulate surface WGS-84 Cartesian coordinates
-            ell_cart(lon, lat, h, &X, &Y, &Z);
+            ell_cart(lon, lat, h, X, Y, Z);
             
-            calc_azi_inc(&orb, X, Y, Z, lon, lat, max_iter, &azi, &inc);
+            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+                         _azi_inc[0], _azi_inc[1]);
 
-            fwrite(&azi, sizeof(double), 1, outfile);
-            fwrite(&inc, sizeof(double), 1, outfile);
+            write(out_file, sdouble, 2, _azi_inc);
         } // end while
     }
     // infile contains X, Y, Z
-    else if (mode == "xyz")) {
-        while (fread(coords, sizeof(double), 3, infile) > 0) {
+    else if (mode == "xyz") {
+        while (read(coords_file, sdouble, 3, coords) > 0) {
             
             // calulate surface WGS-84 Cartesian coordinates
-            ell_cart(lon, lat, h, &coords[0], &coords[1], &coords[2]);
+            ell_cart(lon, lat, h, coords[0], coords[1], coords[2]);
             
-            calc_azi_inc(&orb, coords[0], coords[1], coords[2],
-                         lon, lat, max_iter, &azi, &inc);
-            
-            fwrite(&azi, sizeof(double), 1, outfile);
-            fwrite(&inc, sizeof(double), 1, outfile);
+            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+                         _azi_inc[0], _azi_inc[1]);
+
+            write(out_file, sdouble, 2, _azi_inc);
         } // end while
     } // end else if
     else {
         errorln("Third argument should be either llh or xyz not %s!",
                 argv[4]);
-        error = err_arg;
-        goto fail;
+        return EARG;
     }
 
-    fclose(infile);
-    fclose(outfile);
-    return error;
-
-fail:
-    aux_close(infile);
-    aux_close(outfile);
-    return error;
+    return OK;
 }
 

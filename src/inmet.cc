@@ -16,12 +16,15 @@
 
 #include <string>
 
-#include "aux/utils.hh"
+#include "utils.hh"
+#include "eigen_aux.hh"
+#include "main_functions.hh"
 
-#define Modules "azi_inc, fit_orbit, eval_orbit"
+#define Modules "azi_inc, fit_poly, eval_poly"
 
 using namespace std;
 using namespace utils;
+using namespace Eigen;
 
 int main(int argc, char **argv)
 {
@@ -31,35 +34,15 @@ int main(int argc, char **argv)
     string module_name(argv[1]);
     
     if (module_name == "azi_inc") {
-        printf("azi_inc\n");
-        return 0;
+        return azi_inc(argc, argv);
     }
     
-    else if (module_name == "fit_orbit") {
-        printf("fit_orbit\n");
-        return 0;
+    else if (module_name == "fit_poly") {
+        return fit_poly(argc, argv);
     }
     else {
         errorln("Unrecognized module: %s", argv[1]);
         errorln("Modules to choose from: %s.", Modules);
         return EARG;
     }
-    
-#if 0    
-    if (module_select("azi_inc") || module_select("AZI_INC"))
-        return azi_inc(argc, argv);
-    
-    else if (module_select("fit_orbit") || module_select("FIT_ORBIT"))
-        return fit_orbit(argc, argv);
-
-    else if (module_select("eval_orbit") || module_select("EVAL_ORBIT"))
-        return eval_orbit(argc, argv);
-
-    else {
-        errorln("Unrecognized module: %s", argv[1]);
-        errorln("Modules to choose from: %s.", Modules);
-        return err_arg;
-    }
-#endif
-    return OK;
 }

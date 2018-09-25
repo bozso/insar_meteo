@@ -17,32 +17,6 @@
 #ifndef MAIN_FUN_H
 #define MAIN_FUN_H
 
-/***************
- * Error codes *
- ***************/
-
-enum err_code {
-    err_succes = 0,
-    err_io = -1,
-    err_alloc = -2,
-    err_num = -3,
-    err_arg = -4
-};
-
-#if 0
-
-struct _errdsc {
-    int code;
-    char * message;
-} errdsc[] = {
-    { err_succes, "No error encountered."},
-    { err_io, "IO error encountered!" },
-    { err_alloc, "Allocation error encountered!" },
-    { err_num, "Numerical error encountered!" },
-    { err_arg, "Command line argument error encountered!" }
-};
-
-#endif
 
 // WGS-84 surface coordinates
 struct llh { double lon, lat, h; } llh; 
@@ -50,10 +24,6 @@ struct llh { double lon, lat, h; } llh;
 // Orbit records
 struct orbit_rec { double t, x, y, z; };
 
-int fit_orbit(int argc, char **argv);
 int azi_inc(int argc, char **argv);
-int eval_orbit(int argc, char **argv);
-int test_matrix1(void);
-int test_matrix2(void);
 
 #endif

@@ -18,8 +18,7 @@
 #define SATORBIT_H
 
 #include "utils.hh"
-
-using namespace utils;
+#include "eigen_aux.hh"
 
 /***********
  * Structs *
@@ -40,14 +39,14 @@ struct cart {
     }
 };
 
-void ell_cart (cdouble lon, cdouble lat, cdouble h,
+void ell_cart (utils::cdouble lon, utils::cdouble lat, utils::cdouble h,
                double& x, double& y, double& z);
 
-void cart_ell(cdouble x, cdouble y, cdouble z,
+void cart_ell(utils::cdouble x, utils::cdouble y, utils::cdouble z,
               double& lon, double& lat, double& h);
 
-void calc_azi_inc(const poly_fit& orb, cdouble X, cdouble Y,
-                  cdouble Z, cdouble lon, cdouble lat,
-                  cuint max_iter, double& azi, double& inc);
+void calc_azi_inc(const Eigen::poly_fit& orb, utils::cdouble X, utils::cdouble Y,
+                  utils::cdouble Z, utils::cdouble lon, utils::cdouble lat,
+                  utils::cuint max_iter, double& azi, double& inc);
 
 #endif // SATORBIT_HPP

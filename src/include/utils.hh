@@ -130,8 +130,11 @@ struct outfile {
 bool open(infile& file, const char * path, const bool binary=false);
 bool open(outfile& file, const char * path, const bool binary=false);
 
-int fprint(outfile& file, const char * fmt, ...);
-int fscan(infile& file, const char * fmt, ...);
+int print(outfile& file, const char * fmt, ...);
+int scan(infile& file, const char * fmt, ...);
+
+int read(infile& file, const size_t size, const size_t num, void * ptr);
+int write(outfile& file, const size_t size, const size_t num, void * ptr);
 
 #define ut_check(condition)\
 do {\

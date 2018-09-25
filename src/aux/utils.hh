@@ -47,6 +47,8 @@ typedef const double cdouble;
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
+bool main_check_narg(const int argc, const char * Modules);
+
 /****************
  * IO functions *
  ****************/
@@ -88,17 +90,17 @@ bool get_arg(const argparse& ap, const uint idx, const char * fmt, T& target)
 }
 
 
-struct File {
+struct infile {
     FILE * _file;
     
-    File()
+    infile()
     {
         _file = NULL;
     }
     
-    ~File()
+    ~infile()
     {
-        if (_file != NULL)
+        if (_file)
         {
             fclose(_file);
             _file = NULL;
@@ -106,10 +108,30 @@ struct File {
     }
 };
 
-bool open(File& file, const char * path, const char * mode);
+struct outfile {
+    FILE * _file;
+    
+    outfile()
+    {
+        _file = NULL;
+    }
+    
+    ~outfile()
+    {
+        if (_file)
+        {
+            fclose(_file);
+            _file = NULL;
+        }
+    }
+};
 
-int fprint(File& file, const char * fmt, ...);
-int fscan(File& file, const char * fmt, ...);
+
+bool open(infile& file, const char * path, const bool binary=false);
+bool open(outfile& file, const char * path, const bool binary=false);
+
+int fprint(outfile& file, const char * fmt, ...);
+int fscan(infile& file, const char * fmt, ...);
 
 #define ut_check(condition)\
 do {\

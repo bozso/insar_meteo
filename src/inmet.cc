@@ -25,12 +25,8 @@ using namespace utils;
 
 int main(int argc, char **argv)
 {
-    if (argc < 2) {
-        error("\nAt least one argument, the module name, is required.\
-                 \n\nModules to choose from: %s.\n\n", Modules);
-        error("Use --help or -h as the first argument to print the help message.\n");
-        return 1;
-    }
+    if (main_check_narg(argc, Modules))
+        return EARG;
     
     string module_name(argv[1]);
     

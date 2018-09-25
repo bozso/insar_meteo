@@ -17,7 +17,8 @@
 #include <cmath>
 #include <vector>
 #include <errno.h>
-#include <armadillo>
+#include <Eigen/Core>
+#include <Eigen/Cholesky>
 
 
 #include "aux/utils.hh"
@@ -26,7 +27,7 @@
 
 using namespace std;
 using namespace utils;
-using namespace arma;
+using namespace Eigen;
 
 
 /************************
@@ -56,9 +57,10 @@ int fit_orbit(int argc, char **argv)
         get_arg(ap, 2, "%u", deg) or get_arg(ap, 2, "%u", is_centered))
         return EARG;
     
-    File incoords, fit_file;
+    infile incoords;
+    outfile fit_file;
     
-    if (open(incoords, argv[2], "r") or open(fit_file, argv[5], "w"))
+    if (open(incoords, argv[2]) or open(fit_file, argv[5]))
         return EIO;
     
     double t_mean = 0.0,  // mean value of times
@@ -117,10 +119,10 @@ int fit_orbit(int argc, char **argv)
 
     }
 
-    mat obs(ndata, 3);
-    mat fit(3, deg + 1);
+    MatrixXd obs(ndata, 3);
+    MatrixXd fit(3, deg + 1);
 
-    mat design(ndata, deg + 1);
+    MatrixXd design(ndata, deg + 1);
     
     FOR(ii, 0, ndata) {
         // fill up matrix that contains coordinate values
@@ -143,20 +145,23 @@ int fit_orbit(int argc, char **argv)
             design(ii, jj) = design(ii, jj - 1) * t;
     }
     
-    fit = solve(design.t() * design, design.t() * obs);
+    fit = (design * design.transpose()).llt().solve(design.transpose() * obs);
     
     ut_check(fprint(fit_file, "centered: %u\n", is_centered) < 0);
     
     if (is_centered) {
-        ut_check(fprint(fit_file, "t_mean: %lf\n", t_mean) < 0);
-        ut_check(fprint(fit_file, "coords_mean: %lf %lf %lf\n",
-                                             x_mean, y_mean, z_mean) < 0);
+        ut_check(
+            fprint(fit_file, "t_mean: %lf\n", t_mean) < 0 or
+            fprint(fit_file, "coords_mean: %lf %lf %lf\n",
+                             x_mean, y_mean, z_mean) < 0);
     }
     
-    ut_check(fprint(fit_file, "t_min: %lf\n", t_min) < 0);
-    ut_check(fprint(fit_file, "t_max: %lf\n", t_max) < 0);
-    ut_check(fprint(fit_file, "deg: %u\n", deg) < 0);
-    ut_check(fprint(fit_file, "coeffs: ") < 0);
+    ut_check(
+        fprint(fit_file, "t_min: %lf\n", t_min) < 0 or
+        fprint(fit_file, "t_max: %lf\n", t_max) < 0 or
+        fprint(fit_file, "deg: %u\n", deg) < 0 or
+        fprint(fit_file, "coeffs: ") < 0
+    );
     
     FOR(ii, 0, 3)
         FOR(jj, 0, deg + 1)

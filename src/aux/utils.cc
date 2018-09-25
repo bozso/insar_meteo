@@ -5,7 +5,18 @@
 
 #define min_arg 2
 
-using namespace utils;
+namespace utils {
+
+bool main_check_narg(const int argc, const char * Modules)
+{
+    if (argc < 2) {
+        error("\nAt least one argument, the module name, is required.\
+                 \n\nModules to choose from: %s.\n\n", Modules);
+        error("Use --help or -h as the first argument to print the help message.\n");
+        return true;
+    }
+    return false;
+}
 
 bool check_narg(const argparse& ap, int req_arg)
 {
@@ -24,8 +35,32 @@ bool check_narg(const argparse& ap, int req_arg)
 };
 
 
-bool open(File& file, const char * path, const char * mode)
+bool open(infile& file, const char * path, const bool binary)
 {
+    const char * mode;
+    
+    if (binary)
+        mode = "rb";
+    else
+        mode = "r";
+    
+    if ((file._file = fopen(path, mode)) == NULL) {
+        errorln("Failed to open file %s!", path);
+        perror("Error");
+        return true;
+    }
+    return false;
+}
+
+bool open(outfile& file, const char * path, const bool binary)
+{
+    const char * mode;
+    
+    if (binary)
+        mode = "wb";
+    else
+        mode = "w";
+    
     if ((file._file = fopen(path, mode)) == NULL) {
         errorln("Failed to open file %s!", path);
         perror("Error");
@@ -61,28 +96,28 @@ void error(const char * fmt, ...)
     va_end(ap);
 }
 
-int fprint(File& file, const char * fmt, ...)
+int fprint(outfile& file, const char * fmt, ...)
 {
     int ret = 0;
-    FILE * tmp = file._file;
     va_list ap;
     
     va_start(ap, fmt);
-    ret = vfprintf(tmp, fmt, ap);
+    ret = vfprintf(file._file, fmt, ap);
     va_end(ap);
 
     return ret;
 }
 
-int fscan(File& file, const char * fmt, ...)
+int fscan(infile& file, const char * fmt, ...)
 {
     int ret = 0;
-    FILE * tmp = file._file;
     va_list ap;
     
     va_start(ap, fmt);
-    
-    ret = vfscanf(tmp, fmt, ap);
+    ret = vfscanf(file._file, fmt, ap);
     va_end(ap);
+
     return ret;
+}
+
 }

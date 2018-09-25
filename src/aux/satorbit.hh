@@ -25,29 +25,6 @@ using namespace utils;
  * Structs *
  ***********/
 
-// structure for storing fitted orbit polynom coefficients
-struct orbit_fit {
-    double mean_t, start_t, stop_t;
-    double *mean_coords, *coeffs;
-    uint is_centered, deg;
-    
-    orbit_fit() {};
-    
-    orbit_fit(double _mean_t, double _start_t, double _stop_t,
-              double * _mean_coords, double * _coeffs, uint _is_centered,
-              uint _deg)
-    {
-        mean_t = _mean_t;
-        start_t = _start_t;
-        stop_t = _stop_t;
-        
-        mean_coords = _mean_coords;
-        coeffs = _coeffs;
-        
-        is_centered = _is_centered;
-        deg = _deg;
-    }
-};
 
 // cartesian coordinate
 struct cart {
@@ -69,7 +46,7 @@ void ell_cart (cdouble lon, cdouble lat, cdouble h,
 void cart_ell(cdouble x, cdouble y, cdouble z,
               double& lon, double& lat, double& h);
 
-void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
+void calc_azi_inc(const poly_fit& orb, cdouble X, cdouble Y,
                   cdouble Z, cdouble lon, cdouble lat,
                   cuint max_iter, double& azi, double& inc);
 

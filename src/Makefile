@@ -14,6 +14,7 @@ LIBS = /home/istvan/miniconda3/lib
 
 inmet: $(inmet_obj)
 	$(CC) $(FLAGS) -o $@ $^ $(LDFLAGS) -L$(LIBS)
+	mv inmet ../bin
 
 .PHONY: clean
 clean:

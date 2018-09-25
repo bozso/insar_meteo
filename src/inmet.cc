@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     else {
         errorln("Unrecognized module: %s", argv[1]);
         errorln("Modules to choose from: %s.", Modules);
-        return 1;
+        return EARG;
     }
     
 #if 0    
@@ -61,5 +61,5 @@ int main(int argc, char **argv)
         return err_arg;
     }
 #endif
-    return 0;
+    return OK;
 }

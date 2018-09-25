@@ -18,15 +18,13 @@
 
 #include "satorbit.hh"
 
-using namespace std;
-
 static inline double norm(cdouble x, cdouble y, cdouble z)
 {
     return sqrt(x * x + y * y + z * z);
 }
 
 // Calculate satellite position based on fitted polynomial orbits at time
-static inline void calc_pos(const orbit_fit& orb, double time, cart& pos)
+static inline void calc_pos(const poly_fit& orb, double time, cart& pos)
 {
     uint n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
@@ -66,7 +64,7 @@ static inline void calc_pos(const orbit_fit& orb, double time, cart& pos)
     pos.x = x; pos.y = y; pos.z = z;
 } // calc_pos
 
-static inline double dot_product(const orbit_fit& orb, cdouble X, cdouble Y,
+static inline double dot_product(const poly_fit& orb, cdouble X, cdouble Y,
                                  cdouble Z, double time)
 {
     /* Calculate dot product between satellite velocity vector and
@@ -136,7 +134,7 @@ static inline double dot_product(const orbit_fit& orb, cdouble X, cdouble Y,
 } // dot_product
 
 // Compute the sat position using closest approche.
-static inline void closest_appr(const orbit_fit& orb, cdouble X, cdouble Y,
+static inline void closest_appr(const poly_fit& orb, cdouble X, cdouble Y,
                                 cdouble Z, cuint max_iter, cart& sat_pos)
 {
     // first, last and middle time, extending the time window by 5 seconds
@@ -206,7 +204,7 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
 } // cart_ell
 
 
-void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
+void calc_azi_inc(const poly_fit& orb, cdouble X, cdouble Y,
                   cdouble Z, cdouble lon, cdouble lat,
                   cuint max_iter, double& azi, double& inc)
 {
@@ -250,41 +248,3 @@ void calc_azi_inc(const orbit_fit& orb, cdouble X, cdouble Y,
     
     azi = temp_azi;
 } // calc_azi_inc
-
-#if 0
-
-void asc_dsc_select(double * _arr1, double * _arr2, double max_sep,
-                    int rows1, int rows2, int cols, int * _idx, int nfound)
-{
-    nfound = 0;
-    double dlon = 0, dlat = 0;
-    
-    array2d arr1(_arr1, rows1, cols), arr2(_arr2, rows2, cols);
-    array1i idx(_idx, rows1, 1);
-    
-    FOR(ii, 0, arr1.rows()) {
-        FOR(jj, 0, arr2.rows()) {
-            dlon = arr1(ii, 0) - arr2(jj, 0);
-            dlat = arr1(ii, 1) - arr2(jj, 1);
-            
-            if ((dlon * dlon + dlat * dlat) < max_sep) {
-                idx(ii) = 1;
-                nfound++;
-                break;
-            }
-        }
-    }    
-}
-
-void test(double * _array, int n, int m)
-{
-    array2d arr(_array, n, m);
-    
-    FOR(ii, 0, arr.rows()) {
-        FOR(jj, 0, arr.cols())
-            cout << arr(ii,jj) << " ";
-        cout << endl;
-    }
-} // test
-
-#endif

@@ -171,7 +171,8 @@ int fit_orbit(int argc, char **argv)
     //                  residual[0], residual[1], residual[2]);
     
     ut_check(fprint(fit_file, "\n") < 0);
-    
+
+
 fail: {
     errorln("Saving of fitted polynom values to file \"%s\" failed!",
             argv[5]);

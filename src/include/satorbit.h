@@ -17,8 +17,7 @@
 #ifndef SATORBIT_H
 #define SATORBIT_H
 
-#include "utils.hh"
-#include "eigen_aux.hh"
+#include "utils.h"
 
 /***********
  * Structs *
@@ -26,27 +25,16 @@
 
 
 // cartesian coordinate
-struct cart {
-    double x, y, z;
-    
-    cart() {};
-    
-    cart(double _x, double _y, double _z)
-    {
-        x = _x;
-        y = _y;
-        z = _z;
-    }
-};
+typedef struct cart_t { double x, y, z; } cart;
 
-void ell_cart (utils::cdouble lon, utils::cdouble lat, utils::cdouble h,
-               double& x, double& y, double& z);
+void ell_cart (cdouble lon, cdouble lat, cdouble h,
+               double *x, double *y, double *z);
 
-void cart_ell(utils::cdouble x, utils::cdouble y, utils::cdouble z,
-              double& lon, double& lat, double& h);
+void cart_ell(cdouble x, cdouble y, cdouble z,
+              double *lon, double *lat, double *h);
 
-void calc_azi_inc(const Eigen::poly_fit& orb, utils::cdouble X, utils::cdouble Y,
-                  utils::cdouble Z, utils::cdouble lon, utils::cdouble lat,
-                  utils::cuint max_iter, double& azi, double& inc);
+void calc_azi_inc(const poly_fit *orb, cdouble X, cdouble Y,
+                  cdouble Z, cdouble lon, cdouble lat,
+                  cuint max_iter, double *azi, double *inc);
 
-#endif // SATORBIT_HPP
+#endif // SATORBIT_H

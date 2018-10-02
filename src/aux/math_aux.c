@@ -1,45 +1,47 @@
-#include <string>
-#include <Eigen/Core>
-#include <Eigen/Cholesky>
-
 #include "utils.hh"
+#include "eigen_aux.hh"
 
-using namespace std;
-using namespace utils;
 
-namespace Eigen {
+bool read_matrix(Matrix *mat, const char * datafile_path,
+                 const char * parfile_path)
+{
+    FILE *parfile;
+    
+    if (open(&parfile, parfile_path, "r"))
+        return EIO;
+    
+    uint rows = 0, cols = 0;
+    const char * dtype = NULL;
+    
+    if (fscanf(parfile, "rows: %u\n", &rows) < 0 or
+        fscanf(parfile, "cols: %u\n", &cols) < 0 or
+        fscanf(parfile, "dtype: %s\n", &dtype) < 0)
+    {
+        errorln("Could not read parameter file properly!");
+        perror("read_matrix");
+        fclose(parfile);
+        return EIO;
+    }
+    
+}
 
 int fit_poly(int argc, char **argv)
 {
-    argparse ap(argc, argv, 
-    "\n Usage: eigen fit_poly <coords> <deg> <is_centered> <fit_file>\
+    argparse ap = {argc, argv, 
+    "\n Usage: inmet fit_poly <coords> <deg> <is_centered> <fit_file>\
      \n \
      \n coords      - (ascii, in) file with (t,x,y,z) coordinates\
      \n deg         - degree of fitted polynom\
      \n is_centered - 1 = subtract mean time and coordinates from time points and \
      \n               coordinates, 0 = no centering\
      \n fit_file    - (ascii, out) contains fitted orbit polynom parameters\
-     \n\n");
+     \n\n"};
     
     uint deg = 0, is_centered = 0;
     
-    if (check_narg(ap, 4) or
-        get_arg(ap, 2, "%u", deg) or get_arg(ap, 2, "%u", is_centered))
+    if (check_narg(&ap, 4) or
+        get_arg(&ap, 2, "%u", &deg) or get_arg(&ap, 2, "%u", &is_centered))
         return EARG;
-    
-    infile incoords;
-    outfile fit_file;
-    
-    if (open(incoords, argv[2]) or open(fit_file, argv[5]))
-        return EIO;
-    
-    double t_mean = 0.0,  // mean value of times
-           t, x, y, z,    // temp storage variables
-           x_mean = 0.0,  // x, y, z mean values
-           y_mean = 0.0,
-           z_mean = 0.0,
-           t_min, t_max, res_tmp;
-    
     
     uint ndata = 0;
 
@@ -120,16 +122,16 @@ int fit_poly(int argc, char **argv)
     
     if (is_centered) {
         ut_check(
-            print(fit_file, "x_mean: %lf\n", t_mean) < 0 or
-            print(fit_file, "dependents_mean: %lf %lf %lf\n",
+            fprintf(fit_file, "x_mean: %lf\n", t_mean) < 0 or
+            fprintf(fit_file, "dependents_mean: %lf %lf %lf\n",
                              x_mean, y_mean, z_mean) < 0);
     }
     
     ut_check(
-        print(fit_file, "x_min: %lf\n", t_min) < 0 or
-        print(fit_file, "x_max: %lf\n", t_max) < 0 or
-        print(fit_file, "deg: %u\n", deg) < 0 or
-        print(fit_file, "coeffs: ") < 0
+        fprintf(fit_file, "x_min: %lf\n", t_min) < 0 or
+        fprintf(fit_file, "x_max: %lf\n", t_max) < 0 or
+        fprintf(fit_file, "deg: %u\n", deg) < 0 or
+        fprintf(fit_file, "coeffs: ") < 0
     );
     
     FOR(ii, 0, 3)
@@ -209,25 +211,8 @@ fail:
 
 #endif
 
-poly_fit::poly_fit(double _mean_t, double _start_t, double _stop_t,
-                   double * _mean_coords, double * _coeffs, uint _is_centered,
-                   uint _deg)
-{
-    mean_t = _mean_t;
-    start_t = _start_t;
-    stop_t = _stop_t;
-    
-    mean_coords = _mean_coords;
-    coeffs = _coeffs;
-    
-    is_centered = _is_centered;
-    deg = _deg;
-}
-
 bool read_poly_fit(const char * filename, poly_fit& fit)
 {
     infile 
     
 }
-
-} // Eigen

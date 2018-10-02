@@ -14,19 +14,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <cmath>
-#include <vector>
-#include <string>
+#include <tgmath.h>
 
-#include "utils.hh"
-#include "satorbit.hh"
-#include "eigen_aux.hh"
-#include "main_functions.hh"
-
-
-using namespace std;
-using namespace utils;
-using namespace Eigen;
+#include "utils.h"
+#include "satorbit.h"
 
 
 /************************
@@ -40,7 +31,7 @@ using namespace Eigen;
 
 int azi_inc(int argc, char **argv)
 {
-    argparse ap(argc, argv,
+    argparse ap = {argc, argv,
     "\n Usage: inmet azi_inc [fit_file] [coords] [mode] [max_iter] [outfile]\
      \n \
      \n fit_file - (ascii, in) contains fitted orbit polynom parameters\
@@ -48,11 +39,11 @@ int azi_inc(int argc, char **argv)
      \n mode     - xyz for WGS-84 coordinates, llh for WGS-84 lon., lat., height\
      \n max_iter - maximum number of iterations when calculating closest approache\
      \n outfile  - (binary, out) azi, inc pairs will be printed to this file\
-     \n\n");
+     \n\n"};
     
     uint max_iter = 0;
     
-    if (check_narg(ap, 5) or get_arg(ap, 4, "%u", max_iter))
+    if (check_narg(&ap, 5) or get_arg(&ap, 4, "%u", &max_iter))
         return EARG;
     
     infile coords_file;

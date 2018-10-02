@@ -14,32 +14,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string>
+#include <string.h>
 
-#include "utils.hh"
-#include "eigen_aux.hh"
-#include "main_functions.hh"
+#include "utils.h"
+#include "main_functions.h"
 
-#define Modules "azi_inc, fit_poly, eval_poly"
-
-using namespace std;
-using namespace utils;
-using namespace Eigen;
+#define Modules "azi_inc"
 
 int main(int argc, char **argv)
 {
     if (main_check_narg(argc, Modules))
         return EARG;
     
-    string module_name(argv[1]);
-    
-    if (module_name == "azi_inc") {
+    if (ut_module_select("azi_inc")) {
         return azi_inc(argc, argv);
     }
     
-    else if (module_name == "fit_poly") {
-        return fit_poly(argc, argv);
-    }
+    //else if (ut_module_select("fit_poly")) {
+        //return fit_poly(argc, argv);
+    //}
     else {
         errorln("Unrecognized module: %s", argv[1]);
         errorln("Modules to choose from: %s.", Modules);

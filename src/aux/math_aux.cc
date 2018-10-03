@@ -74,80 +74,10 @@ matrix::~matrix()
     }
 }
 
-static datatype str2dt(const char * str)
-{
-    if (not strcmp(str, "complex long double"))
-        return dt_cx128;
-    else if (not strcmp(str, "complex double"))
-        return dt_cx64;
-    else if (not strcmp(str, "complex float"))
-        return dt_cx32;
-    else if (not strcmp(str, "long double"))
-        return dt_fl128;
-    else if (not strcmp(str, "double"))
-        return dt_fl64;
-    else if (not strcmp(str, "float"))
-        return dt_fl32;
-    else {
-        errorln("Unknown matrix type \"%s\"", str);
-        return dt_unk;
-    }
-}
-
-static const char * dt2str(datatype dtype)
-{
-    switch(dtype) {
-        case dt_cx128:
-            return "complex long double";
-        case dt_cx64:
-            return "complex double";
-        case dt_cx32:
-            return "complex float";
-
-        case dt_fl128:
-            return "long double";
-        case dt_fl64:
-            return "double";
-        case dt_fl32:
-            return "float";
-        
-        case dt_unk:
-            errorln("Unknown matrix type!");
-            return "unknown";
-        default:
-            errorln("Unknown matrix type!");
-            return "unknown";
-    }
-
-}
-
-static store_type str2store(const char * str)
-{
-    if (str_equal(str, "ascii"))
-        return ascii;
-    else if (str_equal(str, "binary"))
-        return binary;
-    else {
-        errorln("Unknown storage type \"%\"!", str);
-        return unk;
-    }
-}
-
-static const char * store2str(store_type storage)
-{
-    switch(storage) {
-        case ascii:
-            return "ascii";
-        case binary:
-            return "binary";
-        case unk:
-            errorln("Unknown storage type!");
-            return "unknown";
-        default:
-            errorln("Unknown storage type!");
-            return "unknown";
-    }
-}
+static datatype str2dt(const char * str);
+static const char * dt2str(datatype dtype);
+static store_type str2store(const char * str);
+static const char * store2str(store_type storage);
 
 
 int parse_parfile(const char * parfile_path, size_t& rows, size_t& cols,
@@ -161,10 +91,10 @@ int parse_parfile(const char * parfile_path, size_t& rows, size_t& cols,
     const char *dtype_str = NULL, *storage_str = NULL;
     
     if (
-    scan(parfile, "rows: %u\n", &rows) < 0 or
-    scan(parfile, "cols: %u\n", &cols) < 0 or
-    scan(parfile, "storage type: %s\n", &storage_str) < 0 or
-    scan(parfile, "dtype: %s\n", &dtype_str) < 0
+    read(parfile, "rows: %u\n", &rows) < 0 or
+    read(parfile, "cols: %u\n", &cols) < 0 or
+    read(parfile, "storage type: %s\n", &storage_str) < 0 or
+    read(parfile, "dtype: %s\n", &dtype_str) < 0
     ) {
         perrorln("parse_parfile", "Could not read parameter file properly!");
         return EIO;
@@ -181,6 +111,7 @@ int parse_parfile(const char * parfile_path, size_t& rows, size_t& cols,
 
 }
 
+
 int write_parfile(const char * parfile_path, const size_t rows,
                   const size_t cols, const store_type storage,
                   const datatype dtype)
@@ -191,11 +122,11 @@ int write_parfile(const char * parfile_path, const size_t rows,
         return EIO;
     
     if (
-    print(parfile, "rows: %u\n", rows) < 0 or
-    print(parfile, "cols: %u\n", cols) < 0 or
-    print(parfile, "storage type: %s\n", store2str(storage)) < 0 or
-    print(parfile, "dtype: %s\n", dt2str(dtype)) < 0) {
-        perrorln("write_parfile", "Could not print parameter file properly!");
+    write(parfile, "rows: %u\n", rows) < 0 or
+    write(parfile, "cols: %u\n", cols) < 0 or
+    write(parfile, "storage type: %s\n", store2str(storage)) < 0 or
+    write(parfile, "dtype: %s\n", dt2str(dtype)) < 0) {
+        perrorln("write_parfile", "Could not write parameter file properly!");
         return EIO;
     }
     close(parfile);
@@ -416,3 +347,78 @@ fail:
 }
 
 #endif
+
+static datatype str2dt(const char * str)
+{
+    if (not strcmp(str, "complex long double"))
+        return dt_cx128;
+    else if (not strcmp(str, "complex double"))
+        return dt_cx64;
+    else if (not strcmp(str, "complex float"))
+        return dt_cx32;
+    else if (not strcmp(str, "long double"))
+        return dt_fl128;
+    else if (not strcmp(str, "double"))
+        return dt_fl64;
+    else if (not strcmp(str, "float"))
+        return dt_fl32;
+    else {
+        errorln("Unknown matrix type \"%s\"", str);
+        return dt_unk;
+    }
+}
+
+static const char * dt2str(datatype dtype)
+{
+    switch(dtype) {
+        case dt_cx128:
+            return "complex long double";
+        case dt_cx64:
+            return "complex double";
+        case dt_cx32:
+            return "complex float";
+
+        case dt_fl128:
+            return "long double";
+        case dt_fl64:
+            return "double";
+        case dt_fl32:
+            return "float";
+        
+        case dt_unk:
+            errorln("Unknown matrix type!");
+            return "unknown";
+        default:
+            errorln("Unknown matrix type!");
+            return "unknown";
+    }
+
+}
+
+static store_type str2store(const char * str)
+{
+    if (str_equal(str, "ascii"))
+        return ascii;
+    else if (str_equal(str, "binary"))
+        return binary;
+    else {
+        errorln("Unknown storage type \"%\"!", str);
+        return unk;
+    }
+}
+
+static const char * store2str(store_type storage)
+{
+    switch(storage) {
+        case ascii:
+            return "ascii";
+        case binary:
+            return "binary";
+        case unk:
+            errorln("Unknown storage type!");
+            return "unknown";
+        default:
+            errorln("Unknown storage type!");
+            return "unknown";
+    }
+}

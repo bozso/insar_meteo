@@ -105,8 +105,8 @@ struct File {
 bool open(File& file, const char * path, const char * mode);
 void close(File& file);
 
-int scan(const File& file, const char * fmt, ...);
-int print(const File& file, const char * fmt, ...);
+int read(const File& file, const char * fmt, ...);
+int write(const File& file, const char * fmt, ...);
 
 int read(const File& file, const size_t size, const size_t num, void *var);
 int write(const File& file, const size_t size, const size_t num, const void *var);

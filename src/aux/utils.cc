@@ -83,7 +83,7 @@ void close(File& file) {
 }
 
 
-int scan(const File& file, const char * fmt, ...)
+int read(const File& file, const char * fmt, ...)
 {
     va_list ap;
     
@@ -94,7 +94,7 @@ int scan(const File& file, const char * fmt, ...)
 }
 
 
-int print(const File& file, const char * fmt, ...)
+int write(const File& file, const char * fmt, ...)
 {
     va_list ap;
     

@@ -15,25 +15,38 @@
 
 from os.path import join
 
-from inmet.compilers import Compiler
+from distutils.ccompiler import new_compiler
 
 def main():
-    lib_dirs = ["/home/istvan/miniconda3/lib"]
-    inc_dirs = ["/home/istvan/miniconda3/include"]
-    
-    #flags = ["-std=c++98", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-    flags = ["-std=c++03"]
+    flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     
     #macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     
-    comp = Compiler()
+    comp = new_compiler()
     
-    comp.add_obj(join("aux", "utils.cc"), flags=flags)
-    comp.add_obj(join("aux", "satorbit.cc"), flags=flags)
-    comp.add_obj("main_functions.cc", flags=flags, inc_dirs=inc_dirs)
+    comp.set_include_dirs(["/home/istvan/miniconda3/include", "include"])
+    comp.add_library_dir("/home/istvan/miniconda3/lib")
     
-    comp.make_exe("inmet.cc", flags=flags, outdir=join("..", "bin"),
-                  libs=["stdc++", "m"], lib_dirs=lib_dirs)
+    utils = join("aux", "utils.cc")
+    math_aux = join("aux", "math_aux.cc")
+    satorbit = join("aux", "satorbit.cc")
+    main = "main_functions.cc"
+    inmet = "inmet.cc"
+    
+    objs = [comp.compile([utils], extra_preargs=flags),
+            comp.compile([math_aux], extra_preargs=flags, depends=[utils]),
+            comp.compile([satorbit], extra_preargs=flags,
+                         depends=[utils, math_aux]),
+            comp.compile([main], extra_preargs=flags,
+                         depends=[utils, math_aux, satorbit]),
+            comp.compile([inmet], extra_preargs=flags,
+                         depends=[utils, math_aux, satorbit, main])]
+    
+    objs = tuple(obj[0] for obj in objs)
+    
+    comp.link_executable(objs, "inmet", output_dir=join("..", "bin"),
+                         extra_preargs=flags,
+                         libraries=["stdc++", "m", "gsl", "gslcblas"])
 
 if __name__ == "__main__":
     main()

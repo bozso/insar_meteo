@@ -16,8 +16,8 @@
 
 #include <tgmath.h>
 
-#include "utils.h"
-#include "satorbit.h"
+#include "utils.hh"
+#include "satorbit.hh"
 
 
 /************************
@@ -43,34 +43,31 @@ int azi_inc(int argc, char **argv)
     
     uint max_iter = 0;
     
-    if (check_narg(&ap, 5) or get_arg(&ap, 4, "%u", &max_iter))
+    if (check_narg(ap, 5) or get_arg(ap, 4, "%u", &max_iter))
         return EARG;
     
-    infile coords_file;
-    outfile out_file;
+    File coords_file, out_file;
     
-    if (open(coords_file, argv[3]) or open(out_file, argv[6]))
+    if (open(coords_file, argv[3], "rb") or open(out_file, argv[6], "wb"))
         return EIO;
     
     double coords[3], _azi_inc[2];
-    poly_fit orb;
+    fit_poly orb;
 
     // topocentric parameters in PS local system
     double X, Y, Z,
            lon, lat, h,
            azi, inc;
     
-    if (read_poly_fit(argv[2], orb)) {
-        errorln("Could not read orbit fit file %s. Exiting!", argv[2]);
+    if (read_fit(orb, argv[2])) {
+        perrorln("azi_inc", "Could not read orbit fit file %s. Exiting!", argv[2]);
         return EIO;
     }
-    
-    string mode(argv[4]);
     
     size_t sdouble = sizeof(double);
     
     // infile contains lon, lat, h
-    if (mode == "llh") {
+    if (str_equal(argv[4], "llh")) {
         while (read(coords_file, sdouble, 3, coords) > 0) {
             lon = coords[0] * DEG2RAD;
             lat = coords[1] * DEG2RAD;
@@ -86,7 +83,7 @@ int azi_inc(int argc, char **argv)
         } // end while
     }
     // infile contains X, Y, Z
-    else if (mode == "xyz") {
+    else if (str_equal(argv[4], "xyz")) {
         while (read(coords_file, sdouble, 3, coords) > 0) {
             
             // calulate surface WGS-84 Cartesian coordinates

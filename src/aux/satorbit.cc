@@ -18,8 +18,6 @@
 
 #include "satorbit.hh"
 
-using namespace utils;
-using namespace Eigen;
 
 static inline double norm(cdouble x, cdouble y, cdouble z)
 {
@@ -27,7 +25,7 @@ static inline double norm(cdouble x, cdouble y, cdouble z)
 }
 
 // Calculate satellite position based on fitted polynomial orbits at time
-static inline void calc_pos(const poly_fit& orb, double time, cart& pos)
+static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
 {
     uint n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
@@ -67,7 +65,7 @@ static inline void calc_pos(const poly_fit& orb, double time, cart& pos)
     pos.x = x; pos.y = y; pos.z = z;
 } // calc_pos
 
-static inline double dot_product(const poly_fit& orb, cdouble X, cdouble Y,
+static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
                                  cdouble Z, double time)
 {
     /* Calculate dot product between satellite velocity vector and
@@ -137,7 +135,7 @@ static inline double dot_product(const poly_fit& orb, cdouble X, cdouble Y,
 } // dot_product
 
 // Compute the sat position using closest approche.
-static inline void closest_appr(const poly_fit& orb, cdouble X, cdouble Y,
+static inline void closest_appr(const fit_poly& orb, cdouble X, cdouble Y,
                                 cdouble Z, cuint max_iter, cart& sat_pos)
 {
     // first, last and middle time, extending the time window by 5 seconds
@@ -207,7 +205,7 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
 } // cart_ell
 
 
-void calc_azi_inc(const poly_fit& orb, cdouble X, cdouble Y,
+void calc_azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
                   cdouble Z, cdouble lon, cdouble lat,
                   cuint max_iter, double& azi, double& inc)
 {

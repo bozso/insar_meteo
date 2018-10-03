@@ -14,28 +14,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
+#ifndef SATORBIT_H
+#define SATORBIT_H
 
-#include "utils.h"
-#include "main_functions.h"
+#include "utils.hh"
+#include "math_aux.hh"
 
-#define Modules "azi_inc"
+/***********
+ * Structs *
+ ***********/
 
-int main(int argc, char **argv)
-{
-    if (main_check_narg(argc, Modules))
-        return EARG;
-    
-    if (ut_module_select("azi_inc")) {
-        return azi_inc(argc, argv);
-    }
-    
-    //else if (ut_module_select("fit_poly")) {
-        //return fit_poly(argc, argv);
-    //}
-    else {
-        errorln("Unrecognized module: %s", argv[1]);
-        errorln("Modules to choose from: %s.", Modules);
-        return EARG;
-    }
-}
+
+// cartesian coordinate
+typedef struct cart_t { double x, y, z; } cart;
+
+void ell_cart (cdouble lon, cdouble lat, cdouble h,
+               double& x, double& y, double& z);
+
+void cart_ell(cdouble x, cdouble y, cdouble z,
+              double& lon, double& lat, double& h);
+
+void calc_azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
+                  cdouble Z, cdouble lon, cdouble lat,
+                  cuint max_iter, double& azi, double& inc);
+
+#endif // SATORBIT_H

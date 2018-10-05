@@ -5,6 +5,11 @@
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
 
+typedef array<npy_double, 2> array2d;
+typedef array<npy_double, 1> array1d;
+
+typedef array<npy_bool, 1> array1b;
+
 
 pydoc(test, "test");
 
@@ -14,13 +19,13 @@ static py_ptr test(py_varargs)
     
     parse_varargs("O", array_type(arr));
     
-    if (import(arr))
+    if (arr.import())
         return NULL;
     
     FOR(ii, 0, arr.rows())
-        print("%lf ", arr(ii));
+        printf("%lf ", arr(ii));
 
-    prints("\n");
+    printf("\n");
 
     Py_RETURN_NONE;
 }
@@ -39,17 +44,17 @@ static py_ptr azi_inc(py_varargs)
                   &deg, array_type(mean_coords), array_type(mean_coords),
                   array_type(coords), &is_lonlat, &max_iter);
     
-    if (import(mean_coords) or import(coeffs) or import(coords))
+    if (mean_coords.import() or coeffs.import() or coords.import())
         return NULL;
     
     npy_intp azi_inc_shape[2] = {(npy_intp) coords.rows(), 2};
     
-    if (empty(azi_inc, azi_inc_shape))
+    if (azi_inc.empty(azi_inc_shape))
         return NULL;
     
     // Set up orbit polynomial structure
-    orbit_fit orb(mean_t, start_t, stop_t, mean_coords.data,
-                  coeffs.data, is_centered, deg);
+    fit_poly orb = {mean_t, start_t, stop_t, mean_coords.data,
+                    coeffs.data, is_centered, deg};
     
     uint nrows = coords.rows();
     
@@ -104,7 +109,7 @@ static py_ptr asc_dsc_select(py_keywords)
     
     npy_intp idx_shape = (npy_intp) arr1.rows();
 
-    if (empty(idx, &idx_shape))
+    if (idx.empty(&idx_shape))
         return NULL;
     
     max_sep /=  R_earth;

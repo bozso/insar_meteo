@@ -18,12 +18,8 @@
 #ifndef MATH_AUX_HH
 #define MATH_AUX_HH
 
-#include <gsl/gsl_matrix.h>
-
 #include "utils.hh"
 
-int poly_fit(int argc, char **argv);
-int poly_eval(int argc, char **argv);
 
 // structure for storing fitted polynom coefficients
 struct fit_poly {
@@ -32,8 +28,7 @@ struct fit_poly {
     uint is_centered, deg;
 };
 
-bool read_fit(fit_poly& fit, const char * filename);
-
+#if 0
 
 enum datatype {
     dt_cx128,
@@ -53,12 +48,6 @@ enum store_type {
     unk
 };
 
-int parse_parfile(const char * parfile_path, size_t& rows, size_t& cols,
-                  store_type& storage, datatype& dtype);
-
-int write_parfile(const char * parfile_path, const size_t rows,
-                  const size_t cols, const store_type storage,
-                  const datatype dtype);
 
 union gsl_mtx_types {
     gsl_matrix_complex_long_double *cx128;
@@ -70,14 +59,6 @@ union gsl_mtx_types {
     gsl_matrix_float *fl32;
 };
 
-struct matrix {
-    gsl_mtx_types mtx;
-    datatype dtype;
-    
-    ~matrix();
-};
-
-matrix init_matrix(size_t rows, size_t cols);
-void free_matrix(const matrix &mat);
+#endif
 
 #endif

@@ -31,7 +31,7 @@ def main():
                   extra_compile_args=flags,
                   library_dirs=lib_dirs,
                   libraries=["m"],
-                  include_dirs=lib_dirs)
+                  include_dirs=inc_dirs)
     ]
     
     setup(ext_modules=ext_modules)

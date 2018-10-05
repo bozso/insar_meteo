@@ -19,54 +19,6 @@
 
 #include "utils.hh"
 
-#define min_arg 2
-
-bool main_check_narg(const int argc, const char * Modules)
-{
-    if (argc < 2) {
-        error("\nAt least one argument, the module name, is required.\
-                 \n\nModules to choose from: %s.\n\n", Modules);
-        error("Use --help or -h as the first argument to print the help message.\n");
-        return true;
-    }
-    return false;
-}
-
-
-bool check_narg(const argparse& ap, int req_arg)
-{
-    if (ap.argc == 2) {
-        errorln("\n Required number of arguments is %d, current number of "
-                "arguments: %d!\n", req_arg, ap.argc - min_arg);
-        printf("%s", ap.usage);
-        return true;
-    }
-
-    const char *first_arg = ap.argv[2];
-    
-    if (str_equal(first_arg, "-h") or str_equal(first_arg, "--help")) {
-        printf("%s", ap.usage);
-        return true;
-    }
-    else if (ap.argc != (req_arg + min_arg)) {
-        errorln("\n Required number of arguments is %d, current number of "
-                "arguments: %d!\n", req_arg, ap.argc - min_arg);
-        printf("%s", ap.usage);
-        return true;
-    }
-    return false;
-};
-
-bool get_arg(const argparse& ap, const uint idx, const char * fmt, void *target)
-{
-    if (sscanf(ap.argv[1 + idx], fmt, target) != 1) {
-        errorln("Invalid argument: %s", ap.argv[1 + idx]);
-        printf("%s", ap.usage);
-        return true;
-    }
-    return false;
-}
-
 
 bool open(File& file, const char * path, const char * mode)
 {

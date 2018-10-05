@@ -73,18 +73,6 @@ void perrorln(const char * perror_str, const char * fmt, ...);
 
 void println(const char * fmt, ...);
 
-/********************
- * Argument parsing *
- ********************/
-
-struct argparse {
-    int argc;
-    char **argv;
-    const char *usage;
-};
-
-bool check_narg(const argparse& ap, int req_arg);
-bool get_arg(const argparse& ap, const uint idx, const char * fmt, void *target);
 
 struct File {
     FILE *_file;
@@ -113,12 +101,11 @@ int write(const File& file, const size_t size, const size_t num, const void *var
 
 
 #define str_equal(str1, str2) (not strcmp((str1), (str2)))
-#define ut_module_select(str) (not strcmp(argv[1], (str)))
 
-#define ut_check(condition)\
+#define ut_check(condition, statement)\
 do {\
     if ((condition))\
-        goto fail;\
+        statement;\
 } while (0)
 
 #endif // UTILS_HPP

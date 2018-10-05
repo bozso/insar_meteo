@@ -4,28 +4,14 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
+#include "utils.hh"
+
 // turn s into string "s"
 #define QUOTE(s) # s
 
 #define CONCAT(a,b) a ## b
 
-#define pyexc(exc_type, format, ...)\
-        PyErr_Format((exc_type), (format), __VA_ARGS__)\
-
-#define pyexcs(exc_type, string)\
-        PyErr_Format((exc_type), (string))\
-
-/*************
- * IO macros *
- *************/
-
-#define error(text, ...) PySys_WriteStderr(text, __VA_ARGS__)
-#define errors(text) PySys_WriteStderr(text)
-#define errorln(text, ...) PySys_WriteStderr(text"\n", __VA_ARGS__)
-
-#define prints(string) PySys_WriteStdout(string)
-#define print(string, ...) PySys_WriteStdout(string, __VA_ARGS__)
-#define println(format, ...) PySys_WriteStdout(format"\n", __VA_ARGS__)
+#define pyexc PyErr_Format
 
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
@@ -33,11 +19,6 @@ template<typename T> struct dtype { const int typenum; };
 
 template<> struct dtype<npy_double> { static const int typenum = NPY_DOUBLE; };
 template<> struct dtype<npy_bool> { static const int typenum = NPY_BOOL; };
-
-typedef array<npy_double, 2> array2d;
-typedef array<npy_double, 1> array1d;
-
-typedef array<npy_bool, 1> array1b;
 
 
 template<typename T, unsigned int ndim>
@@ -54,59 +35,43 @@ struct array {
         _obj = NULL;
     };
     
+    array(T * _data, ...);
+    
+    bool setup_array(PyArrayObject *_array);
+    bool import(PyObject *__obj = NULL);
+    bool empty(npy_intp *dims, int fortran = 0);
+    
     ~array()
     {
         Py_XDECREF(_array);
     }
     
-    array(T * _data, ...) {
-        va_list vl;
-        unsigned int shape_sum = 0;
-        
-        va_start(vl, _data);
-        
-        for(unsigned int ii = 0; ii < ndim; ++ii)
-            shape[ii] = static_cast<unsigned int>(va_arg(vl, int));
-        
-        va_end(vl);
-        
-        for(unsigned int ii = 0; ii < ndim; ++ii) {
-            shape_sum = 1;
-            
-            for(unsigned int jj = ii + 1; jj < ndim; ++jj)
-                 shape_sum *= shape[jj];
-            
-            strides[ii] = shape_sum;
-        }
-        data = _data;
-    }
-
-    PyArrayObject * get_array()
+    PyArrayObject * get_array() const
     {
         return _array;
     }
 
-    PyObject * get_obj()
+    PyObject * get_obj() const
     {
         return _obj;
     }
     
-    const unsigned int get_shape(unsigned int ii)
+    const unsigned int get_shape(unsigned int ii) const
     {
         return shape[ii];
     }
 
-    const unsigned int rows()
+    const unsigned int rows() const
     {
         return shape[0];
     }
     
-    const unsigned int cols()
+    const unsigned int cols() const
     {
         return shape[1];
     }
     
-    T* get_data()
+    T* get_data() const
     {
         return data;
     }
@@ -134,72 +99,8 @@ struct array {
     }
 };
 
-template<typename T, unsigned int ndim>
-static int setup_array(array<T,ndim>& arr, PyArrayObject *_array)
-{
-    int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
-    
-    if (ndim != _ndim) {
-        pyexc(PyExc_TypeError, "numpy array expected to be %u "
-                               "dimensional but we got %u dimensional "
-                               "array!", ndim, _ndim);
-        return 1;
-        
-    }
-    
-    npy_intp * _shape = PyArray_DIMS(_array);
 
-    for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr.shape[ii] = static_cast<unsigned int>(_shape[ii]);
-
-    int elemsize = int(PyArray_ITEMSIZE(_array));
-    
-    npy_intp * _strides = PyArray_STRIDES(_array);
-    
-    for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr.strides[ii] = static_cast<unsigned int>(double(_strides[ii])
-                                                    / elemsize);
-    
-    arr.data = (T*) PyArray_DATA(_array);
-    arr._array = _array;
-    
-    return 0;
-}
-
-template<typename T, unsigned int ndim>
-static int import(array<T,ndim>& arr, PyObject *_obj = NULL)
-{
-    PyObject * tmp_obj = NULL;
-    PyArrayObject * tmp_array = NULL;
-    
-    if (_obj == NULL)
-        tmp_obj = arr._obj;
-    else
-        arr._obj = tmp_obj = _obj;
-    
-    if ((tmp_array =
-         (PyArrayObject*) PyArray_FROM_OTF(tmp_obj, dtype<T>::typenum,
-                                           NPY_ARRAY_IN_ARRAY)) == NULL) {
-        pyexcs(PyExc_TypeError, "Failed to convert numpy array!");
-        return 1;
-    }
-    
-    return setup_array(arr, tmp_array);
-}
-
-template<typename T, unsigned int ndim>
-static int empty(array<T,ndim>& arr, npy_intp *dims, int fortran = 0)
-{
-    PyArrayObject * tmp_array = NULL;
-    
-    if ((tmp_array = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
-                      dtype<T>::typenum, fortran)) == NULL) {
-        pyexcs(PyExc_TypeError, "Failed to create empty numpy array!");
-        return 1;
-    }
-    
-    return setup_array(arr, tmp_array);
-}
+#if 0
 
 template<typename T>
 struct arraynd {
@@ -304,6 +205,7 @@ static int import(arraynd<T>& arr, PyArrayObject * _array = NULL) {
     return 0;
 }
 
+#endif
 
 /******************************
  * Function definition macros *
@@ -341,6 +243,7 @@ do {\
                                      __VA_ARGS__))\
         return NULL;\
 } while(0)
+
 
 /********************************
  * Module initialization macros *

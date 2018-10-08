@@ -11,14 +11,9 @@
 
 #define CONCAT(a,b) a ## b
 
-#define pyexc PyErr_Format
-
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
-template<typename T> struct dtype { const int typenum; };
-
-template<> struct dtype<npy_double> { static const int typenum = NPY_DOUBLE; };
-template<> struct dtype<npy_bool> { static const int typenum = NPY_BOOL; };
+void pyexc(PyObject *exception, const char *format, ...);
 
 
 template<typename T, unsigned int ndim>

@@ -148,23 +148,21 @@ static py_ptr dominant(py_keywords)
     uint ncluster = 0, nhermite = 0;
     
     
-    bool *asc_selected = new bool[asc.rows()],
-         *dsc_selected = new bool[dsc.rows()];
+    bool *asc_selected = PyMem_New(bool, asc.rows()),
+         *dsc_selected = PyMem_New(bool, dsc.rows());
     
-    delete[] asc_selected;
-    delete[] dsc_selected;
+    PyMem_Del(asc_selected);
+    PyMem_Del(dsc_selected);
     
     return Py_BuildValue("NII", clustered.get_array(), ncluster, nhermite);
 } // dominant
 
 
+//------------------------------------------------------------------------------
+
 #define version "0.0.1"
 #define module_name "inmet_aux"
 static const char* module_doc = "inmet_aux";
-
-
-static PyObject * module_error;
-static PyObject * module;
 
 static PyMethodDef module_methods[] = {
     pymeth_varargs(test),
@@ -173,6 +171,11 @@ static PyMethodDef module_methods[] = {
     pymeth_keywords(dominant),
     {NULL, NULL, 0, NULL}
 };
+
+//------------------------------------------------------------------------------
+
+static PyObject * module_error;
+static PyObject * module;
 
 #if PY_VERSION_HEX >= 0x03000000
 static struct PyModuleDef module_def = {

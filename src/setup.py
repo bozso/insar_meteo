@@ -25,8 +25,10 @@ def main():
     inc_dirs = ["/home/istvan/miniconda3/include", "include"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
+    sources = ["inmet_auxmodule.cc", "capi_functions.cc"]
+    
     ext_modules = [
-        Extension(name="inmet_aux", sources=["inmet_auxmodule.cc"],
+        Extension(name="inmet_aux", sources=sources,
                   define_macros=macros,
                   extra_compile_args=flags,
                   library_dirs=lib_dirs,

@@ -2,6 +2,24 @@
 
 #include "capi_functions.hh"
 
+template<typename T> struct dtype { static const int typenum; };
+
+template<>
+const int dtype<npy_double>::typenum = NPY_DOUBLE;
+
+template<>
+const int dtype<npy_bool>::typenum = NPY_BOOL;
+
+
+void pyexc(PyObject *exception, const char *format, ...)
+{
+    va_list vl;
+    va_start(vl, format);
+    PyErr_FormatV(exception, format, vl);
+    va_end(vl);
+}
+
+
 template<typename T, unsigned int ndim>
 array<T, ndim>::array(T * _data, ...)
 {
@@ -28,9 +46,9 @@ array<T, ndim>::array(T * _data, ...)
 
 
 template<typename T, unsigned int ndim>
-array<T, ndim>::bool setup_array(PyArrayObject *_array)
+bool array<T, ndim>::setup_array(PyArrayObject *__array)
 {
-    int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+    int _ndim = static_cast<unsigned int>(PyArray_NDIM(__array));
     
     if (ndim != _ndim) {
         pyexc(PyExc_TypeError, "numpy array expected to be %u "
@@ -40,28 +58,28 @@ array<T, ndim>::bool setup_array(PyArrayObject *_array)
         
     }
     
-    npy_intp * _shape = PyArray_DIMS(_array);
+    npy_intp * _shape = PyArray_DIMS(__array);
 
     for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr.shape[ii] = static_cast<unsigned int>(_shape[ii]);
+        shape[ii] = static_cast<unsigned int>(_shape[ii]);
 
-    int elemsize = int(PyArray_ITEMSIZE(_array));
+    int elemsize = int(PyArray_ITEMSIZE(__array));
     
-    npy_intp * _strides = PyArray_STRIDES(_array);
+    npy_intp * _strides = PyArray_STRIDES(__array);
     
     for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr.strides[ii] = static_cast<unsigned int>(double(_strides[ii])
+        strides[ii] = static_cast<unsigned int>(double(_strides[ii])
                                                     / elemsize);
     
-    arr.data = (T*) PyArray_DATA(_array);
-    arr._array = _array;
+    data = (T*) PyArray_DATA(__array);
+    _array = __array;
     
     return false;
 }
 
 
 template<typename T, unsigned int ndim>
-array<T, ndim>::bool import(PyObject *__obj)
+bool array<T, ndim>::import(PyObject *__obj)
 {
     PyObject * tmp_obj = NULL;
     PyArrayObject * tmp_array = NULL;
@@ -74,7 +92,7 @@ array<T, ndim>::bool import(PyObject *__obj)
     if ((tmp_array =
          (PyArrayObject*) PyArray_FROM_OTF(tmp_obj, dtype<T>::typenum,
                                            NPY_ARRAY_IN_ARRAY)) == NULL) {
-        pyexcs(PyExc_TypeError, "Failed to convert numpy array!");
+        pyexc(PyExc_TypeError, "Failed to convert numpy array!");
         return true;
     }
     
@@ -83,13 +101,13 @@ array<T, ndim>::bool import(PyObject *__obj)
 
 
 template<typename T, unsigned int ndim>
-array<T, ndim>::bool empty(npy_intp *dims, int fortran)
+bool array<T, ndim>::empty(npy_intp *dims, int fortran)
 {
     PyArrayObject * tmp_array = NULL;
     
     if ((tmp_array = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                       dtype<T>::typenum, fortran)) == NULL) {
-        pyexcs(PyExc_TypeError, "Failed to create empty numpy array!");
+        pyexc(PyExc_TypeError, "Failed to create empty numpy array!");
         return 1;
     }
     
@@ -97,7 +115,7 @@ array<T, ndim>::bool empty(npy_intp *dims, int fortran)
 }
 
 
-template<> array<npy_double, 2>;
-template<> array<npy_double, 1>;
+template class array<npy_double, 2>;
+template class array<npy_double, 1>;
 
-template<> array<npy_bool, 1>;
+template class array<npy_bool, 1>;

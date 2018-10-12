@@ -6,6 +6,12 @@
 
 #include "utils.hh"
 
+#ifdef INC_IMPL
+#include "capi_functions.cc"
+#include "pyvector.cc"
+#endif
+
+
 // turn s into string "s"
 #define QUOTE(s) # s
 
@@ -14,6 +20,35 @@
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
 void pyexc(PyObject *exception, const char *format, ...);
+
+
+// some functions are inline, in case your compiler doesn't like "static inline"
+// but wants "__inline__" or something instead, #define DG_DYNARR_INLINE accordingly.
+#ifndef DG_DYNARR_INLINE
+	// for pre-C99 compilers you might have to use something compiler-specific (or maybe only "static")
+	#ifdef _MSC_VER
+		#define DG_DYNARR_INLINE static __inline
+	#else
+		#define DG_DYNARR_INLINE static inline
+	#endif
+#endif
+
+
+// if you want to prepend something to the non inline (DG_DYNARR_INLINE) functions,
+// like "__declspec(dllexport)" or whatever, #define DG_DYNARR_DEF
+#ifndef DG_DYNARR_DEF
+	// by defaults it's empty.
+	#define DG_DYNARR_DEF
+#endif
+
+
+#ifndef DG_DYNARR_MALLOC
+	#define Mem_New(elem_type, n_elem) PyMem_New(elem_type, n_elem)
+
+	#define Mem_Resize(ptr, elem_type, new_n_elem) PyMem_Resize(ptr, elem_type, new_n_elem)
+
+	#define Mem_Del(ptr) PyMem_Del(ptr)
+#endif
 
 
 template<typename T, unsigned int ndim>
@@ -93,6 +128,24 @@ struct array {
                     + ll * strides[3]];
     }
 };
+
+
+template<typename T>
+struct vector {
+    T* data;
+    size_t cnt;
+    size_t cap;
+    
+    vector() data(NULL), cnt(0), cap(0) {};
+    bool init(size_t buf_cap);
+    void init(T* buf, size_t buf_cap);
+    
+    ~vector();
+    
+    push(T& elem);
+    
+};
+
 
 
 #if 0

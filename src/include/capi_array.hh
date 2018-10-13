@@ -115,7 +115,86 @@ bool array<T, ndim>::empty(npy_intp *dims, int fortran)
 }
 
 
-template class array<npy_double, 2>;
-template class array<npy_double, 1>;
+template<typename T, unsigned int ndim>
+array<T, ndim>::~array()
+{
+    Py_XDECREF(_array);
+}
 
-template class array<npy_bool, 1>;
+
+template<typename T, unsigned int ndim>
+PyArrayObject* array<T, ndim>::get_array() const
+{
+    return _array;
+}
+
+
+template<typename T, unsigned int ndim>
+PyObject* array<T, ndim>::get_obj() const
+{
+    return _obj;
+}
+
+
+template<typename T, unsigned int ndim>
+const unsigned int array<T, ndim>::get_shape(unsigned int ii) const
+{
+    return shape[ii];
+}
+
+
+template<typename T, unsigned int ndim>
+const unsigned int array<T, ndim>::rows() const
+{
+    return shape[0];
+}
+
+
+template<typename T, unsigned int ndim>
+const unsigned int array<T, ndim>::cols() const
+{
+    return shape[1];
+}
+
+
+template<typename T, unsigned int ndim>
+T* array<T, ndim>::get_data() const
+{
+    return data;
+}
+
+
+template<typename T, unsigned int ndim>
+T& array<T, ndim>::operator()(unsigned int ii)
+{
+    return data[ii * strides[0]];
+}
+
+
+template<typename T, unsigned int ndim>
+T& array<T, ndim>::operator()(unsigned int ii, unsigned int jj)
+{
+    return data[ii * strides[0] + jj * strides[1]];
+}
+
+
+template<typename T, unsigned int ndim>
+T& array<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk)
+{
+    return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+}
+
+
+template<typename T, unsigned int ndim>
+T& array<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk,
+                              unsigned int ll)
+{
+    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
+                + ll * strides[3]];
+}
+
+
+template struct array<npy_double, 2>;
+template struct array<npy_double, 1>;
+
+template struct array<npy_bool, 1>;

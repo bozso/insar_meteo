@@ -158,86 +158,172 @@ bool vector<T>::addn(T* vals, size_t n)
 // add n elements to the end of the array and zeroe them with memset()
 // returns pointer to first added element, NULL if out of memory (array is empty then)
 template<typename T>
-T* vector<T>::zeroed(size_t n)
+T* vector<T>::addn(size_t n, bool init0)
 {
-    return add(n, true) ? data[cnt - n] : NULL;
+    return add(n, init0) ? data[cnt - n] : NULL;
 }
 
-
-// add n elements to the end of the array, which are uninitialized
-// returns pointer to first added element, NULL if out of memory (array is empty then)
 template<typename T>
-T* vector<T>::uninit(size_t n)
+DG_DYNARR_INLINE bool
+vector<T>::_insert(size_t idx, size_t n, bool init0)
 {
-    return add(n, false) ? data[cnt - n] : NULL;
+	// allow idx == md->cnt to append
+	size_t oldCount = cnt;
+	size_t newCount = oldCount + n;
+	if (idx <= oldCount && maybegrow(newCount)) {
+        // data might have changed in grow()!
+		unsigned char *p = (unsigned char*) data; 
+		
+        // move all existing items after a[idx] to a[idx+n]
+		if(idx < oldCount)
+            memmove(p + (idx + n) * sizeof(T), p + idx * sizeof(T),
+                    sizeof(T) * (oldCount - idx));
+
+		// if the memory is supposed to be zeroed, do that
+		if (init0)
+            memset(p + idx * sizeof(T), 0, n * sizeof(T));
+
+		cnt = newCount;
+		return true;
+	}
+	return false;
 }
 
-// insert a single value v at index idx
-#define dg_dynarr_insert(a, idx, v) \
-	(dg__dynarr_checkidxle((a),(idx)), \
-	 dg__dynarr_insert(dg__dynarr_unp(a), (idx), 1, 0), \
-	 (a).p[dg__dynarr_idx((a).md, (idx))] = (v))
-
-// insert n elements into a at idx, initialize them from array vals
-// doesn't return anything
-// ! vals (and all other args) is evaluated multiple times ! 
-#define dg_dynarr_insertn(a, idx, vals, n) do { \
-	DG_DYNARR_ASSERT((vals)!=NULL, "Don't pass NULL as vals to dg_dynarr_insertn!"); \
-	dg__dynarr_checkidxle((a),(idx)); \
-	if((vals)!=NULL && dg__dynarr_insert(dg__dynarr_unp(a), (idx), (n), 0)){ \
-		size_t i_=(idx), v_=0, e_=(idx)+(n); \
-		while(i_ < e_)  (a).p[i_++] = (vals)[v_++]; \
-	}} DG__DYNARR_WHILE0
-
-// insert n elements into a at idx and zeroe them with memset() 
-// returns pointer to first inserted element or NULL if out of memory
-#define dg_dynarr_insertn_zeroed(a, idx, n) \
-	(dg__dynarr_checkidxle((a),(idx)), \
-	 dg__dynarr_insert(dg__dynarr_unp(a), (idx), (n), 1) \
-	  ? &(a).p[dg__dynarr_idx((a).md, (idx))] : NULL)
-
-// insert n uninitialized elements into a at idx;
-// returns pointer to first inserted element or NULL if out of memory
-#define dg_dynarr_insertn_uninit(a, idx, n) \
-	(dg__dynarr_checkidxle((a),(idx)), \
-	 dg__dynarr_insert(dg__dynarr_unp(a), idx, n, 0) \
-	  ? &(a).p[dg__dynarr_idx((a).md, (idx))] : NULL)
-
-// set a single value v at index idx - like "a.p[idx] = v;" but with checks (unless disabled)
-#define dg_dynarr_set(a, idx, v) \
-	(dg__dynarr_checkidx((a),(idx)), \
-	 (a).p[dg__dynarr_idx((a).md, (idx))] = (v))
-
-// overwrite n elements of a, starting at idx, with values from array vals
-// doesn't return anything
-// ! vals (and all other args) is evaluated multiple times ! 
-#define dg_dynarr_setn(a, idx, vals, n) do { \
-	DG_DYNARR_ASSERT((vals)!=NULL, "Don't pass NULL as vals to dg_dynarr_setn!"); \
-	size_t idx_=(idx); size_t end_=idx_+(size_t)n; \
-	dg__dynarr_checkidx((a),idx_); dg__dynarr_checkidx((a),end_-1); \
-	if((vals)!=NULL && idx_ < (a).md.cnt && end_ <= (a).md.cnt) { \
-		size_t v_=0; \
-		while(idx_ < end_)  (a).p[idx_++] = (vals)[v_++]; \
-	}} DG__DYNARR_WHILE0
 
 
-// delete the element at idx, moving all following elements (=> keeps order)
-#define dg_dynarr_delete(a, idx) \
-	(dg__dynarr_checkidx((a),(idx)), dg__dynarr_delete(dg__dynarr_unp(a), (idx), 1))
+#if (DG_DYNARR_INDEX_CHECK_LEVEL == 2) || (DG_DYNARR_INDEX_CHECK_LEVEL == 3)
+    
+    template<typename T>
+    void vector<T>::checkidx(size_t ii)
+    {
+        assert(ii < cnt, "index out of bounds");
+    }
 
-// delete n elements starting at idx, moving all following elements (=> keeps order)
-#define dg_dynarr_deleten(a, idx, n) \
-	(dg__dynarr_checkidx((a),(idx)), dg__dynarr_delete(dg__dynarr_unp(a), (idx), (n)))
+    template<typename T>
+    void vector<T>::checkidxle(size_t ii)
+    {
+        assert(ii <= cnt, "index out of bounds");
+    }
+
+    template<typename T>
+    void vector<T>::check_notempty(const char * msg)
+    {
+        assert(cnt > 0, msg);
+    }
+
+#elif (DG_DYNARR_INDEX_CHECK_LEVEL == 0) || (DG_DYNARR_INDEX_CHECK_LEVEL == 1)
+
+    template<typename T>
+    void* vector<T>::checkidx(size_t ii)
+    {
+        return (void) 0;
+    }
+
+    template<typename T>
+    void* vector<T>::checkidxle(size_t ii)
+    {
+        return (void) 0;
+    }
+
+    template<typename T>
+    void* vector<T>::check_notempty(const char * msg)
+    {
+        return (void) 0;
+    }
+
+#else // invalid DG_DYNARR_INDEX_CHECK_LEVEL
+	#error Invalid index check level DG_DYNARR_INDEX_CHECK_LEVEL (must be 0-3) !
+#endif // DG_DYNARR_INDEX_CHECK_LEVEL
+
+
+#if (DG_DYNARR_INDEX_CHECK_LEVEL == 1) || (DG_DYNARR_INDEX_CHECK_LEVEL == 3)
+    
+    template<typename T>
+    size_t vector<T>::idx(size_t ii)
+    {
+        return (ii < cnt) ? ii : 0;
+    }
+    
+
+#elif (DG_DYNARR_INDEX_CHECK_LEVEL == 0) || (DG_DYNARR_INDEX_CHECK_LEVEL == 2)
+    #define idx(ii) (size_t) ii
+
+#else // invalid DG_DYNARR_INDEX_CHECK_LEVEL
+	#error Invalid index check level DG_DYNARR_INDEX_CHECK_LEVEL (must be 0-3) !
+#endif // DG_DYNARR_INDEX_CHECK_LEVEL
+
+template<typename T>
+bool vector<T>::insert(size_t ii, T& value)
+{
+    return checkidxle(idx), _insert(idx, 1, false),
+           data[idx(ii)] = value;
+}
+
+template<typename T>
+bool vector<T>::insert(size_t ii, T* values, size_t n)
+{
+	DG_DYNARR_ASSERT(vals != NULL, "Don't pass NULL as vals to dg_dynarr_insertn!");
+	checkidxle(a, ii);
+	
+    if (vals != NULL && _insert(idx, n, 0)) {
+		size_t i_ = ii, v_ = 0, e_ = ii + n;
+	
+    	while(i_ < e_)
+            data[i_++] = vals[v_++];
+    }
+}
+
+
+template<typename T>
+T* vector<T>::insert(size_t ii, size_t n, bool init0)
+{
+	return checkidxle(ii), _insert(ii, n, init0)
+           ? data[idx(ii)] : NULL
+    
+    
+}
+
+
+template<typename T>
+T& vector<T>::operator[](size_t ii)
+{
+    return data[idx(ii)];
+}
+
+
+template<typename T>
+void vector<T>::set(size_t ii, T* values, size_t n)
+{
+	DG_DYNARR_ASSERT(vals != NULL, "Don't pass NULL as vals to dg_dynarr_setn!");
+	
+    size_t idx_= ii, end_ = idx_ + n;
+    checkidx(idx_);
+    checkidx(end_ - 1);
+    
+	if (vals != NULL && idx_ < cnt && end_ <= cnt) {
+		size_t v_ = 0;
+		while (idx_ < end_)
+            data[idx_++] = values[v_++];
+    }
+}
+
+
+template<typename T>
+bool vector<T>::del(size_t ii, size_t n)
+{
 	// TODO: check whether idx+n < count?
+    return checkidx(ii), _delete(ii, n);
+}
 
-// delete the element at idx, move the last element there (=> doesn't keep order)
-#define dg_dynarr_deletefast(a, idx) \
-	(dg__dynarr_checkidx((a),(idx)), dg__dynarr_deletefast(dg__dynarr_unp(a), (idx), 1))
-
-// delete n elements starting at idx, move the last n elements there (=> doesn't keep order)
-#define dg_dynarr_deletenfast(a, idx, n) \
-	(dg__dynarr_checkidx((a),(idx)), dg__dynarr_deletefast(dg__dynarr_unp(a), idx, n))
+template<typename T>
+bool vector<T>::delfast(size_t ii, size_t n)
+{
 	// TODO: check whether idx+n < count?
+    return checkidx(ii), _delete_fast(ii, n);
+}
+
+
+template<typename T>
 
 // removes all elements from the array, but does not free the buffer
 // (if you want to free the buffer too, just use dg_dynarr_free())
@@ -468,26 +554,6 @@ dg__dynarr_grow(void** arr, dg__dynarr_md* md, size_t itemsize, size_t min_neede
 
 
 
-DG_DYNARR_INLINE int
-dg__dynarr_insert(void** arr, dg__dynarr_md* md, size_t itemsize, size_t idx, size_t n, int init0)
-{
-	// allow idx == md->cnt to append
-	size_t oldCount = md->cnt;
-	size_t newCount = oldCount+n;
-	if(idx <= oldCount && dg__dynarr_maybegrow(arr, md, itemsize, newCount))
-	{
-		unsigned char* p = (unsigned char*)*arr; // *arr might have changed in dg__dynarr_grow()!
-		// move all existing items after a[idx] to a[idx+n]
-		if(idx < oldCount)  memmove(p+(idx+n)*itemsize, p+idx*itemsize, itemsize*(oldCount - idx));
-
-		// if the memory is supposed to be zeroed, do that
-		if(init0)  memset(p+idx*itemsize, 0, n*itemsize);
-
-		md->cnt = newCount;
-		return 1;
-	}
-	return 0;
-}
 
 
 DG_DYNARR_INLINE void

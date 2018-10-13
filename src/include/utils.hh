@@ -73,6 +73,7 @@ void perrorln(const char * perror_str, const char * fmt, ...);
 
 void println(const char * fmt, ...);
 
+#define _log println("File: %s line: %d", __FILE__, __LINE__)
 
 struct File {
     FILE *_file;

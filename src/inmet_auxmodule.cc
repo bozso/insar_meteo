@@ -1,7 +1,8 @@
-#include "capi_macros.hh"
 #include "capi_structs.hh"
+#include "capi_macros.hh"
 #include "utils.hh"
 #include "satorbit.hh"
+
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
@@ -19,7 +20,7 @@ static py_ptr test(py_varargs)
     
     parse_varargs("O", array_type(arr));
     
-    if (arr.import())
+    if (import(arr))
         return NULL;
     
     FOR(ii, 0, arr.rows())
@@ -44,12 +45,12 @@ static py_ptr azi_inc(py_varargs)
                   &deg, array_type(mean_coords), array_type(mean_coords),
                   array_type(coords), &is_lonlat, &max_iter);
     
-    if (mean_coords.import() or coeffs.import() or coords.import())
+    if (import(mean_coords) or import(coeffs) or import(coords))
         return NULL;
     
     npy_intp azi_inc_shape[2] = {(npy_intp) coords.rows(), 2};
     
-    if (azi_inc.empty(azi_inc_shape))
+    if (empty(azi_inc, azi_inc_shape))
         return NULL;
     
     // Set up orbit polynomial structure
@@ -91,7 +92,7 @@ static py_ptr azi_inc(py_varargs)
         } // for
     } // if
     
-    return Py_BuildValue("N", azi_inc);
+    return Py_BuildValue("N", get_array(azi_inc));
 } // azi_inc
 
 pydoc(asc_dsc_select, "asc_dsc_select");
@@ -109,7 +110,7 @@ static py_ptr asc_dsc_select(py_keywords)
     
     npy_intp idx_shape = (npy_intp) arr1.rows();
 
-    if (idx.empty(&idx_shape))
+    if (empty(idx, &idx_shape))
         return NULL;
     
     max_sep /=  R_earth;
@@ -131,7 +132,7 @@ static py_ptr asc_dsc_select(py_keywords)
         }
     }
     
-    return Py_BuildValue("NI", idx, nfound);
+    return Py_BuildValue("NI", get_array(idx), nfound);
 } // asc_dsc_select
 
 pydoc(dominant, "dominant");
@@ -145,21 +146,22 @@ static py_ptr dominant(py_keywords)
     
     parse_keywords("OO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
     
-    if (asc.import() or dsc.import())
-     return NULL;
+    if (import(asc) or import(dsc))
+        return NULL;
     
     uint ncluster = 0, nhermite = 0;
     
     array<bool> asc_selected, dsc_selected;
     
-    if (asc_selected.init(asc.rows()) or dsc_selected.init(dsc.rows()))
+    if (init(asc_selected, asc.rows()) or init(dsc_selected, dsc.rows()))
         return NULL;
     
     vector<double> clustered;
     
     
     
-    return Py_BuildValue("NII", clustered.get_array(), ncluster, nhermite);
+    //return Py_BuildValue("NII", clustered.get_array(), ncluster, nhermite);
+    Py_RETURN_NONE;
 } // dominant
 
 

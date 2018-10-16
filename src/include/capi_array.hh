@@ -49,9 +49,16 @@ nparray<T, ndim>::nparray(T * _data, ...)
 
 
 template<typename T, unsigned int ndim>
-bool nparray<T, ndim>::setup_nparray(PynparrayObject *__nparray)
+nparray<T, ndim>::~nparray()
 {
-    int _ndim = static_cast<unsigned int>(Pynparray_NDIM(__nparray));
+    Py_XDECREF(_array);
+}
+
+
+template<typename T, unsigned int ndim>
+static bool setup_array(nparray<T, ndim>& arr, PyArrayObject *_array)
+{
+    int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
     
     if (ndim != _ndim) {
         pyexc(PyExc_TypeError, "numpy nparray expected to be %u "
@@ -61,109 +68,98 @@ bool nparray<T, ndim>::setup_nparray(PynparrayObject *__nparray)
         
     }
     
-    npy_intp * _shape = Pynparray_DIMS(__nparray);
+    npy_intp * shape = PyArray_DIMS(_array);
 
     for(unsigned int ii = 0; ii < ndim; ++ii)
-        shape[ii] = static_cast<unsigned int>(_shape[ii]);
+        arr.shape[ii] = static_cast<unsigned int>(shape[ii]);
 
-    int elemsize = int(Pynparray_ITEMSIZE(__nparray));
+    int elemsize = int(PyArray_ITEMSIZE(_array));
     
-    npy_intp * _strides = Pynparray_STRIDES(__nparray);
+    npy_intp * strides = PyArray_STRIDES(_array);
     
     for(unsigned int ii = 0; ii < ndim; ++ii)
-        strides[ii] = static_cast<unsigned int>(double(_strides[ii])
+        arr.strides[ii] = static_cast<unsigned int>(double(strides[ii])
                                                     / elemsize);
     
-    data = (T*) Pynparray_DATA(__nparray);
-    _nparray = __nparray;
+    arr.data = (T*) PyArray_DATA(_array);
+    arr._array = _array;
     
     return false;
 }
 
 
 template<typename T, unsigned int ndim>
-bool nparray<T, ndim>::import(PyObject *__obj)
+bool import(nparray<T, ndim>& arr, PyObject *_obj)
 {
     PyObject * tmp_obj = NULL;
-    PynparrayObject * tmp_nparray = NULL;
+    PyArrayObject * tmp_array = NULL;
     
-    if (_obj == NULL)
-        tmp_obj = _obj;
+    if (arr._obj == NULL)
+        tmp_obj = arr._obj;
     else
-        _obj = tmp_obj = __obj;
+        arr._obj = tmp_obj = _obj;
     
-    if ((tmp_nparray =
-         (PynparrayObject*) Pynparray_FROM_OTF(tmp_obj, dtype<T>::typenum,
-                                           NPY_nparray_IN_nparray)) == NULL) {
+    if ((tmp_array =
+         (PyArrayObject*) PyArray_FROM_OTF(tmp_obj, dtype<T>::typenum,
+                                           NPY_ARRAY_IN_ARRAY)) == NULL) {
         pyexc(PyExc_TypeError, "Failed to convert numpy nparray!");
         return true;
     }
     
-    return setup_nparray(tmp_nparray);
+    return setup_array(arr, tmp_array);
 }
 
 
 template<typename T, unsigned int ndim>
-bool nparray<T, ndim>::empty(npy_intp *dims, int fortran)
+bool empty(nparray<T, ndim>& arr, npy_intp *dims, int fortran)
 {
-    PynparrayObject * tmp_nparray = NULL;
+    PyArrayObject * tmp_array = NULL;
     
-    if ((tmp_nparray = (PynparrayObject*) Pynparray_EMPTY(ndim, dims,
+    if ((tmp_array = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                       dtype<T>::typenum, fortran)) == NULL) {
         pyexc(PyExc_TypeError, "Failed to create empty numpy nparray!");
-        return 1;
+        return true;
     }
     
-    return setup_nparray(tmp_nparray);
+    return setup_array(arr, tmp_array);
 }
 
 
 template<typename T, unsigned int ndim>
-nparray<T, ndim>::~nparray()
-{
-    Py_XDECREF(_nparray);
+PyArrayObject* get_array(const nparray<T, ndim>& arr) {
+    return arr._array;
 }
 
 
 template<typename T, unsigned int ndim>
-PynparrayObject* nparray<T, ndim>::get_nparray() const
-{
-    return _nparray;
+PyObject* get_obj(const nparray<T, ndim>& arr) {
+    return arr._obj;
 }
 
 
 template<typename T, unsigned int ndim>
-PyObject* nparray<T, ndim>::get_obj() const
-{
-    return _obj;
+const unsigned int get_shape(const nparray<T, ndim>& arr, unsigned int ii) {
+    return arr.shape[ii];
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int nparray<T, ndim>::get_shape(unsigned int ii) const
+const unsigned int rows(const nparray<T, ndim>& arr)
 {
-    return shape[ii];
+    return arr.shape[0];
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int nparray<T, ndim>::rows() const
+const unsigned int cols(const nparray<T, ndim>& arr)
 {
-    return shape[0];
+    return arr.shape[1];
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int nparray<T, ndim>::cols() const
-{
-    return shape[1];
-}
-
-
-template<typename T, unsigned int ndim>
-T* nparray<T, ndim>::get_data() const
-{
-    return data;
+T* get_data(const nparray<T, ndim>& arr) {
+    return arr.data;
 }
 
 

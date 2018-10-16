@@ -1,6 +1,8 @@
 #include "capi_macros.hh"
 #include "capi_structs.hh"
 
+#include "utils.hh"
+
 
 template <class T>
 T& array<T>::operator[](size_t index)
@@ -10,7 +12,7 @@ T& array<T>::operator[](size_t index)
 
 
 template <class T>
-T const& Array<T>::operator[] const (size_t index)
+const T array<T>::operator[](size_t index) const
 {
     return data[index];
 }
@@ -34,7 +36,7 @@ array<T>& array<T>::operator= (const array& copy)
 
     // Now that you have finished all the dangerous work.
     // Do the operations that  change the object.
-    std::swap(tmp, data);
+    //std::swap(tmp, data);
     size = copy.size;
 
     // Finally tidy up
@@ -72,7 +74,7 @@ bool init(array<T>& arr, const int init_size, const T init_value)
 
     arr.size = init_size;
     
-    FOR(ii, 0, size) {
+    FOR(ii, 0, arr.size) {
         arr.data[ii] = init_value;
     }
     return false;
@@ -80,14 +82,16 @@ bool init(array<T>& arr, const int init_size, const T init_value)
 
 
 template <class T>
-bool init(array<T>& arr, const array& original)
+bool init(array<T>& arr, const array<T>& original)
 {
     arr.size = original.size;
 
-    if ((arr.data = Mem_New(T, init_size)) == NULL)
+    if ((arr.data = Mem_New(T, arr.size)) == NULL)
         return true;
     
-    FOR(ii, 0, size) {
-        arr.data[ii] = original.arr[ii];
+    FOR(ii, 0, arr.size) {
+        arr.data[ii] = original.data[ii];
     }
+    
+    return false;
 }

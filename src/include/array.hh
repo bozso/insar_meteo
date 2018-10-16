@@ -3,62 +3,6 @@
 
 
 template <class T>
-array<T>::array()
-{
-    data = NULL;
-    size = 0;
-}
-
-
-template <class T>
-bool array<T>::init(const size_t& init_size)
-{
-    if ((data = Mem_New(T, init_size)) == NULL)
-        return true;
-    
-    size = init_size;
-    return false;
-}
-
-
-template <class T>
-bool array<T>::init(const int& init_size, const T init_value)
-{
-    if ((data = Mem_New(T, init_size)) == NULL)
-        return true;
-
-    size = init_size;
-    
-    FOR(ii, 0, size) {
-        data[ii] = init_value;
-    }
-    return false;
-}
-
-
-template <class T>
-bool array<T>::init(const array& original)
-{
-    size = original.size;
-
-    if ((data = Mem_New(T, init_size)) == NULL)
-        return true;
-    
-    FOR(ii, 0, size) {
-        data[ii] = original.arr[ii];
-    }
-}
-
-
-template <class T>
-array<T>::~array()
-{
-    Mem_Del(data);
-    size = 0;
-}
-
-
-template <class T>
 T& array<T>::operator[](size_t index)
 {
     return data[index];
@@ -98,4 +42,52 @@ array<T>& array<T>::operator= (const array& copy)
 
     // Now you can return
     return *this;
+}
+
+
+template <class T>
+array<T>::~array()
+{
+    Mem_Del(data);
+    size = 0;
+}
+
+
+template <class T>
+bool init(array<T>& arr, const size_t init_size)
+{
+    if ((arr.data = Mem_New(T, init_size)) == NULL)
+        return true;
+    
+    arr.size = init_size;
+    return false;
+}
+
+
+template <class T>
+bool init(array<T>& arr, const int init_size, const T init_value)
+{
+    if ((arr.data = Mem_New(T, init_size)) == NULL)
+        return true;
+
+    arr.size = init_size;
+    
+    FOR(ii, 0, size) {
+        arr.data[ii] = init_value;
+    }
+    return false;
+}
+
+
+template <class T>
+bool init(array<T>& arr, const array& original)
+{
+    arr.size = original.size;
+
+    if ((arr.data = Mem_New(T, init_size)) == NULL)
+        return true;
+    
+    FOR(ii, 0, size) {
+        arr.data[ii] = original.arr[ii];
+    }
 }

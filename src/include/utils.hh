@@ -61,7 +61,6 @@ typedef const double cdouble;
 #define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
 #define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
 
-bool main_check_narg(const int argc, const char * Modules);
 
 /****************
  * IO functions *
@@ -75,21 +74,14 @@ void println(const char * fmt, ...);
 
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
+
 struct File {
     FILE *_file;
     
-    File() {
-        _file = NULL;
-    }
-    
-    ~File() {
-        if (_file != NULL) {
-            fclose(_file);
-            _file = NULL;
-        }
-    }
-    
+    File(): _file(NULL) {};
+    ~File();
 };
+
 
 bool open(File& file, const char * path, const char * mode);
 void close(File& file);

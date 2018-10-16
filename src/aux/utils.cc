@@ -20,6 +20,15 @@
 #include "utils.hh"
 
 
+File::~File()
+{
+    if (_file != NULL) {
+        fclose(_file);
+        _file = NULL;
+    }
+}
+
+
 bool open(File& file, const char * path, const char * mode)
 {
     if ((file._file = fopen(path, mode)) == NULL) {
@@ -29,7 +38,9 @@ bool open(File& file, const char * path, const char * mode)
     return false;
 }
 
-void close(File& file) {
+
+void close(File& file)
+{
     fclose(file._file);
     file._file = NULL;
 }
@@ -85,6 +96,7 @@ void errorln(const char * fmt, ...)
     vfprintf(stderr, fmt, ap), fputs("\n", stderr);
     va_end(ap);
 }
+
 
 void perrorln(const char * perror_str, const char * fmt, ...)
 {

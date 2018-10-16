@@ -6,6 +6,7 @@
 
 #define CONCAT(a,b) a ## b
 
+
 // some functions are inline, in case your compiler doesn't like "static inline"
 // but wants "__inline__" or something instead, #define DG_DYNARR_INLINE accordingly.
 #ifndef DG_DYNARR_INLINE

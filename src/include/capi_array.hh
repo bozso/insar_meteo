@@ -1,6 +1,9 @@
+#ifndef CAPI_nparray_HH
+#define CAPI_nparray_HH
+
 #include <stdarg.h>
 
-#include "capi_functions.hh"
+#include "capi_structs.hh"
 
 template<typename T> struct dtype { static const int typenum; };
 
@@ -21,7 +24,7 @@ void pyexc(PyObject *exception, const char *format, ...)
 
 
 template<typename T, unsigned int ndim>
-array<T, ndim>::array(T * _data, ...)
+nparray<T, ndim>::nparray(T * _data, ...)
 {
     va_list vl;
     unsigned int shape_sum = 0;
@@ -46,155 +49,180 @@ array<T, ndim>::array(T * _data, ...)
 
 
 template<typename T, unsigned int ndim>
-bool array<T, ndim>::setup_array(PyArrayObject *__array)
+bool nparray<T, ndim>::setup_nparray(PynparrayObject *__nparray)
 {
-    int _ndim = static_cast<unsigned int>(PyArray_NDIM(__array));
+    int _ndim = static_cast<unsigned int>(Pynparray_NDIM(__nparray));
     
     if (ndim != _ndim) {
-        pyexc(PyExc_TypeError, "numpy array expected to be %u "
+        pyexc(PyExc_TypeError, "numpy nparray expected to be %u "
                                "dimensional but we got %u dimensional "
-                               "array!", ndim, _ndim);
+                               "nparray!", ndim, _ndim);
         return true;
         
     }
     
-    npy_intp * _shape = PyArray_DIMS(__array);
+    npy_intp * _shape = Pynparray_DIMS(__nparray);
 
     for(unsigned int ii = 0; ii < ndim; ++ii)
         shape[ii] = static_cast<unsigned int>(_shape[ii]);
 
-    int elemsize = int(PyArray_ITEMSIZE(__array));
+    int elemsize = int(Pynparray_ITEMSIZE(__nparray));
     
-    npy_intp * _strides = PyArray_STRIDES(__array);
+    npy_intp * _strides = Pynparray_STRIDES(__nparray);
     
     for(unsigned int ii = 0; ii < ndim; ++ii)
         strides[ii] = static_cast<unsigned int>(double(_strides[ii])
                                                     / elemsize);
     
-    data = (T*) PyArray_DATA(__array);
-    _array = __array;
+    data = (T*) Pynparray_DATA(__nparray);
+    _nparray = __nparray;
     
     return false;
 }
 
 
 template<typename T, unsigned int ndim>
-bool array<T, ndim>::import(PyObject *__obj)
+bool nparray<T, ndim>::import(PyObject *__obj)
 {
     PyObject * tmp_obj = NULL;
-    PyArrayObject * tmp_array = NULL;
+    PynparrayObject * tmp_nparray = NULL;
     
     if (_obj == NULL)
         tmp_obj = _obj;
     else
         _obj = tmp_obj = __obj;
     
-    if ((tmp_array =
-         (PyArrayObject*) PyArray_FROM_OTF(tmp_obj, dtype<T>::typenum,
-                                           NPY_ARRAY_IN_ARRAY)) == NULL) {
-        pyexc(PyExc_TypeError, "Failed to convert numpy array!");
+    if ((tmp_nparray =
+         (PynparrayObject*) Pynparray_FROM_OTF(tmp_obj, dtype<T>::typenum,
+                                           NPY_nparray_IN_nparray)) == NULL) {
+        pyexc(PyExc_TypeError, "Failed to convert numpy nparray!");
         return true;
     }
     
-    return setup_array(tmp_array);
+    return setup_nparray(tmp_nparray);
 }
 
 
 template<typename T, unsigned int ndim>
-bool array<T, ndim>::empty(npy_intp *dims, int fortran)
+bool nparray<T, ndim>::empty(npy_intp *dims, int fortran)
 {
-    PyArrayObject * tmp_array = NULL;
+    PynparrayObject * tmp_nparray = NULL;
     
-    if ((tmp_array = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
+    if ((tmp_nparray = (PynparrayObject*) Pynparray_EMPTY(ndim, dims,
                       dtype<T>::typenum, fortran)) == NULL) {
-        pyexc(PyExc_TypeError, "Failed to create empty numpy array!");
+        pyexc(PyExc_TypeError, "Failed to create empty numpy nparray!");
         return 1;
     }
     
-    return setup_array(tmp_array);
+    return setup_nparray(tmp_nparray);
 }
 
 
 template<typename T, unsigned int ndim>
-array<T, ndim>::~array()
+nparray<T, ndim>::~nparray()
 {
-    Py_XDECREF(_array);
+    Py_XDECREF(_nparray);
 }
 
 
 template<typename T, unsigned int ndim>
-PyArrayObject* array<T, ndim>::get_array() const
+PynparrayObject* nparray<T, ndim>::get_nparray() const
 {
-    return _array;
+    return _nparray;
 }
 
 
 template<typename T, unsigned int ndim>
-PyObject* array<T, ndim>::get_obj() const
+PyObject* nparray<T, ndim>::get_obj() const
 {
     return _obj;
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int array<T, ndim>::get_shape(unsigned int ii) const
+const unsigned int nparray<T, ndim>::get_shape(unsigned int ii) const
 {
     return shape[ii];
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int array<T, ndim>::rows() const
+const unsigned int nparray<T, ndim>::rows() const
 {
     return shape[0];
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int array<T, ndim>::cols() const
+const unsigned int nparray<T, ndim>::cols() const
 {
     return shape[1];
 }
 
 
 template<typename T, unsigned int ndim>
-T* array<T, ndim>::get_data() const
+T* nparray<T, ndim>::get_data() const
 {
     return data;
 }
 
 
 template<typename T, unsigned int ndim>
-T& array<T, ndim>::operator()(unsigned int ii)
+T& nparray<T, ndim>::operator()(unsigned int ii)
 {
     return data[ii * strides[0]];
 }
 
 
 template<typename T, unsigned int ndim>
-T& array<T, ndim>::operator()(unsigned int ii, unsigned int jj)
+T& nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj)
 {
     return data[ii * strides[0] + jj * strides[1]];
 }
 
 
 template<typename T, unsigned int ndim>
-T& array<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk)
+T& nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk)
 {
     return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
 }
 
 
 template<typename T, unsigned int ndim>
-T& array<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk,
+T& nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk,
                               unsigned int ll)
 {
     return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
                 + ll * strides[3]];
 }
 
+template<typename T, unsigned int ndim>
+const T nparray<T, ndim>::operator()(unsigned int ii) const
+{
+    return data[ii * strides[0]];
+}
 
-template struct array<npy_double, 2>;
-template struct array<npy_double, 1>;
 
-template struct array<npy_bool, 1>;
+template<typename T, unsigned int ndim>
+const T nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj) const
+{
+    return data[ii * strides[0] + jj * strides[1]];
+}
+
+
+template<typename T, unsigned int ndim>
+const T nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk) const
+{
+    return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+}
+
+
+template<typename T, unsigned int ndim>
+const T nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk,
+                              unsigned int ll) const
+{
+    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
+                + ll * strides[3]];
+}
+
+#endif

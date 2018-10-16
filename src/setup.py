@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from os.path import join
-
 from numpy.distutils.core import Extension, setup
 
 
@@ -25,7 +24,7 @@ def main():
     inc_dirs = ["/home/istvan/miniconda3/include", "include"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
-    sources = ["inmet_auxmodule.cc", "capi_functions.cc"]
+    sources = ["inmet_auxmodule.cc", "tpl_spec.cc"]
     
     ext_modules = [
         Extension(name="inmet_aux", sources=sources,

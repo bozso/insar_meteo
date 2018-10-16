@@ -1,14 +1,14 @@
-#include "capi_functions.hh"
+#include "capi_macros.hh"
+#include "capi_structs.hh"
 #include "utils.hh"
 #include "satorbit.hh"
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
 
-typedef array<npy_double, 2> array2d;
-typedef array<npy_double, 1> array1d;
-
-typedef array<npy_bool, 1> array1b;
+typedef nparray<npy_double, 2> array2d;
+typedef nparray<npy_double, 1> array1d;
+typedef nparray<npy_bool, 1> array1b;
 
 
 pydoc(test, "test");
@@ -140,19 +140,24 @@ static py_ptr dominant(py_keywords)
 {
     keywords("asc_data", "dsc_data", "cluster_sep");
     
-    array2d asc, dsc, clustered;
+    array2d asc, dsc;
     double max_sep = 100.0;
     
     parse_keywords("OO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
     
+    if (asc.import() or dsc.import())
+     return NULL;
+    
     uint ncluster = 0, nhermite = 0;
     
+    array<bool> asc_selected, dsc_selected;
     
-    bool *asc_selected = PyMem_New(bool, asc.rows()),
-         *dsc_selected = PyMem_New(bool, dsc.rows());
+    if (asc_selected.init(asc.rows()) or dsc_selected.init(dsc.rows()))
+        return NULL;
     
-    PyMem_Del(asc_selected);
-    PyMem_Del(dsc_selected);
+    vector<double> clustered;
+    
+    
     
     return Py_BuildValue("NII", clustered.get_array(), ncluster, nhermite);
 } // dominant

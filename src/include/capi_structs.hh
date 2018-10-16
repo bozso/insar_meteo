@@ -4,23 +4,25 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
+#include "capi_macros.hh"
+
 void pyexc(PyObject *exception, const char *format, ...);
 
-template<typename T, unsigned int ndim>
-struct array {
+template<class T, unsigned int ndim>
+struct nparray {
     unsigned int shape[ndim], strides[ndim];
     PyArrayObject *_array;
     PyObject *_obj;
     T * data;
     
-    array() data(NULL), _array(NULL), _obj(NULL) {};
-    array(T * _data, ...);
+    nparray(): data(NULL), _array(NULL), _obj(NULL) {};
+    nparray(T *_data, ...);
     
     bool setup_array(PyArrayObject *_array);
     bool import(PyObject *__obj = NULL);
     bool empty(npy_intp *dims, int fortran = 0);
     
-    ~array();
+    ~nparray();
     
     PyArrayObject * get_array() const;
     PyObject * get_obj() const;
@@ -37,41 +39,61 @@ struct array {
                   unsigned int ll);
 };
 
+static const size_t DG__DYNARR_SIZE_T_MSB = ((size_t)1) << (sizeof(size_t)*8 - 1);
+static const size_t DG__DYNARR_SIZE_T_ALL_BUT_MSB = (((size_t)1) << (sizeof(size_t)*8 - 1))-1;
 
-template<typename T>
+template<class T>
 struct vector {
     T* data;
     size_t cnt;
     size_t cap;
     
-    vector() data(NULL), cnt(0), cap(0) {};
+    vector(): data(NULL), cnt(0), cap(0) {};
     bool init(size_t buf_cap);
     void init(T* buf, size_t buf_cap);
     
-    ~vector();
+    DG_DYNARR_DEF static bool grow(size_t min_needed);
+    DG_DYNARR_INLINE bool maybegrowadd(const size_t num_add);
+    DG_DYNARR_INLINE bool maybegrow(const size_t min_needed);
+    bool push(const T& elem);
+
+    DG_DYNARR_INLINE bool add(const size_t n, const bool init0);
+    bool add(T* vals, const size_t n);
+    T* addn(size_t n, bool init0);
     
-    push(T& elem);
+    DG_DYNARR_INLINE bool _insert(const size_t idx, const size_t n, const bool init0);
+    
+    static void checkidx(size_t ii);
+    
+    
+    ~vector();
+
     
 };
 
 
-template <typename T>
+template <class T>
 struct array {
     T* data;
     size_t size;
     
-    array();
-    
-    bool init(const size_t& init_size);
-    bool init(const int& init_size, const T init_value);
-    bool init(const array& original);
-    
+    array(): data(NULL), size(0) {};
     ~array();
     
     T& operator[](size_t index);
-    T const& operator[] const (size_t index);
+    const T operator[](size_t index) const;
     array& operator= (const array& copy);
 };
+
+
+template <class T>
+bool init(array<T>& arr, const size_t init_size);
+
+template <class T>
+bool init(array<T>& arr, const int init_size, const T init_value);
+
+template <class T>
+bool init(array<T>& arr, const array& original);
 
 
 #if 0

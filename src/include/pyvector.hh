@@ -1,31 +1,35 @@
-#include "capi_functions.hh"
+#ifndef PYVECTOR_HH
+#define PYVECTOR_HH
+
+#include "capi_macros.hh"
+#include "capi_structs.hh"
 
 
-template<typename T>
-bool vector<T>::init(size_t buf_cap)
+template<class T>
+bool init(vector<T>& vec, size_t buf_cap)
 {
-    if ((data = Mem_New(T, buf_cap)) == NULL) {
-        pyexc(PyExc_NoMem, "Failed to allocate memory!");
+    if ((vec.data = Mem_New(T, buf_cap)) == NULL) {
+        pyexc(PyExc_MemoryError, "Failed to allocate memory!");
         return true;
     }
     
-    cnt = 0;
-    cap = buf_cap;
+    vec.cnt = 0;
+    vec.cap = buf_cap;
     
     return false;
 }
 
 
-template<typename T>
-void vector<T>::init(T* buf, size_t buf_cap)
+template<class T>
+void init(vector<T>& vec, T* buf, size_t buf_cap)
 {
-    data = buf;
-    cnt = 0;
-    cap = (DG__DYNARR_SIZE_T_MSB | buf_cap);
+    vec.data = buf;
+    vec.cnt= 0;
+    vec.cap = (DG__DYNARR_SIZE_T_MSB | buf_cap);
 }
 
 
-template<typename T>
+template<class T>
 vector<T>::~vector()
 {
 	// only free memory if it doesn't point to external memory
@@ -38,11 +42,11 @@ vector<T>::~vector()
 }
 
 
-template<typename T>
+template<class T>
 DG_DYNARR_DEF
-static bool vector<T>::grow(size_t min_needed)
+static bool grow(vector<T>& vec, size_t min_needed)
 {
-	size_t _cap = cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB;
+	size_t _cap = vec.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB;
 
 	DG_DYNARR_ASSERT(min_needed > _cap, "dg__dynarr_grow() should only be "
                                         "called if storage actually needs to grow!");
@@ -59,28 +63,28 @@ static bool vector<T>::grow(size_t min_needed)
             newcap = min_needed;
 
 		// the memory was allocated externally, don't free it, just copy contents
-		if(cap & DG__DYNARR_SIZE_T_MSB) {
+		if(vec.cap & DG__DYNARR_SIZE_T_MSB) {
 			T* p = Mem_New(T, newcap);
 			if (p != NULL)
                 memcpy(p, data, sizeof(T)*cnt);
-			data = p;
+			vec.data = p;
 		}
 		else {
 			T* p = Mem_Resize(data, T, newcap);
 			
             // realloc failed, at least don't leak memory
             if (p == NULL)
-                Mem_Del(data);
-			data = p;
+                Mem_Del(vec.data);
+			vec.data = p;
 		}
 
 		// TODO: handle OOM by setting highest bit of count and keeping old data?
 
-		if(data)
-            cap = newcap;
+		if(vec.data)
+            vec.cap = newcap;
 		else {
-			cap = 0;
-			cnt = 0;
+			vec.cap = 0;
+			vec.cnt = 0;
 			
 			DG_DYNARR_OUT_OF_MEMORY ;
 			
@@ -88,53 +92,55 @@ static bool vector<T>::grow(size_t min_needed)
 		}
 		return true;
 	}
+    
 	DG_DYNARR_ASSERT(min_needed < DG__DYNARR_SIZE_T_MSB, "Arrays must stay "
                      "below SIZE_T_MAX / 2 elements!");
 	return false;
 }
 
 
-template<typename T>
-bool vector<T>::push(T& elem)
+template<class T>
+bool push(vector<T>& vec, const T& elem)
 {
-    return maybegrowadd(1) ? ((data[cnt++] = elem),0) : false
+    return maybegrowadd(vec, 1) ? ((vec.data[vec.cnt++] = elem),0) : false
 }
 
-// inline
-template<typename T>
-static bool vector<T>::maybegrowadd(size_t num_add)
+
+template<class T>
+DG_DYNARR_INLINE
+static bool maybegrowadd(vector<T>& vec, const size_t num_add)
 {
-	size_t min_needed = cnt + num_add;
-	if ((cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
+	size_t min_needed = vec.cnt + num_add;
+	if ((vec.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
         return true;
 	else
-        return grow(min_needed);
+        return grow(vec, min_needed);
 }
 
 
-// inline
-template<typename T>
-static bool vector<T>::maybegrow(size_t min_needed)
+template<class T>
+DG_DYNARR_INLINE
+static bool maybegrow(vector<T>& vec, const size_t min_needed)
 {
-	if ((cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
+	if ((vec.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
         return true;
 	else
-        return grow(min_needed);
+        return grow(vec, min_needed);
 }
 
-template<typename T>
-DG_DYNARR_INLINE bool
-vector<T>::add(size_t n, bool init0)
+
+template<class T>
+DG_DYNARR_INLINE bool add(vector<T>& vec, const size_t n, const bool init0)
 {
-	if (maybegrow(cnt + n)) {
+	if (maybegrow(vec, vec.cnt + n)) {
         // data might have changed in grow()!
-		unsigned char* p = (unsigned char*) data; 
+		unsigned char* p = (unsigned char*) vec.data; 
 		
         // if the memory is supposed to be zeroed, do that
 		if(init0)
             memset(p + cnt * sizeof(T), 0, n * sizeof(T));
 
-		cnt += n;
+		vec.cnt += n;
 		return true;
 	}
 	return false;
@@ -143,36 +149,35 @@ vector<T>::add(size_t n, bool init0)
 
 // append n elements to a and initialize them from array vals, doesn't return anything
 // ! vals (and all other args) are evaluated multiple times !
-template<typename T>
-bool vector<T>::addn(T* vals, size_t n)
+template<class T>
+bool add(vector<T>& vec, T* vals, const size_t n)
 {
     DG_DYNARR_ASSERT(vals != NULL, "Don't pass NULL vals to addn!");
-    if (vals != NULL && add(n, 0)) {
-        size_t i_= cnt - n, v_ = 0;
+    if (vals != NULL && add(vec, n, 0)) {
+        size_t i_= vec.cnt - n, v_ = 0;
         
         while(i_ < cnt)
-            data[i_++] = vals[v_++];
+            vec.data[i_++] = vals[v_++];
 	}
 }
 
 // add n elements to the end of the array and zeroe them with memset()
 // returns pointer to first added element, NULL if out of memory (array is empty then)
-template<typename T>
-T* vector<T>::addn(size_t n, bool init0)
+template<class T>
+T* addn(vector<T>& vec, size_t n, bool init0)
 {
-    return add(n, init0) ? data[cnt - n] : NULL;
+    return add(vec, n, init0) ? vec.data[cnt - n] : NULL;
 }
 
-template<typename T>
-DG_DYNARR_INLINE bool
-vector<T>::_insert(size_t idx, size_t n, bool init0)
+template<class T>
+DG_DYNARR_INLINE bool _insert(vector<T>& vec, const size_t idx, const size_t n, const bool init0)
 {
 	// allow idx == md->cnt to append
-	size_t oldCount = cnt;
+	size_t oldCount = vec.cnt;
 	size_t newCount = oldCount + n;
-	if (idx <= oldCount && maybegrow(newCount)) {
+	if (idx <= oldCount && maybegrow(vec, newCount)) {
         // data might have changed in grow()!
-		unsigned char *p = (unsigned char*) data; 
+		unsigned char *p = (unsigned char*) vec.data; 
 		
         // move all existing items after a[idx] to a[idx+n]
 		if(idx < oldCount)
@@ -183,7 +188,7 @@ vector<T>::_insert(size_t idx, size_t n, bool init0)
 		if (init0)
             memset(p + idx * sizeof(T), 0, n * sizeof(T));
 
-		cnt = newCount;
+		vec.cnt = newCount;
 		return true;
 	}
 	return false;
@@ -193,40 +198,40 @@ vector<T>::_insert(size_t idx, size_t n, bool init0)
 
 #if (DG_DYNARR_INDEX_CHECK_LEVEL == 2) || (DG_DYNARR_INDEX_CHECK_LEVEL == 3)
     
-    template<typename T>
-    void vector<T>::checkidx(size_t ii)
+    template<class T>
+    static void vector<T>::checkidx(size_t ii)
     {
         assert(ii < cnt, "index out of bounds");
     }
 
-    template<typename T>
-    void vector<T>::checkidxle(size_t ii)
+    template<class T>
+    static void vector<T>::checkidxle(size_t ii)
     {
         assert(ii <= cnt, "index out of bounds");
     }
 
-    template<typename T>
-    void vector<T>::check_notempty(const char * msg)
+    template<class T>
+    static void vector<T>::check_notempty(const char * msg)
     {
         assert(cnt > 0, msg);
     }
 
 #elif (DG_DYNARR_INDEX_CHECK_LEVEL == 0) || (DG_DYNARR_INDEX_CHECK_LEVEL == 1)
 
-    template<typename T>
-    void* vector<T>::checkidx(size_t ii)
+    template<class T>
+    static void* vector<T>::checkidx(size_t ii)
     {
         return (void) 0;
     }
 
-    template<typename T>
-    void* vector<T>::checkidxle(size_t ii)
+    template<class T>
+    static void* vector<T>::checkidxle(size_t ii)
     {
         return (void) 0;
     }
 
-    template<typename T>
-    void* vector<T>::check_notempty(const char * msg)
+    template<class T>
+    static void* vector<T>::check_notempty(const char * msg)
     {
         return (void) 0;
     }
@@ -238,7 +243,7 @@ vector<T>::_insert(size_t idx, size_t n, bool init0)
 
 #if (DG_DYNARR_INDEX_CHECK_LEVEL == 1) || (DG_DYNARR_INDEX_CHECK_LEVEL == 3)
     
-    template<typename T>
+    template<class T>
     size_t vector<T>::idx(size_t ii)
     {
         return (ii < cnt) ? ii : 0;
@@ -252,14 +257,14 @@ vector<T>::_insert(size_t idx, size_t n, bool init0)
 	#error Invalid index check level DG_DYNARR_INDEX_CHECK_LEVEL (must be 0-3) !
 #endif // DG_DYNARR_INDEX_CHECK_LEVEL
 
-template<typename T>
+template<class T>
 bool vector<T>::insert(size_t ii, T& value)
 {
     return checkidxle(idx), _insert(idx, 1, false),
            data[idx(ii)] = value;
 }
 
-template<typename T>
+template<class T>
 bool vector<T>::insert(size_t ii, T* values, size_t n)
 {
 	DG_DYNARR_ASSERT(vals != NULL, "Don't pass NULL as vals to dg_dynarr_insertn!");
@@ -274,7 +279,7 @@ bool vector<T>::insert(size_t ii, T* values, size_t n)
 }
 
 
-template<typename T>
+template<class T>
 T* vector<T>::insert(size_t ii, size_t n, bool init0)
 {
 	return checkidxle(ii), _insert(ii, n, init0)
@@ -284,14 +289,14 @@ T* vector<T>::insert(size_t ii, size_t n, bool init0)
 }
 
 
-template<typename T>
+template<class T>
 T& vector<T>::operator[](size_t ii)
 {
     return data[idx(ii)];
 }
 
 
-template<typename T>
+template<class T>
 void vector<T>::set(size_t ii, T* values, size_t n)
 {
 	DG_DYNARR_ASSERT(vals != NULL, "Don't pass NULL as vals to dg_dynarr_setn!");
@@ -308,14 +313,14 @@ void vector<T>::set(size_t ii, T* values, size_t n)
 }
 
 
-template<typename T>
+template<class T>
 bool vector<T>::del(size_t ii, size_t n)
 {
 	// TODO: check whether idx+n < count?
     return checkidx(ii), _delete(ii, n);
 }
 
-template<typename T>
+template<class T>
 bool vector<T>::delfast(size_t ii, size_t n)
 {
 	// TODO: check whether idx+n < count?
@@ -323,7 +328,7 @@ bool vector<T>::delfast(size_t ii, size_t n)
 }
 
 
-template<typename T>
+template<class T>
 
 // removes all elements from the array, but does not free the buffer
 // (if you want to free the buffer too, just use dg_dynarr_free())
@@ -593,10 +598,6 @@ dg__dynarr_deletefast(void** arr, dg__dynarr_md* md, size_t itemsize, size_t idx
 	}
 }
 
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
 #endif // DG__DYNARR_H
 
 
@@ -614,13 +615,6 @@ dg__dynarr_deletefast(void** arr, dg__dynarr_md* md, size_t itemsize, size_t idx
 #ifndef DG_DYNARR_OUT_OF_MEMORY
 	#define DG_DYNARR_OUT_OF_MEMORY  DG_DYNARR_ASSERT(0, "Out of Memory!");
 #endif
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 
 
 DG_DYNARR_DEF void
@@ -644,3 +638,5 @@ dg__dynarr_shrink_to_fit(void** arr, dg__dynarr_md* md, size_t itemsize)
 		}
 	}
 }
+
+#endif

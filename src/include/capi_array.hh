@@ -56,7 +56,7 @@ nparray<T, ndim>::~nparray()
 
 
 template<typename T, unsigned int ndim>
-static bool setup_array(nparray<T, ndim>& arr, PyArrayObject *_array)
+static bool setup_array(nparray<T, ndim> *arr, PyArrayObject *_array)
 {
     int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
     
@@ -71,33 +71,33 @@ static bool setup_array(nparray<T, ndim>& arr, PyArrayObject *_array)
     npy_intp * shape = PyArray_DIMS(_array);
 
     for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr.shape[ii] = static_cast<unsigned int>(shape[ii]);
+        arr->shape[ii] = static_cast<unsigned int>(shape[ii]);
 
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
     npy_intp * strides = PyArray_STRIDES(_array);
     
     for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr.strides[ii] = static_cast<unsigned int>(double(strides[ii])
+        arr->strides[ii] = static_cast<unsigned int>(double(strides[ii])
                                                     / elemsize);
     
-    arr.data = (T*) PyArray_DATA(_array);
-    arr._array = _array;
+    arr->data = (T*) PyArray_DATA(_array);
+    arr->_array = _array;
     
     return false;
 }
 
 
 template<typename T, unsigned int ndim>
-bool import(nparray<T, ndim>& arr, PyObject *_obj)
+bool nparray<T, ndim>::import(PyObject *__obj)
 {
     PyObject * tmp_obj = NULL;
     PyArrayObject * tmp_array = NULL;
     
-    if (arr._obj == NULL)
-        tmp_obj = arr._obj;
+    if (_obj == NULL)
+        tmp_obj = _obj;
     else
-        arr._obj = tmp_obj = _obj;
+        _obj = tmp_obj = __obj;
     
     if ((tmp_array =
          (PyArrayObject*) PyArray_FROM_OTF(tmp_obj, dtype<T>::typenum,
@@ -106,12 +106,12 @@ bool import(nparray<T, ndim>& arr, PyObject *_obj)
         return true;
     }
     
-    return setup_array(arr, tmp_array);
+    return setup_array(this, tmp_array);
 }
 
 
 template<typename T, unsigned int ndim>
-bool empty(nparray<T, ndim>& arr, npy_intp *dims, int fortran)
+bool nparray<T, ndim>::empty(npy_intp *dims, int fortran)
 {
     PyArrayObject * tmp_array = NULL;
     
@@ -121,45 +121,43 @@ bool empty(nparray<T, ndim>& arr, npy_intp *dims, int fortran)
         return true;
     }
     
-    return setup_array(arr, tmp_array);
+    return setup_array(this, tmp_array);
 }
 
 
 template<typename T, unsigned int ndim>
-PyArrayObject* get_array(const nparray<T, ndim>& arr) {
-    return arr._array;
+PyArrayObject* nparray<T, ndim>::get_array() const {
+    return _array;
 }
 
 
 template<typename T, unsigned int ndim>
-PyObject* get_obj(const nparray<T, ndim>& arr) {
-    return arr._obj;
+PyObject* nparray<T, ndim>::get_obj() const {
+    return _obj;
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int get_shape(const nparray<T, ndim>& arr, unsigned int ii) {
-    return arr.shape[ii];
+const unsigned int nparray<T, ndim>::get_shape(unsigned int ii) const {
+    return shape[ii];
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int rows(const nparray<T, ndim>& arr)
-{
-    return arr.shape[0];
+const unsigned int nparray<T, ndim>::rows() const {
+    return shape[0];
 }
 
 
 template<typename T, unsigned int ndim>
-const unsigned int cols(const nparray<T, ndim>& arr)
-{
-    return arr.shape[1];
+const unsigned int nparray<T, ndim>::cols() const {
+    return shape[1];
 }
 
 
 template<typename T, unsigned int ndim>
-T* get_data(const nparray<T, ndim>& arr) {
-    return arr.data;
+T* nparray<T, ndim>::get_data() const {
+    return data;
 }
 
 

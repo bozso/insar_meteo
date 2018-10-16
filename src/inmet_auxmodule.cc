@@ -20,7 +20,7 @@ static py_ptr test(py_varargs)
     
     parse_varargs("O", array_type(arr));
     
-    if (import(arr))
+    if (arr.import())
         return NULL;
     
     FOR(ii, 0, arr.rows())
@@ -45,12 +45,12 @@ static py_ptr azi_inc(py_varargs)
                   &deg, array_type(mean_coords), array_type(mean_coords),
                   array_type(coords), &is_lonlat, &max_iter);
     
-    if (import(mean_coords) or import(coeffs) or import(coords))
+    if (mean_coords.import() or coeffs.import() or coords.import())
         return NULL;
     
     npy_intp azi_inc_shape[2] = {(npy_intp) coords.rows(), 2};
     
-    if (empty(azi_inc, azi_inc_shape))
+    if (azi_inc.empty(azi_inc_shape))
         return NULL;
     
     // Set up orbit polynomial structure
@@ -92,7 +92,7 @@ static py_ptr azi_inc(py_varargs)
         } // for
     } // if
     
-    return Py_BuildValue("N", get_array(azi_inc));
+    return Py_BuildValue("N", azi_inc.get_array());
 } // azi_inc
 
 pydoc(asc_dsc_select, "asc_dsc_select");
@@ -110,7 +110,7 @@ static py_ptr asc_dsc_select(py_keywords)
     
     npy_intp idx_shape = (npy_intp) arr1.rows();
 
-    if (empty(idx, &idx_shape))
+    if (idx.empty(&idx_shape))
         return NULL;
     
     max_sep /=  R_earth;
@@ -132,7 +132,7 @@ static py_ptr asc_dsc_select(py_keywords)
         }
     }
     
-    return Py_BuildValue("NI", get_array(idx), nfound);
+    return Py_BuildValue("NI", idx.get_array(), nfound);
 } // asc_dsc_select
 
 pydoc(dominant, "dominant");
@@ -146,14 +146,14 @@ static py_ptr dominant(py_keywords)
     
     parse_keywords("OO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
     
-    if (import(asc) or import(dsc))
+    if (asc.import() or dsc.import())
         return NULL;
     
     uint ncluster = 0, nhermite = 0;
     
     array<bool> asc_selected, dsc_selected;
     
-    if (init(asc_selected, asc.rows()) or init(dsc_selected, dsc.rows()))
+    if (asc_selected.init(asc.rows()) or dsc_selected.init(dsc.rows()))
         return NULL;
     
     vector<double> clustered;

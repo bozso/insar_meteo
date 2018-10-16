@@ -56,41 +56,42 @@ array<T>::~array()
 
 
 template <class T>
-bool init(array<T>& arr, const size_t init_size)
+bool array<T>::init(const size_t init_size)
 {
-    if ((arr.data = Mem_New(T, init_size)) == NULL)
+    if ((data = Mem_New(T, init_size)) == NULL)
         return true;
     
-    arr.size = init_size;
+    size = init_size;
     return false;
 }
 
 
 template <class T>
-bool init(array<T>& arr, const int init_size, const T init_value)
+bool array<T>::init(const int init_size, const T init_value)
 {
-    if ((arr.data = Mem_New(T, init_size)) == NULL)
+    if ((data = Mem_New(T, init_size)) == NULL)
         return true;
 
-    arr.size = init_size;
+    size = init_size;
     
-    FOR(ii, 0, arr.size) {
-        arr.data[ii] = init_value;
+    FOR(ii, 0, size) {
+        data[ii] = init_value;
     }
+    
     return false;
 }
 
 
 template <class T>
-bool init(array<T>& arr, const array<T>& original)
+bool array<T>::init(const array<T>& original)
 {
-    arr.size = original.size;
+    size = original.size;
 
-    if ((arr.data = Mem_New(T, arr.size)) == NULL)
+    if ((data = Mem_New(T, size)) == NULL)
         return true;
     
-    FOR(ii, 0, arr.size) {
-        arr.data[ii] = original.data[ii];
+    FOR(ii, 0, size) {
+        data[ii] = original.data[ii];
     }
     
     return false;

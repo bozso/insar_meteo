@@ -17,6 +17,9 @@ struct nparray {
     
     nparray(): _array(NULL), _obj(NULL), data(NULL) {};
     nparray(T *_data, ...);
+
+    bool import(PyObject *__obj = NULL);
+    bool empty(npy_intp *dims, int fortran = 0);
     
     ~nparray();
     
@@ -40,31 +43,6 @@ struct nparray {
     const T operator()(unsigned int ii, unsigned int jj, unsigned int kk,
                   unsigned int ll) const;
 };
-
-template<typename T, unsigned int ndim>
-bool import(nparray<T, ndim>& arr, PyObject *__obj = NULL);
-
-template<typename T, unsigned int ndim>
-bool empty(nparray<T, ndim>& arr, npy_intp *dims, int fortran = 0);
-
-template<typename T, unsigned int ndim>
-PyArrayObject* get_array(const nparray<T, ndim>& arr);
-
-template<typename T, unsigned int ndim>
-PyObject* get_obj(const nparray<T, ndim>& arr);
-
-template<typename T, unsigned int ndim>
-const unsigned int get_shape(const nparray<T, ndim>& arr, unsigned int ii);
-
-template<typename T, unsigned int ndim>
-const unsigned int rows(const nparray<T, ndim>& arr);
-
-template<typename T, unsigned int ndim>
-const unsigned int cols(const nparray<T, ndim>& arr);
-
-template<typename T, unsigned int ndim>
-T* get_data(const nparray<T, ndim>& arr);
-
 
 
 static const size_t DG__DYNARR_SIZE_T_MSB = ((size_t)1) << (sizeof(size_t)*8 - 1);
@@ -106,22 +84,17 @@ struct array {
     size_t size;
     
     array(): data(NULL), size(0) {};
+
+    bool init(const size_t init_size);
+    bool init(const int init_size, const T init_value);
+    bool init(const array<T>& original);
+
     ~array();
     
     T& operator[](size_t index);
     const T operator[](size_t index) const;
     array& operator= (const array& copy);
 };
-
-
-template <class T>
-bool init(array<T>& arr, const size_t init_size);
-
-template <class T>
-bool init(array<T>& arr, const int init_size, const T init_value);
-
-template <class T>
-bool init(array<T>& arr, const array<T>& original);
 
 
 #if 0

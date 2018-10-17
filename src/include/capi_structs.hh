@@ -1,6 +1,8 @@
 #ifndef CAPI_STRUCTS_HH
 #define CAPI_STRUCTS_HH
 
+#include <stddef.h>
+
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
@@ -8,7 +10,7 @@
 
 void pyexc(PyObject *exception, const char *format, ...);
 
-template<class T, unsigned int ndim>
+template<class T, size_t ndim>
 struct nparray {
     unsigned int shape[ndim], strides[ndim];
     PyArrayObject *_array;
@@ -18,8 +20,8 @@ struct nparray {
     nparray(): _array(NULL), _obj(NULL), data(NULL) {};
     nparray(T *_data, ...);
 
-    bool import(PyObject *__obj = NULL);
-    bool empty(npy_intp *dims, int fortran = 0);
+    bool const import(PyObject *__obj = NULL);
+    bool const empty(npy_intp *dims, int const fortran = 0);
     
     ~nparray();
     
@@ -27,26 +29,23 @@ struct nparray {
     PyObject * get_obj() const;
     T* get_data() const;
     
-    const unsigned int get_shape(unsigned int ii) const;
-    const unsigned int rows() const;
-    const unsigned int cols() const;
+    size_t const get_shape(size_t ii) const;
+    size_t const rows() const;
+    size_t const cols() const;
     
-    T& operator()(unsigned int ii);
-    T& operator()(unsigned int ii, unsigned int jj);
-    T& operator()(unsigned int ii, unsigned int jj, unsigned int kk);
-    T& operator()(unsigned int ii, unsigned int jj, unsigned int kk,
-                  unsigned int ll);
+    T& operator()(size_t const ii);
+    T& operator()(size_t const ii, size_t const jj);
+    T& operator()(size_t const ii, size_t const jj, size_t const kk);
+    T& operator()(size_t const ii, size_t const jj, size_t const kk,
+                  size_t const ll);
 
-    const T operator()(unsigned int ii) const;
-    const T operator()(unsigned int ii, unsigned int jj) const;
-    const T operator()(unsigned int ii, unsigned int jj, unsigned int kk) const;
-    const T operator()(unsigned int ii, unsigned int jj, unsigned int kk,
-                  unsigned int ll) const;
+    T const operator()(size_t const ii) const;
+    T const operator()(size_t const ii, size_t const jj) const;
+    T const operator()(size_t const ii, size_t const jj, size_t const kk) const;
+    T const operator()(size_t const ii, size_t const jj, size_t const kk,
+                       size_t const ll) const;
 };
 
-
-static const size_t DG__DYNARR_SIZE_T_MSB = ((size_t)1) << (sizeof(size_t)*8 - 1);
-static const size_t DG__DYNARR_SIZE_T_ALL_BUT_MSB = (((size_t)1) << (sizeof(size_t)*8 - 1))-1;
 
 template<class T>
 struct vector {
@@ -55,26 +54,15 @@ struct vector {
     size_t cap;
     
     vector(): data(NULL), cnt(0), cap(0) {};
-    bool init(size_t buf_cap);
-    void init(T* buf, size_t buf_cap);
+    bool const init(size_t const buf_cap);
+    void init(T* buf, size_t const buf_cap);
     
-    DG_DYNARR_DEF static bool grow(size_t min_needed);
-    DG_DYNARR_INLINE bool maybegrowadd(const size_t num_add);
-    DG_DYNARR_INLINE bool maybegrow(const size_t min_needed);
-    bool push(const T& elem);
+    bool const push(T const& elem);
 
-    DG_DYNARR_INLINE bool add(const size_t n, const bool init0);
-    bool add(T* vals, const size_t n);
-    T* addn(size_t n, bool init0);
-    
-    DG_DYNARR_INLINE bool _insert(const size_t idx, const size_t n, const bool init0);
-    
-    static void checkidx(size_t ii);
-    
+    bool const add(T* vals, size_t const n);
+    T* addn(size_t const n, bool const init0);
     
     ~vector();
-
-    
 };
 
 
@@ -85,15 +73,15 @@ struct array {
     
     array(): data(NULL), size(0) {};
 
-    bool init(const size_t init_size);
-    bool init(const int init_size, const T init_value);
-    bool init(const array<T>& original);
+    bool const init(size_t const init_size);
+    bool const init(size_t const init_size, T const init_value);
+    bool const init(array<T> const& original);
 
     ~array();
     
-    T& operator[](size_t index);
-    const T operator[](size_t index) const;
-    array& operator= (const array& copy);
+    T& operator[](size_t const index);
+    T const operator[](size_t const index) const;
+    array& operator= (array const & copy);
 };
 
 

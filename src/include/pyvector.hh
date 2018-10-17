@@ -4,28 +4,31 @@
 #include "capi_macros.hh"
 #include "capi_structs.hh"
 
+static const size_t DG__DYNARR_SIZE_T_MSB = ((size_t)1) << (sizeof(size_t)*8 - 1);
+static const size_t DG__DYNARR_SIZE_T_ALL_BUT_MSB = (((size_t)1) << (sizeof(size_t)*8 - 1))-1;
+
 
 template<class T>
-bool init(vector<T>& vec, size_t buf_cap)
+bool vector<T>::init(size_t buf_cap)
 {
-    if ((vec.data = Mem_New(T, buf_cap)) == NULL) {
+    if ((data = Mem_New(T, buf_cap)) == NULL) {
         pyexc(PyExc_MemoryError, "Failed to allocate memory!");
         return true;
     }
     
-    vec.cnt = 0;
-    vec.cap = buf_cap;
+    cnt = 0;
+    cap = buf_cap;
     
     return false;
 }
 
 
 template<class T>
-void init(vector<T>& vec, T* buf, size_t buf_cap)
+void vector<T>::init(vec, T* buf, size_t buf_cap)
 {
-    vec.data = buf;
-    vec.cnt= 0;
-    vec.cap = (DG__DYNARR_SIZE_T_MSB | buf_cap);
+    data = buf;
+    cnt= 0;
+    cap = (DG__DYNARR_SIZE_T_MSB | buf_cap);
 }
 
 
@@ -44,9 +47,9 @@ vector<T>::~vector()
 
 template<class T>
 DG_DYNARR_DEF
-static bool grow(vector<T>& vec, size_t min_needed)
+static bool grow(vector<T> *vec, size_t min_needed)
 {
-	size_t _cap = vec.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB;
+	size_t _cap = vec->cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB;
 
 	DG_DYNARR_ASSERT(min_needed > _cap, "dg__dynarr_grow() should only be "
                                         "called if storage actually needs to grow!");
@@ -63,28 +66,28 @@ static bool grow(vector<T>& vec, size_t min_needed)
             newcap = min_needed;
 
 		// the memory was allocated externally, don't free it, just copy contents
-		if(vec.cap & DG__DYNARR_SIZE_T_MSB) {
+		if(vec->cap & DG__DYNARR_SIZE_T_MSB) {
 			T* p = Mem_New(T, newcap);
 			if (p != NULL)
-                memcpy(p, data, sizeof(T)*cnt);
-			vec.data = p;
+                memcpy(p, vec->data, sizeof(T)*cnt);
+			vec->data = p;
 		}
 		else {
-			T* p = Mem_Resize(data, T, newcap);
+			T* p = Mem_Resize(vec->data, T, newcap);
 			
             // realloc failed, at least don't leak memory
             if (p == NULL)
-                Mem_Del(vec.data);
-			vec.data = p;
+                Mem_Del(vec->data);
+			vec->data = p;
 		}
 
 		// TODO: handle OOM by setting highest bit of count and keeping old data?
 
-		if(vec.data)
-            vec.cap = newcap;
+		if(vec->data)
+            vec->cap = newcap;
 		else {
-			vec.cap = 0;
-			vec.cnt = 0;
+			vec->cap = 0;
+			vec->cnt = 0;
 			
 			DG_DYNARR_OUT_OF_MEMORY ;
 			
@@ -100,17 +103,17 @@ static bool grow(vector<T>& vec, size_t min_needed)
 
 
 template<class T>
-bool push(vector<T>& vec, const T& elem)
+bool vector<T>::push(const T elem)
 {
-    return maybegrowadd(vec, 1) ? ((vec.data[vec.cnt++] = elem),0) : false
+    return maybegrowadd(this, 1) ? ((data[cnt++] = elem),0) : false
 }
 
 
 template<class T>
 DG_DYNARR_INLINE
-static bool maybegrowadd(vector<T>& vec, const size_t num_add)
+static bool maybegrowadd(vector<T> *vec, const size_t num_add)
 {
-	size_t min_needed = vec.cnt + num_add;
+	size_t min_needed = vec->cnt + num_add;
 	if ((vec.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
         return true;
 	else
@@ -120,9 +123,9 @@ static bool maybegrowadd(vector<T>& vec, const size_t num_add)
 
 template<class T>
 DG_DYNARR_INLINE
-static bool maybegrow(vector<T>& vec, const size_t min_needed)
+static bool maybegrow(vector<T> *vec, const size_t min_needed)
 {
-	if ((vec.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
+	if ((vec->cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
         return true;
 	else
         return grow(vec, min_needed);
@@ -130,17 +133,17 @@ static bool maybegrow(vector<T>& vec, const size_t min_needed)
 
 
 template<class T>
-DG_DYNARR_INLINE bool add(vector<T>& vec, const size_t n, const bool init0)
+DG_DYNARR_INLINE bool vector<T>::add(const size_t n, const bool init0)
 {
-	if (maybegrow(vec, vec.cnt + n)) {
+	if (maybegrow(this, cnt + n)) {
         // data might have changed in grow()!
-		unsigned char* p = (unsigned char*) vec.data; 
+		unsigned char* p = (unsigned char*) data; 
 		
         // if the memory is supposed to be zeroed, do that
 		if(init0)
             memset(p + cnt * sizeof(T), 0, n * sizeof(T));
 
-		vec.cnt += n;
+		cnt += n;
 		return true;
 	}
 	return false;
@@ -150,34 +153,34 @@ DG_DYNARR_INLINE bool add(vector<T>& vec, const size_t n, const bool init0)
 // append n elements to a and initialize them from array vals, doesn't return anything
 // ! vals (and all other args) are evaluated multiple times !
 template<class T>
-bool add(vector<T>& vec, T* vals, const size_t n)
+bool vector<T>::add(T* vals, const size_t n)
 {
     DG_DYNARR_ASSERT(vals != NULL, "Don't pass NULL vals to addn!");
-    if (vals != NULL && add(vec, n, 0)) {
-        size_t i_= vec.cnt - n, v_ = 0;
+    if (vals != NULL && add(n, 0)) {
+        size_t i_= cnt - n, v_ = 0;
         
         while(i_ < cnt)
-            vec.data[i_++] = vals[v_++];
+            data[i_++] = vals[v_++];
 	}
 }
 
 // add n elements to the end of the array and zeroe them with memset()
 // returns pointer to first added element, NULL if out of memory (array is empty then)
 template<class T>
-T* addn(vector<T>& vec, size_t n, bool init0)
+T* vector<T>::addn(size_t n, bool init0)
 {
-    return add(vec, n, init0) ? vec.data[cnt - n] : NULL;
+    return add(n, init0) ? data[cnt - n] : NULL;
 }
 
 template<class T>
-DG_DYNARR_INLINE bool _insert(vector<T>& vec, const size_t idx, const size_t n, const bool init0)
+DG_DYNARR_INLINE bool insert(vector<T> *vec, const size_t idx, const size_t n, const bool init0)
 {
 	// allow idx == md->cnt to append
-	size_t oldCount = vec.cnt;
+	size_t oldCount = vec->cnt;
 	size_t newCount = oldCount + n;
 	if (idx <= oldCount && maybegrow(vec, newCount)) {
         // data might have changed in grow()!
-		unsigned char *p = (unsigned char*) vec.data; 
+		unsigned char *p = (unsigned char*) vec->data; 
 		
         // move all existing items after a[idx] to a[idx+n]
 		if(idx < oldCount)
@@ -188,7 +191,7 @@ DG_DYNARR_INLINE bool _insert(vector<T>& vec, const size_t idx, const size_t n, 
 		if (init0)
             memset(p + idx * sizeof(T), 0, n * sizeof(T));
 
-		vec.cnt = newCount;
+		vec->cnt = newCount;
 		return true;
 	}
 	return false;

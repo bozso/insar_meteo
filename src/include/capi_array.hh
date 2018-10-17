@@ -23,23 +23,23 @@ void pyexc(PyObject *exception, const char *format, ...)
 }
 
 
-template<typename T, unsigned int ndim>
+template<typename T, size_t ndim>
 nparray<T, ndim>::nparray(T * _data, ...)
 {
     va_list vl;
-    unsigned int shape_sum = 0;
+    size_t shape_sum = 0;
     
     va_start(vl, _data);
     
-    for(unsigned int ii = 0; ii < ndim; ++ii)
-        shape[ii] = static_cast<unsigned int>(va_arg(vl, int));
+    for(size_t ii = 0; ii < ndim; ++ii)
+        shape[ii] = size_t(va_arg(vl, int));
     
     va_end(vl);
     
-    for(unsigned int ii = 0; ii < ndim; ++ii) {
+    for(size_t ii = 0; ii < ndim; ++ii) {
         shape_sum = 1;
         
-        for(unsigned int jj = ii + 1; jj < ndim; ++jj)
+        for(size_t jj = ii + 1; jj < ndim; ++jj)
              shape_sum *= shape[jj];
         
         strides[ii] = shape_sum;
@@ -48,17 +48,16 @@ nparray<T, ndim>::nparray(T * _data, ...)
 }
 
 
-template<typename T, unsigned int ndim>
-nparray<T, ndim>::~nparray()
-{
-    Py_XDECREF(_array);
+template<typename T, size_t ndim>
+nparray<T, ndim>::~nparray() {
+    Py_CLEAR(_array);
 }
 
 
-template<typename T, unsigned int ndim>
-static bool setup_array(nparray<T, ndim> *arr, PyArrayObject *_array)
+template<typename T, size_t ndim>
+static bool const setup_array(nparray<T, ndim> *arr, PyArrayObject *_array)
 {
-    int _ndim = static_cast<unsigned int>(PyArray_NDIM(_array));
+    int _ndim = size_t(PyArray_NDIM(_array));
     
     if (ndim != _ndim) {
         pyexc(PyExc_TypeError, "numpy nparray expected to be %u "
@@ -70,16 +69,15 @@ static bool setup_array(nparray<T, ndim> *arr, PyArrayObject *_array)
     
     npy_intp * shape = PyArray_DIMS(_array);
 
-    for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr->shape[ii] = static_cast<unsigned int>(shape[ii]);
+    for(size_t ii = 0; ii < ndim; ++ii)
+        arr->shape[ii] = size_t(shape[ii]);
 
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
     npy_intp * strides = PyArray_STRIDES(_array);
     
-    for(unsigned int ii = 0; ii < ndim; ++ii)
-        arr->strides[ii] = static_cast<unsigned int>(double(strides[ii])
-                                                    / elemsize);
+    for(size_t ii = 0; ii < ndim; ++ii)
+        arr->strides[ii] = size_t(double(strides[ii]) / elemsize);
     
     arr->data = (T*) PyArray_DATA(_array);
     arr->_array = _array;
@@ -88,8 +86,8 @@ static bool setup_array(nparray<T, ndim> *arr, PyArrayObject *_array)
 }
 
 
-template<typename T, unsigned int ndim>
-bool nparray<T, ndim>::import(PyObject *__obj)
+template<typename T, size_t ndim>
+bool const nparray<T, ndim>::import(PyObject *__obj)
 {
     PyObject * tmp_obj = NULL;
     PyArrayObject * tmp_array = NULL;
@@ -110,8 +108,8 @@ bool nparray<T, ndim>::import(PyObject *__obj)
 }
 
 
-template<typename T, unsigned int ndim>
-bool nparray<T, ndim>::empty(npy_intp *dims, int fortran)
+template<typename T, size_t ndim>
+bool const nparray<T, ndim>::empty(npy_intp *dims, int const fortran)
 {
     PyArrayObject * tmp_array = NULL;
     
@@ -125,96 +123,89 @@ bool nparray<T, ndim>::empty(npy_intp *dims, int fortran)
 }
 
 
-template<typename T, unsigned int ndim>
+template<typename T, size_t ndim>
 PyArrayObject* nparray<T, ndim>::get_array() const {
     return _array;
 }
 
 
-template<typename T, unsigned int ndim>
+template<typename T, size_t ndim>
 PyObject* nparray<T, ndim>::get_obj() const {
     return _obj;
 }
 
 
-template<typename T, unsigned int ndim>
-const unsigned int nparray<T, ndim>::get_shape(unsigned int ii) const {
+template<typename T, size_t ndim>
+size_t const nparray<T, ndim>::get_shape(size_t const ii) const {
     return shape[ii];
 }
 
 
-template<typename T, unsigned int ndim>
-const unsigned int nparray<T, ndim>::rows() const {
+template<typename T, size_t ndim>
+size_t const nparray<T, ndim>::rows() const {
     return shape[0];
 }
 
 
-template<typename T, unsigned int ndim>
-const unsigned int nparray<T, ndim>::cols() const {
+template<typename T, size_t ndim>
+size_t const nparray<T, ndim>::cols() const {
     return shape[1];
 }
 
 
-template<typename T, unsigned int ndim>
+template<typename T, size_t ndim>
 T* nparray<T, ndim>::get_data() const {
     return data;
 }
 
 
-template<typename T, unsigned int ndim>
-T& nparray<T, ndim>::operator()(unsigned int ii)
-{
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii) {
     return data[ii * strides[0]];
 }
 
 
-template<typename T, unsigned int ndim>
-T& nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj)
-{
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii, size_t const jj) {
     return data[ii * strides[0] + jj * strides[1]];
 }
 
 
-template<typename T, unsigned int ndim>
-T& nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk)
-{
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii, size_t const jj, size_t const kk) {
     return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
 }
 
 
-template<typename T, unsigned int ndim>
-T& nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk,
-                              unsigned int ll)
-{
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii, size_t const jj, size_t const kk,
+                                size_t const ll) {
     return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
                 + ll * strides[3]];
 }
 
-template<typename T, unsigned int ndim>
-const T nparray<T, ndim>::operator()(unsigned int ii) const
-{
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii) const {
     return data[ii * strides[0]];
 }
 
 
-template<typename T, unsigned int ndim>
-const T nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj) const
-{
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii, size_t const jj) const {
     return data[ii * strides[0] + jj * strides[1]];
 }
 
 
-template<typename T, unsigned int ndim>
-const T nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk) const
-{
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii, size_t const jj,
+                                     size_t const kk) const {
     return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
 }
 
 
-template<typename T, unsigned int ndim>
-const T nparray<T, ndim>::operator()(unsigned int ii, unsigned int jj, unsigned int kk,
-                              unsigned int ll) const
-{
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii, size_t const jj,
+                                     size_t const kk, size_t ll) const {
     return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
                 + ll * strides[3]];
 }

@@ -5,21 +5,21 @@
 
 
 template <class T>
-T& array<T>::operator[](size_t index)
+T& array<T>::operator[](size_t const index)
 {
     return data[index];
 }
 
 
 template <class T>
-const T array<T>::operator[](size_t index) const
+T const array<T>::operator[](size_t const index) const
 {
     return data[index];
 }
 
 
 template <class T>
-array<T>& array<T>::operator= (const array& copy)
+array<T>& array<T>::operator= (array<T> const& copy)
 {
     // Return quickly on assignment to self.
     if (this == &copy) {
@@ -56,7 +56,7 @@ array<T>::~array()
 
 
 template <class T>
-bool array<T>::init(const size_t init_size)
+bool const array<T>::init(size_t const init_size)
 {
     if ((data = Mem_New(T, init_size)) == NULL)
         return true;
@@ -67,7 +67,7 @@ bool array<T>::init(const size_t init_size)
 
 
 template <class T>
-bool array<T>::init(const int init_size, const T init_value)
+bool const array<T>::init(size_t const init_size, T const init_value)
 {
     if ((data = Mem_New(T, init_size)) == NULL)
         return true;
@@ -83,7 +83,7 @@ bool array<T>::init(const int init_size, const T init_value)
 
 
 template <class T>
-bool array<T>::init(const array<T>& original)
+bool const array<T>::init(array<T> const & original)
 {
     size = original.size;
 

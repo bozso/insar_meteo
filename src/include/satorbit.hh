@@ -27,7 +27,10 @@
 
 
 // cartesian coordinate
-typedef struct cart_t { double x, y, z; } cart;
+struct cart {
+    double x, y, z;
+    cart() {};
+};
 
 void ell_cart (cdouble lon, cdouble lat, cdouble h,
                double& x, double& y, double& z);

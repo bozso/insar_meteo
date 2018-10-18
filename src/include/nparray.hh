@@ -20,11 +20,18 @@ struct nparray {
     array<T, ndim> arr;
     capi_objects obj;
     
-    nparray();
+    nparray() {
+        obj.npobj = NULL;
+        obj.pyobj = NULL;
+        arr.data = NULL;
+    }
+
     bool const import(PyObject *_obj = NULL);
     bool const empty(npy_intp *dims, int const fortran = 0);
     
-    ~nparray();
+    ~nparray() {
+        Py_CLEAR(obj.npobj);
+    }
     
     PyArrayObject * get_array() const;
     PyObject * get_obj() const;
@@ -45,19 +52,6 @@ const int dtype<npy_double>::typenum = NPY_DOUBLE;
 
 template<>
 const int dtype<npy_bool>::typenum = NPY_BOOL;
-
-template<typename T, size_t ndim>
-nparray<T, ndim>::nparray() {
-    obj.npobj = NULL;
-    obj.pyobj = NULL;
-    arr.data = NULL;
-}
-
-
-template<typename T, size_t ndim>
-nparray<T, ndim>::~nparray() {
-    Py_CLEAR(obj.npobj);
-}
 
 
 template<typename T, size_t ndim>

@@ -1,7 +1,9 @@
-#include "capi_structs.hh"
 //#include "pyvector.hh"
-#include "array.hh"
-#include "capi_array.hh"
+
+#define __INMET_IMPL
+
+#include "carray.hh"
+#include "nparray.hh"
 
 template struct nparray<npy_double, 2>;
 template struct nparray<npy_double, 1>;
@@ -9,5 +11,6 @@ template struct nparray<npy_bool, 1>;
 
 //template struct vector<double>;
 
-template struct array<bool>;
+template struct carray<bool>;
 
+#undef __INMET_IMPL

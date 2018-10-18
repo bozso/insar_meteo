@@ -1,98 +1,108 @@
-#include "capi_macros.hh"
-#include "capi_structs.hh"
+#ifndef ARRAY_HH
+#define ARRAY_HH
 
-#include "utils.hh"
+#include <stddef.h>
 
 
-template <class T>
-T& array<T>::operator[](size_t const index)
+template<class T, size_t ndim>
+struct array {
+    size_t shape[ndim], strides[ndim];
+    T * data;
+    
+    array(): data(NULL) {};
+    array(T *_data, ...);
+
+    T& operator()(size_t const ii);
+    T& operator()(size_t const ii, size_t const jj);
+    T& operator()(size_t const ii, size_t const jj, size_t const kk);
+    T& operator()(size_t const ii, size_t const jj, size_t const kk,
+                  size_t const ll);
+
+    T const operator()(size_t const ii) const;
+    T const operator()(size_t const ii, size_t const jj) const;
+    T const operator()(size_t const ii, size_t const jj, size_t const kk) const;
+    T const operator()(size_t const ii, size_t const jj, size_t const kk,
+                       size_t const ll) const;
+};
+
+#ifdef __INMET_IMPL
+
+template<typename T, size_t ndim>
+array<T, ndim>::array(T * _data, ...)
 {
-    return data[index];
-}
-
-
-template <class T>
-T const array<T>::operator[](size_t const index) const
-{
-    return data[index];
-}
-
-
-template <class T>
-array<T>& array<T>::operator= (array<T> const& copy)
-{
-    // Return quickly on assignment to self.
-    if (this == &copy) {
-        return *this;
+    va_list vl;
+    size_t shape_sum = 0;
+    
+    va_start(vl, _data);
+    
+    for(size_t ii = 0; ii < ndim; ++ii)
+        shape[ii] = size_t(va_arg(vl, int));
+    
+    va_end(vl);
+    
+    for(size_t ii = 0; ii < ndim; ++ii) {
+        shape_sum = 1;
+        
+        for(size_t jj = ii + 1; jj < ndim; ++jj)
+             shape_sum *= shape[jj];
+        
+        strides[ii] = shape_sum;
     }
-
-    // Do all operations that can generate an expception first.
-    // BUT DO NOT MODIFY THE OBJECT at this stage.
-    T* tmp = Mem_New(T, size);
-    
-    FOR(ii, 0, size) {
-        tmp[ii] = copy.data[ii];
-    }
-
-    // Now that you have finished all the dangerous work.
-    // Do the operations that  change the object.
-    //std::swap(tmp, data);
-    size = copy.size;
-
-    // Finally tidy up
-    Mem_Del(tmp);
-
-    // Now you can return
-    return *this;
+    data = _data;
 }
 
 
-template <class T>
-array<T>::~array()
-{
-    Mem_Del(data);
-    size = 0;
+template<typename T, size_t ndim>
+T& array<T, ndim>::operator()(size_t const ii) {
+    return data[ii * strides[0]];
 }
 
 
-template <class T>
-bool const array<T>::init(size_t const init_size)
-{
-    if ((data = Mem_New(T, init_size)) == NULL)
-        return true;
-    
-    size = init_size;
-    return false;
+template<typename T, size_t ndim>
+T& array<T, ndim>::operator()(size_t const ii, size_t const jj) {
+    return data[ii * strides[0] + jj * strides[1]];
 }
 
 
-template <class T>
-bool const array<T>::init(size_t const init_size, T const init_value)
-{
-    if ((data = Mem_New(T, init_size)) == NULL)
-        return true;
-
-    size = init_size;
-    
-    FOR(ii, 0, size) {
-        data[ii] = init_value;
-    }
-    
-    return false;
+template<typename T, size_t ndim>
+T& array<T, ndim>::operator()(size_t const ii, size_t const jj, size_t const kk) {
+    return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
 }
 
 
-template <class T>
-bool const array<T>::init(array<T> const & original)
-{
-    size = original.size;
-
-    if ((data = Mem_New(T, size)) == NULL)
-        return true;
-    
-    FOR(ii, 0, size) {
-        data[ii] = original.data[ii];
-    }
-    
-    return false;
+template<typename T, size_t ndim>
+T& array<T, ndim>::operator()(size_t const ii, size_t const jj, size_t const kk,
+                                size_t const ll) {
+    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
+                + ll * strides[3]];
 }
+
+template<typename T, size_t ndim>
+T const array<T, ndim>::operator()(size_t const ii) const {
+    return data[ii * strides[0]];
+}
+
+
+template<typename T, size_t ndim>
+T const array<T, ndim>::operator()(size_t const ii, size_t const jj) const {
+    return data[ii * strides[0] + jj * strides[1]];
+}
+
+
+template<typename T, size_t ndim>
+T const array<T, ndim>::operator()(size_t const ii, size_t const jj,
+                                     size_t const kk) const {
+    return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+}
+
+
+template<typename T, size_t ndim>
+T const array<T, ndim>::operator()(size_t const ii, size_t const jj,
+                                     size_t const kk, size_t ll) const {
+    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
+                + ll * strides[3]];
+}
+
+#endif
+
+#endif

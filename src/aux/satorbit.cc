@@ -14,8 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <cmath>
+#include <tgmath.h>
 
+#include "array.hh"
 #include "satorbit.hh"
 
 
@@ -205,7 +206,7 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
 } // cart_ell
 
 
-void calc_azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
+static inline void _azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
                   cdouble Z, cdouble lon, cdouble lat,
                   cuint max_iter, double& azi, double& inc)
 {
@@ -249,3 +250,43 @@ void calc_azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
     
     azi = temp_azi;
 } // calc_azi_inc
+
+void calc_azi_inc(const fit_poly& orb, array<double, 2> const& coords,
+                  array<double, 2>& azi_inc, size_t const max_iter,
+                  bool const is_lonlat)
+{
+    double X, Y, Z, lon, lat, h;
+    X = Y = Z = lon = lat = h = 0.0;
+    
+    size_t nrows = coords.shape[0];
+    
+    // coords contains lon, lat, h
+    if (is_lonlat) {
+        FOR(ii, 0, nrows) {
+            lon = coords(ii, 0) * DEG2RAD;
+            lat = coords(ii, 1) * DEG2RAD;
+            h   = coords(ii, 2);
+            
+            // calulate surface WGS-84 Cartesian coordinates
+            ell_cart(lon, lat, h, X, Y, Z);
+            
+            _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+                     azi_inc(ii, 0), azi_inc(ii, 1));
+            
+        } // for
+    }
+    // coords contains X, Y, Z
+    else {
+        FOR(ii, 0, nrows) {
+            X = coords(ii, 0);
+            Y = coords(ii, 1);
+            Z = coords(ii, 2);
+            
+            // calulate surface WGS-84 geodetic coordinates
+            cart_ell(X, Y, Z, lon, lat, h);
+        
+            _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+                     azi_inc(ii, 0), azi_inc(ii, 1));
+        } // for
+    } // if
+}

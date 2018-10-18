@@ -25,11 +25,6 @@ typedef unsigned int uint;
 typedef const unsigned int cuint;
 typedef const double cdouble;
 
-#define OK 0
-#ifndef EIO
-#define EIO 1
-#endif
-#define EARG 2
 
 #define min_arg 2
 

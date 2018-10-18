@@ -1,8 +1,30 @@
 #ifndef PYVECTOR_HH
 #define PYVECTOR_HH
 
-#include "capi_macros.hh"
-#include "capi_structs.hh"
+#include <stddef.h>
+
+#include "common_macros.hh"
+
+template<class T>
+struct vector {
+    T* data;
+    size_t cnt;
+    size_t cap;
+    
+    vector(): data(NULL), cnt(0), cap(0) {};
+    bool const init(size_t const buf_cap);
+    void init(T* buf, size_t const buf_cap);
+    
+    bool const push(T const& elem);
+
+    bool const add(T* vals, size_t const n);
+    T* addn(size_t const n, bool const init0);
+    
+    ~vector();
+};
+
+
+#ifdef __INMET_IMPL
 
 static const size_t DG__DYNARR_SIZE_T_MSB = ((size_t)1) << (sizeof(size_t)*8 - 1);
 static const size_t DG__DYNARR_SIZE_T_ALL_BUT_MSB = (((size_t)1) << (sizeof(size_t)*8 - 1))-1;
@@ -641,5 +663,7 @@ dg__dynarr_shrink_to_fit(void** arr, dg__dynarr_md* md, size_t itemsize)
 		}
 	}
 }
+
+#endif
 
 #endif

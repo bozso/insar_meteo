@@ -1,5 +1,6 @@
-#include "capi_structs.hh"
-#include "capi_macros.hh"
+#include "nparray.hh"
+#include "carray.hh"
+#include "pymacros.hh"
 #include "utils.hh"
 #include "satorbit.hh"
 
@@ -24,7 +25,7 @@ static py_ptr test(py_varargs)
         return NULL;
     
     FOR(ii, 0, arr.rows())
-        printf("%lf ", arr(ii));
+        printf("%lf ", arr.arr(ii));
 
     printf("\n");
 
@@ -54,43 +55,10 @@ static py_ptr azi_inc(py_varargs)
         return NULL;
     
     // Set up orbit polynomial structure
-    fit_poly orb = {mean_t, start_t, stop_t, mean_coords.data,
-                    coeffs.data, is_centered, deg};
+    fit_poly orb = {mean_t, start_t, stop_t, mean_coords.arr.data,
+                    coeffs.arr.data, is_centered, deg};
     
-    uint nrows = coords.rows();
-    
-    double X, Y, Z, lon, lat, h;
-    X = Y = Z = lon = lat = h = 0.0;
-    
-    // coords contains lon, lat, h
-    if (is_lonlat) {
-        FOR(ii, 0, nrows) {
-            lon = coords(ii, 0) * DEG2RAD;
-            lat = coords(ii, 1) * DEG2RAD;
-            h   = coords(ii, 2);
-            
-            // calulate surface WGS-84 Cartesian coordinates
-            ell_cart(lon, lat, h, X, Y, Z);
-            
-            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                         azi_inc(ii, 0), azi_inc(ii, 1));
-            
-        } // for
-    }
-    // coords contains X, Y, Z
-    else {
-        FOR(ii, 0, nrows) {
-            X = coords(ii, 0);
-            Y = coords(ii, 1);
-            Z = coords(ii, 2);
-            
-            // calulate surface WGS-84 geodetic coordinates
-            cart_ell(X, Y, Z, lon, lat, h);
-        
-            calc_azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                         azi_inc(ii, 0), azi_inc(ii, 1));
-        } // for
-    } // if
+    calc_azi_inc(orb, coords.arr, azi_inc.arr, max_iter, is_lonlat);
     
     return Py_BuildValue("N", azi_inc.get_array());
 } // azi_inc
@@ -121,11 +89,11 @@ static py_ptr asc_dsc_select(py_keywords)
     
     FOR(ii, 0, arr1.rows()) {
         FOR(jj, 0, arr2.rows()) {
-            dlon = arr1(ii,0) - arr2(jj,0);
-            dlat = arr1(ii,1) - arr2(jj,1);
+            dlon = arr1.arr(ii,0) - arr2.arr(jj,0);
+            dlat = arr1.arr(ii,1) - arr2.arr(jj,1);
             
             if ((dlon * dlon + dlat * dlat) < max_sep) {
-                idx(ii) = NPY_TRUE;
+                idx.arr(ii) = NPY_TRUE;
                 nfound++;
                 break;
             }
@@ -151,12 +119,12 @@ static py_ptr dominant(py_keywords)
     
     uint ncluster = 0, nhermite = 0;
     
-    array<bool> asc_selected, dsc_selected;
+    carray<bool> asc_selected, dsc_selected;
     
     if (asc_selected.init(asc.rows()) or dsc_selected.init(dsc.rows()))
         return NULL;
     
-    vector<double> clustered;
+    //vector<double> clustered;
     
     
     

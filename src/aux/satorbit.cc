@@ -16,7 +16,7 @@
 
 #include <math.h>
 
-#include "array.hh"
+#include "nparray.hh"
 #include "satorbit.hh"
 
 
@@ -31,30 +31,31 @@ static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
     size_t n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
-    const double *coeffs = orb.coeffs, *mean_coords = orb.mean_coords;
+    view<double> const& coeffs = orb.coeffs;
+    double const *mean_coords = orb.mean_coords;
     
     if (is_centered)
         time -= orb.mean_t;
     
     if(n_poly == 2) {
-        x = coeffs[0] * time + coeffs[1];
-        y = coeffs[2] * time + coeffs[3];
-        z = coeffs[4] * time + coeffs[5];
+        x = coeffs(0,0) * time + coeffs(0,1);
+        y = coeffs(1,0) * time + coeffs(1,1);
+        z = coeffs(2,0) * time + coeffs(2,1);
     }
     else {
-        x = coeffs[0]           * time;
-        y = coeffs[n_poly]      * time;
-        z = coeffs[2 * n_poly]  * time;
+        x = coeffs(0,0)  * time;
+        y = coeffs(1,0)  * time;
+        z = coeffs(2,0)  * time;
 
         FOR(ii, 1, n_poly - 1) {
-            x = (x + coeffs[             ii]) * time;
-            y = (y + coeffs[    n_poly + ii]) * time;
-            z = (z + coeffs[2 * n_poly + ii]) * time;
+            x = (x + coeffs(0,ii)) * time;
+            y = (y + coeffs(1,ii)) * time;
+            z = (z + coeffs(2,ii)) * time;
         }
         
-        x += coeffs[    n_poly - 1];
-        y += coeffs[2 * n_poly - 1];
-        z += coeffs[3 * n_poly - 1];
+        x += coeffs(0,n_poly - 1);
+        y += coeffs(1,n_poly - 1);
+        z += coeffs(2,n_poly - 1);
     }
     
     if (is_centered) {
@@ -66,6 +67,7 @@ static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
     pos.x = x; pos.y = y; pos.z = z;
 } // calc_pos
 
+
 static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
                                  cdouble Z, double time)
 {
@@ -76,45 +78,50 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
                        vel_x, vel_y, vel_z, power, inorm;
     size_t n_poly = orb.deg + 1;
     
-    double const* coeffs = orb.coeffs, *mean_coords = orb.mean_coords;
+    view<double> const &coeffs = orb.coeffs;
+    double const *mean_coords = orb.mean_coords;
     
     if (orb.is_centered)
         time -= orb.mean_t;
     
     // linear case 
     if(n_poly == 2) {
-        sat_x = coeffs[0] * time + coeffs[1];
-        sat_y = coeffs[2] * time + coeffs[3];
-        sat_z = coeffs[4] * time + coeffs[5];
+        sat_x = coeffs(0,0) * time + coeffs(0,1);
+        sat_y = coeffs(1,0) * time + coeffs(1,1);
+        sat_z = coeffs(2,0) * time + coeffs(2,1);
         
-        vel_x = coeffs[0]; vel_y = coeffs[2]; vel_z = coeffs[4];
+        vel_x = coeffs(0,0); vel_y = coeffs(1,0); vel_z = coeffs(2,0);
     }
     // evaluation of polynom with Horner's method
     else {
         
-        sat_x = coeffs[0]           * time;
-        sat_y = coeffs[n_poly]      * time;
-        sat_z = coeffs[2 * n_poly]  * time;
+        x = coeffs(0,0)  * time;
+        y = coeffs(1,0)  * time;
+        z = coeffs(2,0)  * time;
 
         FOR(ii, 1, n_poly - 1) {
-            sat_x = (sat_x + coeffs[             ii]) * time;
-            sat_y = (sat_y + coeffs[    n_poly + ii]) * time;
-            sat_z = (sat_z + coeffs[2 * n_poly + ii]) * time;
+            sat_x = (x + coeffs(0,ii)) * time;
+            sat_y = (y + coeffs(1,ii)) * time;
+            sat_z = (z + coeffs(2,ii)) * time;
         }
         
-        sat_x += coeffs[    n_poly - 1];
-        sat_y += coeffs[2 * n_poly - 1];
-        sat_z += coeffs[3 * n_poly - 1];
+        sat_x += coeffs(0,n_poly - 1);
+        sat_y += coeffs(1,n_poly - 1);
+        sat_z += coeffs(2,n_poly - 1);
+
+        vel_x += coeffs(0, n_poly - 1);
+        vel_y += coeffs(1, n_poly - 1);
+        vel_z += coeffs(2, n_poly - 1);
         
-        vel_x = coeffs[    n_poly - 2];
-        vel_y = coeffs[2 * n_poly - 2];
-        vel_z = coeffs[3 * n_poly - 2];
+        vel_x = coeffs(0, n_poly - 2);
+        vel_y = coeffs(1, n_poly - 2);
+        vel_z = coeffs(2, n_poly - 2);
         
         FOR(ii, 0, n_poly - 3) {
             power = double(n_poly - 1.0 - ii);
-            vel_x += ii * coeffs[             ii] * pow(time, power);
-            vel_y += ii * coeffs[    n_poly + ii] * pow(time, power);
-            vel_z += ii * coeffs[2 * n_poly + ii] * pow(time, power);
+            vel_x += ii * coeffs(0,ii) * pow(time, power);
+            vel_y += ii * coeffs(1,ii) * pow(time, power);
+            vel_z += ii * coeffs(2,ii) * pow(time, power);
         }
     }
     
@@ -173,6 +180,7 @@ static inline void closest_appr(const fit_poly& orb, cdouble X, cdouble Y,
     calc_pos(orb, t_middle, sat_pos);
 } // closest_appr
 
+
 void ell_cart (cdouble lon, cdouble lat, cdouble h,
                double& x, double& y, double& z)
 {
@@ -183,6 +191,7 @@ void ell_cart (cdouble lon, cdouble lat, cdouble h,
     z = ( (1.0 - E2) * n + h) * sin(lat);
 
 } // ell_cart
+
 
 void cart_ell(cdouble x, cdouble y, cdouble z,
               double& lon, double& lat, double& h)
@@ -206,9 +215,10 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
 } // cart_ell
 
 
+
 static inline void _azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
-                  cdouble Z, cdouble lon, cdouble lat,
-                  size_t max_iter, double& azi, double& inc)
+                            cdouble Z, cdouble lon, cdouble lat,
+                            size_t max_iter, double& azi, double& inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
     cart sat;
@@ -251,14 +261,15 @@ static inline void _azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
     azi = temp_azi;
 } // calc_azi_inc
 
-void calc_azi_inc(const fit_poly& orb, array<double, 2> const& coords,
-                  array<double, 2>& azi_inc, size_t const max_iter,
+
+void calc_azi_inc(const fit_poly& orb, nparray<double, 2> const& coords,
+                  nparray<double, 2>& azi_inc, size_t const max_iter,
                   bool const is_lonlat)
 {
     double X, Y, Z, lon, lat, h;
     X = Y = Z = lon = lat = h = 0.0;
     
-    size_t nrows = coords.shape[0];
+    size_t nrows = coords.rows();
     
     // coords contains lon, lat, h
     if (is_lonlat) {

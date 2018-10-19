@@ -19,13 +19,18 @@
 #define MATH_AUX_HH
 
 #include "utils.hh"
+#include "view.hh"
 
 
 // structure for storing fitted polynom coefficients
 struct fit_poly {
     double mean_t, start_t, stop_t;
-    double *mean_coords, *coeffs;
+    double *coeffs;
+    view<double> &mean_coords;
     size_t is_centered, deg;
+    
+    fit_poly() {};
+    ~fit_poly() {};
 };
 
 #if 0

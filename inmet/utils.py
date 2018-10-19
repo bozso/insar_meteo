@@ -23,14 +23,16 @@ log = getLogger("inmet.utils")
 import numpy as np
 from numpy import pi as _pi
 
+_pi_per_4 = _pi / 4.0
+_rad2deg = 180.0 / _pi
+
 def merc_from_arrays(lats, lons, r_major = 6378137.000):
     x = r_major * np.radians(lon)
     scale = x / lon
     
-    y = 180.0 / np.pi
-        * np.log(np.tan(_pi / 4.0 + lat * (_pi / 180.0) / 2.0)) * scale
+    y = _rad2deg * np.log(np.tan(_pi_per_4 + lat * _rad2deg / 2.0)) * scale
     
-    return np.array(x, y)
+    return np.array((x, y))
 
 
 def _make_cmd(command):

@@ -1,6 +1,6 @@
 #include "pymacros.hh"
 #include "nparray.hh"
-#include "carray.hh"
+#include "array.hh"
 #include "satorbit.hh"
 #include "utils.hh"
 
@@ -25,7 +25,7 @@ static py_ptr test(py_varargs)
         return NULL;
     
     FOR(ii, 0, arr.rows())
-        printf("%lf ", arr.arr(ii));
+        printf("%lf ", arr(ii));
 
     printf("\n");
 
@@ -56,10 +56,10 @@ static py_ptr azi_inc(py_varargs)
         return NULL;
     
     // Set up orbit polynomial structure
-    fit_poly orb = {mean_t, start_t, stop_t, mean_coords.arr.data,
-                    coeffs.arr.data, is_centered, deg};
+    fit_poly orb = {mean_t, start_t, stop_t, coeffs.data
+                    mean_coords.get_view(), is_centered, deg};
     
-    calc_azi_inc(orb, coords.arr, azi_inc.arr, max_iter, is_lonlat);
+    calc_azi_inc(orb, coords, azi_inc, max_iter, is_lonlat);
     
     return Py_BuildValue("N", ret(azi_inc));
 } // azi_inc
@@ -90,11 +90,11 @@ static py_ptr asc_dsc_select(py_keywords)
     
     FOR(ii, 0, arr1.rows()) {
         FOR(jj, 0, arr2.rows()) {
-            dlon = arr1.arr(ii,0) - arr2.arr(jj,0);
-            dlat = arr1.arr(ii,1) - arr2.arr(jj,1);
+            dlon = arr1(ii,0) - arr2(jj,0);
+            dlat = arr1(ii,1) - arr2(jj,1);
             
             if ((dlon * dlon + dlat * dlat) < max_sep) {
-                idx.arr(ii) = NPY_TRUE;
+                idx(ii) = NPY_TRUE;
                 nfound++;
                 break;
             }
@@ -118,9 +118,9 @@ static py_ptr dominant(py_keywords)
     if (asc.import() or dsc.import())
         return NULL;
     
-    uint ncluster = 0, nhermite = 0;
+    size_t ncluster = 0, nhermite = 0;
     
-    carray<bool> asc_selected, dsc_selected;
+    array<bool> asc_selected, dsc_selected;
     
     if (asc_selected.init(asc.rows()) or dsc_selected.init(dsc.rows()))
         return NULL;

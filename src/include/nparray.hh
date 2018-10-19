@@ -6,7 +6,7 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-#include "array.hh"
+#include "view.hh"
 
 #define array_type(ar_struct) &((ar_struct).pyobj)
 #define ret(ar_struct) (ar_struct).npobj
@@ -14,7 +14,8 @@
 
 template<class T, size_t ndim>
 struct nparray {
-    array<T, ndim> arr;
+    size_t shape[ndim], strides[ndim];
+    T * data;
     PyArrayObject *npobj;
     PyObject *pyobj;
     bool decref;
@@ -22,7 +23,7 @@ struct nparray {
     nparray() {
         npobj = NULL;
         pyobj = NULL;
-        arr.data = NULL;
+        data = NULL;
         decref = false;
     }
     
@@ -30,6 +31,9 @@ struct nparray {
     bool const import(PyObject *_obj = NULL);
     bool const empty(npy_intp *dims, int const fortran = 0, bool const decref = false);
     bool const zeros(npy_intp *dims, int const fortran = 0, bool const decref = false);
+    
+    view<T> get_view();
+    view<T> const get_view() const;
     
     ~nparray() {
         if (decref)
@@ -44,6 +48,19 @@ struct nparray {
     size_t const get_shape(size_t ii) const;
     size_t const rows() const;
     size_t const cols() const;
+
+
+    T& operator()(size_t const ii);
+    T& operator()(size_t const ii, size_t const jj);
+    T& operator()(size_t const ii, size_t const jj, size_t const kk);
+    T& operator()(size_t const ii, size_t const jj, size_t const kk,
+                  size_t const ll);
+
+    T const operator()(size_t const ii) const;
+    T const operator()(size_t const ii, size_t const jj) const;
+    T const operator()(size_t const ii, size_t const jj, size_t const kk) const;
+    T const operator()(size_t const ii, size_t const jj, size_t const kk,
+                       size_t const ll) const;
 };
 
 
@@ -59,7 +76,23 @@ const int dtype<npy_bool>::typenum = NPY_BOOL;
 
 
 template<typename T, size_t ndim>
-static bool const setup_array(array<T, ndim>& arr, PyArrayObject *_array, bool const checkdim = false)
+view<T> nparray<T, ndim>::get_view()
+{
+    view<T> retv(data, ndim, shape, strides);
+    return retv;
+}
+
+
+template<typename T, size_t ndim>
+view<T> const nparray<T, ndim>::get_view() const
+{
+    const view<T> retv(data, ndim, shape, strides);
+    return retv;
+}
+
+
+template<typename T, size_t ndim>
+static bool const setup_array(nparray<T, ndim> *arr, PyArrayObject *_array, bool const checkdim = false)
 {
     int _ndim = size_t(PyArray_NDIM(_array));
     
@@ -74,16 +107,16 @@ static bool const setup_array(array<T, ndim>& arr, PyArrayObject *_array, bool c
     npy_intp * shape = PyArray_DIMS(_array);
 
     for(size_t ii = 0; ii < ndim; ++ii)
-        arr.shape[ii] = size_t(shape[ii]);
+        arr->shape[ii] = size_t(shape[ii]);
 
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
     npy_intp * strides = PyArray_STRIDES(_array);
     
     for(size_t ii = 0; ii < ndim; ++ii)
-        arr.strides[ii] = size_t(double(strides[ii]) / elemsize);
+        arr->strides[ii] = size_t(double(strides[ii]) / elemsize);
     
-    arr.data = (T*) PyArray_DATA(_array);
+    arr->data = (T*) PyArray_DATA(_array);
     
     return false;
 }
@@ -97,7 +130,7 @@ bool const nparray<T, ndim>::from_data(npy_intp *dims, void *data)
         return true;
     }
     
-    return setup_array(arr, npobj);
+    return setup_array(this, npobj);
 }
 
 
@@ -115,7 +148,7 @@ bool const nparray<T, ndim>::import(PyObject *_obj)
     }
     
     decref = true;
-    return setup_array(arr, npobj, true);
+    return setup_array(this, npobj, true);
 }
 
 
@@ -128,7 +161,7 @@ bool const nparray<T, ndim>::empty(npy_intp *dims, int const fortran, bool const
         return true;
     }
     
-    return setup_array(arr, npobj);
+    return setup_array(this, npobj);
 }
 
 
@@ -141,7 +174,7 @@ bool const nparray<T, ndim>::zeros(npy_intp *dims, int const fortran, bool const
         return true;
     }
     
-    return setup_array(arr, npobj);
+    return setup_array(this, npobj);
 }
 
 
@@ -154,31 +187,84 @@ PyObject* nparray<T, ndim>::get_obj() const {
 
 template<typename T, size_t ndim>
 size_t const nparray<T, ndim>::get_shape(size_t const ii) const {
-    return arr.shape[ii];
+    return shape[ii];
 }
 
 
 template<typename T, size_t ndim>
 size_t const nparray<T, ndim>::rows() const {
-    return arr.shape[0];
+    return shape[0];
 }
 
 
 template<typename T, size_t ndim>
 size_t const nparray<T, ndim>::cols() const {
-    return arr.shape[1];
+    return shape[1];
 }
 
 
 template<typename T, size_t ndim>
 T* nparray<T, ndim>::get_data() const {
-    return arr.data;
+    return data;
 }
 
 template<typename T, size_t ndim>
 bool const nparray<T, ndim>::is_f_cont() const {
     return PyArray_IS_F_CONTIGUOUS(npobj);
 }
+
+
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii) {
+    return data[ii * strides[0]];
+}
+
+
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii, size_t const jj) {
+    return data[ii * strides[0] + jj * strides[1]];
+}
+
+
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii, size_t const jj, size_t const kk) {
+    return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+}
+
+
+template<typename T, size_t ndim>
+T& nparray<T, ndim>::operator()(size_t const ii, size_t const jj, size_t const kk,
+                                size_t const ll) {
+    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
+                + ll * strides[3]];
+}
+
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii) const {
+    return data[ii * strides[0]];
+}
+
+
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii, size_t const jj) const {
+    return data[ii * strides[0] + jj * strides[1]];
+}
+
+
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii, size_t const jj,
+                                     size_t const kk) const {
+    return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+}
+
+
+template<typename T, size_t ndim>
+T const nparray<T, ndim>::operator()(size_t const ii, size_t const jj,
+                                     size_t const kk, size_t ll) const {
+    return data[  ii * strides[0] + jj * strides[1] + kk * strides[2]
+                + ll * strides[3]];
+}
+
 
 #endif
 

@@ -113,6 +113,7 @@ static py_ptr ell_to_merc_fast(py_varargs)
     return Py_BuildValue("N", ret(xy));
 }
 
+
 pydoc(test, "test");
 
 static py_ptr test(py_varargs)

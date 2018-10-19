@@ -17,8 +17,25 @@ from argparse import ArgumentParser
 from subprocess import check_output, CalledProcessError
 from shlex import split
 from logging import getLogger
+from inmet.inmet_aux import ell_to_merc_full, ell_to_merc_fast 
 
 log = getLogger("inmet.utils")
+
+ellipsoids = {
+    "mercator": (6378137.0, 8.1819190903e-2)
+}
+
+def ell2merc(lon, lat, isdeg=True, ellipsoid="mercator", lon0=None, fast=False):
+    
+    if lon0 is None:
+        lon0 = np.mean(lon)
+    
+    ell = ellipsoids[ellipsoid]
+    
+    if fast:
+        return ell_to_merc_fast(lon, lat, lon0, ell[0], ell[1], isdeg), lon0
+    else:
+        return ell_to_merc_full(lon, lat, lon0, ell[0], ell[1], isdeg), lon0
 
 
 def _make_cmd(command):

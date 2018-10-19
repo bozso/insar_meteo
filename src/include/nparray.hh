@@ -49,6 +49,9 @@ struct nparray {
     size_t const rows() const;
     size_t const cols() const;
 
+    bool const check_rows(size_t const rows) const;
+    bool const check_cols(size_t const cols) const;
+
 
     T& operator()(size_t const ii);
     T& operator()(size_t const ii, size_t const jj);
@@ -205,6 +208,30 @@ size_t const nparray<T, ndim>::rows() const {
 template<typename T, size_t ndim>
 size_t const nparray<T, ndim>::cols() const {
     return shape[1];
+}
+
+
+template<typename T, size_t ndim>
+bool const nparray<T, ndim>::check_rows(size_t const rows) const
+{
+    if (shape[0] != rows) {
+        PyErr_Format(PyExc_TypeError, "Expected array to have rows %u but got "
+                     "array with rows %u.", rows, shape[0]);
+        return true;
+    }
+    return false;
+}
+
+
+template<typename T, size_t ndim>
+bool const nparray<T, ndim>::check_cols(size_t const cols) const
+{
+    if (shape[1] != cols) {
+        PyErr_Format(PyExc_TypeError, "Expected array to have cols %u but got "
+                     "array with cols %u.", cols, shape[1]);
+        return true;
+    }
+    return false;
 }
 
 

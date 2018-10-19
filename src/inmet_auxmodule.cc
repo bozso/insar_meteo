@@ -13,9 +13,9 @@ typedef nparray<npy_double, 1> array1d;
 typedef nparray<npy_bool, 1> array1b;
 
 
-pydoc(ell_to_merc, "ell_to_merc");
+pydoc(ell_to_merc_full, "ell_to_merc_full");
 
-static py_ptr ell_to_merc(py_varargs)
+static py_ptr ell_to_merc_full(py_varargs)
 {
     array1d lon, lat;
     double a, e, lon0;
@@ -57,6 +57,56 @@ static py_ptr ell_to_merc(py_varargs)
             double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
             
             xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+        }
+    }
+    
+    return Py_BuildValue("N", ret(xy));
+}
+
+
+pydoc(ell_to_merc_fast, "ell_to_merc_fast");
+
+static py_ptr ell_to_merc_fast(py_varargs)
+{
+    array1d lon, lat;
+    double a, e, lon0;
+    uint isdeg;
+    
+    parse_varargs("OOdddI", array_type(lon), array_type(lat), &lon0,
+                  &a, &e, &isdeg);
+    
+    if (lon.import() or lat.import())
+        return NULL;
+    
+    size_t rows = lon.rows();
+    
+    if (rows != lat.rows()) {
+        // TODO: set error message !!!
+        return NULL;
+    }
+    
+    array2d xy;
+    npy_intp shape[2] = {npy_intp(rows), 2};
+    
+    if (xy.empty(shape))
+        return NULL;
+
+    
+    if (isdeg) {
+        FOR(ii, 0, rows) {
+            xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
+            
+            double scale = xy(ii,0) / lon(ii);
+            
+            xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) * deg2rad / 2.0)) * scale;
+        }
+    } else {
+        FOR(ii, 0, rows) {
+            xy(ii,0) = a * (lon(ii) - lon0);
+            
+            double scale = xy(ii,0) / lon(ii);
+            
+            xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) / 2.0)) * scale;
         }
     }
     
@@ -191,7 +241,8 @@ static py_ptr dominant(py_keywords)
 static const char* module_doc = "inmet_aux";
 
 static PyMethodDef module_methods[] = {
-    pymeth_varargs(ell_to_merc),
+    pymeth_varargs(ell_to_merc_fast),
+    pymeth_varargs(ell_to_merc_full),
     pymeth_varargs(test),
     pymeth_varargs(azi_inc),
     pymeth_keywords(asc_dsc_select),

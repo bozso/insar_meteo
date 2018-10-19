@@ -23,7 +23,6 @@
 
 typedef const double cdouble;
 
-#define min_arg 2
 
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
@@ -39,12 +38,12 @@ typedef const double cdouble;
 #define E2 6.694380e-03
 
 
-#ifndef M_PI
-#define M_PI 3.14159265358979
-#endif
+static const double pi = 3.14159265358979;
+static const double pi_per_4 = pi / 4.0;
 
-#define DEG2RAD 1.745329e-02
-#define RAD2DEG 5.729578e+01
+static const double deg2rad = 1.745329e-02;
+static const double rad2deg = 5.729578e+01;
+
 
 /**************
  * for macros *

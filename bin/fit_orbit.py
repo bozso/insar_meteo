@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from utils import argp, narg
+from utils import Argp
 from inmet.satorbit import Satorbit
 
 def main():
@@ -23,17 +23,17 @@ def main():
     ap = argp()
     
     ap.addargs(
-        narg("orbit_data", help="", kind="pos"),
-        narg("preproc", help="", kind="pos"),
+        Argp.narg("orbit_data", help="", kind="pos"),
+        Argp.narg("preproc", help="", kind="pos"),
         
-        narg("deg", help="Degree of fitted polynom.", type=int, default=3),
-
-        narg("plot", help="If defined a plot file will be generated."),
-
-        narg("nstep", help="Number of steps used to evaluate the polynom.",
-                      type=int, default=100),
+        Argp.narg("deg", help="Degree of fitted polynom.", type=int, default=3),
         
-        narg("centered", help="If set the mean coordinates and time value "
+        Argp.narg("plot", help="If defined a plot file will be generated."),
+        
+        Argp.narg("nstep", help="Number of steps used to evaluate the polynom.",
+                           type=int, default=100),
+        
+        Argp.narg("centered", help="If set the mean coordinates and time value "
              "will be subtracted from the coordinates and time values "
              "before fitting.", kind="flag")
     )

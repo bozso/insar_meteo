@@ -3,7 +3,6 @@
 #define __INMET_IMPL
 
 #include "nparray.hh"
-#include "view.hh"
 #include "array.hh"
 
 template struct nparray<npy_double, 2>;

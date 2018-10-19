@@ -32,8 +32,8 @@ struct nparray {
     bool const empty(npy_intp *dims, int const fortran = 0, bool const decref = false);
     bool const zeros(npy_intp *dims, int const fortran = 0, bool const decref = false);
     
-    view<T> get_view();
-    view<T> const get_view() const;
+    //view<T> get_view();
+    //view<T> const get_view() const;
     
     ~nparray() {
         if (decref)
@@ -74,6 +74,7 @@ const int dtype<npy_double>::typenum = NPY_DOUBLE;
 template<>
 const int dtype<npy_bool>::typenum = NPY_BOOL;
 
+#if 0
 
 template<typename T, size_t ndim>
 view<T> nparray<T, ndim>::get_view()
@@ -90,9 +91,11 @@ view<T> const nparray<T, ndim>::get_view() const
     return retv;
 }
 
+#endif
 
 template<typename T, size_t ndim>
-static bool const setup_array(nparray<T, ndim> *arr, PyArrayObject *_array, bool const checkdim = false)
+static bool const setup_array(nparray<T, ndim> *arr, PyArrayObject *_array,
+                              bool const checkdim = false)
 {
     int _ndim = size_t(PyArray_NDIM(_array));
     
@@ -120,6 +123,7 @@ static bool const setup_array(nparray<T, ndim> *arr, PyArrayObject *_array, bool
     
     return false;
 }
+
 
 template<typename T, size_t ndim>
 bool const nparray<T, ndim>::from_data(npy_intp *dims, void *data)
@@ -153,7 +157,8 @@ bool const nparray<T, ndim>::import(PyObject *_obj)
 
 
 template<typename T, size_t ndim>
-bool const nparray<T, ndim>::empty(npy_intp *dims, int const fortran, bool const decref)
+bool const nparray<T, ndim>::empty(npy_intp *dims, int const fortran,
+                                   bool const decref)
 {
     if ((npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                       dtype<T>::typenum, fortran)) == NULL) {

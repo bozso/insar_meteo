@@ -31,7 +31,7 @@ static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
     size_t n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
-    view<double> const& coeffs = orb.coeffs;
+    nparray<double, 2> const& coeffs = orb.coeffs;
     double const *mean_coords = orb.mean_coords;
     
     if (is_centered)
@@ -78,7 +78,7 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
                        vel_x, vel_y, vel_z, power, inorm;
     size_t n_poly = orb.deg + 1;
     
-    view<double> const &coeffs = orb.coeffs;
+    nparray<double, 2> const &coeffs = orb.coeffs;
     double const *mean_coords = orb.mean_coords;
     
     if (orb.is_centered)
@@ -95,24 +95,20 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
     // evaluation of polynom with Horner's method
     else {
         
-        x = coeffs(0,0)  * time;
-        y = coeffs(1,0)  * time;
-        z = coeffs(2,0)  * time;
+        sat_x = coeffs(0,0)  * time;
+        sat_y = coeffs(1,0)  * time;
+        sat_z = coeffs(2,0)  * time;
 
         FOR(ii, 1, n_poly - 1) {
-            sat_x = (x + coeffs(0,ii)) * time;
-            sat_y = (y + coeffs(1,ii)) * time;
-            sat_z = (z + coeffs(2,ii)) * time;
+            sat_x = (sat_x + coeffs(0,ii)) * time;
+            sat_y = (sat_y + coeffs(1,ii)) * time;
+            sat_z = (sat_z + coeffs(2,ii)) * time;
         }
         
         sat_x += coeffs(0,n_poly - 1);
         sat_y += coeffs(1,n_poly - 1);
         sat_z += coeffs(2,n_poly - 1);
 
-        vel_x += coeffs(0, n_poly - 1);
-        vel_y += coeffs(1, n_poly - 1);
-        vel_z += coeffs(2, n_poly - 1);
-        
         vel_x = coeffs(0, n_poly - 2);
         vel_y = coeffs(1, n_poly - 2);
         vel_z = coeffs(2, n_poly - 2);
@@ -209,7 +205,7 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
 
     lat = o;
     
-    o = atan(y/x); if(x < 0.0) o += M_PI;
+    o = atan(y/x); if(x < 0.0) o += pi;
     lon = o;
     h = p / co - n;
 } // cart_ell
@@ -241,17 +237,17 @@ static inline void _azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
     
     t0 = norm(xl, yl, zl);
     
-    inc = acos(zl / t0) * RAD2DEG;
+    inc = acos(zl / t0) * rad2deg;
     
     if(xl == 0.0) xl = 0.000000001;
     
     double temp_azi = atan(fabs(yl / xl));
     
-    if( (xl < 0.0) && (yl > 0.0) ) temp_azi = M_PI - temp_azi;
-    if( (xl < 0.0) && (yl < 0.0) ) temp_azi = M_PI + temp_azi;
-    if( (xl > 0.0) && (yl < 0.0) ) temp_azi = 2.0 * M_PI - temp_azi;
+    if( (xl < 0.0) && (yl > 0.0) ) temp_azi = pi - temp_azi;
+    if( (xl < 0.0) && (yl < 0.0) ) temp_azi = pi + temp_azi;
+    if( (xl > 0.0) && (yl < 0.0) ) temp_azi = 2.0 * pi - temp_azi;
     
-    temp_azi *= RAD2DEG;
+    temp_azi *= rad2deg;
     
     if(temp_azi > 180.0)
         temp_azi -= 180.0;
@@ -274,8 +270,8 @@ void calc_azi_inc(const fit_poly& orb, nparray<double, 2> const& coords,
     // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, 0, nrows) {
-            lon = coords(ii, 0) * DEG2RAD;
-            lat = coords(ii, 1) * DEG2RAD;
+            lon = coords(ii, 0) * deg2rad;
+            lat = coords(ii, 1) * deg2rad;
             h   = coords(ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates

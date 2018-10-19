@@ -13,6 +13,56 @@ typedef nparray<npy_double, 1> array1d;
 typedef nparray<npy_bool, 1> array1b;
 
 
+pydoc(ell_to_merc, "ell_to_merc");
+
+static py_ptr ell_to_merc(py_varargs)
+{
+    array1d lon, lat;
+    double a, e, lon0;
+    uint isdeg;
+    
+    parse_varargs("OOdddI", array_type(lon), array_type(lat), &lon0,
+                  &a, &e, &isdeg);
+    
+    if (lon.import() or lat.import())
+        return NULL;
+    
+    size_t rows = lon.rows();
+    
+    if (rows != lat.rows()) {
+        // TODO: set error message !!!
+        return NULL;
+    }
+    
+    array2d xy;
+    npy_intp shape[2] = {npy_intp(rows), 2};
+    
+    if (xy.empty(shape))
+        return NULL;
+    
+    if (isdeg) {
+        FOR(ii, 0, rows) {
+            xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
+            
+            double sin_lat = sin(deg2rad * lat(ii));
+            double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
+            
+            xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+        }
+    } else {
+        FOR(ii, 0, rows) {
+            xy(ii,0) = a * (lon(ii) - lon0);
+            
+            double sin_lat = sin(lat(ii));
+            double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
+            
+            xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+        }
+    }
+    
+    return Py_BuildValue("N", ret(xy));
+}
+
 pydoc(test, "test");
 
 static py_ptr test(py_varargs)
@@ -56,8 +106,8 @@ static py_ptr azi_inc(py_varargs)
         return NULL;
     
     // Set up orbit polynomial structure
-    fit_poly orb = {mean_t, start_t, stop_t, coeffs.data
-                    mean_coords.get_view(), is_centered, deg};
+    fit_poly orb(mean_t, start_t, stop_t, mean_coords.data, coeffs,
+                 is_centered, deg);
     
     calc_azi_inc(orb, coords, azi_inc, max_iter, is_lonlat);
     
@@ -77,18 +127,20 @@ static py_ptr asc_dsc_select(py_keywords)
     parse_keywords("OO|d:asc_dsc_select", array_type(arr1), array_type(arr2),
                                           &max_sep);
     
-    npy_intp idx_shape = (npy_intp) arr1.rows();
+    size_t rows = arr1.rows();
+    
+    npy_intp idx_shape = (npy_intp) rows;
 
-    if (idx.empty(&idx_shape))
+    if (idx.zeros(&idx_shape))
         return NULL;
     
     max_sep /=  R_earth;
-    max_sep = (max_sep * RAD2DEG) * (max_sep * RAD2DEG);
+    max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
     
     npy_double dlon, dlat;
     uint nfound = 0;
     
-    FOR(ii, 0, arr1.rows()) {
+    FOR(ii, 0, rows) {
         FOR(jj, 0, arr2.rows()) {
             dlon = arr1(ii,0) - arr2(jj,0);
             dlat = arr1(ii,1) - arr2(jj,1);
@@ -118,7 +170,7 @@ static py_ptr dominant(py_keywords)
     if (asc.import() or dsc.import())
         return NULL;
     
-    size_t ncluster = 0, nhermite = 0;
+    uint ncluster = 0, nhermite = 0;
     
     array<bool> asc_selected, dsc_selected;
     
@@ -127,7 +179,7 @@ static py_ptr dominant(py_keywords)
     
     //vector<double> clustered;
     
-    //return Py_BuildValue("NII", clustered.get_array(), ncluster, nhermite);
+    //return Py_BuildValue("NII", ret(clustered), ncluster, nhermite);
     Py_RETURN_NONE;
 } // dominant
 
@@ -139,6 +191,7 @@ static py_ptr dominant(py_keywords)
 static const char* module_doc = "inmet_aux";
 
 static PyMethodDef module_methods[] = {
+    pymeth_varargs(ell_to_merc),
     pymeth_varargs(test),
     pymeth_varargs(azi_inc),
     pymeth_keywords(asc_dsc_select),
@@ -181,8 +234,8 @@ PyMODINIT_FUNC CONCAT(init, inmet_aux)(void) {
     import_array();
     
     if (PyErr_Occurred()) {
-        PyErr_SetString(PyExc_ImportError, "can't initialize module"
-                        module_name "(failed to import numpy)");
+        PyErr_SetString(PyExc_ImportError, "Cannot initialize module "
+                        module_name " (failed to import numpy)");
         return RETVAL;
     }
     d = PyModule_GetDict(m);

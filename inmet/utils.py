@@ -20,6 +20,19 @@ from logging import getLogger
 
 log = getLogger("inmet.utils")
 
+import numpy as np
+from numpy import pi as _pi
+
+def merc_from_arrays(lats, lons, r_major = 6378137.000):
+    x = r_major * np.radians(lon)
+    scale = x / lon
+    
+    y = 180.0 / np.pi
+        * np.log(np.tan(_pi / 4.0 + lat * (_pi / 180.0) / 2.0)) * scale
+    
+    return np.array(x, y)
+
+
 def _make_cmd(command):
     def f(*args, debug=False):
         Cmd = command + " " + " ".join(proc_arg(arg) for arg in args)
@@ -42,25 +55,12 @@ def _make_cmd(command):
         return proc
     return f
 
-class Inmet(object):
 
-    _commands = (
-     "fit_orbit", "eval_orbit", "azi_inc"
-     )
+_inmet_commands = ("fit_orbit", "eval_orbit", "azi_inc")
 
-    def __init__(self):
-        for cmd in self._commands:
-            setattr(self, cmd, _make_cmd("inmet " + cmd))
-    
-    def __getattr__(self, command, *args, **kwargs):
-        
-        raise ValueError("Command \"{}\" not yet initilaized!".format(command))
-        
-        def f(*args, **kwargs):
-            cmd(command, *args, **kwargs)
-        return f
+im = type("Inmet", (object,),
+          dict((cmd, _make_cmd(cmd)) for cmd in _inmet_commands))
 
-im = Inmet()
 
 def cmd(Cmd, *args, debug=False):
     """

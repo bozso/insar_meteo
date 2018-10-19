@@ -8,34 +8,38 @@
 
 #include "array.hh"
 
-
-struct capi_objects {
-    PyArrayObject *npobj;
-    PyObject *pyobj;
-};
+#define array_type(ar_struct) &((ar_struct).pyobj)
+#define ret(ar_struct) (ar_struct).npobj
 
 
 template<class T, size_t ndim>
 struct nparray {
     array<T, ndim> arr;
-    capi_objects obj;
+    PyArrayObject *npobj;
+    PyObject *pyobj;
+    bool decref;
     
     nparray() {
-        obj.npobj = NULL;
-        obj.pyobj = NULL;
+        npobj = NULL;
+        pyobj = NULL;
         arr.data = NULL;
+        decref = false;
     }
-
+    
+    bool const from_data(npy_intp *dims, void *data);
     bool const import(PyObject *_obj = NULL);
-    bool const empty(npy_intp *dims, int const fortran = 0);
+    bool const empty(npy_intp *dims, int const fortran = 0, bool const decref = false);
+    bool const zeros(npy_intp *dims, int const fortran = 0, bool const decref = false);
     
     ~nparray() {
-        Py_CLEAR(obj.npobj);
+        if (decref)
+            Py_CLEAR(npobj);
     }
     
-    PyArrayObject * get_array() const;
     PyObject * get_obj() const;
     T* get_data() const;
+    
+    bool const is_f_cont() const;
     
     size_t const get_shape(size_t ii) const;
     size_t const rows() const;
@@ -55,11 +59,11 @@ const int dtype<npy_bool>::typenum = NPY_BOOL;
 
 
 template<typename T, size_t ndim>
-static bool const setup_array(array<T, ndim>& arr, PyArrayObject *_array)
+static bool const setup_array(array<T, ndim>& arr, PyArrayObject *_array, bool const checkdim = false)
 {
     int _ndim = size_t(PyArray_NDIM(_array));
     
-    if (ndim != _ndim) {
+    if (checkdim and ndim != _ndim) {
         PyErr_Format(PyExc_TypeError, "numpy nparray expected to be %u "
                     "dimensional but we got %u dimensional nparray!",
                     ndim, _ndim);
@@ -84,46 +88,67 @@ static bool const setup_array(array<T, ndim>& arr, PyArrayObject *_array)
     return false;
 }
 
+template<typename T, size_t ndim>
+bool const nparray<T, ndim>::from_data(npy_intp *dims, void *data)
+{
+    if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(ndim, dims,
+                      dtype<T>::typenum, data)) == NULL) {
+        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
+        return true;
+    }
+    
+    return setup_array(arr, npobj);
+}
+
 
 template<typename T, size_t ndim>
 bool const nparray<T, ndim>::import(PyObject *_obj)
 {
     if (_obj != NULL)
-        obj.pyobj = _obj;
+        pyobj = _obj;
     
-    if ((obj.npobj =
-         (PyArrayObject*) PyArray_FROM_OTF(obj.pyobj, dtype<T>::typenum,
+    if ((npobj =
+         (PyArrayObject*) PyArray_FROM_OTF(pyobj, dtype<T>::typenum,
                                            NPY_ARRAY_IN_ARRAY)) == NULL) {
         PyErr_Format(PyExc_TypeError, "Failed to convert numpy nparray!");
         return true;
     }
     
-    return setup_array(arr, obj.npobj);
+    decref = true;
+    return setup_array(arr, npobj, true);
 }
 
 
 template<typename T, size_t ndim>
-bool const nparray<T, ndim>::empty(npy_intp *dims, int const fortran)
+bool const nparray<T, ndim>::empty(npy_intp *dims, int const fortran, bool const decref)
 {
-    if ((obj.npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
+    if ((npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                       dtype<T>::typenum, fortran)) == NULL) {
-        PyErr_Format(PyExc_TypeError, "Failed to create empty numpy nparray!");
+        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
         return true;
     }
     
-    return setup_array(arr, obj.npobj);
+    return setup_array(arr, npobj);
 }
 
 
 template<typename T, size_t ndim>
-PyArrayObject* nparray<T, ndim>::get_array() const {
-    return obj.npobj;
+bool const nparray<T, ndim>::zeros(npy_intp *dims, int const fortran, bool const decref)
+{
+    if ((npobj = (PyArrayObject*) PyArray_ZEROS(ndim, dims,
+                      dtype<T>::typenum, fortran)) == NULL) {
+        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
+        return true;
+    }
+    
+    return setup_array(arr, npobj);
 }
+
 
 
 template<typename T, size_t ndim>
 PyObject* nparray<T, ndim>::get_obj() const {
-    return obj.pyobj;
+    return pyobj;
 }
 
 
@@ -148,6 +173,11 @@ size_t const nparray<T, ndim>::cols() const {
 template<typename T, size_t ndim>
 T* nparray<T, ndim>::get_data() const {
     return arr.data;
+}
+
+template<typename T, size_t ndim>
+bool const nparray<T, ndim>::is_f_cont() const {
+    return PyArray_IS_F_CONTIGUOUS(npobj);
 }
 
 #endif

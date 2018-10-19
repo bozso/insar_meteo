@@ -21,10 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef unsigned int uint;
-typedef const unsigned int cuint;
 typedef const double cdouble;
-
 
 #define min_arg 2
 
@@ -53,19 +50,20 @@ typedef const double cdouble;
  * for macros *
  **************/
 
-#define FOR(ii, min, max) for(uint (ii) = (min); (ii) < (max); ++(ii))
-#define FORS(ii, min, max, step) for(uint (ii) = (min); (ii) < (max); (ii) += (step))
+#define FOR(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
+#define FORS(ii, min, max, step) for(size_t (ii) = (min); (ii) < (max); (ii) += (step))
 
 
 /****************
  * IO functions *
  ****************/
 
-void error(const char * fmt, ...);
-void errorln(const char * fmt, ...);
-void perrorln(const char * perror_str, const char * fmt, ...);
+void print(char const* fmt, ...);
+void println(char const* fmt, ...);
 
-void println(const char * fmt, ...);
+void error(char const* fmt, ...);
+void errorln(char const* fmt, ...);
+void perrorln(char const* perror_str, char const* fmt, ...);
 
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
@@ -78,14 +76,14 @@ struct File {
 };
 
 
-bool open(File& file, const char * path, const char * mode);
+bool open(File& file, char const* path, char const* mode);
 void close(File& file);
 
-int read(const File& file, const char * fmt, ...);
-int write(const File& file, const char * fmt, ...);
+int read(const File& file, char const* fmt, ...);
+int write(const File& file, char const* fmt, ...);
 
-int read(const File& file, const size_t size, const size_t num, void *var);
-int write(const File& file, const size_t size, const size_t num, const void *var);
+int read(const File& file, size_t const size, size_t const num, void* var);
+int write(const File& file, size_t const size, size_t const num, void const* var);
 
 
 #define str_equal(str1, str2) (not strcmp((str1), (str2)))

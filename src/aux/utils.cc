@@ -17,6 +17,7 @@
 
 #include <stdarg.h>
 
+#include "Python.h"
 #include "utils.hh"
 
 
@@ -29,7 +30,7 @@ File::~File()
 }
 
 
-bool open(File& file, const char * path, const char * mode)
+bool open(File& file, char const* path, char const* mode)
 {
     if ((file._file = fopen(path, mode)) == NULL) {
         perrorln("open", "Failed to open file \"%s\"", path);
@@ -46,7 +47,7 @@ void close(File& file)
 }
 
 
-int read(const File& file, const char * fmt, ...)
+int read(const File& file, char const* fmt, ...)
 {
     va_list ap;
     
@@ -57,7 +58,7 @@ int read(const File& file, const char * fmt, ...)
 }
 
 
-int write(const File& file, const char * fmt, ...)
+int write(const File& file, char const* fmt, ...)
 {
     va_list ap;
     
@@ -67,53 +68,64 @@ int write(const File& file, const char * fmt, ...)
     return ret;
 }
 
-int read(const File& file, const size_t size, const size_t num, void *var)
+int read(const File& file, size_t const size, size_t const num, void *var)
 {
     return fread(var, size, num, file._file);
 }
 
-int write(const File& file, const size_t size, const size_t num, const void *var)
+int write(const File& file, size_t const size, size_t const num, void const* var)
 {
     return fwrite(var, size, num, file._file);
 }
 
 
-void println(const char * fmt, ...)
+void print(char const* fmt, ...)
 {
     va_list ap;
     
     va_start(ap, fmt);
-    vprintf(fmt, ap), puts("\n");
+    PySys_FormatStdout(fmt, ap);
     va_end(ap);
 }
 
 
-void errorln(const char * fmt, ...)
+void println(char const* fmt, ...)
 {
     va_list ap;
     
     va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap), fputs("\n", stderr);
+    PySys_FormatStdout(fmt"\n", ap);
     va_end(ap);
 }
 
 
-void perrorln(const char * perror_str, const char * fmt, ...)
+void error(char const* fmt, ...)
 {
     va_list ap;
     
     va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap), fputs("\n", stderr);
+    PySys_WriteStderr(fmt, ap);
+    va_end(ap);
+}
+
+
+void errorln(char const* fmt, ...)
+{
+    va_list ap;
+    
+    va_start(ap, fmt);
+    PySys_WriteStderr(fmt"\n", ap);
+    va_end(ap);
+}
+
+
+void perrorln(char const* perror_str, char const* fmt, ...)
+{
+    va_list ap;
+    
+    va_start(ap, fmt);
+    PySys_WriteStderr(fmt"\n", ap);
     va_end(ap);
     perror(perror_str);
 }
 
-
-void error(const char * fmt, ...)
-{
-    va_list ap;
-    
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-}

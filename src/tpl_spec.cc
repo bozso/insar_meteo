@@ -9,6 +9,10 @@ template struct nparray<npy_double, 2>;
 template struct nparray<npy_double, 1>;
 template struct nparray<npy_bool, 1>;
 
+template struct array<npy_double, 2>;
+template struct array<npy_double, 1>;
+template struct array<npy_bool, 1>;
+
 //template struct vector<double>;
 
 template struct carray<bool>;

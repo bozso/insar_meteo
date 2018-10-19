@@ -1,6 +1,9 @@
 #ifndef PYMACROS_HH
 #define PYMACROS_HH
 
+#include "Python.h"
+
+
 // turn s into string "s"
 #define QUOTE(s) # s
 
@@ -10,8 +13,6 @@
 /******************************
  * Function definition macros *
  ******************************/
-
-#define array_type(ar_struct) &((ar_struct).obj.pyobj)
 
 #define py_noargs PyObject *self
 #define py_varargs PyObject *self, PyObject *args

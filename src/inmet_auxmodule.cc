@@ -1,8 +1,8 @@
+#include "pymacros.hh"
 #include "nparray.hh"
 #include "carray.hh"
-#include "pymacros.hh"
-#include "utils.hh"
 #include "satorbit.hh"
+#include "utils.hh"
 
 
 typedef PyArrayObject* np_ptr;
@@ -32,6 +32,7 @@ static py_ptr test(py_varargs)
     Py_RETURN_NONE;
 }
 
+
 pydoc(azi_inc, "azi_inc");
 
 static py_ptr azi_inc(py_varargs)
@@ -60,7 +61,7 @@ static py_ptr azi_inc(py_varargs)
     
     calc_azi_inc(orb, coords.arr, azi_inc.arr, max_iter, is_lonlat);
     
-    return Py_BuildValue("N", azi_inc.get_array());
+    return Py_BuildValue("N", ret(azi_inc));
 } // azi_inc
 
 pydoc(asc_dsc_select, "asc_dsc_select");
@@ -100,7 +101,7 @@ static py_ptr asc_dsc_select(py_keywords)
         }
     }
     
-    return Py_BuildValue("NI", idx.get_array(), nfound);
+    return Py_BuildValue("NI", ret(idx), nfound);
 } // asc_dsc_select
 
 pydoc(dominant, "dominant");
@@ -125,8 +126,6 @@ static py_ptr dominant(py_keywords)
         return NULL;
     
     //vector<double> clustered;
-    
-    
     
     //return Py_BuildValue("NII", clustered.get_array(), ncluster, nhermite);
     Py_RETURN_NONE;

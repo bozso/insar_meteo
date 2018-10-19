@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <tgmath.h>
+#include <math.h>
 
 #include "array.hh"
 #include "satorbit.hh"
@@ -28,7 +28,7 @@ static inline double norm(cdouble x, cdouble y, cdouble z)
 // Calculate satellite position based on fitted polynomial orbits at time
 static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
 {
-    uint n_poly = orb.deg + 1, is_centered = orb.is_centered;
+    size_t n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
     const double *coeffs = orb.coeffs, *mean_coords = orb.mean_coords;
@@ -74,9 +74,9 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
     
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
-    uint n_poly = orb.deg + 1;
+    size_t n_poly = orb.deg + 1;
     
-    const double *coeffs = orb.coeffs, *mean_coords = orb.mean_coords;
+    double const* coeffs = orb.coeffs, *mean_coords = orb.mean_coords;
     
     if (orb.is_centered)
         time -= orb.mean_t;
@@ -137,7 +137,7 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
 
 // Compute the sat position using closest approche.
 static inline void closest_appr(const fit_poly& orb, cdouble X, cdouble Y,
-                                cdouble Z, cuint max_iter, cart& sat_pos)
+                                cdouble Z, size_t max_iter, cart& sat_pos)
 {
     // first, last and middle time, extending the time window by 5 seconds
     double t_start = orb.start_t - 5.0,
@@ -148,7 +148,7 @@ static inline void closest_appr(const fit_poly& orb, cdouble X, cdouble Y,
     double dot_start, dot_middle = 1.0;
 
     // iteration counter
-    uint itr = 0;
+    size_t itr = 0;
     
     dot_start = dot_product(orb, X, Y, Z, t_start);
     
@@ -208,7 +208,7 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
 
 static inline void _azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
                   cdouble Z, cdouble lon, cdouble lat,
-                  cuint max_iter, double& azi, double& inc)
+                  size_t max_iter, double& azi, double& inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
     cart sat;

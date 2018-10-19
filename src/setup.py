@@ -24,7 +24,8 @@ def main():
     inc_dirs = ["/home/istvan/miniconda3/include", "include"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
-    sources = ["inmet_auxmodule.cc", "tpl_spec.cc"]
+    satorbit = join("aux", "satorbit.cc")
+    sources = ["inmet_auxmodule.cc", "tpl_spec.cc", satorbit]
     
     ext_modules = [
         Extension(name="inmet_aux", sources=sources,

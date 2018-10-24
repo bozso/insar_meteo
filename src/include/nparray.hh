@@ -6,14 +6,11 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-#include "view.hh"
-
 #define array_type(ar_struct) &((ar_struct).pyobj)
-#define ret(ar_struct) (ar_struct).npobj
 
 
 #ifdef __INMET_IMPL
-template<typename T> struct dtype { static const int typenum; };
+template<class T> struct dtype { static const int typenum; };
 
 template<>
 const int dtype<npy_double>::typenum = NPY_DOUBLE;
@@ -24,36 +21,33 @@ const int dtype<npy_bool>::typenum = NPY_BOOL;
 #endif
 
 
-template<class T, size_t ndim>
+template<class T>
 struct nparray {
-    size_t shape[ndim], strides[ndim];
+    npy_intp *shape, *strides;
     T * data;
     PyArrayObject *npobj;
     PyObject *pyobj;
     bool decref;
     
-    nparray() {
-        npobj = NULL;
-        pyobj = NULL;
-        data = NULL;
-        decref = false;
-    }
-    
-    
-    //view<T> get_view();
-    //view<T> const get_view() const;
+    nparray(): shape(NULL), strides(NULL), data(NULL), npobj(NULL),
+               pyobj(NULL) {}
     
     ~nparray() {
+        if (strides != NULL)
+            PyMem_Del(strides);
+        
         if (decref)
             Py_CLEAR(npobj);
     }
     
 
     #ifndef __INMET_IMPL
-    bool const from_data(npy_intp *dims, void *data);
-    bool const import(PyObject *_obj = NULL);
-    bool const empty(npy_intp *dims, int const fortran = 0, bool const decref = false);
-    bool const zeros(npy_intp *dims, int const fortran = 0, bool const decref = false);
+    bool const from_data(size_t const ndim, npy_intp const* dims, void *data);
+    bool const import(size_t const ndim, PyObject *_obj = NULL);
+    bool const empty(size_t const ndim, npy_intp const* dims,
+                     int const fortran = 0);
+    bool const zeros(size_t const ndim, npy_intp const* dims,
+                     int const fortran = 0);
 
     PyObject * get_obj() const;
     T* get_data() const;
@@ -63,6 +57,7 @@ struct nparray {
     size_t const get_shape(size_t ii) const;
     size_t const rows() const;
     size_t const cols() const;
+    PyArrayObject* ret() const;
 
     bool const check_rows(size_t const rows) const;
     bool const check_cols(size_t const cols) const;
@@ -70,7 +65,7 @@ struct nparray {
 
     #else
 
-    bool const from_data(npy_intp *dims, void *data)
+    bool const from_data(size_t const ndim, npy_intp const* dims, void *data)
     {
         if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(ndim, dims,
                           dtype<T>::typenum, data)) == NULL) {
@@ -78,11 +73,11 @@ struct nparray {
             return true;
         }
         
-        return setup_array(this, npobj);
+        return setup_array(this, npobj, 0);
     }
     
     
-    bool const import(PyObject *_obj)
+    bool const import(size_t const ndim, PyObject *_obj = NULL)
     {
         if (_obj != NULL)
             pyobj = _obj;
@@ -94,11 +89,12 @@ struct nparray {
             return true;
         }
         
-        decref = true;
-        return setup_array(this, npobj, true);
+        return setup_array(this, npobj, ndim);
     }
     
-    bool const empty(npy_intp *dims, int const fortran = 0, bool const decref = false)
+    
+    bool const empty(size_t const ndim, npy_intp const* dims,
+                     int const fortran = 0)
     {
         if ((npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                           dtype<T>::typenum, fortran)) == NULL) {
@@ -106,10 +102,12 @@ struct nparray {
             return true;
         }
         
-        return setup_array(this, npobj);
+        return setup_array(this, npobj, 0);
     }
     
-    bool const zeros(npy_intp *dims, int const fortran = 0, bool const decref = false)
+
+    bool const zeros(size_t const ndim, npy_intp const* dims,
+                     int const fortran = 0)
     {
         if ((npobj = (PyArrayObject*) PyArray_ZEROS(ndim, dims,
                           dtype<T>::typenum, fortran)) == NULL) {
@@ -117,28 +115,32 @@ struct nparray {
             return true;
         }
         
-        return setup_array(this, npobj);
+        return setup_array(this, npobj, 0);
     }
     
     PyObject* get_obj() const {
         return pyobj;
     }
     
-    size_t const get_shape(size_t const ii) const {
-        return shape[ii];
-    }
     
     size_t const rows() const {
-        return shape[0];
+        return size_t(shape[0]);
     }
-    
 
     size_t const cols() const {
-        return shape[1];
+        return size_t(shape[1]);
+    }
+    
+    PyArrayObject* ret() const
+    {
+        decref = false;
+        return npobj;
+        
     }
     
     
-    bool const check_rows(size_t const rows) const
+    
+    bool const check_rows(npy_intp const rows) const
     {
         if (shape[0] != rows) {
             PyErr_Format(PyExc_TypeError, "Expected array to have rows %u but got "
@@ -149,7 +151,7 @@ struct nparray {
     }
     
     
-    bool const check_cols(size_t const cols) const
+    bool const check_cols(npy_intp const cols) const
     {
         if (shape[1] != cols) {
             PyErr_Format(PyExc_TypeError, "Expected array to have cols %u but got "
@@ -227,30 +229,33 @@ view<T> const nparray<T, ndim>::get_view() const
 
 #endif
 
-template<typename T, size_t ndim>
-static bool const setup_array(nparray<T, ndim> *arr, PyArrayObject *_array,
-                              bool const checkdim = false)
+
+template<class T>
+static bool const setup_array(nparray<T> *arr, PyArrayObject *_array,
+                              size_t const edim = 0)
 {
     int _ndim = size_t(PyArray_NDIM(_array));
     
-    if (checkdim and ndim != _ndim) {
+    if (edim and edim != _ndim) {
         PyErr_Format(PyExc_TypeError, "numpy nparray expected to be %u "
                     "dimensional but we got %u dimensional nparray!",
-                    ndim, _ndim);
+                    edim, _ndim);
         return true;
         
     }
     
-    npy_intp * shape = PyArray_DIMS(_array);
-
-    for(size_t ii = 0; ii < ndim; ++ii)
-        arr->shape[ii] = size_t(shape[ii]);
+    arr->shape = PyArray_DIMS(_array);
 
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
+    if ((arr->strides = PyMem_New(npy_intp, _ndim)) == NULL) {
+        
+        return true;
+    }
+    
     npy_intp * strides = PyArray_STRIDES(_array);
     
-    for(size_t ii = 0; ii < ndim; ++ii)
+    for(size_t ii = 0; ii < _ndim; ++ii)
         arr->strides[ii] = size_t(double(strides[ii]) / elemsize);
     
     arr->data = (T*) PyArray_DATA(_array);

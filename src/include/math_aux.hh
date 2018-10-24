@@ -25,11 +25,11 @@
 // structure for storing fitted polynom coefficients
 struct fit_poly {
     double mean_t, start_t, stop_t, *mean_coords;
-    nparray<double, 2> &coeffs;
+    nparray<double> &coeffs;
     size_t is_centered, deg;
     
     fit_poly(double mean_t, double start_t, double stop_t, double *mean_coords,
-             nparray<double, 2> &coeffs, size_t is_centered, size_t deg):
+             nparray<double> &coeffs, size_t is_centered, size_t deg):
              mean_t(mean_t), start_t(start_t), stop_t(stop_t),
              mean_coords(mean_coords), coeffs(coeffs), is_centered(is_centered),
              deg(deg) {};

@@ -8,23 +8,22 @@
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
 
-typedef nparray<npy_double, 2> array2d;
-typedef nparray<npy_double, 1> array1d;
-typedef nparray<npy_bool, 1> array1b;
+typedef nparray<npy_double> arrayd;
+typedef nparray<npy_bool> arrayb;
 
 
-pydoc(ell_to_merc_full, "ell_to_merc_full");
+pydoc(ell_to_merc, "ell_to_merc");
 
-static py_ptr ell_to_merc_full(py_varargs)
+static py_ptr ell_to_merc(py_varargs)
 {
-    array1d lon, lat;
+    arrayd lon, lat;
     double a, e, lon0;
-    uint isdeg;
+    uint isdeg, fast;
     
-    parse_varargs("OOdddI", array_type(lon), array_type(lat), &lon0,
-                  &a, &e, &isdeg);
+    parse_varargs("OOdddII", array_type(lon), array_type(lat), &lon0,
+                  &a, &e, &isdeg, &fast);
     
-    if (lon.import() or lat.import())
+    if (lon.import(1) or lat.import(1))
         return NULL;
     
     size_t rows = lon.rows();
@@ -34,83 +33,53 @@ static py_ptr ell_to_merc_full(py_varargs)
         return NULL;
     }
     
-    array2d xy;
+    arrayd xy;
     npy_intp shape[2] = {npy_intp(rows), 2};
     
-    if (xy.empty(shape))
+    if (xy.empty(2, shape))
         return NULL;
     
     if (isdeg) {
-        FOR(ii, 0, rows) {
-            xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
-            
-            double sin_lat = sin(deg2rad * lat(ii));
-            double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
-            
-            xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+        if (fast) {
+            FOR(ii, 0, rows) {
+                xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
+                
+                double scale = xy(ii,0) / lon(ii);
+                
+                xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) * deg2rad / 2.0)) * scale;
+            }
+        } else {
+            FOR(ii, 0, rows) {
+                xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
+                
+                double sin_lat = sin(deg2rad * lat(ii));
+                double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
+                
+                xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+            }
         }
     } else {
-        FOR(ii, 0, rows) {
-            xy(ii,0) = a * (lon(ii) - lon0);
-            
-            double sin_lat = sin(lat(ii));
-            double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
-            
-            xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+        if (fast) {
+            FOR(ii, 0, rows) {
+                xy(ii,0) = a * (lon(ii) - lon0);
+                
+                double scale = xy(ii,0) / lon(ii);
+                
+                xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) / 2.0)) * scale;
+            }
+        } else {
+            FOR(ii, 0, rows) {
+                xy(ii,0) = a * (lon(ii) - lon0);
+                
+                double sin_lat = sin(lat(ii));
+                double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
+                
+                xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+            }
         }
     }
     
-    return Py_BuildValue("N", ret(xy));
-}
-
-
-pydoc(ell_to_merc_fast, "ell_to_merc_fast");
-
-static py_ptr ell_to_merc_fast(py_varargs)
-{
-    array1d lon, lat;
-    double a, e, lon0;
-    uint isdeg;
-    
-    parse_varargs("OOdddI", array_type(lon), array_type(lat), &lon0,
-                  &a, &e, &isdeg);
-    
-    if (lon.import() or lat.import())
-        return NULL;
-    
-    size_t rows = lon.rows();
-    
-    if (rows != lat.rows()) {
-        // TODO: set error message !!!
-        return NULL;
-    }
-    
-    array2d xy;
-    npy_intp shape[2] = {npy_intp(rows), 2};
-    
-    if (xy.empty(shape))
-        return NULL;
-
-    
-    if (isdeg) {
-        FOR(ii, 0, rows) {
-            xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
-            
-            double scale = xy(ii,0) / lon(ii);
-            
-            xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) * deg2rad / 2.0)) * scale;
-        }
-    } else {
-        FOR(ii, 0, rows) {
-            xy(ii,0) = a * (lon(ii) - lon0);
-            
-            double scale = xy(ii,0) / lon(ii);
-            
-            xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) / 2.0)) * scale;
-        }
-    }
-    
-    return Py_BuildValue("N", ret(xy));
+    return Py_BuildValue("N", xy.ret());
 }
 
 
@@ -118,11 +87,11 @@ pydoc(test, "test");
 
 static py_ptr test(py_varargs)
 {
-    array1d arr;
+    arrayd arr;
     
     parse_varargs("O", array_type(arr));
     
-    if (arr.import())
+    if (arr.import(1))
         return NULL;
     
     FOR(ii, 0, arr.rows())
@@ -141,19 +110,19 @@ static py_ptr azi_inc(py_varargs)
     double mean_t = 0.0, start_t = 0.0, stop_t = 0.0;
     uint is_centered = 0, deg = 0, is_lonlat = 0, max_iter = 0;
     
-    array1d mean_coords;
-    array2d coeffs, coords, azi_inc;
+    arrayd mean_coords;
+    arrayd coeffs, coords, azi_inc;
     
     parse_varargs("dddIIOOOII", &mean_t, &start_t, &stop_t, &is_centered,
                   &deg, array_type(mean_coords), array_type(mean_coords),
                   array_type(coords), &is_lonlat, &max_iter);
     
-    if (mean_coords.import() or coeffs.import() or coords.import())
+    if (mean_coords.import(1) or coeffs.import(2) or coords.import(2))
         return NULL;
     
-    npy_intp azi_inc_shape[2] = {(npy_intp) coords.rows(), 2};
+    npy_intp azi_inc_shape[2] = {coords.shape[0], 2};
     
-    if (azi_inc.empty(azi_inc_shape))
+    if (azi_inc.empty(2, azi_inc_shape))
         return NULL;
     
     // Set up orbit polynomial structure
@@ -162,7 +131,7 @@ static py_ptr azi_inc(py_varargs)
     
     calc_azi_inc(orb, coords, azi_inc, max_iter, is_lonlat);
     
-    return Py_BuildValue("N", ret(azi_inc));
+    return Py_BuildValue("N", azi_inc.ret());
 } // azi_inc
 
 pydoc(asc_dsc_select, "asc_dsc_select");
@@ -171,18 +140,14 @@ static py_ptr asc_dsc_select(py_keywords)
 {
     keywords("array1", "array2", "max_sep");
     
-    array2d arr1, arr2;
-    array1b idx;
+    arrayd arr1, arr2;
+    arrayb idx;
     double max_sep = 100.0;
     
     parse_keywords("OO|d:asc_dsc_select", array_type(arr1), array_type(arr2),
                                           &max_sep);
     
-    size_t rows = arr1.rows();
-    
-    npy_intp idx_shape = (npy_intp) rows;
-
-    if (idx.zeros(&idx_shape))
+    if (idx.zeros(1, &(arr1.shape[0])))
         return NULL;
     
     max_sep /=  R_earth;
@@ -191,7 +156,7 @@ static py_ptr asc_dsc_select(py_keywords)
     npy_double dlon, dlat;
     uint nfound = 0;
     
-    FOR(ii, 0, rows) {
+    FOR(ii, 0, arr1.rows()) {
         FOR(jj, 0, arr2.rows()) {
             dlon = arr1(ii,0) - arr2(jj,0);
             dlat = arr1(ii,1) - arr2(jj,1);
@@ -204,7 +169,7 @@ static py_ptr asc_dsc_select(py_keywords)
         }
     }
     
-    return Py_BuildValue("NI", ret(idx), nfound);
+    return Py_BuildValue("NI", idx.ret(), nfound);
 } // asc_dsc_select
 
 pydoc(dominant, "dominant");
@@ -213,12 +178,12 @@ static py_ptr dominant(py_keywords)
 {
     keywords("asc_data", "dsc_data", "cluster_sep");
     
-    array2d asc, dsc;
+    arrayd asc, dsc;
     double max_sep = 100.0;
     
     parse_keywords("OO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
     
-    if (asc.import() or dsc.import())
+    if (asc.import(2) or dsc.import(2))
         return NULL;
     
     uint ncluster = 0, nhermite = 0;
@@ -230,7 +195,7 @@ static py_ptr dominant(py_keywords)
     
     //vector<double> clustered;
     
-    //return Py_BuildValue("NII", ret(clustered), ncluster, nhermite);
+    //return Py_BuildValue("NII", clustered.ret(), ncluster, nhermite);
     Py_RETURN_NONE;
 } // dominant
 
@@ -239,11 +204,10 @@ static py_ptr dominant(py_keywords)
 
 #define version "0.0.1"
 #define module_name "inmet_aux"
-static const char* module_doc = "inmet_aux";
+static char const* module_doc = "inmet_aux";
 
 static PyMethodDef module_methods[] = {
-    pymeth_varargs(ell_to_merc_fast),
-    pymeth_varargs(ell_to_merc_full),
+    pymeth_varargs(ell_to_merc),
     pymeth_varargs(test),
     pymeth_varargs(azi_inc),
     pymeth_keywords(asc_dsc_select),

@@ -5,9 +5,8 @@
 #include "nparray.hh"
 #include "array.hh"
 
-template struct nparray<npy_double, 2>;
-template struct nparray<npy_double, 1>;
-template struct nparray<npy_bool, 1>;
+template struct nparray<npy_double>;
+template struct nparray<npy_bool>;
 
 //template struct vector<double>;
 

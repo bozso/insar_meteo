@@ -41,7 +41,7 @@ static py_ptr ell_to_merc(py_varargs)
     
     if (isdeg) {
         if (fast) {
-            FOR(ii, 0, rows) {
+            FOR(ii, rows) {
                 xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
                 
                 double scale = xy(ii,0) / lon(ii);
@@ -49,7 +49,7 @@ static py_ptr ell_to_merc(py_varargs)
                 xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) * deg2rad / 2.0)) * scale;
             }
         } else {
-            FOR(ii, 0, rows) {
+            FOR(ii, rows) {
                 xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
                 
                 double sin_lat = sin(deg2rad * lat(ii));
@@ -60,7 +60,7 @@ static py_ptr ell_to_merc(py_varargs)
         }
     } else {
         if (fast) {
-            FOR(ii, 0, rows) {
+            FOR(ii, rows) {
                 xy(ii,0) = a * (lon(ii) - lon0);
                 
                 double scale = xy(ii,0) / lon(ii);
@@ -68,7 +68,7 @@ static py_ptr ell_to_merc(py_varargs)
                 xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) / 2.0)) * scale;
             }
         } else {
-            FOR(ii, 0, rows) {
+            FOR(ii, rows) {
                 xy(ii,0) = a * (lon(ii) - lon0);
                 
                 double sin_lat = sin(lat(ii));
@@ -94,7 +94,7 @@ static py_ptr test(py_varargs)
     if (arr.import(1))
         return NULL;
     
-    FOR(ii, 0, arr.rows())
+    FORZ(ii, arr.rows())
         printf("%lf ", arr(ii));
 
     printf("\n");
@@ -134,6 +134,7 @@ static py_ptr azi_inc(py_varargs)
     return Py_BuildValue("N", azi_inc.ret());
 } // azi_inc
 
+
 pydoc(asc_dsc_select, "asc_dsc_select");
 
 static py_ptr asc_dsc_select(py_keywords)
@@ -156,8 +157,8 @@ static py_ptr asc_dsc_select(py_keywords)
     npy_double dlon, dlat;
     uint nfound = 0;
     
-    FOR(ii, 0, arr1.rows()) {
-        FOR(jj, 0, arr2.rows()) {
+    FOR(ii, arr1.rows()) {
+        FOR(jj, arr2.rows()) {
             dlon = arr1(ii,0) - arr2(jj,0);
             dlat = arr1(ii,1) - arr2(jj,1);
             
@@ -171,6 +172,7 @@ static py_ptr asc_dsc_select(py_keywords)
     
     return Py_BuildValue("NI", idx.ret(), nfound);
 } // asc_dsc_select
+
 
 pydoc(dominant, "dominant");
 

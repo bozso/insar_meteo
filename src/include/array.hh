@@ -64,7 +64,7 @@ struct array {
     
         size = init_size;
         
-        for(size_t ii = 0; ii < size; ++ii)
+        for(size_t ii = size; ii--; )
             data[ii] = init_value;
         
         return false;
@@ -76,7 +76,7 @@ struct array {
         if ((data = Mem_New(T, size)) == NULL)
             return true;
         
-        for(size_t ii = 0; ii < size; ++ii)
+        for(size_t ii = size; ii--; )
             data[ii] = original.data[ii];
         
         return false;

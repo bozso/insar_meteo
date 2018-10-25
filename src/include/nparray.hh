@@ -255,7 +255,7 @@ static bool const setup_array(nparray<T> *arr, PyArrayObject *_array,
     
     npy_intp * strides = PyArray_STRIDES(_array);
     
-    for(size_t ii = 0; ii < _ndim; ++ii)
+    for(size_t ii = _ndim; ii--; )
         arr->strides[ii] = size_t(double(strides[ii]) / elemsize);
     
     arr->data = (T*) PyArray_DATA(_array);

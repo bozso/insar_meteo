@@ -269,7 +269,7 @@ void calc_azi_inc(const fit_poly& orb, nparray<double, 2> const& coords,
     
     // coords contains lon, lat, h
     if (is_lonlat) {
-        FOR(ii, 0, nrows) {
+        FOR(ii, nrows) {
             lon = coords(ii, 0) * deg2rad;
             lat = coords(ii, 1) * deg2rad;
             h   = coords(ii, 2);
@@ -284,7 +284,7 @@ void calc_azi_inc(const fit_poly& orb, nparray<double, 2> const& coords,
     }
     // coords contains X, Y, Z
     else {
-        FOR(ii, 0, nrows) {
+        FOR(ii, nrows) {
             X = coords(ii, 0);
             Y = coords(ii, 1);
             Z = coords(ii, 2);

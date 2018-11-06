@@ -42,12 +42,10 @@ struct nparray {
     
 
     #ifndef __INMET_IMPL
-    bool const from_data(size_t const ndim, npy_intp const* dims, void *data);
+    bool const from_data(size_t const ndim, npy_intp * dims, void *data);
     bool const import(size_t const ndim, PyObject *_obj = NULL);
-    bool const empty(size_t const ndim, npy_intp const* dims,
-                     int const fortran = 0);
-    bool const zeros(size_t const ndim, npy_intp const* dims,
-                     int const fortran = 0);
+    bool const empty(size_t const ndim, npy_intp * dims, int const fortran = 0);
+    bool const zeros(size_t const ndim, npy_intp * dims, int const fortran = 0);
 
     PyObject * get_obj() const;
     T* get_data() const;
@@ -65,7 +63,7 @@ struct nparray {
 
     #else
 
-    bool const from_data(size_t const ndim, npy_intp const* dims, void *data)
+    bool const from_data(size_t const ndim, npy_intp * dims, void *data)
     {
         if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(ndim, dims,
                           dtype<T>::typenum, data)) == NULL) {
@@ -93,8 +91,7 @@ struct nparray {
     }
     
     
-    bool const empty(size_t const ndim, npy_intp const* dims,
-                     int const fortran = 0)
+    bool const empty(size_t const ndim, npy_intp* dims, int const fortran = 0)
     {
         if ((npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                           dtype<T>::typenum, fortran)) == NULL) {
@@ -106,8 +103,7 @@ struct nparray {
     }
     
 
-    bool const zeros(size_t const ndim, npy_intp const* dims,
-                     int const fortran = 0)
+    bool const zeros(size_t const ndim, npy_intp * dims, int const fortran = 0)
     {
         if ((npobj = (PyArrayObject*) PyArray_ZEROS(ndim, dims,
                           dtype<T>::typenum, fortran)) == NULL) {
@@ -131,11 +127,10 @@ struct nparray {
         return size_t(shape[1]);
     }
     
-    PyArrayObject* ret() const
+    PyArrayObject* ret()
     {
         decref = false;
         return npobj;
-        
     }
     
     
@@ -230,6 +225,8 @@ view<T> const nparray<T, ndim>::get_view() const
 #endif
 
 
+#ifdef __INMET_IMPL
+
 template<class T>
 static bool const setup_array(nparray<T> *arr, PyArrayObject *_array,
                               size_t const edim = 0)
@@ -262,5 +259,7 @@ static bool const setup_array(nparray<T> *arr, PyArrayObject *_array,
     
     return false;
 }
+
+#endif
 
 #endif

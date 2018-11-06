@@ -19,7 +19,8 @@ from numpy.distutils.core import Extension, setup
 
 def main():
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
-    flags = ["-std=c++03", "-O0"]
+    #flags = ["-std=c++03", "-O0", "-save-temps"]
+    flags = ["-std=c++98", "-O0"]
     macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     inc_dirs = ["/home/istvan/miniconda3/include", "include"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]

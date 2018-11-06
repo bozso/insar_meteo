@@ -28,7 +28,7 @@
 {#fun_name, (PyCFunction) fun_name, METH_VARARGS | METH_KEYWORDS, \
  fun_name ## __doc__}
 
-#define pydoc(fun_name, doc) PyDoc_VAR(fun_name ## __doc__) = PyDoc_STR(doc)
+#define pydoc(fun_name, doc) PyDoc_VAR(CONCAT(fun_name, __doc__)) = PyDoc_STR(doc)
 
 #define keywords(...) static char * keywords[] = {__VA_ARGS__, NULL}
 

@@ -39,7 +39,7 @@ struct view {
         }
         data = _data;
     }
-    #end
+    #endif
     
     T& operator()(size_t const ii) {
         return data[ii * strides[0]];
@@ -78,10 +78,5 @@ struct view {
     }
 
 };
-
-    
-
-    
-#endif
 
 #endif

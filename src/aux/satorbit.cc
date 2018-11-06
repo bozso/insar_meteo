@@ -31,7 +31,7 @@ static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
     size_t n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
-    nparray<double, 2> const& coeffs = orb.coeffs;
+    nparray<double> const& coeffs = orb.coeffs;
     double const *mean_coords = orb.mean_coords;
     
     if (is_centered)
@@ -47,7 +47,7 @@ static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
         y = coeffs(1,0)  * time;
         z = coeffs(2,0)  * time;
 
-        FOR(ii, 1, n_poly - 1) {
+        FOR1(ii, 1, n_poly - 1) {
             x = (x + coeffs(0,ii)) * time;
             y = (y + coeffs(1,ii)) * time;
             z = (z + coeffs(2,ii)) * time;
@@ -78,7 +78,7 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
                        vel_x, vel_y, vel_z, power, inorm;
     size_t n_poly = orb.deg + 1;
     
-    nparray<double, 2> const &coeffs = orb.coeffs;
+    nparray<double> const &coeffs = orb.coeffs;
     double const *mean_coords = orb.mean_coords;
     
     if (orb.is_centered)
@@ -99,7 +99,7 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
         sat_y = coeffs(1,0)  * time;
         sat_z = coeffs(2,0)  * time;
 
-        FOR(ii, 1, n_poly - 1) {
+        FOR1(ii, 1, n_poly - 1) {
             sat_x = (sat_x + coeffs(0,ii)) * time;
             sat_y = (sat_y + coeffs(1,ii)) * time;
             sat_z = (sat_z + coeffs(2,ii)) * time;
@@ -113,7 +113,7 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
         vel_y = coeffs(1, n_poly - 2);
         vel_z = coeffs(2, n_poly - 2);
         
-        FOR(ii, 0, n_poly - 3) {
+        FOR1(ii, 0, n_poly - 3) {
             power = double(n_poly - 1.0 - ii);
             vel_x += ii * coeffs(0,ii) * pow(time, power);
             vel_y += ii * coeffs(1,ii) * pow(time, power);
@@ -137,6 +137,7 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
     
     return (vel_x * dx  + vel_y * dy  + vel_z * dz) * inorm;
 } // dot_product
+
 
 // Compute the sat position using closest approche.
 static inline void closest_appr(const fit_poly& orb, cdouble X, cdouble Y,
@@ -258,8 +259,8 @@ static inline void _azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
 } // calc_azi_inc
 
 
-void calc_azi_inc(const fit_poly& orb, nparray<double, 2> const& coords,
-                  nparray<double, 2>& azi_inc, size_t const max_iter,
+void calc_azi_inc(const fit_poly& orb, nparray<double> const& coords,
+                  nparray<double>& azi_inc, size_t const max_iter,
                   bool const is_lonlat)
 {
     double X, Y, Z, lon, lat, h;

@@ -52,6 +52,7 @@ static const double rad2deg = 5.729578e+01;
 #define FOR(ii, max) for(size_t (ii) = (max); (ii)--; )
 #define FORZ(ii, max) for(size_t (ii) = 0; (ii) < max; ++(ii))
 #define FORS(ii, min, max, step) for(size_t (ii) = (min); (ii) < (max); (ii) += (step))
+#define FOR1(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
 
 
 /****************

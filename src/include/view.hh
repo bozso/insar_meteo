@@ -10,11 +10,15 @@ struct view {
     size_t ndim, *shape, *strides;
 
     view(): data(NULL) {};
-    view(T *_data, size_t _ndim, size_t *_shape, size_t *_strides):
-         data(_data), ndim(_ndim), shape(_shape), strides(_strides) {};
+    view(T *data, size_t ndim, size_t *shape, size_t *strides):
+         data(data), ndim(ndim), shape(shape), strides(strides) {};
+
+    view(nparray const& arr): data(arr.data), ndim(arr.ndim),
+                              shape(arr.shape), strides(arr.strides) {};
     
     ~view() {};
 
+    #if 0
     #ifndef __INMET_IMPL
     view(T *_data, ...);
     #else
@@ -39,6 +43,7 @@ struct view {
         }
         data = _data;
     }
+    #endif
     #endif
     
     T& operator()(size_t const ii) {

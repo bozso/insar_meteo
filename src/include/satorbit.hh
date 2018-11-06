@@ -38,8 +38,8 @@ void ell_cart (cdouble lon, cdouble lat, cdouble h,
 void cart_ell(cdouble x, cdouble y, cdouble z,
               double& lon, double& lat, double& h);
 
-void calc_azi_inc(const fit_poly& orb, nparray<double> const& coords,
-                  nparray<double>& azi_inc, size_t const max_iter,
+void calc_azi_inc(const fit_poly& orb, view<double> const& coords,
+                  view<double>& azi_inc, size_t const max_iter,
                   bool const is_lonlat);
 
 #endif // SATORBIT_H

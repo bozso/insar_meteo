@@ -31,6 +31,7 @@ static bool const setup_array(nparray& arr, PyArrayObject *_array, size_t const 
     for(size_t ii = _ndim; ii--; )
         arr.strides[ii] = size_t(double(strides[ii]) / elemsize);
     
+    arr.decref = true;
     return false;
 }
 
@@ -86,12 +87,9 @@ bool const zeros(nparray& arr, npy_intp * dims, int const fortran = 0)
     return setup_array(arr, npobj, 0);
 }
 
-size_t const rows(nparray const& arr) {
-    return arr.shape[0];
-}
 
-size_t const cols(nparray const& arr) {
-    return arr.shape[1];
+void * data(nparray const& arr) {
+    return PyArray_DATA(arr.npobj);
 }
 
 PyArrayObject* ret(nparray& arr)

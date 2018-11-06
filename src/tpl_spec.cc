@@ -1,12 +1,7 @@
 //#include "pyvector.hh"
-
-#define __INMET_IMPL
-
-#include "nparray.hh"
 #include "array.hh"
 
-template struct nparray<npy_double>;
-template struct nparray<npy_bool>;
+#define __INMET_IMPL
 
 //template struct vector<double>;
 

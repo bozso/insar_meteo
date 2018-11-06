@@ -1,5 +1,6 @@
 #include "pymacros.hh"
 #include "nparray.hh"
+#include "view.hh"
 #include "array.hh"
 #include "satorbit.hh"
 #include "utils.hh"
@@ -7,9 +8,6 @@
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
-
-typedef nparray<npy_double> arrayd;
-typedef nparray<npy_bool> arrayb;
 
 
 pydoc(ell_to_merc, "ell_to_merc");
@@ -20,15 +18,15 @@ static py_ptr ell_to_merc(py_varargs)
     double a, e, lon0;
     uint isdeg, fast;
     
-    parse_varargs("OOdddII", array_type(lon), array_type(lat), &lon0,
+    parse_varargs("OOdddII", array_type(_lon), array_type(_lat), &lon0,
                   &a, &e, &isdeg, &fast);
     
     if (import(_lon) or import(_lat))
         return NULL;
     
-    size_t rows = rows(_lat);
+    size_t rows = _lat.shape[0];
     
-    if (rows != rows(_lat)) {
+    if (rows != _lat.shape[0]) {
         // TODO: set error message !!!
         return NULL;
     }
@@ -81,7 +79,7 @@ static py_ptr ell_to_merc(py_varargs)
         }
     }
     
-    return Py_BuildValue("N", ret(xy));
+    return Py_BuildValue("N", ret(_xy));
 }
 
 
@@ -91,14 +89,14 @@ static py_ptr test(py_varargs)
 {
     nparray _arr(1, dt_double);
     
-    parse_varargs("O", array_type(arr));
+    parse_varargs("O", array_type(_arr));
     
     if (import(_arr))
         return NULL;
     
-    view<np_double> arr(_arr);
+    view<npy_double> arr(_arr);
     
-    FORZ(ii, rows(arr))
+    FORZ(ii, arr.shape[0])
         printf("%lf ", arr(ii));
 
     printf("\n");
@@ -118,22 +116,23 @@ static py_ptr azi_inc(py_varargs)
             _coords(2, dt_double), _azi_inc(2, dt_double);
     
     parse_varargs("dddIIOOOII", &mean_t, &start_t, &stop_t, &is_centered,
-                  &deg, array_type(mean_coords), array_type(mean_coords),
-                  array_type(coords), &is_lonlat, &max_iter);
+                  &deg, array_type(_mean_coords), array_type(_mean_coords),
+                  array_type(_coords), &is_lonlat, &max_iter);
     
     if (import(_mean_coords) or import(_coeffs) or import(_coords))
         return NULL;
     
-    npy_intp azi_inc_shape[2] = {coords.shape[0], 2};
+    npy_intp azi_inc_shape[2] = {npy_intp(_coords.shape[0]), 2};
     
     if (empty(_azi_inc, azi_inc_shape))
         return NULL;
     
-    // Set up orbit polynomial structure
-    fit_poly orb(mean_t, start_t, stop_t, mean_coords.data, coeffs,
-                 is_centered, deg);
+    view<npy_double> coeffs(_coeffs), coords(_coords), azi_inc(_azi_inc);
     
-    view<npy_double> coords(_coords), azi_inc(_azi_inc);
+    // Set up orbit polynomial structure
+    fit_poly orb(mean_t, start_t, stop_t,
+                (npy_double*) data(_mean_coords), coeffs, is_centered,
+                deg);
     
     calc_azi_inc(orb, coords, azi_inc, max_iter, is_lonlat);
     
@@ -150,10 +149,12 @@ static py_ptr asc_dsc_select(py_keywords)
     nparray _arr1(2, dt_double), _arr2(2, dt_double), _idx(1, dt_bool);
     double max_sep = 100.0;
     
-    parse_keywords("OO|d:asc_dsc_select", array_type(arr1), array_type(arr2),
+    parse_keywords("OO|d:asc_dsc_select", array_type(_arr1), array_type(_arr2),
                                           &max_sep);
     
-    if (zeros(_idx, &((npy_intp) rows(_arr1))))
+    npy_intp shape = _arr1.shape[0];
+    
+    if (zeros(_idx, &shape))
         return NULL;
     
     max_sep /=  R_earth;
@@ -163,9 +164,10 @@ static py_ptr asc_dsc_select(py_keywords)
     uint nfound = 0;
     
     view<npy_double> arr1(_arr1), arr2(_arr2);
+    view<npy_bool> idx(_idx);
     
-    FOR(ii, rows(arr1)) {
-        FOR(jj, rows(arr2)) {
+    FOR(ii, arr1.shape[0]) {
+        FOR(jj, arr2.shape[0]) {
             dlon = arr1(ii,0) - arr2(jj,0);
             dlat = arr1(ii,1) - arr2(jj,1);
             
@@ -177,7 +179,7 @@ static py_ptr asc_dsc_select(py_keywords)
         }
     }
     
-    return Py_BuildValue("NI", ret(idx), nfound);
+    return Py_BuildValue("NI", ret(_idx), nfound);
 } // asc_dsc_select
 
 
@@ -190,7 +192,7 @@ static py_ptr dominant(py_keywords)
     nparray _asc(2, dt_double), _dsc(2, dt_double);
     double max_sep = 100.0;
     
-    parse_keywords("OO|d:dominant", array_type(asc), array_type(dsc), &max_sep);
+    parse_keywords("OO|d:dominant", array_type(_asc), array_type(_dsc), &max_sep);
     
     if (import(_asc) or import(_dsc))
         return NULL;
@@ -199,7 +201,7 @@ static py_ptr dominant(py_keywords)
     
     array<bool> asc_selected, dsc_selected;
     
-    if (asc_selected.init(asc.rows()) or dsc_selected.init(dsc.rows()))
+    if (asc_selected.init(_asc.shape[0]) or dsc_selected.init(_dsc.shape[0]))
         return NULL;
     
     //vector<double> clustered;

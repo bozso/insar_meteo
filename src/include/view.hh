@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+#include "nparray.hh"
 
 template<class T>
 struct view {
@@ -13,7 +14,7 @@ struct view {
     view(T *data, size_t ndim, size_t *shape, size_t *strides):
          data(data), ndim(ndim), shape(shape), strides(strides) {};
 
-    view(nparray const& arr): data(arr.data), ndim(arr.ndim),
+    view(nparray const& arr): data((T*) PyArray_DATA(arr.npobj)), ndim(arr.ndim),
                               shape(arr.shape), strides(arr.strides) {};
     
     ~view() {};

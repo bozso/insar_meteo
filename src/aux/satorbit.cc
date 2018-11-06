@@ -31,7 +31,7 @@ static inline void calc_pos(const fit_poly& orb, double time, cart& pos)
     size_t n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
-    nparray<double> const& coeffs = orb.coeffs;
+    view<double> const& coeffs = orb.coeffs;
     double const *mean_coords = orb.mean_coords;
     
     if (is_centered)
@@ -78,7 +78,7 @@ static inline double dot_product(const fit_poly& orb, cdouble X, cdouble Y,
                        vel_x, vel_y, vel_z, power, inorm;
     size_t n_poly = orb.deg + 1;
     
-    nparray<double> const &coeffs = orb.coeffs;
+    view<double> const &coeffs = orb.coeffs;
     double const *mean_coords = orb.mean_coords;
     
     if (orb.is_centered)
@@ -259,14 +259,14 @@ static inline void _azi_inc(const fit_poly& orb, cdouble X, cdouble Y,
 } // calc_azi_inc
 
 
-void calc_azi_inc(const fit_poly& orb, nparray<double> const& coords,
-                  nparray<double>& azi_inc, size_t const max_iter,
+void calc_azi_inc(const fit_poly& orb, view<double> const& coords,
+                  view<double>& azi_inc, size_t const max_iter,
                   bool const is_lonlat)
 {
     double X, Y, Z, lon, lat, h;
     X = Y = Z = lon = lat = h = 0.0;
     
-    size_t nrows = coords.rows();
+    size_t nrows = coords.shape[0];
     
     // coords contains lon, lat, h
     if (is_lonlat) {

@@ -21,7 +21,7 @@ static py_ptr ell_to_merc(py_varargs)
     parse_varargs("OOdddII", array_type(_lon), array_type(_lat), &lon0,
                   &a, &e, &isdeg, &fast);
     
-    if (import(_lon) or import(_lat))
+    if (_lon.import() or _lat.import())
         return NULL;
     
     size_t rows = _lat.shape[0];
@@ -34,7 +34,7 @@ static py_ptr ell_to_merc(py_varargs)
     nparray _xy(2, dt_double);
     npy_intp shape[2] = {npy_intp(rows), 2};
     
-    if (empty(_xy, shape))
+    if (_xy.empty(shape))
         return NULL;
     
     view<double> lon(_lon), lat(_lat), xy(_xy);
@@ -79,7 +79,7 @@ static py_ptr ell_to_merc(py_varargs)
         }
     }
     
-    return Py_BuildValue("N", ret(_xy));
+    return Py_BuildValue("N", _xy.ret());
 }
 
 
@@ -91,7 +91,7 @@ static py_ptr test(py_varargs)
     
     parse_varargs("O", array_type(_arr));
     
-    if (import(_arr))
+    if (_arr.import())
         return NULL;
     
     view<npy_double> arr(_arr);
@@ -119,24 +119,24 @@ static py_ptr azi_inc(py_varargs)
                   &deg, array_type(_mean_coords), array_type(_mean_coords),
                   array_type(_coords), &is_lonlat, &max_iter);
     
-    if (import(_mean_coords) or import(_coeffs) or import(_coords))
+    if (_mean_coords.import() or _coeffs.import() or _coords.import())
         return NULL;
     
     npy_intp azi_inc_shape[2] = {npy_intp(_coords.shape[0]), 2};
     
-    if (empty(_azi_inc, azi_inc_shape))
+    if (_azi_inc.empty(azi_inc_shape))
         return NULL;
     
     view<npy_double> coeffs(_coeffs), coords(_coords), azi_inc(_azi_inc);
     
     // Set up orbit polynomial structure
     fit_poly orb(mean_t, start_t, stop_t,
-                (npy_double*) data(_mean_coords), coeffs, is_centered,
+                (npy_double*) _mean_coords.data(), coeffs, is_centered,
                 deg);
     
     calc_azi_inc(orb, coords, azi_inc, max_iter, is_lonlat);
     
-    return Py_BuildValue("N", ret(_azi_inc));
+    return Py_BuildValue("N", _azi_inc.ret());
 } // azi_inc
 
 
@@ -152,9 +152,12 @@ static py_ptr asc_dsc_select(py_keywords)
     parse_keywords("OO|d:asc_dsc_select", array_type(_arr1), array_type(_arr2),
                                           &max_sep);
     
+    if (_arr1.import() or _arr2.import())
+        return NULL;
+    
     npy_intp shape = _arr1.shape[0];
     
-    if (zeros(_idx, &shape))
+    if (_idx.zeros(&shape))
         return NULL;
     
     max_sep /=  R_earth;
@@ -179,7 +182,7 @@ static py_ptr asc_dsc_select(py_keywords)
         }
     }
     
-    return Py_BuildValue("NI", ret(_idx), nfound);
+    return Py_BuildValue("NI", _idx.ret(), nfound);
 } // asc_dsc_select
 
 
@@ -194,7 +197,7 @@ static py_ptr dominant(py_keywords)
     
     parse_keywords("OO|d:dominant", array_type(_asc), array_type(_dsc), &max_sep);
     
-    if (import(_asc) or import(_dsc))
+    if (_asc.import() or _dsc.import())
         return NULL;
     
     uint ncluster = 0, nhermite = 0;

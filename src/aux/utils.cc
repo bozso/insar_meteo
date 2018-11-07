@@ -30,9 +30,9 @@ File::~File()
 }
 
 
-bool open(File& file, char const* path, char const* mode)
+bool const File::open(char const* path, char const* mode)
 {
-    if ((file._file = fopen(path, mode)) == NULL) {
+    if ((_file = fopen(path, mode)) == NULL) {
         perrorln("open", "Failed to open file \"%s\"", path);
         return true;
     }
@@ -40,42 +40,41 @@ bool open(File& file, char const* path, char const* mode)
 }
 
 
-void close(File& file)
+void File::close()
 {
-    fclose(file._file);
-    file._file = NULL;
+    fclose(_file);
+    _file = NULL;
 }
 
 
-int read(const File& file, char const* fmt, ...)
+int const File::read(char const* fmt, ...) const
 {
     va_list ap;
     
     va_start(ap, fmt);
-    int ret = vfscanf(file._file, fmt, ap);
+    int ret = vfscanf(_file, fmt, ap);
     va_end(ap);
     return ret;
 }
 
 
-int write(const File& file, char const* fmt, ...)
+int const File::write(char const* fmt, ...) const
 {
     va_list ap;
     
     va_start(ap, fmt);
-    int ret = vfprintf(file._file, fmt, ap);
+    int ret = vfprintf(_file, fmt, ap);
     va_end(ap);
     return ret;
 }
 
-int read(const File& file, size_t const size, size_t const num, void *var)
-{
-    return fread(var, size, num, file._file);
+int const File::read(size_t const size, size_t const num, void *var) const {
+    return fread(var, size, num, _file);
 }
 
-int write(const File& file, size_t const size, size_t const num, void const* var)
-{
-    return fwrite(var, size, num, file._file);
+
+int const File::write(size_t const size, size_t const num, void const* var) const {
+    return fwrite(var, size, num, _file);
 }
 
 

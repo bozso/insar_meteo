@@ -23,19 +23,18 @@
 
 typedef const double cdouble;
 
-
 /*******************************
  * WGS-84 ELLIPSOID PARAMETERS *
  *******************************/
 
 // RADIUS OF EARTH
-#define R_earth 6372000
+static const double R_earth = 6372000.0;
 
-#define WA 6378137.0
-#define WB 6356752.3142
+static const double WA = 6378137.0;
+static const double WB = 6356752.3142;
 
 // (WA*WA-WB*WB)/WA/WA
-#define E2 6.694380e-03
+static const double E2 = 6.694380e-03;
 
 
 static const double pi = 3.14159265358979;
@@ -73,26 +72,20 @@ struct File {
     FILE *_file;
     
     File(): _file(NULL) {};
+    File(FILE *_file): _file(_file) {};
     ~File();
+
+    bool const open(char const* path, char const* mode);
+    void close();
+
+    int const read(char const* fmt, ...) const;
+    int const write(char const* fmt, ...) const;
+    
+    int const read(size_t const size, size_t const num, void* var) const;
+    int const write(size_t const size, size_t const num, void const* var) const;
 };
 
 
-bool open(File& file, char const* path, char const* mode);
-void close(File& file);
-
-int read(const File& file, char const* fmt, ...);
-int write(const File& file, char const* fmt, ...);
-
-int read(const File& file, size_t const size, size_t const num, void* var);
-int write(const File& file, size_t const size, size_t const num, void const* var);
-
-
 #define str_equal(str1, str2) (not strcmp((str1), (str2)))
-
-#define ut_check(condition, statement)\
-do {\
-    if ((condition))\
-        statement;\
-} while (0)
 
 #endif // UTILS_HPP

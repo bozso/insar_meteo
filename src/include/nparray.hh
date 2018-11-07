@@ -9,19 +9,6 @@
 #define array_type(ar_struct) &((ar_struct).pyobj)
 
 
-/*
-#ifdef __INMET_IMPL
-template<class T> struct dtype { static const int typenum; };
-
-template<>
-const int dtype<npy_double>::typenum = NPY_DOUBLE;
-
-template<>
-const int dtype<npy_bool>::typenum = NPY_BOOL;
-
-#endif
-*/
-
 enum dtype {
     dt_double = NPY_DOUBLE,
     dt_bool = NPY_BOOL
@@ -54,18 +41,19 @@ struct nparray {
         if (decref)
             Py_CLEAR(npobj);
     }
+
+    bool const from_data(npy_intp* dims, void *data);
+    bool const import(PyObject* obj = NULL);
+    bool const empty(npy_intp* dims, int const fortran = 0);
+    bool const zeros(npy_intp* dims, int const fortran = 0);
+    PyArrayObject* ret();
+    void * data() const;
+    
+    bool const check_rows(npy_intp const rows) const;
+    bool const check_cols(npy_intp const cols) const;
+    bool const is_f_cont() const;
 };
 
 
-bool const from_data(nparray& arr, npy_intp* dims, void *data);
-bool const import(nparray& arr, PyObject* _obj = NULL);
-bool const empty(nparray& arr, npy_intp* dims, int const fortran = 0);
-bool const zeros(nparray& arr, npy_intp* dims, int const fortran = 0);
-PyArrayObject* ret(nparray& arr);
-void * data(nparray const& arr);
-
-bool const check_rows(nparray const& arr, npy_intp const rows);
-bool const check_cols(nparray const& arr, npy_intp const cols);
-bool const is_f_cont(nparray const& arr);
 
 #endif

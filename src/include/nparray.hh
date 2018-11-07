@@ -42,16 +42,16 @@ struct nparray {
             Py_CLEAR(npobj);
     }
 
-    bool const from_data(npy_intp* dims, void *data);
-    bool const import(PyObject* obj = NULL);
-    bool const empty(npy_intp* dims, int const fortran = 0);
-    bool const zeros(npy_intp* dims, int const fortran = 0);
+    bool from_data(npy_intp* dims, void *data);
+    bool import(PyObject* obj = NULL);
+    bool empty(npy_intp* dims, int const fortran = 0);
+    bool zeros(npy_intp* dims, int const fortran = 0);
     PyArrayObject* ret();
     void * data() const;
     
-    bool const check_rows(npy_intp const rows) const;
-    bool const check_cols(npy_intp const cols) const;
-    bool const is_f_cont() const;
+    bool check_rows(npy_intp const rows) const;
+    bool check_cols(npy_intp const cols) const;
+    bool is_f_cont() const;
 };
 
 

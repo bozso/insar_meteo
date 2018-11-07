@@ -1,6 +1,6 @@
 #include "nparray.hh"
 
-static bool const setup_array(nparray* arr, PyArrayObject *_array, size_t const edim = 0)
+static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim = 0)
 {
     int _ndim = size_t(PyArray_NDIM(_array));
     
@@ -37,7 +37,7 @@ static bool const setup_array(nparray* arr, PyArrayObject *_array, size_t const 
 }
 
 
-bool const nparray::from_data(npy_intp * dims, void *data)
+bool nparray::from_data(npy_intp * dims, void *data)
 {
     if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(ndim, dims,
                       typenum, data)) == NULL) {
@@ -49,7 +49,7 @@ bool const nparray::from_data(npy_intp * dims, void *data)
 }
 
 
-bool const nparray::import(PyObject *obj)
+bool nparray::import(PyObject *obj)
 {
     if (obj != NULL)
         pyobj = obj;
@@ -64,7 +64,7 @@ bool const nparray::import(PyObject *obj)
 }
 
 
-bool const nparray::empty(npy_intp* dims, int const fortran)
+bool nparray::empty(npy_intp* dims, int const fortran)
 {
     if ((npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                       typenum, fortran)) == NULL) {
@@ -76,7 +76,7 @@ bool const nparray::empty(npy_intp* dims, int const fortran)
 }
 
 
-bool const nparray::zeros(npy_intp * dims, int const fortran)
+bool nparray::zeros(npy_intp * dims, int const fortran)
 {
     if ((npobj = (PyArrayObject*) PyArray_ZEROS(ndim, dims, typenum,
                                                 fortran)) == NULL) {
@@ -100,7 +100,7 @@ PyArrayObject* nparray::ret()
 }
 
 
-bool const nparray::check_rows(npy_intp const rows) const
+bool nparray::check_rows(npy_intp const rows) const
 {
     if (shape[0] != rows) {
         PyErr_Format(PyExc_TypeError, "Expected array to have rows %u but got "
@@ -111,7 +111,7 @@ bool const nparray::check_rows(npy_intp const rows) const
 }
 
 
-bool const nparray::check_cols(npy_intp const cols) const
+bool nparray::check_cols(npy_intp const cols) const
 {
     if (shape[1] != cols) {
         PyErr_Format(PyExc_TypeError, "Expected array to have cols %u but got "
@@ -122,6 +122,6 @@ bool const nparray::check_cols(npy_intp const cols) const
 }
 
 
-bool const nparray::is_f_cont() const {
+bool nparray::is_f_cont() const {
     return PyArray_IS_F_CONTIGUOUS(npobj);
 }

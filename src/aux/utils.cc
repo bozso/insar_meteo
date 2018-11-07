@@ -30,7 +30,7 @@ File::~File()
 }
 
 
-bool const File::open(char const* path, char const* mode)
+bool File::open(char const* path, char const* mode)
 {
     if ((_file = fopen(path, mode)) == NULL) {
         perrorln("open", "Failed to open file \"%s\"", path);
@@ -47,7 +47,7 @@ void File::close()
 }
 
 
-int const File::read(char const* fmt, ...) const
+int File::read(char const* fmt, ...) const
 {
     va_list ap;
     
@@ -58,7 +58,7 @@ int const File::read(char const* fmt, ...) const
 }
 
 
-int const File::write(char const* fmt, ...) const
+int File::write(char const* fmt, ...) const
 {
     va_list ap;
     
@@ -68,12 +68,12 @@ int const File::write(char const* fmt, ...) const
     return ret;
 }
 
-int const File::read(size_t const size, size_t const num, void *var) const {
+int File::read(size_t const size, size_t const num, void *var) const {
     return fread(var, size, num, _file);
 }
 
 
-int const File::write(size_t const size, size_t const num, void const* var) const {
+int File::write(size_t const size, size_t const num, void const* var) const {
     return fwrite(var, size, num, _file);
 }
 

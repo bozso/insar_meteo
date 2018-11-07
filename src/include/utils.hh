@@ -75,14 +75,14 @@ struct File {
     File(FILE *_file): _file(_file) {};
     ~File();
 
-    bool const open(char const* path, char const* mode);
+    bool open(char const* path, char const* mode);
     void close();
 
-    int const read(char const* fmt, ...) const;
-    int const write(char const* fmt, ...) const;
+    int read(char const* fmt, ...) const;
+    int write(char const* fmt, ...) const;
     
-    int const read(size_t const size, size_t const num, void* var) const;
-    int const write(size_t const size, size_t const num, void const* var) const;
+    int read(size_t const size, size_t const num, void* var) const;
+    int write(size_t const size, size_t const num, void const* var) const;
 };
 
 

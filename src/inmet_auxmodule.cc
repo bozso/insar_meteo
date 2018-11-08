@@ -17,24 +17,26 @@ static py_ptr ell_to_merc(py_varargs)
     nparray _lon(1, dt_double), _lat(1, dt_double);
     double a, e, lon0;
     uint isdeg, fast;
-    
+
     parse_varargs("OOdddII", array_type(_lon), array_type(_lat), &lon0,
                   &a, &e, &isdeg, &fast);
-    
-    if (_lon.import() or _lat.import())
+
+    Pool pool(_lon.psize, _lat.psize);
+
+    if (pool.init() or _lon.import(pool) or _lat.import(pool))
         return NULL;
     
-    size_t rows = _lat.shape[0];
-    
+    size_t rows = _lon.shape[0];
     if (rows != _lat.shape[0]) {
         // TODO: set error message !!!
         return NULL;
     }
     
+    
     nparray _xy(2, dt_double);
     npy_intp shape[2] = {npy_intp(rows), 2};
     
-    if (_xy.empty(shape))
+    if (_xy.empty(pool, shape))
         return NULL;
     
     view<double> lon(_lon), lat(_lat), xy(_xy);
@@ -88,10 +90,11 @@ pydoc(test, "test");
 static py_ptr test(py_varargs)
 {
     nparray _arr(1, dt_double);
-    
     parse_varargs("O", array_type(_arr));
+
+    Pool pool(_arr.psize);
     
-    if (_arr.import())
+    if (pool.init() or _arr.import(pool))
         return NULL;
     
     view<npy_double> arr(_arr);
@@ -119,12 +122,15 @@ static py_ptr azi_inc(py_varargs)
                   &deg, array_type(_mean_coords), array_type(_mean_coords),
                   array_type(_coords), &is_lonlat, &max_iter);
     
-    if (_mean_coords.import() or _coeffs.import() or _coords.import())
+    Pool pool(_mean_coords.psize, _coeffs.psize, _coords.psize, _azi_inc.psize);
+    
+    if (pool.init() or _mean_coords.import(pool) or _coeffs.import(pool)
+        or _coords.import(pool))
         return NULL;
     
     npy_intp azi_inc_shape[2] = {npy_intp(_coords.shape[0]), 2};
     
-    if (_azi_inc.empty(azi_inc_shape))
+    if (_azi_inc.empty(pool, azi_inc_shape))
         return NULL;
     
     view<npy_double> coeffs(_coeffs), coords(_coords), azi_inc(_azi_inc);
@@ -152,12 +158,14 @@ static py_ptr asc_dsc_select(py_keywords)
     parse_keywords("OO|d:asc_dsc_select", array_type(_arr1), array_type(_arr2),
                                           &max_sep);
     
-    if (_arr1.import() or _arr2.import())
+    Pool pool(_arr1.psize, _arr2.psize, _idx.psize);
+    
+    if (pool.init() or _arr1.import(pool) or _arr2.import(pool))
         return NULL;
     
     npy_intp shape = _arr1.shape[0];
     
-    if (_idx.zeros(&shape))
+    if (_idx.zeros(pool, &shape))
         return NULL;
     
     max_sep /=  R_earth;
@@ -197,7 +205,9 @@ static py_ptr dominant(py_keywords)
     
     parse_keywords("OO|d:dominant", array_type(_asc), array_type(_dsc), &max_sep);
     
-    if (_asc.import() or _dsc.import())
+    Pool pool(_asc.psize, _dsc.psize);
+    
+    if (pool.init() or _asc.import(pool) or _dsc.import(pool))
         return NULL;
     
     uint ncluster = 0, nhermite = 0;

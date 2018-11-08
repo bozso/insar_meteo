@@ -1,6 +1,7 @@
 #include "nparray.hh"
 
-static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim = 0)
+static bool setup_array(Pool& pool, nparray* arr, PyArrayObject *_array,
+                        size_t const edim = 0)
 {
     int _ndim = size_t(PyArray_NDIM(_array));
     
@@ -14,12 +15,8 @@ static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim =
     
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
-    if ((arr->strides = PyMem_New(size_t, _ndim)) == NULL or
-        (arr->shape = PyMem_New(size_t, _ndim)) == NULL) {
-        // TODO raise exception
-        return true;
-    }
-    
+    arr->strides = salloc(pool, size_t, _ndim)
+    arr->shape = salloc(pool, size_t, _ndim)
  
     npy_intp * strides = PyArray_STRIDES(_array);
     
@@ -37,7 +34,7 @@ static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim =
 }
 
 
-bool nparray::from_data(npy_intp * dims, void *data)
+bool nparray::from_data(Pool& pool, npy_intp * dims, void *data)
 {
     if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(ndim, dims,
                       typenum, data)) == NULL) {
@@ -45,11 +42,11 @@ bool nparray::from_data(npy_intp * dims, void *data)
         return true;
     }
     
-    return setup_array(this, npobj, 0);
+    return setup_array(pool, this, npobj, 0);
 }
 
 
-bool nparray::import(PyObject *obj)
+bool nparray::import(Pool& pool, PyObject *obj)
 {
     if (obj != NULL)
         pyobj = obj;
@@ -60,11 +57,11 @@ bool nparray::import(PyObject *obj)
         return true;
     }
     
-    return setup_array(this, npobj, ndim);
+    return setup_array(pool, this, npobj, ndim);
 }
 
 
-bool nparray::empty(npy_intp* dims, int const fortran)
+bool nparray::empty(Pool& pool, npy_intp* dims, int const fortran)
 {
     if ((npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
                       typenum, fortran)) == NULL) {
@@ -72,11 +69,11 @@ bool nparray::empty(npy_intp* dims, int const fortran)
         return true;
     }
     
-    return setup_array(this, npobj, 0);
+    return setup_array(pool, this, npobj, 0);
 }
 
 
-bool nparray::zeros(npy_intp * dims, int const fortran)
+bool nparray::zeros(Pool& pool, npy_intp * dims, int const fortran)
 {
     if ((npobj = (PyArrayObject*) PyArray_ZEROS(ndim, dims, typenum,
                                                 fortran)) == NULL) {
@@ -84,7 +81,7 @@ bool nparray::zeros(npy_intp * dims, int const fortran)
         return true;
     }
     
-    return setup_array(this, npobj, 0);
+    return setup_array(pool, this, npobj, 0);
 }
 
 

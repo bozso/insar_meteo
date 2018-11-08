@@ -21,6 +21,46 @@
 #include "utils.hh"
 
 
+Pool::Pool(int num, ...)
+{
+    storage = NULL;
+    ptr = NULL;
+    storage_size = 0;
+    va_list vl;
+    
+    va_start(vl, num);
+    
+    for(size_t ii = 0; ii < num; ++ii)
+        storage_size += va_arg(vl, size_t);
+    
+    va_end(vl);
+}
+
+
+Pool::~Pool() {
+    PyMem_Del(storage);
+    storage = NULL;
+}
+
+
+bool Pool::init()
+{
+    if ((storage = PyMem_New(unsigned char, storage_size)) == NULL) {
+        // raise Exception
+        return true;
+    }
+    
+    return false;
+}
+
+
+void * Pool::alloc(size_t num_bytes)
+{
+    ptr += num_bytes;
+    return (void *) (ptr - num_bytes);
+}
+
+
 File::~File()
 {
     if (_file != NULL) {

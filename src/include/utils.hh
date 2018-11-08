@@ -68,7 +68,7 @@ void perrorln(char const* perror_str, char const* fmt, ...);
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
 
-#define palloc(storage, type, num) (storage).alloc(sizeof(type) * (num))
+#define palloc(storage, type, num) (type *) (storage).alloc(sizeof(type) * (num))
 
 struct Pool {
     unsigned char *storage, *ptr;

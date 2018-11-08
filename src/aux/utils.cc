@@ -30,14 +30,15 @@ Pool::Pool(int num, ...)
     
     va_start(vl, num);
     
-    for(size_t ii = 0; ii < num; ++ii)
+    for(int ii = 0; ii < num; ++ii)
         storage_size += va_arg(vl, size_t);
     
     va_end(vl);
 }
 
 
-Pool::~Pool() {
+Pool::~Pool()
+{
     PyMem_Del(storage);
     storage = NULL;
 }
@@ -133,7 +134,7 @@ void println(char const* fmt, ...)
     va_list ap;
     
     va_start(ap, fmt);
-    PySys_FormatStdout(fmt"\n", ap);
+    PySys_FormatStdout(fmt "\n", ap);
     va_end(ap);
 }
 
@@ -153,7 +154,7 @@ void errorln(char const* fmt, ...)
     va_list ap;
     
     va_start(ap, fmt);
-    PySys_WriteStderr(fmt"\n", ap);
+    PySys_WriteStderr(fmt "\n", ap);
     va_end(ap);
 }
 
@@ -163,7 +164,7 @@ void perrorln(char const* perror_str, char const* fmt, ...)
     va_list ap;
     
     va_start(ap, fmt);
-    PySys_WriteStderr(fmt"\n", ap);
+    PySys_WriteStderr(fmt "\n", ap);
     va_end(ap);
     perror(perror_str);
 }

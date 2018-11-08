@@ -15,8 +15,8 @@ static bool setup_array(Pool& pool, nparray* arr, PyArrayObject *_array,
     
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
-    arr->strides = salloc(pool, size_t, _ndim)
-    arr->shape = salloc(pool, size_t, _ndim)
+    arr->strides = palloc(pool, size_t, _ndim)
+    arr->shape = palloc(pool, size_t, _ndim)
  
     npy_intp * strides = PyArray_STRIDES(_array);
     

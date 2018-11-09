@@ -70,6 +70,11 @@ void perrorln(char const* perror_str, char const* fmt, ...);
 
 #define palloc(storage, type, num) (type *) (storage).alloc(sizeof(type) * (num))
 
+enum status {
+    ok = 0,
+    fail = 1
+};
+
 struct Pool {
     unsigned char *storage, *ptr;
     size_t storage_size;

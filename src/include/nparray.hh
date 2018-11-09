@@ -21,7 +21,7 @@ struct nparray {
     PyArrayObject *npobj;
     PyObject *pyobj;
     bool decref;
-
+    
     nparray():
             typenum(0), ndim(0), shape(NULL), strides(NULL),
             npobj(NULL), pyobj(NULL), decref(false) {}

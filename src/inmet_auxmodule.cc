@@ -121,6 +121,7 @@ static py_ptr azi_inc(py_varargs)
         or _coords.import(dt_double, 2))
         return NULL;
     
+    
     npy_intp azi_inc_shape[2] = {npy_intp(_coords.shape[0]), 2};
     
     if (_azi_inc.empty(dt_double, 2, azi_inc_shape))

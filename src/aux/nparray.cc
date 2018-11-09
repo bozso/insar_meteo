@@ -1,7 +1,6 @@
 #include "nparray.hh"
 
-static bool setup_array(Pool& pool, nparray* arr, PyArrayObject *_array,
-                        size_t const edim = 0)
+static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim = 0)
 {
     int _ndim = size_t(PyArray_NDIM(_array));
     
@@ -15,9 +14,16 @@ static bool setup_array(Pool& pool, nparray* arr, PyArrayObject *_array,
     
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
-    arr->strides = palloc(pool, size_t, _ndim)
-    arr->shape = palloc(pool, size_t, _ndim)
- 
+    size_t *tmp = PyMem_New(size_t, 2 * _ndim)
+    
+    if (tmp == NULL) {
+        // raise Exception
+        return true;
+    }
+    
+    arr->strides = tmp;
+    arr->shape = tmp + _ndim;
+    
     npy_intp * strides = PyArray_STRIDES(_array);
     
     for(size_t ii = _ndim; ii--; )
@@ -42,7 +48,7 @@ bool nparray::from_data(Pool& pool, npy_intp * dims, void *data)
         return true;
     }
     
-    return setup_array(pool, this, npobj, 0);
+    return setup_array(this, npobj, 0);
 }
 
 
@@ -57,7 +63,7 @@ bool nparray::import(Pool& pool, PyObject *obj)
         return true;
     }
     
-    return setup_array(pool, this, npobj, ndim);
+    return setup_array(this, npobj, ndim);
 }
 
 
@@ -81,7 +87,7 @@ bool nparray::zeros(Pool& pool, npy_intp * dims, int const fortran)
         return true;
     }
     
-    return setup_array(pool, this, npobj, 0);
+    return setup_array(this, npobj, 0);
 }
 
 

@@ -6,8 +6,6 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-#include "utils.hh"
-
 #define array_type(ar_struct) &((ar_struct).pyobj)
 
 
@@ -19,30 +17,41 @@ enum dtype {
 
 struct nparray {
     int typenum;
-    size_t ndim, psize, *shape, *strides;
+    size_t ndim, *shape, *strides;
     PyArrayObject *npobj;
     PyObject *pyobj;
     bool decref;
 
     nparray():
-            typenum(0), ndim(0), psize(0), shape(NULL), strides(NULL),
+            typenum(0), ndim(0), shape(NULL), strides(NULL),
             npobj(NULL), pyobj(NULL), decref(false) {}
 
     
     nparray(size_t const ndim, int const typenum):
-            typenum(typenum), ndim(ndim), psize(ndim * 2 * sizeof(size_t)),
-            shape(NULL), strides(NULL), npobj(NULL), pyobj(NULL), decref(false)
+            typenum(typenum), ndim(ndim), shape(NULL), strides(NULL),
+            npobj(NULL), pyobj(NULL), decref(false)
             {};
     
     ~nparray() {
+        PyMem_Del(strides);
+        strides = shape = NULL;
+        
         if (decref)
             Py_CLEAR(npobj);
     }
 
-    bool from_data(Pool& pool, npy_intp* dims, void *data);
-    bool import(Pool& pool, PyObject* obj = NULL);
-    bool empty(Pool& pool, npy_intp* dims, int const fortran = 0);
-    bool zeros(Pool& pool, npy_intp* dims, int const fortran = 0);
+
+    bool from_data(int const typenum, size_t const ndim, npy_intp* dims,
+                   void *data);
+    
+    bool import(int const typenum, size_t const ndim = 0, PyObject* obj = NULL);
+    
+    bool empty(int const typenum, size_t const ndim, npy_intp* dims,
+               int const fortran = 0);
+    
+    bool zeros(int const typenum, size_t const ndim, npy_intp* dims,
+               int const fortran = 0);
+    
     PyArrayObject* ret();
     void * data() const;
     

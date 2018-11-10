@@ -54,6 +54,11 @@ static const double rad2deg = 5.729578e+01;
 #define FOR1(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
 
 
+void *operator new(size_t num);
+void operator delete(void *ptr);
+void operator delete[](void *ptr);
+
+
 /****************
  * IO functions *
  ****************/

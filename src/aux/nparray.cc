@@ -14,7 +14,7 @@ static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim =
     
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
-    size_t *tmp = PyMem_New(size_t, 2 * _ndim)
+    size_t *tmp = new size_t[2 * _ndim];
     
     if (tmp == NULL) {
         // raise Exception

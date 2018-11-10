@@ -21,6 +21,22 @@
 #include "utils.hh"
 
 
+void *operator new(size_t num)
+{
+    return PyMem_Malloc(num);
+}
+
+void operator delete(void *ptr)
+{
+    PyMem_Free(ptr);
+}
+
+void operator delete[](void *ptr)
+{
+    PyMem_Free(ptr);
+}
+
+
 Pool::Pool(int num, ...)
 {
     storage = NULL;

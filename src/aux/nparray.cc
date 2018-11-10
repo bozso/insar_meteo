@@ -1,10 +1,23 @@
 #include "nparray.hh"
 
-static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim = 0)
+#define handle_shape \
+npy_intp *_shape;\
+\
+if ((_shape = new npy_intp[num]) == NULL)\
+    return true;\
+\
+va_list vl;\
+va_start(vl, num);\
+for(size_t ii = 0; ii < num; ++ii)\
+    _shape[ii] = va_arg(vl, size_t);\
+va_end(vl)
+
+
+static bool setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
 {
-    int _ndim = size_t(PyArray_NDIM(_array));
+    size_t _ndim = size_t(PyArray_NDIM(_array));
     
-    if (edim and edim != _ndim) {
+    if (edim and (edim != _ndim)) {
         PyErr_Format(PyExc_TypeError, "numpy nparray expected to be %u "
                     "dimensional but we got %u dimensional nparray!",
                     edim, _ndim);
@@ -40,19 +53,7 @@ static bool setup_array(nparray* arr, PyArrayObject *_array, size_t const edim =
 }
 
 
-bool nparray::from_data(Pool& pool, npy_intp * dims, void *data)
-{
-    if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(ndim, dims,
-                      typenum, data)) == NULL) {
-        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
-        return true;
-    }
-    
-    return setup_array(this, npobj, 0);
-}
-
-
-bool nparray::import(Pool& pool, PyObject *obj)
+bool nparray::import(int const typenum, size_t const ndim, PyObject *obj)
 {
     if (obj != NULL)
         pyobj = obj;
@@ -67,32 +68,57 @@ bool nparray::import(Pool& pool, PyObject *obj)
 }
 
 
-bool nparray::empty(Pool& pool, npy_intp* dims, int const fortran)
+bool nparray::from_data(int const typenum, void *data, size_t num, ...)
 {
-    if ((npobj = (PyArrayObject*) PyArray_EMPTY(ndim, dims,
-                      typenum, fortran)) == NULL) {
+    handle_shape;
+    
+    if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(num, _shape,
+                      typenum, data)) == NULL) {
         PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
+        delete[] _shape;
         return true;
     }
     
-    return setup_array(pool, this, npobj, 0);
-}
-
-
-bool nparray::zeros(Pool& pool, npy_intp * dims, int const fortran)
-{
-    if ((npobj = (PyArrayObject*) PyArray_ZEROS(ndim, dims, typenum,
-                                                fortran)) == NULL) {
-        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
-        return true;
-    }
+    delete[] _shape;
     
     return setup_array(this, npobj, 0);
 }
 
 
+bool nparray::empty(int const typenum, int const fortran, size_t num, ...)
+{
+    handle_shape;
+    
+    if ((npobj = (PyArrayObject*) PyArray_EMPTY(num, _shape,
+                      typenum, fortran)) == NULL) {
+        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
+        delete[] shape;
+        return true;
+    }
+    
+    delete[] shape;
+    return setup_array(this, npobj, 0);
+}
+
+
+bool nparray::zeros(int const typenum, int const fortran, size_t num, ...)
+{
+    handle_shape;
+    
+    if ((npobj = (PyArrayObject*) PyArray_ZEROS(num, _shape, typenum,
+                                                fortran)) == NULL) {
+        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
+        delete[] _shape;
+        return true;
+    }
+    
+    delete[] _shape;
+    return setup_array(this, npobj, 0);
+}
+
+
 void * nparray::data() const {
-    return PyArray_DATA(arr.npobj);
+    return PyArray_DATA(npobj);
 }
 
 
@@ -103,7 +129,7 @@ PyArrayObject* nparray::ret()
 }
 
 
-bool nparray::check_rows(npy_intp const rows) const
+bool nparray::check_rows(size_t const rows) const
 {
     if (shape[0] != rows) {
         PyErr_Format(PyExc_TypeError, "Expected array to have rows %u but got "
@@ -114,7 +140,7 @@ bool nparray::check_rows(npy_intp const rows) const
 }
 
 
-bool nparray::check_cols(npy_intp const cols) const
+bool nparray::check_cols(size_t const cols) const
 {
     if (shape[1] != cols) {
         PyErr_Format(PyExc_TypeError, "Expected array to have cols %u but got "

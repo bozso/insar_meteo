@@ -1,21 +1,20 @@
-#include "pyvector.hh"
+#include "dmatrix.hh"
 
-// you can #define DG_DYNARR_OUT_OF_MEMORY to some code that will be executed
+// you can #define INMET_OUT_OF_MEMORY to some code that will be executed
 // if allocating memory fails
-#ifndef DG_DYNARR_OUT_OF_MEMORY
-	#define DG_DYNARR_OUT_OF_MEMORY  DG_DYNARR_ASSERT(0, "Out of Memory!");
+#ifndef INMET_OUT_OF_MEMORY
+	#define INMET_OUT_OF_MEMORY  INMET_ASSERT(0, "Out of Memory!");
 #endif
 
+using namespace dmat_impl;
 
-static const size_t DG__DYNARR_SIZE_T_MSB = ((size_t)1) << (sizeof(size_t)*8 - 1);
-static const size_t DG__DYNARR_SIZE_T_ALL_BUT_MSB = (((size_t)1) << (sizeof(size_t)*8 - 1))-1;
+namespace dmat_impl {
 
-DG_DYNARR_DEF static bool
-grow(void** arr, vector_meta& md, size_t min_needed);
+INMET_DEF static bool
+grow(void** arr, dmat_meta& md, size_t const min_needed);
 
-
-DG_DYNARR_INLINE void
-init(void** p, vector_meta& meta, void const* buf, size_t const buf_cap)
+INMET_INLINE void
+init(void** p, dmat_meta& meta, void const* buf, size_t const buf_cap)
 {
 	*p = buf;
 	md.cnt = 0;
@@ -23,39 +22,37 @@ init(void** p, vector_meta& meta, void const* buf, size_t const buf_cap)
     if (buf == NULL)
         md.cap = 0;
 	else
-        md.cap = (DG__DYNARR_SIZE_T_MSB | buf_cap);
+        md.cap = (dmat_impl::size_t_msb | buf_cap);
 }
 
 
-// USED
-DG_DYNARR_INLINE bool
-maybegrow(void** arr, vector_meta& md, size_t const min_needed)
+INMET_INLINE bool
+maybegrow(void** arr, dmat_meta& md, size_t const min_needed)
 {
-	if ((md.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
+	if ((md.cap & dmat_impl::size_t_all_but_msb) >= min_needed)
         return true;
 	else
         return grow(arr, md, min_needed);
 }
 
-// USED
 
-DG_DYNARR_INLINE bool
-maybegrowadd(void** arr, vector_meta& md, size_t const num_add)
+INMET_INLINE bool
+maybegrowadd(void** arr, dmat_meta& md, size_t const num_add)
 {
 	size_t min_needed = md.cnt + num_add;
     
-	if ((md.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) >= min_needed)
+	if ((md.cap & dmat_impl::size_t_all_but_msb) >= min_needed)
         return true;
 	else
         return grow(arr, md, min_needed);
 }
 
-// USED
-DG_DYNARR_DEF void
-free(void** p, vector_meta& md)
+
+INMET_DEF void
+free(void** p, dmat_meta& md)
 {
 	// only free memory if it doesn't point to external memory
-	if (not(md.cap & DG__DYNARR_SIZE_T_MSB)) {
+	if (not (md.cap & dmat_impl::size_t_msb)) {
 		PyMem_Free(*p);
 		*p = NULL;
 		md.cap = 0;
@@ -64,34 +61,31 @@ free(void** p, vector_meta& md)
 }
 
 
-// USED
-DG_DYNARR_DEF void
-shrink_to_fit(void** arr, vector_meta& md)
+INMET_DEF void
+shrink_to_fit(void** arr, dmat_meta& md)
 {
 	// only do this if we allocated the memory ourselves
-	if (not(md.cap & DG__DYNARR_SIZE_T_MSB)) {
+	if (not(md.cap & dmat_impl::size_t_msb)) {
 		size_t cnt = md.cnt;
-        
 		if (cnt == 0)
             free(arr, md);
-		else if ((md.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) > cnt) {
-			size_t tmp = md.itemsize * md.cnt;
-            
-            void* p = PyMem_Malloc(tmp);
-			
-            if(p != NULL) {
-				memcpy(p, *arr, tmp);
-				md.cap = cnt;
-				PyMem_Free(*arr);
+		else if((md->cap & dmat_impl::size_t_all_but_msb) > cnt)
+		{
+			void* p = INMET_MALLOC(itemsize, cnt);
+			if(p != NULL)
+			{
+				memcpy(p, *arr, cnt*itemsize);
+				md->cap = cnt;
+				INMET_FREE(*arr);
 				*arr = p;
 			}
 		}
 	}
 }
 
-// USED
-DG_DYNARR_INLINE bool
-insert(void** arr, vector_meta& md, size_t idx, size_t n, bool init0)
+
+INMET_INLINE bool
+insert(void** arr, dmat_meta& md, size_t idx, size_t n, bool const init0)
 {
 	// allow idx == md->cnt to append
 	size_t oldCount = md.cnt;
@@ -118,9 +112,8 @@ insert(void** arr, vector_meta& md, size_t idx, size_t n, bool init0)
 }
 
 
-// USED
-DG_DYNARR_INLINE bool
-add(void** arr, vector_meta& md, size_t n, bool init0)
+INMET_INLINE bool
+add(void** arr, dmat_meta& md, size_t n, bool const init0)
 {
 	size_t cnt = md.cnt;
 	
@@ -138,9 +131,9 @@ add(void** arr, vector_meta& md, size_t n, bool init0)
 	return false;
 }
 
-// USED
-DG_DYNARR_INLINE void
-_delete(void** arr, vector_meta& md, size_t idx, size_t n)
+
+INMET_INLINE void
+del(void** arr, dmat_meta& md, size_t const idx, size_t const n)
 {
 	size_t cnt = md.cnt;
 	
@@ -160,9 +153,9 @@ _delete(void** arr, vector_meta& md, size_t idx, size_t n)
 	}
 }
 
-// USED
-DG_DYNARR_INLINE void
-_deletefast(void** arr, vector_meta& md, size_t idx, size_t n)
+
+INMET_INLINE void
+delfast(void** arr, dmat_meta& md, size_t const idx, size_t const n)
 {
 	size_t cnt = md.cnt;
 	
@@ -186,27 +179,28 @@ _deletefast(void** arr, vector_meta& md, size_t idx, size_t n)
 }
 
 
-DG_DYNARR_DEF static bool
-grow(void** arr, vector_meta& md, size_t min_needed)
+INMET_DEF static bool
+grow(void** arr, dmat_meta& md, size_t const min_needed)
 {
-	size_t cap = md.cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB;
+	size_t cap = md.cap & dmat_impl::size_t_all_but_msb;
 
-	DG_DYNARR_ASSERT(min_needed > cap, "grow() should only be called if "
+	INMET_ASSERT(min_needed > cap, "grow() should only be called if "
                                        "storage actually needs to grow!");
 
-	if(min_needed < DG__DYNARR_SIZE_T_MSB) {
-        // allocate for at least 8 elements
-		size_t newcap = (cap > 4) ? (2 * cap) : 8;
+	if(min_needed < dmat_impl::size_t_msb) {
+        // allocate for at least 8 rows
+        size_t _cap = cap * md.ncol;
+		size_t newcap = (_cap > 4) ? (2 * _cap) : 8;
         
 		// make sure not to set DG__DYNARR_SIZE_T_MSB (unlikely anyway)
-		if (newcap >= DG__DYNARR_SIZE_T_MSB)
-            newcap = DG__DYNARR_SIZE_T_MSB - 1;
+		if (newcap >= dmat_impl::size_t_msb)
+            newcap = dmat_impl::size_t_msb - 1;
 		
         if (min_needed > newcap)
             newcap = min_needed;
 
 		// the memory was allocated externally, don't free it, just copy contents
-		if (md.cap & DG__DYNARR_SIZE_T_MSB) {
+		if (md.cap & dmat_impl::size_t_msb) {
 			void* p = PyMem_Malloc(md.itemsize * newcap);
 			
             if (p != NULL)
@@ -230,36 +224,63 @@ grow(void** arr, vector_meta& md, size_t min_needed)
 			md.cap = 0;
 			md.cnt = 0;
 			
-			DG_DYNARR_OUT_OF_MEMORY ;
+			INMET_OUT_OF_MEMORY ;
 			
 			return false;
 		}
 		return true;
 	}
-	DG_DYNARR_ASSERT(min_needed < DG__DYNARR_SIZE_T_MSB, "Arrays must stay "
+	INMET_ASSERT(min_needed < DG__DYNARR_SIZE_T_MSB, "Arrays must stay "
                      "below SIZE_T_MAX/2 elements!");
 	return false;
 }
 
 
-DG_DYNARR_DEF void
-_shrink_to_fit(void** arr, vector_meta& md)
-{
-	// only do this if we allocated the memory ourselves
-	if (not(md.cap & DG__DYNARR_SIZE_T_MSB)) {
-		size_t cnt = md.cnt;
-		if (cnt == 0)
-            free(arr, md);
-		else if((md->cap & DG__DYNARR_SIZE_T_ALL_BUT_MSB) > cnt)
-		{
-			void* p = DG_DYNARR_MALLOC(itemsize, cnt);
-			if(p != NULL)
-			{
-				memcpy(p, *arr, cnt*itemsize);
-				md->cap = cnt;
-				DG_DYNARR_FREE(*arr);
-				*arr = p;
-			}
-		}
-	}
+
+#if (INMET_INDEX_CHECK_LEVEL == 2) || (INMET_INDEX_CHECK_LEVEL == 3)
+    
+static void checkidx(dmat_meta const& md, size_t const ii) {
+    assert(ii < md.cnt, "index out of bounds");
+}
+
+static void checkidxle(dmat_meta const& md, size_t const ii) {
+    assert(ii <= md.cnt, "index out of bounds");
+}
+
+static void check_notempty(dmat_meta const& md,  char const* msg) {
+    assert(md.cnt > 0, msg);
+}
+
+#elif (INMET_INDEX_CHECK_LEVEL == 0) || (INMET_INDEX_CHECK_LEVEL == 1)
+
+static void* checkidx(dmat_meta const& md, size_t const ii) {
+    return (void) 0;
+}
+
+static void* checkidxle(dmat_meta const& md, size_t const ii) {
+    return (void) 0;
+}
+
+static void* check_notempty(dmat_meta const& md,  char const* msg) {
+    return (void) 0;
+}
+
+#else // invalid INMET_INDEX_CHECK_LEVEL
+	#error Invalid index check level INMET_INDEX_CHECK_LEVEL (must be 0-3) !
+#endif // INMET_INDEX_CHECK_LEVEL
+
+
+#if (INMET_INDEX_CHECK_LEVEL == 1) || (INMET_INDEX_CHECK_LEVEL == 3)
+
+    INMET_INLINE size_t
+    idx(dmat_meta const& md, size_t const ii) { return (ii < md.cnt) ? ii : 0; }
+
+#elif (INMET_INDEX_CHECK_LEVEL == 0) || (INMET_INDEX_CHECK_LEVEL == 2)
+    INMET_INLINE size_t
+    idx(dmat_meta const& md, size_t const ii) { return ii; }
+
+#else // invalid INMET_INDEX_CHECK_LEVEL
+	#error Invalid index check level INMET_INDEX_CHECK_LEVEL (must be 0-3) !
+#endif // INMET_INDEX_CHECK_LEVEL
+
 }

@@ -14,6 +14,11 @@ enum dtype {
     dt_bool = NPY_BOOL
 };
 
+enum newtype {
+    empty,
+    zeros
+};
+
 
 struct nparray {
     int typenum;
@@ -41,9 +46,8 @@ struct nparray {
     }
     
     bool import(int const typenum, size_t const ndim = 0, PyObject* obj = NULL);
-    bool from_data(int const typenum, void *data, size_t num, ...);
-    bool empty(int const typenum, int const fortran, size_t num, ...);
-    bool zeros(int const typenum, int const fortran, size_t num, ...);
+    bool newarr(int const typenum, void *data, size_t num, ...);
+    bool newarr(int const typenum, newtype const newt, int const fortran, size_t num, ...);
     
     PyArrayObject* ret();
     void * data() const;

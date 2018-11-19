@@ -1,11 +1,7 @@
 #include "nparray.hh"
 
 #define handle_shape \
-npy_intp *_shape;\
-\
-if ((_shape = new npy_intp[num]) == NULL)\
-    return true;\
-\
+npy_intp _shape[num];\
 va_list vl;\
 va_start(vl, num);\
 for(size_t ii = 0; ii < num; ++ii)\
@@ -68,51 +64,42 @@ bool nparray::import(int const typenum, size_t const ndim, PyObject *obj)
 }
 
 
-bool nparray::from_data(int const typenum, void *data, size_t num, ...)
+bool nparray::newarr(int const typenum, void *data, size_t num, ...)
 {
     handle_shape;
     
     if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(num, _shape,
                       typenum, data)) == NULL) {
         PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
-        delete[] _shape;
         return true;
     }
-    
-    delete[] _shape;
     
     return setup_array(this, npobj, 0);
 }
 
 
-bool nparray::empty(int const typenum, int const fortran, size_t num, ...)
+bool nparray::newarr(int const typenum, newtype const newt, int const fortran,
+                     size_t num, ...)
 {
     handle_shape;
     
-    if ((npobj = (PyArrayObject*) PyArray_EMPTY(num, _shape,
-                      typenum, fortran)) == NULL) {
+    switch(newt) {
+        case empty:
+            npobj = (PyArrayObject*) PyArray_EMPTY(num, _shape, typenum, fortran);
+            break;
+        case zeros:
+            npobj = (PyArrayObject*) PyArray_ZEROS(num, _shape, typenum, fortran);
+            break;
+        default:
+            // raise Exception
+            return true;
+    }
+    
+    if (npobj == NULL) {
         PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
-        delete[] shape;
         return true;
     }
     
-    delete[] shape;
-    return setup_array(this, npobj, 0);
-}
-
-
-bool nparray::zeros(int const typenum, int const fortran, size_t num, ...)
-{
-    handle_shape;
-    
-    if ((npobj = (PyArrayObject*) PyArray_ZEROS(num, _shape, typenum,
-                                                fortran)) == NULL) {
-        PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
-        delete[] _shape;
-        return true;
-    }
-    
-    delete[] _shape;
     return setup_array(this, npobj, 0);
 }
 

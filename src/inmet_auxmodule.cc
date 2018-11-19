@@ -30,7 +30,7 @@ static py_ptr ell_to_merc(py_varargs)
     
     nparray _xy;
     
-    if (_xy.empty(dt_double, 0, npy_intp(rows), 2))
+    if (_xy.newarr(dt_double, empty, 0, npy_intp(rows), 2))
         return NULL;
     
     view<double> lon(_lon), lat(_lat), xy(_xy);
@@ -117,7 +117,7 @@ static py_ptr azi_inc(py_varargs)
         or _coords.import(dt_double, 2))
         return NULL;
     
-    if (_azi_inc.empty(dt_double, 0, npy_intp(_coords.shape[0]), 2))
+    if (_azi_inc.newarr(dt_double, empty, 0, npy_intp(_coords.shape[0]), 2))
         return NULL;
     
     view<npy_double> coeffs(_coeffs), coords(_coords), azi_inc(_azi_inc);
@@ -148,7 +148,7 @@ static py_ptr asc_dsc_select(py_keywords)
     if (_arr1.import(dt_double, 2) or _arr2.import(dt_double, 2))
         return NULL;
     
-    if (_idx.zeros(dt_double, 0, _arr1.shape[0]))
+    if (_idx.newarr(dt_double, zeros, 0, _arr1.shape[0]))
         return NULL;
     
     max_sep /=  R_earth;

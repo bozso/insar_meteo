@@ -88,19 +88,18 @@ struct dmatrix {
     // returns true if the array is empty, else false
     bool empty() const { return md.cnt == 0; }
     
-
     T& operator[](size_t ii) { return data[ii]; }
 
     T const operator[](size_t ii) const { return data[ii]; }
 
-    
+
     bool const push(T const& elem)
     {
         return dmat_impl::maybegrowadd(__unpack, 1) ?
                ((data[md.cnt++] = elem), false) : false;
     }
-    
 
+    
     void addn(T* vals, size_t const n)
     {
         INMET_ASSERT(vals != NULL, "Don't pass NULL vals vals to addn!");
@@ -108,17 +107,6 @@ struct dmatrix {
             size_t i_ = md.cnt - n, v_ = 0;
         
         while(i_ < md.cnt)
-            data[ii_++] = vals[v_++];
-	}
-
-    void addrow(T* vals)
-    {
-        INMET_ASSERT(vals != NULL, "Don't pass NULL vals vals to addn!");
-        
-        if (vals != NULL && dmat_impl::add(__unpack, md.ncol, false))
-            size_t i_ = md.cnt - n, v_ = 0;
-        
-        while(i_ < md.ncol)
             data[ii_++] = vals[v_++];
 	}
 

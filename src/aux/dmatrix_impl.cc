@@ -67,16 +67,16 @@ shrink_to_fit(void** arr, dmat_meta& md)
 	// only do this if we allocated the memory ourselves
 	if (not(md.cap & dmat_impl::size_t_msb)) {
 		size_t cnt = md.cnt;
-		if (cnt == 0)
+		if (cnt == 0) {
             free(arr, md);
-		else if((md->cap & dmat_impl::size_t_all_but_msb) > cnt)
-		{
+        }
+		else if((md->cap & dmat_impl::size_t_all_but_msb) > cnt) {
 			void* p = INMET_MALLOC(itemsize, cnt);
-			if(p != NULL)
-			{
+	
+    		if(p != NULL) {
 				memcpy(p, *arr, cnt*itemsize);
 				md->cap = cnt;
-				INMET_FREE(*arr);
+				PyMem_Free(*arr);
 				*arr = p;
 			}
 		}
@@ -129,6 +129,14 @@ add(void** arr, dmat_meta& md, size_t n, bool const init0)
 		return true;
 	}
 	return false;
+}
+
+
+INMET_INLINE bool
+addn(void * vals, void** arr, dmat_meta& md, size_t const n, bool const init0)
+{
+    INMET_ASSERT(vals != NULL, "Don't pass NULL vals vals to addn!");
+    
 }
 
 
@@ -185,14 +193,14 @@ grow(void** arr, dmat_meta& md, size_t const min_needed)
 	size_t cap = md.cap & dmat_impl::size_t_all_but_msb;
 
 	INMET_ASSERT(min_needed > cap, "grow() should only be called if "
-                                       "storage actually needs to grow!");
+                                   "storage actually needs to grow!");
 
 	if(min_needed < dmat_impl::size_t_msb) {
         // allocate for at least 8 rows
         size_t _cap = cap * md.ncol;
 		size_t newcap = (_cap > 4) ? (2 * _cap) : 8;
         
-		// make sure not to set DG__DYNARR_SIZE_T_MSB (unlikely anyway)
+		// make sure not to set size_t_msb (unlikely anyway)
 		if (newcap >= dmat_impl::size_t_msb)
             newcap = dmat_impl::size_t_msb - 1;
 		
@@ -206,7 +214,8 @@ grow(void** arr, dmat_meta& md, size_t const min_needed)
             if (p != NULL)
                 memcpy(p, *arr, md.itemsize * md.cnt);
 			*arr = p;
-		} else {
+		}
+        else {
 			void* p = PyMem_Realloc(*arr, itemsize * newcap);
 			
             // realloc failed, at least don't leak memory
@@ -230,11 +239,10 @@ grow(void** arr, dmat_meta& md, size_t const min_needed)
 		}
 		return true;
 	}
-	INMET_ASSERT(min_needed < DG__DYNARR_SIZE_T_MSB, "Arrays must stay "
-                     "below SIZE_T_MAX/2 elements!");
+	INMET_ASSERT(min_needed < dmat_impl::size_t_msb, "Arrays must stay "
+                 "below SIZE_T_MAX/2 elements!");
 	return false;
 }
-
 
 
 #if (INMET_INDEX_CHECK_LEVEL == 2) || (INMET_INDEX_CHECK_LEVEL == 3)
@@ -243,27 +251,34 @@ static void checkidx(dmat_meta const& md, size_t const ii) {
     assert(ii < md.cnt, "index out of bounds");
 }
 
+
 static void checkidxle(dmat_meta const& md, size_t const ii) {
     assert(ii <= md.cnt, "index out of bounds");
 }
+
 
 static void check_notempty(dmat_meta const& md,  char const* msg) {
     assert(md.cnt > 0, msg);
 }
 
+
 #elif (INMET_INDEX_CHECK_LEVEL == 0) || (INMET_INDEX_CHECK_LEVEL == 1)
+
 
 static void* checkidx(dmat_meta const& md, size_t const ii) {
     return (void) 0;
 }
 
+
 static void* checkidxle(dmat_meta const& md, size_t const ii) {
     return (void) 0;
 }
 
+
 static void* check_notempty(dmat_meta const& md,  char const* msg) {
     return (void) 0;
 }
+
 
 #else // invalid INMET_INDEX_CHECK_LEVEL
 	#error Invalid index check level INMET_INDEX_CHECK_LEVEL (must be 0-3) !

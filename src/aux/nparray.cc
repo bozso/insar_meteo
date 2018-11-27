@@ -9,80 +9,59 @@ for(size_t ii = 0; ii < num; ++ii)\
 va_end(vl)
 
 
-static bool setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
+static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim);
+
+
+nparray::nparray(int const typenum, size_t const ndim, PyObject *obj)
 {
-    size_t _ndim = size_t(PyArray_NDIM(_array));
+    npobj = (PyArrayObject*) PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY);
     
-    if (edim and (edim != _ndim)) {
-        PyErr_Format(PyExc_TypeError, "numpy nparray expected to be %u "
-                    "dimensional but we got %u dimensional nparray!",
-                    edim, _ndim);
-        return true;
-    }
-    
-    int elemsize = int(PyArray_ITEMSIZE(_array));
-    
-    size_t *tmp = PyMem_New(size_t, 2 * _ndim);
-    
-    if (tmp == NULL) {
-        // raise Exception
-        return true;
-    }
-    
-    arr->strides = tmp;
-    arr->shape = tmp + _ndim;
-    
-    npy_intp * strides = PyArray_STRIDES(_array);
-    
-    for(size_t ii = _ndim; ii--; )
-        arr->strides[ii] = size_t(double(strides[ii]) / elemsize);
-
- 
-    npy_intp *shape = PyArray_DIMS(_array);
-    
-    for(size_t ii = _ndim; ii--; )
-        arr->shape[ii] = size_t(shape[ii]);
-    
-    arr->decref = true;
-    return false;
-}
-
-
-bool nparray::import(int const typenum, size_t const ndim, PyObject *obj)
-{
-    if (obj != NULL)
-        pyobj = obj;
-    
-    if ((npobj = (PyArrayObject*) PyArray_FROM_OTF(pyobj, typenum,
-                                           NPY_ARRAY_IN_ARRAY)) == NULL) {
+    if (npobj == NULL and not PyErr_Occurred()) {
         PyErr_Format(PyExc_TypeError, "Failed to convert numpy nparray!");
-        return true;
+        return;
     }
     
-    return setup_array(this, npobj, ndim);
+    setup_array(this, npobj, ndim);
 }
 
 
-bool nparray::newarr(int const typenum, void *data, size_t num, ...)
+nparray::nparray(int const typenum, void *data, size_t num, ...)
 {
     handle_shape;
+    npobj = (PyArrayObject*) PyArray_SimpleNewFromData(num, _shape, typenum, data);
     
-    if ((npobj = (PyArrayObject*) PyArray_SimpleNewFromData(num, _shape,
-                      typenum, data)) == NULL) {
+    if (npobj == NULL and not PyErr_Occurred()) {
         PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
-        return true;
+        return;
     }
     
-    return setup_array(this, npobj, 0);
+    setup_array(this, npobj, 0);
 }
 
 
-bool nparray::newarr(int const typenum, newtype const newt, int const fortran,
-                     size_t num, ...)
+nparray::nparray(int const typenum, newtype const newt, char const layout,
+                 size_t num, ...)
 {
     handle_shape;
+    int fortran;
     
-    switch(newt) {
+    switch (layout) {
+        case 'C':
+            fortran = 0;
+            break;
+        case 'c':
+            fortran = 0;
+            break;
+        case 'F':
+            fortran = 1;
+            break;
+        case 'f':
+            fortran = 1;
+            break;
+    }
+    
+    
+    switch (newt) {
         case empty:
             npobj = (PyArrayObject*) PyArray_EMPTY(num, _shape, typenum, fortran);
             break;
@@ -91,20 +70,27 @@ bool nparray::newarr(int const typenum, newtype const newt, int const fortran,
             break;
         default:
             // raise Exception
-            return true;
+            return;
     }
     
-    if (npobj == NULL) {
+    if (npobj == NULL and not PyErr_Occurred()) {
         PyErr_Format(PyExc_TypeError, "Failed to create numpy nparray!");
-        return true;
+        return;
     }
     
-    return setup_array(this, npobj, 0);
+    setup_array(this, npobj, 0);
 }
 
 
-void * nparray::data() const {
-    return PyArray_DATA(npobj);
+nparray::~nparray()
+{
+    if (strides)
+        PyMem_Del(strides);
+    
+    strides = shape = NULL;
+    
+    if (decref)
+        Py_CLEAR(npobj);
 }
 
 
@@ -139,4 +125,43 @@ bool nparray::check_cols(size_t const cols) const
 
 bool nparray::is_f_cont() const {
     return PyArray_IS_F_CONTIGUOUS(npobj);
+}
+
+
+static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
+{
+    size_t _ndim = size_t(PyArray_NDIM(_array));
+    
+    if (edim and (edim != _ndim) and not PyErr_Occurred()) {
+        PyErr_Format(PyExc_TypeError, "numpy nparray expected to be %u "
+                    "dimensional but we got %u dimensional nparray!",
+                    edim, _ndim);
+        return;
+    }
+    
+    int elemsize = int(PyArray_ITEMSIZE(_array));
+    
+    size_t *tmp = PyMem_New(size_t, 2 * _ndim);
+    
+    if (tmp == NULL and not PyErr_Occurred()) {
+        // raise Exception
+        return;
+    }
+    
+    arr->strides = tmp;
+    arr->shape = tmp + _ndim;
+    
+    npy_intp * strides = PyArray_STRIDES(_array);
+    
+    for(size_t ii = _ndim; ii--; )
+        arr->strides[ii] = size_t(double(strides[ii]) / elemsize);
+
+ 
+    npy_intp *shape = PyArray_DIMS(_array);
+    
+    for(size_t ii = _ndim; ii--; )
+        arr->shape[ii] = size_t(shape[ii]);
+    
+    arr->decref = true;
+    return;
 }

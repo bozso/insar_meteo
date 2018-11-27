@@ -6,8 +6,6 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-#define array_type(ar_struct) &((ar_struct).pyobj)
-
 
 enum dtype {
     dt_double = NPY_DOUBLE,
@@ -24,39 +22,32 @@ struct nparray {
     int typenum;
     size_t ndim, *shape, *strides;
     PyArrayObject *npobj;
-    PyObject *pyobj;
     bool decref;
     
     nparray():
             typenum(0), ndim(0), shape(NULL), strides(NULL),
-            npobj(NULL), pyobj(NULL), decref(false) {}
+            npobj(NULL), decref(false) {}
 
     
     nparray(size_t const ndim, int const typenum):
             typenum(typenum), ndim(ndim), shape(NULL), strides(NULL),
-            npobj(NULL), pyobj(NULL), decref(false)
+            npobj(NULL), decref(false)
             {};
     
+    nparray(int const typenum, size_t const ndim, PyObject* obj);
+    nparray(int const typenum, void *data, size_t num, ...);
+    nparray(int const typenum, newtype const newt, char const layout, size_t num, ...);
     
-    ~nparray() {
-        PyMem_Del(strides);
-        strides = shape = NULL;
-        
-        if (decref)
-            Py_CLEAR(npobj);
-    }
-    
-    bool import(int const typenum, size_t const ndim = 0, PyObject* obj = NULL);
-    bool newarr(int const typenum, void *data, size_t num, ...);
-    bool newarr(int const typenum, newtype const newt, int const fortran, size_t num, ...);
+    ~nparray();
     
     PyArrayObject* ret();
-    void * data() const;
+    
+    template<class T>
+    T* data() const { return (T*) PyArray_DATA(npobj); };
     
     bool check_rows(size_t const rows) const;
     bool check_cols(size_t const cols) const;
     bool is_f_cont() const;
 };
-
 
 #endif

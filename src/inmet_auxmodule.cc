@@ -20,8 +20,8 @@ static py_ptr ell_to_merc(py_varargs)
 
     parse_varargs("OOdddII", &plon, &plat, &lon0, &a, &e, &isdeg, &fast);
     
-    init_pool(calc_size(2, 1));
-    nparray _lon(dt_double, 1, plon), _lat(dt_double, 1, plat);
+    init_pool(calc_size(2, 1)); check_error;
+    nparray _lon(dt_double, 1, plon), _lat(dt_double, 1, plat); check_error;
     
     size_t rows = _lon.shape[0];
     
@@ -83,8 +83,8 @@ static py_ptr test(py_varargs)
     py_ptr parr(NULL);
     parse_varargs("O", &parr);
     
-    init_pool(calc_size(1, 1));
-    nparray _arr(dt_double, 1, parr);
+    init_pool(calc_size(1, 1)); check_error;
+    nparray _arr(dt_double, 1, parr); check_error;
     
     view<npy_double> arr(_arr);
     
@@ -109,10 +109,11 @@ static py_ptr azi_inc(py_varargs)
                   &deg, &pmean_coords, &pmean_coords, &pcoords,
                   &is_lonlat, &max_iter);
     
-    init_pool(calc_size(1, 1) + calc_size(3, 2));
+    init_pool(calc_size(1, 1) + calc_size(3, 2)); check_error;
     nparray _mean_coords(dt_double, 1, pmean_coords),
             _coeffs(dt_double, 2, pcoeffs), _coords(dt_double, 2, pcoords),
             _azi_inc(dt_double, empty, 'c', npy_intp(_coords.shape[0]), 2);
+    check_error;
     
     view<npy_double> coeffs(_coeffs), coords(_coords), azi_inc(_azi_inc);
     
@@ -137,9 +138,9 @@ static py_ptr asc_dsc_select(py_keywords)
     
     parse_keywords("OO|d:asc_dsc_select", &parr1, &parr2, &max_sep);
     
-    init_pool(calc_size(1, 1) + calc_size(2, 2));
+    init_pool(calc_size(1, 1) + calc_size(2, 2)); check_error;
     nparray _arr1(dt_double, 2, parr1), _arr2(dt_double, 2, parr2),
-            _idx(dt_double, zeros, 'c', _arr1.shape[0]);
+            _idx(dt_double, zeros, 'c', _arr1.shape[0]); check_error;
     
     max_sep /=  R_earth;
     max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
@@ -177,12 +178,13 @@ static py_ptr dominant(py_keywords)
     double max_sep = 100.0;
     parse_keywords("OO|d:dominant", &pasc, &pdsc, &max_sep);
     
-    init_pool(calc_size(2, 2));
-    nparray _asc(dt_double, 2, pasc), _dsc(dt_double, 2, pdsc);
+    init_pool(calc_size(2, 2)); check_error;
+    nparray _asc(dt_double, 2, pasc), _dsc(dt_double, 2, pdsc); check_error;
     
     uint ncluster = 0, nhermite = 0;
     
     //array<bool> asc_selected(_asc.shape[0]), dsc_selected(_dsc.shape[0]);
+    //check_error;
     
     //dmat<double> clustered;
     

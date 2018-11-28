@@ -23,6 +23,13 @@
 
 #define palloc(type, num) (type *) alloc(sizeof(type) * (num))
 
+#define check_error        \
+do {                       \
+    if (PyErr_Occurred())  \
+        return NULL;       \
+} while(0)
+
+
 void incref(void);
 void decref(void);
 

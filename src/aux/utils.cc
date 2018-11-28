@@ -30,8 +30,11 @@ void incref(void) { Pool.refcount++; }
 
 void decref(void)
 {
-    if (--(Pool.refcount) <= 0)
+    if (--(Pool.refcount) == 0)  {
+        Pool.storage_size = 0;
         PyMem_Del(Pool.mem);
+        Pool.mem = Pool.ptr = NULL;
+    }
 }
 
 
@@ -75,10 +78,11 @@ void *alloc(size_t num_bytes)
 
 void reset_pool(void)
 {
-    Pool.storage_size = 0;
-    Pool.refcount = 0;
-    PyMem_Del(Pool.mem);
-    Pool.ptr = NULL;
+    if (Pool.storage_size) {
+        Pool.refcount = 0;
+        PyMem_Del(Pool.mem);
+        Pool.mem = Pool.ptr = NULL;
+    }
 }
 
 

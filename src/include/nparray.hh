@@ -6,6 +6,7 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
+size_t calc_size(size_t num_array, size_t numdim);
 
 enum dtype {
     dt_double = NPY_DOUBLE,
@@ -22,16 +23,16 @@ struct nparray {
     int typenum;
     size_t ndim, *shape, *strides;
     PyArrayObject *npobj;
-    bool decref;
+    bool _decref;
     
     nparray():
             typenum(0), ndim(0), shape(NULL), strides(NULL),
-            npobj(NULL), decref(false) {}
+            npobj(NULL), _decref(false) {}
 
     
     nparray(size_t const ndim, int const typenum):
             typenum(typenum), ndim(ndim), shape(NULL), strides(NULL),
-            npobj(NULL), decref(false)
+            npobj(NULL), _decref(false)
             {};
     
     nparray(int const typenum, size_t const ndim, PyObject* obj);

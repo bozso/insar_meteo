@@ -4,20 +4,22 @@
 #include <stddef.h>
 
 #include "nparray.hh"
+#include "utils.hh"
+
 
 template<class T>
 struct view {
-    T * data;
+    T *data;
     size_t ndim, *shape, *strides;
 
     view(): data(NULL) {};
-    view(T *data, size_t ndim, size_t *shape, size_t *strides):
+    view(T *data, size_t const ndim, size_t const* shape, size_t const* strides):
          data(data), ndim(ndim), shape(shape), strides(strides) {};
 
     view(nparray const& arr): data((T*) PyArray_DATA(arr.npobj)), ndim(arr.ndim),
-                              shape(arr.shape), strides(arr.strides) {};
+                              shape(arr.shape), strides(arr.strides) { incref(); };
     
-    ~view() {};
+    ~view() { decref(); };
 
     #if 0
     #ifndef __INMET_IMPL

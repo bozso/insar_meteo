@@ -14,73 +14,77 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include <stdarg.h>
 
 #include "Python.h"
 #include "utils.hh"
 
 
-void *operator new(size_t num)
+thread_local static struct _Pool {
+    unsigned char *mem, *ptr;
+    size_t refcount, storage_size;
+} Pool = {0};
+
+
+void incref(void) { Pool.refcount++; }
+
+void decref(void)
 {
-    return PyMem_Malloc(num);
+    if (--(Pool.refcount) <= 0)
+        PyMem_Del(Pool.mem);
 }
 
-void operator delete(void *ptr)
-{
-    PyMem_Free(ptr);
-}
 
-void operator delete[](void *ptr)
-{
-    PyMem_Free(ptr);
-}
+size_t getref(void) { return Pool.refcount; }
+size_t getsize(void) { return Pool.storage_size; }
 
 
-Pool::Pool(int num, ...)
+void init_pool(size_t num)
 {
-    storage = NULL;
-    ptr = NULL;
-    storage_size = 0;
-    va_list vl;
+    Pool.storage_size = num;
+    Pool.refcount = 0;
     
+    if ((Pool.mem = PyMem_New(unsigned char, num)) == NULL) {
+        // raise Exception
+    }
+    Pool.ptr = Pool.mem;
+}
+
+
+void init_pool(int num, ...)
+{
+    size_t storage_size = 0;
+    va_list vl;
     va_start(vl, num);
     
-    for(int ii = 0; ii < num; ++ii)
+    for(size_t ii = num; ii--;)
         storage_size += va_arg(vl, size_t);
     
     va_end(vl);
-}
-
-
-Pool::~Pool()
-{
-    PyMem_Del(storage);
-    storage = NULL;
-}
-
-
-bool Pool::init()
-{
-    if ((storage = PyMem_New(unsigned char, storage_size)) == NULL) {
-        // raise Exception
-        return true;
-    }
     
-    return false;
+    init_pool(storage_size);
 }
 
 
-void * Pool::alloc(size_t num_bytes)
+void *alloc(size_t num_bytes)
 {
-    ptr += num_bytes;
-    return (void *) (ptr - num_bytes);
+    Pool.ptr += num_bytes;
+    return (void *) (Pool.ptr - num_bytes);
+}
+
+
+void reset_pool(void)
+{
+    Pool.storage_size = 0;
+    Pool.refcount = 0;
+    PyMem_Del(Pool.mem);
+    Pool.ptr = NULL;
 }
 
 
 File::~File()
 {
-    if (_file != NULL) {
+    if (_file) {
         fclose(_file);
         _file = NULL;
     }
@@ -135,32 +139,13 @@ int File::write(size_t const size, size_t const num, void const* var) const {
 }
 
 
-void print(char const* fmt, ...)
-{
-    va_list ap;
-    
-    va_start(ap, fmt);
-    PySys_FormatStdout(fmt, ap);
-    va_end(ap);
-}
-
-
+#if 0
 void println(char const* fmt, ...)
 {
     va_list ap;
     
     va_start(ap, fmt);
     PySys_FormatStdout(fmt "\n", ap);
-    va_end(ap);
-}
-
-
-void error(char const* fmt, ...)
-{
-    va_list ap;
-    
-    va_start(ap, fmt);
-    PySys_WriteStderr(fmt, ap);
     va_end(ap);
 }
 
@@ -184,4 +169,4 @@ void perrorln(char const* perror_str, char const* fmt, ...)
     va_end(ap);
     perror(perror_str);
 }
-
+#endif

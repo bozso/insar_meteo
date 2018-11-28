@@ -19,7 +19,8 @@ static py_ptr ell_to_merc(py_varargs)
     uint isdeg, fast;
 
     parse_varargs("OOdddII", &plon, &plat, &lon0, &a, &e, &isdeg, &fast);
-
+    
+    init_pool(calc_size(2, 1));
     nparray _lon(dt_double, 1, plon), _lat(dt_double, 1, plat);
     
     size_t rows = _lon.shape[0];
@@ -81,7 +82,8 @@ static py_ptr test(py_varargs)
 {
     py_ptr parr(NULL);
     parse_varargs("O", &parr);
-
+    
+    init_pool(calc_size(1, 1));
     nparray _arr(dt_double, 1, parr);
     
     view<npy_double> arr(_arr);
@@ -107,6 +109,7 @@ static py_ptr azi_inc(py_varargs)
                   &deg, &pmean_coords, &pmean_coords, &pcoords,
                   &is_lonlat, &max_iter);
     
+    init_pool(calc_size(1, 1) + calc_size(3, 2));
     nparray _mean_coords(dt_double, 1, pmean_coords),
             _coeffs(dt_double, 2, pcoeffs), _coords(dt_double, 2, pcoords),
             _azi_inc(dt_double, empty, 'c', npy_intp(_coords.shape[0]), 2);
@@ -134,6 +137,7 @@ static py_ptr asc_dsc_select(py_keywords)
     
     parse_keywords("OO|d:asc_dsc_select", &parr1, &parr2, &max_sep);
     
+    init_pool(calc_size(1, 1) + calc_size(2, 2));
     nparray _arr1(dt_double, 2, parr1), _arr2(dt_double, 2, parr2),
             _idx(dt_double, zeros, 'c', _arr1.shape[0]);
     
@@ -173,6 +177,7 @@ static py_ptr dominant(py_keywords)
     double max_sep = 100.0;
     parse_keywords("OO|d:dominant", &pasc, &pdsc, &max_sep);
     
+    init_pool(calc_size(2, 2));
     nparray _asc(dt_double, 2, pasc), _dsc(dt_double, 2, pdsc);
     
     uint ncluster = 0, nhermite = 0;

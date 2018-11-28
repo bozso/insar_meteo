@@ -1,4 +1,5 @@
 #include "nparray.hh"
+#include "utils.hh"
 
 #define handle_shape \
 npy_intp _shape[num];\
@@ -10,6 +11,11 @@ va_end(vl)
 
 
 static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim);
+
+size_t calc_size(size_t num_array, size_t numdim)
+{
+    return num_array * numdim * 2 * sizeof(size_t);
+}
 
 
 nparray::nparray(int const typenum, size_t const ndim, PyObject *obj)
@@ -84,19 +90,20 @@ nparray::nparray(int const typenum, newtype const newt, char const layout,
 
 nparray::~nparray()
 {
-    if (strides)
-        PyMem_Del(strides);
+    decref();
+    //if (strides)
+        //PyMem_Del(strides);
     
     strides = shape = NULL;
     
-    if (decref)
+    if (_decref)
         Py_CLEAR(npobj);
 }
 
 
 PyArrayObject* nparray::ret()
 {
-    decref = false;
+    _decref = false;
     return npobj;
 }
 
@@ -141,15 +148,9 @@ static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
     
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
-    size_t *tmp = PyMem_New(size_t, 2 * _ndim);
-    
-    if (tmp == NULL and not PyErr_Occurred()) {
-        // raise Exception
-        return;
-    }
-    
-    arr->strides = tmp;
-    arr->shape = tmp + _ndim;
+    incref();
+    arr->strides = palloc(size_t, 2 * _ndim);
+    arr->shape = arr->strides + _ndim;
     
     npy_intp * strides = PyArray_STRIDES(_array);
     
@@ -162,6 +163,5 @@ static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
     for(size_t ii = _ndim; ii--; )
         arr->shape[ii] = size_t(shape[ii]);
     
-    arr->decref = true;
-    return;
+    arr->_decref = true;
 }

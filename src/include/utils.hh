@@ -21,6 +21,20 @@
 #include <stdio.h>
 #include <string.h>
 
+#define palloc(type, num) (type *) alloc(sizeof(type) * (num))
+
+void incref(void);
+void decref(void);
+
+size_t getref(void);
+size_t getsize(void);
+
+void init_pool(size_t num);
+void init_pool(int num, ...);
+void *alloc(size_t num_bytes);
+void reset_pool(void);
+
+
 typedef const double cdouble;
 
 /*******************************
@@ -54,11 +68,6 @@ static const double rad2deg = 5.729578e+01;
 #define FOR1(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
 
 
-void *operator new(size_t num);
-void operator delete(void *ptr);
-void operator delete[](void *ptr);
-
-
 /****************
  * IO functions *
  ****************/
@@ -73,22 +82,9 @@ void perrorln(char const* perror_str, char const* fmt, ...);
 #define _log println("File: %s line: %d", __FILE__, __LINE__)
 
 
-#define palloc(storage, type, num) (type *) (storage).alloc(sizeof(type) * (num))
-
 enum status {
     ok = 0,
     fail = 1
-};
-
-struct Pool {
-    unsigned char *storage, *ptr;
-    size_t storage_size;
-    
-    Pool(int num, ...);
-    ~Pool();
-    
-    bool init();
-    void *alloc(size_t num_bytes);
 };
 
 

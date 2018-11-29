@@ -74,7 +74,7 @@ void error(char const* fmt, ...);
 void errorln(char const* fmt, ...);
 void perrorln(char const* perror_str, char const* fmt, ...);
 
-#define _log println("File: %s line: %d", __FILE__, __LINE__)
+#define _log printf("File: %s line: %d\n", __FILE__, __LINE__)
 
 
 enum status {

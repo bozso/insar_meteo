@@ -98,7 +98,7 @@ File::~File()
 bool File::open(char const* path, char const* mode)
 {
     if ((_file = fopen(path, mode)) == NULL) {
-        perrorln("open", "Failed to open file \"%s\"", path);
+        //perrorln("open", "Failed to open file \"%s\"", path);
         return true;
     }
     return false;

@@ -1,4 +1,5 @@
 #include "nparray.hh"
+#include "utils.hh"
 
 #define handle_shape \
 npy_intp _shape[num];\
@@ -19,10 +20,11 @@ size_t calc_size(size_t num_array, size_t numdim)
 
 nparray::nparray(int const typenum, size_t const ndim, PyObject *obj)
 {
+    _log;
     npobj = (PyArrayObject*) PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY);
+    _log;
     
-    if (npobj == NULL and not PyErr_Occurred()) {
-        PyErr_Format(PyExc_TypeError, "Failed to convert numpy nparray!");
+    if (npobj == NULL) {
         return;
     }
     

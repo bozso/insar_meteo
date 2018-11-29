@@ -82,15 +82,20 @@ static py_ptr test(py_varargs)
     py_ptr parr(NULL);
     parse_varargs("O", &parr);
     
-    nparray _arr(dt_double, 1, parr); check_error;
+    np_ptr aa = (np_ptr) PyArray_FROM_OTF(parr, dt_double, NPY_ARRAY_IN_ARRAY);
+    if (aa == NULL)
+        return NULL;
     
-    view<npy_double> arr(_arr);
+    size_t n = PyArray_SHAPE(aa)[0];
     
-    FORZ(ii, arr.shape[0])
-        printf("%lf ", arr(ii));
+    double sum = 0.0;
+    
+    FORZ(ii, n)
+        sum += *(double*) PyArray_GETPTR1(aa, ii) + 1.0;
+    
+    printf("Sum: %lf\n", sum);
 
-    printf("\n");
-
+    Py_CLEAR(aa);
     Py_RETURN_NONE;
 }
 

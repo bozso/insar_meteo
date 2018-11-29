@@ -23,23 +23,11 @@
 
 #define palloc(type, num) (type *) alloc(sizeof(type) * (num))
 
-#define check_error        \
-do {                       \
-    if (PyErr_Occurred())  \
-        return NULL;       \
+#define check_error                \
+do {                               \
+    if (PyErr_Occurred() != NULL)  \
+        return NULL;               \
 } while(0)
-
-
-void incref(void);
-void decref(void);
-
-size_t getref(void);
-size_t getsize(void);
-
-void init_pool(size_t num);
-void init_pool(int num, ...);
-void *alloc(size_t num_bytes);
-void reset_pool(void);
 
 
 typedef const double cdouble;

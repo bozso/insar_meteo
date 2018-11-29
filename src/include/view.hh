@@ -17,9 +17,9 @@ struct view {
          data(data), ndim(ndim), shape(shape), strides(strides) {};
 
     view(nparray const& arr): data((T*) PyArray_DATA(arr.npobj)), ndim(arr.ndim),
-                              shape(arr.shape), strides(arr.strides) { incref(); };
+                              shape(arr.shape), strides(arr.strides) {};
     
-    ~view() { decref(); };
+    ~view() {};
 
     #if 0
     #ifndef __INMET_IMPL

@@ -6,7 +6,6 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-size_t calc_size(size_t num_array, size_t numdim);
 
 enum dtype {
     dt_double = NPY_DOUBLE,

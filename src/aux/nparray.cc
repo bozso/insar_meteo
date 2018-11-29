@@ -1,5 +1,4 @@
 #include "nparray.hh"
-#include "utils.hh"
 
 #define handle_shape \
 npy_intp _shape[num];\
@@ -90,9 +89,8 @@ nparray::nparray(int const typenum, newtype const newt, char const layout,
 
 nparray::~nparray()
 {
-    decref();
-    //if (strides)
-        //PyMem_Del(strides);
+    if (strides)
+        PyMem_Del(strides);
     
     strides = shape = NULL;
     
@@ -110,7 +108,7 @@ PyArrayObject* nparray::ret()
 
 bool nparray::check_rows(size_t const rows) const
 {
-    if (shape[0] != rows) {
+    if (shape[0] != rows and PyErr_Occurred() == NULL) {
         PyErr_Format(PyExc_TypeError, "Expected array to have rows %u but got "
                      "array with rows %u.", rows, shape[0]);
         return true;
@@ -121,7 +119,7 @@ bool nparray::check_rows(size_t const rows) const
 
 bool nparray::check_cols(size_t const cols) const
 {
-    if (shape[1] != cols) {
+    if (shape[1] != cols and PyErr_Occurred() == NULL) {
         PyErr_Format(PyExc_TypeError, "Expected array to have cols %u but got "
                      "array with cols %u.", cols, shape[1]);
         return true;
@@ -137,9 +135,10 @@ bool nparray::is_f_cont() const {
 
 static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
 {
+    bool noerr = PyErr_Occurred() == NULL;
     size_t _ndim = size_t(PyArray_NDIM(_array));
     
-    if (edim and (edim != _ndim) and not PyErr_Occurred()) {
+    if (edim and (edim != _ndim) and noerr) {
         PyErr_Format(PyExc_TypeError, "numpy nparray expected to be %u "
                     "dimensional but we got %u dimensional nparray!",
                     edim, _ndim);
@@ -148,8 +147,15 @@ static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
     
     int elemsize = int(PyArray_ITEMSIZE(_array));
     
-    incref();
-    arr->strides = palloc(size_t, 2 * _ndim);
+    size_t *tmp = PyMem_New(size_t, 2 * _ndim);
+    
+    if (tmp == NULL and noerr) {
+        PyErr_Format(PyExc_MemoryError, "Could not allocate memory for numpy "
+                     "array shapes and strides.");
+        return;
+    }
+    
+    arr->strides = tmp;
     arr->shape = arr->strides + _ndim;
     
     npy_intp * strides = PyArray_STRIDES(_array);

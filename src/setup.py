@@ -14,33 +14,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from os.path import join
-from numpy.distutils.core import Extension, setup
+from distutils.ccompiler import new_compiler
 
 
 def main():
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     #flags = ["-std=c++03", "-O0", "-save-temps"]
     flags = ["-std=c++11", "-O0"]
-    macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
-    inc_dirs = ["/home/istvan/miniconda3/include", "include"]
+    macros = []
+    inc_dirs = ["/home/istvan/miniconda3/include", "include", "backup"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
-    satorbit = join("aux", "satorbit.cc")
-    utils = join("aux", "utils.cc")
-    nparray = join("aux", "nparray.cc")
+    sources = ("satorbit.cc", "utils.cc", "test.cc")
     
-    sources = ["inmet_auxmodule.cc", satorbit, utils, nparray, "tpl_spec.cc"]
+    comp = new_compiler()
+    for inc in inc_dirs:
+        comp.add_include_dir(inc)
     
-    ext_modules = [
-        Extension(name="inmet_aux", sources=sources,
-                  define_macros=macros,
-                  extra_compile_args=flags,
-                  library_dirs=lib_dirs,
-                  libraries=["m"],
-                  include_dirs=inc_dirs)
-    ]
+    comp.compile(sources, extra_preargs=flags)
+    #sources = (comp.compile((source), extra_preargs=flags)[0] for source in sources)
+    comp.link_shared_lib(tuple(sources), "libtest")
     
-    setup(ext_modules=ext_modules)
+    
 
 if __name__ == "__main__":
     main()

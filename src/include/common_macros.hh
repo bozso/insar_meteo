@@ -1,7 +1,5 @@
-#ifndef CAPI_MACROS_HPP
-#define CAPI_MACROS_HPP
-
-#include "Python.h"
+#ifndef COMMON_MACROS_HH
+#define COMMON_MACROS_HH
 
 // some functions are inline, in case your compiler doesn't like "static inline"
 // but wants "__inline__" or something instead, #define DG_DYNARR_INLINE accordingly.
@@ -24,11 +22,11 @@
 
 
 #ifndef DG_DYNARR_MALLOC
-	#define Mem_New(elem_type, n_elem) PyMem_New(elem_type, n_elem)
+	#define Mem_New(elem_type, n_elem) (elem_type*) malloc(sizeof(elem_type) * n_elem)
 
-	#define Mem_Resize(ptr, elem_type, new_n_elem) PyMem_Resize(ptr, elem_type, new_n_elem)
+	#define Mem_Resize(ptr, elem_type, new_n_elem) realloc(ptr, sizeof(elem_type) * new_n_elem)
 
-	#define Mem_Del(ptr) PyMem_Del(ptr)
+	#define Mem_Del(ptr) free(ptr)
 #endif
 
 #endif

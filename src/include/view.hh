@@ -1,54 +1,31 @@
-#ifndef ARRAY_HH
-#define ARRAY_HH
-
-#include <stddef.h>
-
-#include "nparray.hh"
-#include "utils.hh"
+#ifndef VIEW_HH
+#define VIEW_HH
 
 
 template<class T>
 struct view {
     T *data;
-    size_t ndim, *shape, *strides;
+    size_t ndim, *shape, *strides, *shift;
 
-    view(): data(NULL) {};
-    view(T *data, size_t const ndim, size_t const* shape, size_t const* strides):
-         data(data), ndim(ndim), shape(shape), strides(strides) {};
-
-    view(nparray const& arr): data((T*) PyArray_DATA(arr.npobj)), ndim(arr.ndim),
-                              shape(arr.shape), strides(arr.strides) {};
+    view(): data(NULL), ndim(0), shape(NULL), strides(NULL) {};
+    view(T *data, ssize_t const ndim, ssize_t const* shape, ssize_t const* strides):
+         data(data), ndim(ndim), shape(shape), strides(strides)
+    { setup_view(strides, ndim, sizeof(T)) };
     
-    ~view() {};
-
-    #if 0
-    #ifndef __INMET_IMPL
-    view(T *_data, ...);
-    #else
-    view(T * _data, ...) {
-        va_list vl;
-        size_t shape_sum = 0;
-        
-        va_start(vl, _data);
-        
-        for(size_t ii = 0; ii < ndim; ++ii)
-            shape[ii] = size_t(va_arg(vl, int));
-        
-        va_end(vl);
-        
-        for(size_t ii = 0; ii < ndim; ++ii) {
-            shape_sum = 1;
-            
-            for(size_t jj = ii + 1; jj < ndim; ++jj)
-                 shape_sum *= shape[jj];
-            
-            strides[ii] = shape_sum;
-        }
-        data = _data;
-    }
-    #endif
-    #endif
+    size_t const shape(size_t ii) { return
     
+    //view(nparray const& arr): data((T*) PyArray_DATA(arr.npobj)), ndim(arr.ndim),
+                              //shape(arr.shape), strides(arr.strides) {};
+    
+    
+    
+    ~view()
+    {
+        if (shift != NULL)
+            Mem_Del(shift);
+    };
+
+
     T& operator()(size_t const ii) {
         return data[ii * strides[0]];
     }

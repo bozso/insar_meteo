@@ -23,17 +23,21 @@
 
 #define palloc(type, num) (type *) alloc(sizeof(type) * (num))
 
-#define check_error                \
-do {                               \
-    if (PyErr_Occurred() != NULL)  \
-        return NULL;               \
-} while(0)
-
 
 enum status {
     err_ok = 0,
     err_some
-}
+};
+
+#define check_error                \
+do {                               \
+    status const err = err_get();  \
+    if (err)                       \
+        return err;                \
+} while(0)
+
+
+
 
 bool err_test_and_clear(int& err);
 void err_set(status const& err);
@@ -86,12 +90,6 @@ void errorln(char const* fmt, ...);
 void perrorln(char const* perror_str, char const* fmt, ...);
 
 #define _log printf("File: %s line: %d\n", __FILE__, __LINE__)
-
-
-enum status {
-    ok = 0,
-    fail = 1
-};
 
 
 struct File {

@@ -93,7 +93,7 @@ static py_ptr test(py_varargs)
     FORZ(ii, n)
         sum += *(double*) PyArray_GETPTR1(aa, ii) + 1.0;
     
-    printf("Sum: %lf\n", sum);
+    //printf("Sum: %lf\n", sum);
 
     Py_CLEAR(aa);
     Py_RETURN_NONE;

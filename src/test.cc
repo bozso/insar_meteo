@@ -7,5 +7,5 @@ extern "C" void test(double *arr, size_t shape)
     FORZ(ii, shape)
         sum += arr[ii] + 1.0;
 
-    printf("Sum: %lf\n", sum);
+    //printf("Sum: %lf\n", sum);
 }

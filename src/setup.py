@@ -20,20 +20,18 @@ from distutils.ccompiler import new_compiler
 def main():
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     #flags = ["-std=c++03", "-O0", "-save-temps"]
-    flags = ["-std=c++11", "-O0"]
+    flags = ["-std=c++11", "-O3", "-fPIC"]
     macros = []
     inc_dirs = ["/home/istvan/miniconda3/include", "include", "backup"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
-    sources = ("satorbit.cc", "utils.cc", "test.cc")
+    #sources = ("satorbit.cc", "utils.cc", "test.cc")
+    sources = ["test.cc"]
     
     comp = new_compiler()
-    for inc in inc_dirs:
-        comp.add_include_dir(inc)
     
-    comp.compile(sources, extra_preargs=flags)
-    #sources = (comp.compile((source), extra_preargs=flags)[0] for source in sources)
-    comp.link_shared_lib(tuple(sources), "libtest")
+    sources = comp.compile(sources, extra_preargs=flags, include_dirs=inc_dirs)
+    comp.link_shared_lib(sources, "ctypes")
     
     
 

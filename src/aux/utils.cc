@@ -18,7 +18,7 @@
 
 #include "utils.hh"
 
-thread_local static int error = err_ok;
+thread_local static status error = err_ok;
 
 bool err_test_and_clear(int& err)
 {
@@ -38,6 +38,7 @@ void err_clear(void) { error = err_ok; }
 status const err_get(void) { return error; }
 
 
+#if 0
 thread_local static struct _Pool {
     unsigned char *mem, *ptr;
     size_t refcount, storage_size;
@@ -50,7 +51,7 @@ void decref(void)
 {
     if (--(Pool.refcount) == 0)  {
         Pool.storage_size = 0;
-        PyMem_Del(Pool.mem);
+        Mem_Del(Pool.mem);
         Pool.mem = Pool.ptr = NULL;
     }
 }
@@ -65,7 +66,7 @@ void init_pool(size_t num)
     Pool.storage_size = num;
     Pool.refcount = 0;
     
-    if ((Pool.mem = PyMem_New(unsigned char, num)) == NULL) {
+    if ((Pool.mem = Mem_New(unsigned char, num)) == NULL) {
         // raise Exception
     }
     Pool.ptr = Pool.mem;
@@ -98,11 +99,11 @@ void reset_pool(void)
 {
     if (Pool.storage_size) {
         Pool.refcount = 0;
-        PyMem_Del(Pool.mem);
+        Mem_Del(Pool.mem);
         Pool.mem = Pool.ptr = NULL;
     }
 }
-
+#endif
 
 File::~File()
 {

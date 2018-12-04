@@ -20,14 +20,14 @@ static py_ptr ell_to_merc(py_varargs)
 
     parse_varargs("OOdddII", &plon, &plat, &lon0, &a, &e, &isdeg, &fast);
     
-    nparray _lon(dt_double, 1, plon), _lat(dt_double, 1, plat);
+    nparray _lon(np_cdouble, 1, plon), _lat(np_cdouble, 1, plat);
     
     size_t rows = _lon.shape[0];
     
     if (_lat.check_rows(rows))
         return NULL;
     
-    nparray _xy(dt_double, empty, 'c', npy_intp(rows), 2);
+    nparray _xy(np_cdouble, empty, 'c', npy_intp(rows), 2);
     
     view<double> lon(_lon), lat(_lat), xy(_xy);
     
@@ -82,20 +82,26 @@ static py_ptr test(py_varargs)
     py_ptr parr(NULL);
     parse_varargs("O", &parr);
     
-    np_ptr aa = (np_ptr) PyArray_FROM_OTF(parr, dt_double, NPY_ARRAY_IN_ARRAY);
-    if (aa == NULL)
-        return NULL;
+    printf("%p\n", parr);
     
-    size_t n = PyArray_SHAPE(aa)[0];
+    np_ptr aa = (np_ptr) PyArray_FROM_OTF(parr, np_cdouble, NPY_ARRAY_IN_ARRAY);
+    
+    _log;
+    nparray _arr(np_cdouble, 1, parr);
+    _log;
+    err_check(NULL);
+    
+    view<npy_double> arr(_arr);
+    
+    size_t n = _arr.shape[0];
     
     double sum = 0.0;
     
     FORZ(ii, n)
-        sum += *(double*) PyArray_GETPTR1(aa, ii) + 1.0;
+        sum += arr(ii) + 1.0;
     
-    //printf("Sum: %lf\n", sum);
+    printf("Sum: %lf\n", sum);
 
-    Py_CLEAR(aa);
     Py_RETURN_NONE;
 }
 
@@ -112,10 +118,10 @@ static py_ptr azi_inc(py_varargs)
                   &deg, &pmean_coords, &pmean_coords, &pcoords,
                   &is_lonlat, &max_iter);
     
-    nparray _mean_coords(dt_double, 1, pmean_coords),
-            _coeffs(dt_double, 2, pcoeffs), _coords(dt_double, 2, pcoords),
-            _azi_inc(dt_double, empty, 'c', npy_intp(_coords.shape[0]), 2);
-    check_error;
+    nparray _mean_coords(np_cdouble, 1, pmean_coords),
+                _coeffs(np_cdouble, 2, pcoeffs), _coords(np_cdouble, 2, pcoords),
+                _azi_inc(np_cdouble, empty, 'c', npy_intp(_coords.shape[0]), 2);
+    err_check(NULL);
     
     view<npy_double> coeffs(_coeffs), coords(_coords), azi_inc(_azi_inc);
     
@@ -140,8 +146,9 @@ static py_ptr asc_dsc_select(py_keywords)
     
     parse_keywords("OO|d:asc_dsc_select", &parr1, &parr2, &max_sep);
     
-    nparray _arr1(dt_double, 2, parr1), _arr2(dt_double, 2, parr2),
-            _idx(dt_double, zeros, 'c', _arr1.shape[0]); check_error;
+    nparray _arr1(np_cdouble, 2, parr1), _arr2(np_cdouble, 2, parr2),
+            _idx(np_cdouble, zeros, 'c', _arr1.shape[0]);
+    err_check(NULL);
     
     max_sep /=  R_earth;
     max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
@@ -179,7 +186,8 @@ static py_ptr dominant(py_keywords)
     double max_sep = 100.0;
     parse_keywords("OO|d:dominant", &pasc, &pdsc, &max_sep);
     
-    nparray _asc(dt_double, 2, pasc), _dsc(dt_double, 2, pdsc); check_error;
+    nparray _asc(np_cdouble, 2, pasc), _dsc(np_cdouble, 2, pdsc);
+    err_check(NULL);
     
     uint ncluster = 0, nhermite = 0;
     

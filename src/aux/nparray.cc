@@ -12,19 +12,41 @@ va_end(vl)
 
 static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim);
 
+
 size_t calc_size(size_t num_array, size_t numdim)
 {
     return num_array * numdim * 2 * sizeof(size_t);
+}
+
+nparray::nparray(int const typenum, size_t const ndim, PyArrayObject *obj) :
+typenum(typenum), ndim(ndim), npobj(obj)
+{
+    setup_array(this, obj, 0);
 }
 
 
 nparray::nparray(int const typenum, size_t const ndim, PyObject *obj)
 {
     _log;
+    err_check();
+    _log;
     npobj = (PyArrayObject*) PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY);
     _log;
     
-    if (npobj == NULL) {
+    if (this->npobj == NULL) {
+        return;
+    }
+    
+    setup_array(this, npobj, ndim);
+}
+
+
+nparray::nparray(size_t const ndim, PyObject *obj)
+{
+    err_check();
+    npobj = (PyArrayObject*) PyArray_FROM_OF(obj, NPY_ARRAY_IN_ARRAY);
+    
+    if (this->npobj == NULL) {
         return;
     }
     
@@ -34,6 +56,7 @@ nparray::nparray(int const typenum, size_t const ndim, PyObject *obj)
 
 nparray::nparray(int const typenum, void *data, size_t num, ...)
 {
+    err_check();
     handle_shape;
     npobj = (PyArrayObject*) PyArray_SimpleNewFromData(num, _shape, typenum, data);
     
@@ -49,8 +72,9 @@ nparray::nparray(int const typenum, void *data, size_t num, ...)
 nparray::nparray(int const typenum, newtype const newt, char const layout,
                  size_t num, ...)
 {
+    err_check();
     handle_shape;
-    int fortran;
+    int fortran = 0;
     
     switch (layout) {
         case 'C':
@@ -97,7 +121,7 @@ nparray::~nparray()
     strides = shape = NULL;
     
     if (_decref)
-        Py_CLEAR(npobj);
+        PyArray_XDECREF(npobj);
 }
 
 
@@ -129,18 +153,41 @@ bool nparray::check_cols(size_t const cols) const
     return false;
 }
 
+bool nparray::is_f_cont() const { return PyArray_IS_F_CONTIGUOUS(npobj); }
 
-bool nparray::is_f_cont() const {
-    return PyArray_IS_F_CONTIGUOUS(npobj);
+bool nparray::is_zero_dim() const { return PyArray_IsZeroDim(npobj); }
+
+bool nparray::check_scalar() const { return PyArray_CheckScalar(npobj); }
+
+bool nparray::is_python_number() const { return PyArray_IsPythonNumber(npobj); }
+
+bool nparray::is_python_scalar() const { return PyArray_IsPythonScalar(npobj); }
+
+bool nparray::is_not_swapped() const { return PyArray_ISNOTSWAPPED(npobj); }
+
+bool nparray::is_byte_swapped() const { return PyArray_ISBYTESWAPPED(npobj); }
+
+bool nparray::can_cast_to(int const totypenum)
+{
+    return PyArray_CanCastTo(PyArray_DescrFromType(typenum),
+                             PyArray_DescrFromType(totypenum));
+}
+
+
+nparray nparray::cast_to_type(int const typenum)
+{
+    PyArrayObject *tmp = (PyArrayObject*) PyArray_Cast(npobj, typenum);
+    nparray ret(typenum, ndim, tmp);
+    return ret;
 }
 
 
 static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
 {
-    bool noerr = PyErr_Occurred() == NULL;
+    err_check();
     size_t _ndim = size_t(PyArray_NDIM(_array));
     
-    if (edim and (edim != _ndim) and noerr) {
+    if (edim and (edim != _ndim)) {
         PyErr_Format(PyExc_TypeError, "numpy nparray expected to be %u "
                     "dimensional but we got %u dimensional nparray!",
                     edim, _ndim);
@@ -151,7 +198,7 @@ static void setup_array(nparray *arr, PyArrayObject *_array, size_t const edim)
     
     size_t *tmp = PyMem_New(size_t, 2 * _ndim);
     
-    if (tmp == NULL and noerr) {
+    if (tmp == NULL) {
         PyErr_Format(PyExc_MemoryError, "Could not allocate memory for numpy "
                      "array shapes and strides.");
         return;

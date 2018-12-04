@@ -1,29 +1,24 @@
 #ifndef VIEW_HH
 #define VIEW_HH
 
+#include "nparray.hh"
 
 template<class T>
 struct view {
     T *data;
-    size_t ndim, *shape, *strides, *shift;
+    size_t ndim, *shape, *strides;
 
     view(): data(NULL), ndim(0), shape(NULL), strides(NULL) {};
-    view(T *data, ssize_t const ndim, ssize_t const* shape, ssize_t const* strides):
-         data(data), ndim(ndim), shape(shape), strides(strides)
-    { setup_view(strides, ndim, sizeof(T)) };
+    //view(T *data, ssize_t const ndim, ssize_t const* shape, ssize_t const* strides):
+         //data(data), ndim(ndim), shape(shape), strides(strides)
+    //{ setup_view(strides, ndim, sizeof(T)) };
     
-    size_t const shape(size_t ii) { return
-    
-    //view(nparray const& arr): data((T*) PyArray_DATA(arr.npobj)), ndim(arr.ndim),
-                              //shape(arr.shape), strides(arr.strides) {};
+    view(nparray const& arr): data((T*) PyArray_DATA(arr.npobj)), ndim(arr.ndim),
+                              shape(arr.shape), strides(arr.strides) {};
     
     
     
-    ~view()
-    {
-        if (shift != NULL)
-            Mem_Del(shift);
-    };
+    ~view() {};
 
 
     T& operator()(size_t const ii) {

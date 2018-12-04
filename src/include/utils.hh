@@ -29,20 +29,20 @@ enum status {
     err_some
 };
 
-#define check_error                \
+#define err_check(ret)             \
 do {                               \
-    status const err = err_get();  \
-    if (err)                       \
-        return err;                \
+    if (PyErr_Occurred() != NULL)  \
+        return ret;                \
 } while(0)
 
 
 
-
+#if 0
 bool err_test_and_clear(int& err);
 void err_set(status const& err);
 void err_clear(void);
 status const err_get(void);
+#endif
 
 
 typedef const double cdouble;
@@ -82,12 +82,12 @@ static const double rad2deg = 5.729578e+01;
  * IO functions *
  ****************/
 
-void print(char const* fmt, ...);
-void println(char const* fmt, ...);
+//void print(char const* fmt, ...);
+//void println(char const* fmt, ...);
 
-void error(char const* fmt, ...);
-void errorln(char const* fmt, ...);
-void perrorln(char const* perror_str, char const* fmt, ...);
+//void error(char const* fmt, ...);
+//void errorln(char const* fmt, ...);
+//void perrorln(char const* perror_str, char const* fmt, ...);
 
 #define _log printf("File: %s line: %d\n", __FILE__, __LINE__)
 

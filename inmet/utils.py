@@ -14,10 +14,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from argparse import ArgumentParser
-from subprocess import check_output, CalledProcessError
+from subprocess import check_output, CalledProcessError, STDOUT
 from shlex import split
 from logging import getLogger
-from inmet.inmet_aux import ell_to_merc_full, ell_to_merc_fast 
+#from inmet.inmet_aux import ell_to_merc_full, ell_to_merc_fast 
 
 log = getLogger("inmet.utils")
 
@@ -106,7 +106,7 @@ def cmd(Cmd, *args, debug=False):
         return None
     
     try:
-        cmd_out = check_output(split(Cmd), stderr=sub.STDOUT)
+        cmd_out = check_output(split(Cmd), stderr=STDOUT)
 
     except CalledProcessError as e:
         print("ERROR: Non zero returncode from command: '{}'".format(Cmd))

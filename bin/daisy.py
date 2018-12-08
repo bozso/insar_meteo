@@ -29,7 +29,7 @@ Options:
 """.format(", ".join(_steps))
 
 from inmet.utils import cmd
-from inmet.docopt import docopt
+
 
 def data_select(argv):
     """
@@ -46,18 +46,8 @@ def data_select(argv):
 
 def main():
     
-    args = docopt(daisy__doc__, options_first=True)
-    
-    command = args["<command>"]
-    argv = [command] + args["<args>"]
-    
-    if command == "data_select":
-        data_select(argv)
-    
-    else:
-        raise ValueError("Unknown command: \"{}\"".format(command))
-    
-    return 0
+    cmd("/home/istvan/progs/insar_meteo/bin/fit_orbit.py")
+
     
 if __name__ == "__main__":
     main()

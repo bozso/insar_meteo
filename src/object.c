@@ -1,0 +1,53 @@
+#include "object.h"
+#include <stdlib.h>
+#include <assert.h>
+#include <iso646.h>
+
+
+var new(const var _class, ...)
+{
+    const object *class = _class;
+    var p = calloc(1, class->size);
+    
+    assert(p);
+    
+    * (const object **) p = class;
+    ((object *)p)->refcount = 0;
+    
+    if (class->ctor) {
+        va_list ap;
+        
+        va_start(ap, _class);
+
+        p = class->ctor(p, &ap);
+        ((object *)p)->refcount = 1;
+        
+        va_end(ap);
+    }
+    return p;
+}
+
+
+var ref(var _class)
+{
+    ((object *)_class)->refcount++;
+    return _class;
+}
+
+
+void incref(var _class)
+{
+    ((object *)_class)->refcount++;
+}
+
+
+void decref(var self)
+{
+    object **cp = self;
+    
+    if (self and *cp and --((*cp)->refcount) == 0 and (*cp)->dtor) {
+        self = (*cp)->dtor(self);
+        free(self);
+    }
+}
+

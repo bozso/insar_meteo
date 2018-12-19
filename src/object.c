@@ -6,13 +6,14 @@
 
 var new(const var _class, ...)
 {
-    const object *class = _class;
+    
+    const Object *class = _class;
     var p = calloc(1, class->size);
     
     assert(p);
     
-    * (const object **) p = class;
-    ((object *)p)->refcount = 0;
+    * (const Object **) p = class;
+    ((Object *)p)->refcount = 0;
     
     if (class->ctor) {
         va_list ap;
@@ -20,7 +21,7 @@ var new(const var _class, ...)
         va_start(ap, _class);
 
         p = class->ctor(p, &ap);
-        ((object *)p)->refcount = 1;
+        ((Object *)p)->refcount = 1;
         
         va_end(ap);
     }
@@ -30,20 +31,20 @@ var new(const var _class, ...)
 
 var ref(var _class)
 {
-    ((object *)_class)->refcount++;
+    ((Object *)_class)->refcount++;
     return _class;
 }
 
 
 void incref(var _class)
 {
-    ((object *)_class)->refcount++;
+    ((Object *)_class)->refcount++;
 }
 
 
 void decref(var self)
 {
-    object **cp = self;
+    Object **cp = self;
     
     if (self and *cp and --((*cp)->refcount) == 0 and (*cp)->dtor) {
         self = (*cp)->dtor(self);

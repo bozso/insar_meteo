@@ -22,14 +22,18 @@ def main():
     #flags = ["-std=c++03", "-O0", "-save-temps"]
     flags = ["-std=c11", "-O0"]
     macros = []
+    libs = []
     inc_dirs = ["/home/istvan/miniconda3/include", "include", "backup"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
-    sources = ("String.c", "object.c")
+    sources = ("ref.c", "File.c", "inmet.c")
     
     comp = new_compiler()
     
     sources = comp.compile(sources, extra_preargs=flags, include_dirs=inc_dirs)
+    
+    comp.link_executable(sources, join("..", "bin", "inmet"), libraries=libs,
+                         library_dirs=lib_dirs, extra_postargs=flags)
     
     
 

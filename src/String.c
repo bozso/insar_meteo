@@ -26,9 +26,14 @@ static var string_dtor(var _self)
     return self;
 }
 
+static char const* string_str(var const _self)
+{
+    return ((string const*)_self)->str;
+}
 
-static const object _String = {
-    sizeof(string), 0, &string_ctor, &string_dtor
+
+static const Object _String = {
+    sizeof(string), 0, &string_ctor, &string_dtor, &string_str
 };
 
 const var String = &_String;

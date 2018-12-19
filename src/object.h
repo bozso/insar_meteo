@@ -4,13 +4,18 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+#define ObjCast(obj) ((Object const*)(obj))
+
+#define str(obj) (ObjCast(obj)->str((obj)))
+
 typedef void* var;
 
-typedef struct _object {
+typedef struct _Object {
     size_t size, refcount;
     var (*ctor)(var self, va_list *app);
     var (*dtor)(var self);
-} object;
+    char const* (*str)(var const self);
+} Object;
 
 var new(const var _class, ...);
 

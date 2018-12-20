@@ -3,14 +3,15 @@
 #include "File.h"
 #include "common.h"
 
+
 int main()
 {
     File *file = open("asd.txt", "w");
     
-    if (not(file))
+    if (not file)
         return 1;
     
-    write(file, "blah\n");
+    write(file, "asd\n");
 
     del(file);
     

@@ -3,6 +3,7 @@
 
 #include "File.h"
 #include "common.h"
+#include "utils.h"
 
 static void
 dtor_(void *obj);
@@ -10,10 +11,15 @@ dtor_(void *obj);
 File *
 open(char const* path, char const* mode)
 {
-    File *new = Mem_Malloc(File, 1);
+    File *new;
+    
+    if ((new = Mem_New(File, 1)) == NULL) {
+        return NULL;
+    }
     
     if ((new->_file = fopen(path, mode)) == NULL) {
-        //perror("open: Could not open file: %s ", path);
+        Perror("open", "Could not open file: %s\n", path);
+        Mem_Free(new);
         return NULL;
     }
     

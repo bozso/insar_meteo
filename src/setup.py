@@ -26,9 +26,13 @@ def main():
     inc_dirs = ["/home/istvan/miniconda3/include", "include", "backup"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
-    ref = join("aux", "ref.c")
-    File = join("aux", "File.c")
-    sources = (ref, File, "inmet.c")
+    sources = []
+    
+    sources.append(join("aux", "utils.c"))
+    #sources.append(join("aux", "Object.c"))
+    #sources.append(join("aux", "String.c"))
+    sources.append(join("aux", "File.c"))
+    sources.append("inmet.c")
     
     comp = new_compiler()
     

@@ -26,7 +26,9 @@ def main():
     inc_dirs = ["/home/istvan/miniconda3/include", "include", "backup"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
-    sources = ("ref.c", "File.c", "inmet.c")
+    ref = join("aux", "ref.c")
+    File = join("aux", "File.c")
+    sources = (ref, File, "inmet.c")
     
     comp = new_compiler()
     
@@ -34,7 +36,6 @@ def main():
     
     comp.link_executable(sources, join("..", "bin", "inmet"), libraries=libs,
                          library_dirs=lib_dirs, extra_postargs=flags)
-    
     
 
 if __name__ == "__main__":

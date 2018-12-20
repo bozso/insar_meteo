@@ -3,17 +3,16 @@
 
 #include <stdio.h>
 
-#include "ref.h"
+#include "common.h"
 
 typedef struct _File {
     FILE *_file;
-    ref *refc;
+    dtor dtor_;
 } File;
 
 
-File
+File *
 open(char const* path, char const* mode);
-
 
 int
 write(File const *file, char const* fmt, ...);

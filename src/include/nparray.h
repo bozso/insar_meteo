@@ -5,18 +5,18 @@
 
 #include "numpy/ndarrayobject.h"
 
-typedef enum _newtype {
-    empty,
-    zeros
-} newtype;
-
-
 struct nparray {
     int typenum;
     size_t ndim, *shape, *strides;
     PyArrayObject *npobj;
-    ref *refc;
+    dtor dtor_;
 }
+
+
+typedef enum _newtype {
+    empty,
+    zeros
+} newtype;
 
 
 typedef enum _dtype {

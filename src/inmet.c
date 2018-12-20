@@ -1,13 +1,18 @@
 #include <stdio.h>
+
 #include "File.h"
+#include "common.h"
 
 int main()
 {
-    File file = open("asd.txt", "w");
+    File *file = open("asd.txt", "w");
     
-    write(&file, "blah");
+    if (not(file))
+        return 1;
     
-    decref(file);
+    write(file, "blah\n");
+
+    del(file);
     
     return 0;
 }

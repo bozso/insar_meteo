@@ -1,22 +1,27 @@
 #include <stdlib.h>
 #include <stdarg.h>
+
 #include "File.h"
+#include "common.h"
 
 static void
-File_free(void *obj);
+dtor_(void *obj);
 
-File
+File *
 open(char const* path, char const* mode)
 {
-    File tmp = (File){fopen(path, mode), NULL};
+    File *new = Mem_Malloc(File, 1);
     
-    tmp.refc = calloc(1, sizeof(ref));
-    tmp.refc->obj = &tmp;
-    tmp.refc->count = 1;
-    tmp.refc->free = &File_free;
+    if ((new->_file = fopen(path, mode)) == NULL) {
+        //perror("open: Could not open file: %s ", path);
+        return NULL;
+    }
     
-    return tmp;
+    new->dtor_ = &dtor_;
+
+    return new;
 }
+
 
 int
 write(File const *file, char const* fmt, ...)
@@ -31,7 +36,7 @@ write(File const *file, char const* fmt, ...)
 
 
 static void
-File_free(void *obj)
+dtor_(void *obj)
 {
     fclose(((File *)obj)->_file);
     ((File *)obj)->_file = NULL;

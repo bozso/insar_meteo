@@ -12,9 +12,18 @@
 #define Mem_Free(ptr) free((ptr))
 
 
-#if 1
+#ifdef __cplusplus
+#define extern_begin extern "C" {
+#define extern_end }
+#else
+#define extern_begin
+#define extern_end
+#endif
+
+
 typedef void (*dtor)(void *);
 
+#if 1
 #define del(obj)                \
 do{                             \
     if ((obj)) {                \

@@ -2,6 +2,9 @@
 #define NPARRAY_HH
 
 #include <stddef.h>
+#include "common.h"
+
+extern_begin
 
 #include "numpy/ndarrayobject.h"
 
@@ -54,3 +57,6 @@ typedef enum _dtype {
     np_complex128 = NPY_COMPLEX128
 } dtype;
 
+extern_end
+
+#endif

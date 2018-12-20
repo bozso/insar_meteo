@@ -1,9 +1,12 @@
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #include "File.h"
 #include "common.h"
 #include "utils.h"
+
+extern_begin
 
 static void
 dtor_(void *obj);
@@ -29,6 +32,14 @@ open(char const* path, char const* mode)
 }
 
 
+static void
+dtor_(void *obj)
+{
+    fclose(((File *)obj)->_file);
+    ((File *)obj)->_file = NULL;
+}
+
+
 int
 write(File const *file, char const* fmt, ...)
 {
@@ -40,11 +51,16 @@ write(File const *file, char const* fmt, ...)
     return ret;
 }
 
-
-static void
-dtor_(void *obj)
+int
+read(File const *file, char const* fmt, ...)
 {
-    fclose(((File *)obj)->_file);
-    ((File *)obj)->_file = NULL;
+    va_list ap;
+    
+    va_start(ap, fmt);
+    int ret = vfscanf(file->_file, fmt, ap);
+    va_end(ap);
+    return ret;
 }
 
+
+extern_end

@@ -1,17 +1,22 @@
 #include <stdio.h>
 
 #include "File.h"
+#include "utils.h"
 #include "common.h"
 
 
 int main()
 {
-    File *file = open("asd.txt", "w");
+    File *file = open("asd.txt", "r");
+    int num = 0;
     
     if (not file)
         return 1;
     
-    write(file, "asd\n");
+    read(file, "%d\n", &num);
+    printf("%d\n", num);
+    
+    
 
     del(file);
     

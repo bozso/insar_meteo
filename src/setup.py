@@ -30,7 +30,6 @@ def main():
     
     sources.append(join("aux", "utils.c"))
     #sources.append(join("aux", "Object.c"))
-    #sources.append(join("aux", "String.c"))
     sources.append(join("aux", "File.c"))
     sources.append("inmet.c")
     

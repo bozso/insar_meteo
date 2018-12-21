@@ -2,18 +2,19 @@
 #define NPARRAY_HH
 
 #include <stddef.h>
+#include <stdbool.h>
 #include "common.h"
 
 extern_begin
 
 #include "numpy/ndarrayobject.h"
 
-struct nparray {
+typedef struct _nparray {
     int typenum;
     size_t ndim, *shape, *strides;
     PyArrayObject *npobj;
     dtor dtor_;
-}
+} nparray;
 
 
 typedef enum _newtype {
@@ -21,6 +22,21 @@ typedef enum _newtype {
     zeros
 } newtype;
 
+
+nparray * from_otf(int const typenum, size_t const ndim, PyObject* obj);
+nparray * from_of(size_t const ndim, PyObject *obj);
+nparray * from_data(int const typenum, void *data, size_t ndim, npy_intp *shape);
+nparray * newarray(int const typenum, newtype const newt, char const layout,
+                   size_t ndim, npy_intp *shape);
+bool check_rows(nparray *arr, size_t const rows);
+bool check_cols(nparray *arr, size_t const cols);
+bool is_f_cont(nparray *arr);
+bool is_zero_dim(nparray *arr);
+bool check_scalar(nparray *arr);
+bool is_python_number(nparray *arr);
+bool is_not_swapped(nparray *arr);
+bool is_byte_swapped(nparray *arr);
+bool can_cast_to(nparray *arr, int const totypenum);
 
 typedef enum _dtype {
     np_bool = NPY_BOOL,

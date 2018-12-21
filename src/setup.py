@@ -14,24 +14,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from os.path import join
-from distutils.ccompiler import new_compiler
+#from distutils.ccompiler import new_compiler
+from numpy.distutils.core import Extension, setup
 
 
 def main():
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     #flags = ["-std=c++03", "-O0", "-save-temps"]
     flags = ["-std=c11", "-O0"]
-    macros = []
+    macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     libs = []
     inc_dirs = ["/home/istvan/miniconda3/include", "include", "backup"]
     lib_dirs = ["/home/istvan/miniconda3/lib"]
     
     sources = []
-    
     sources.append(join("aux", "utils.c"))
-    #sources.append(join("aux", "Object.c"))
-    sources.append(join("aux", "File.c"))
-    sources.append("inmet.c")
+    sources.append(join("aux", "nparray.c"))
+    sources.append("inmet_aux.c")
+
+    ext_modules = [
+        Extension(name="inmet_aux", sources=sources,
+                  define_macros=macros,
+                  extra_compile_args=flags,
+                  include_dirs=inc_dirs)
+    ]
+
+    setup(ext_modules=ext_modules)
+    return 0
     
     comp = new_compiler()
     

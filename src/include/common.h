@@ -5,11 +5,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define Log printf("File: %s :: Line: %d.\n", __FILE__, __LINE__)
+#define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
 
 #define Mem_New(type, num) (type *) malloc(sizeof(type) * num)
 #define Mem_Malloc(num) malloc(num)
 #define Mem_Free(ptr) free((ptr))
+
+
+#define m_check_fail(condition) \
+do {                            \
+    if ((condition))            \
+        goto fail;              \
+} while(0)
+
+
+#define m_check(condition, expression) \
+do {                                   \
+    if ((condition))                   \
+        (expression);                  \
+} while(0)
 
 
 #ifdef __cplusplus

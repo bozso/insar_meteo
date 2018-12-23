@@ -16,16 +16,22 @@
 from os.path import join
 #from distutils.ccompiler import new_compiler
 from numpy.distutils.core import Extension, setup
-
+from sysconfig import get_config_var
 
 def main():
+    miniconda = "/home/istvan/miniconda3"
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     #flags = ["-std=c++03", "-O0", "-save-temps"]
-    flags = ["-std=c11", "-O0"]
+
+    flags = get_config_var('CFLAGS').split()
+    flags += ["-std=c11"]
+
     macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
+    
+    inc_dirs = [join(miniconda, "include"), "include"]
+    lib_dirs = [join(miniconda, "lib")]
+    
     libs = []
-    inc_dirs = ["/home/istvan/miniconda3/include", "include", "backup"]
-    lib_dirs = ["/home/istvan/miniconda3/lib"]
     
     sources = []
     sources.append(join("aux", "utils.c"))
@@ -41,14 +47,7 @@ def main():
 
     setup(ext_modules=ext_modules)
     return 0
-    
-    comp = new_compiler()
-    
-    sources = comp.compile(sources, extra_preargs=flags, include_dirs=inc_dirs)
-    
-    comp.link_executable(sources, join("..", "bin", "inmet"), libraries=libs,
-                         library_dirs=lib_dirs, extra_postargs=flags)
-    
+
 
 if __name__ == "__main__":
     main()

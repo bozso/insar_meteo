@@ -3,20 +3,16 @@
 
 extern_begin
 
+static nparray * init_array(PyObject const * arr);
 static bool setup_array(nparray *arr, size_t const edim);
 
 nparray * from_otf(int const typenum, size_t const ndim, PyObject* obj)
 {
-    nparray *arr;
-    if ((arr = Mem_New(nparray, 1)) == NULL)
-        return NULL;
-
-    arr->npobj = (PyArrayObject*) PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY);
     
-    if (arr->npobj == NULL) {
-        Mem_Free(arr);
+    nparray *arr = init_array(PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY));
+
+    if (arr == NULL)
         return NULL;
-    }
     
     if (setup_array(arr, ndim)) {
         Mem_Free(arr);
@@ -28,21 +24,16 @@ nparray * from_otf(int const typenum, size_t const ndim, PyObject* obj)
 
 nparray * from_of(size_t const ndim, PyObject *obj)
 {
-    nparray *arr;
-    if ((arr = Mem_New(nparray, 1)) == NULL)
+    nparray *arr = init_array(PyArray_FROM_OF(obj, NPY_ARRAY_IN_ARRAY));
+
+    if (arr == NULL)
         return NULL;
-    
-    arr->npobj = (PyArrayObject*) PyArray_FROM_OF(obj, NPY_ARRAY_IN_ARRAY);
-    
-    if (arr->npobj == NULL) {
-        Mem_Free(arr);
-        return NULL;
-    }
 
     if (setup_array(arr, ndim)) {
         Mem_Free(arr);
         return NULL;
     }
+
     return arr;
 }
 
@@ -50,22 +41,16 @@ nparray * from_of(size_t const ndim, PyObject *obj)
 
 nparray * from_data(int const typenum, void *data, size_t ndim, npy_intp *shape)
 {
-    nparray *arr;
+    nparray *arr = init_array(PyArray_SimpleNewFromData(ndim, shape, typenum, data));
 
-    if ((arr = Mem_New(nparray, 1)) == NULL)
+    if (arr == NULL)
         return NULL;
-    
-    arr->npobj = (PyArrayObject*) PyArray_SimpleNewFromData(ndim, shape, typenum, data);
-    
-    if (arr->npobj == NULL) {
-        Mem_Free(arr);
-        return NULL;
-    }
     
     if (setup_array(arr, 0)) {
         Mem_Free(arr);
         return NULL;
     }
+
     return arr;
 }
 
@@ -73,10 +58,6 @@ nparray * from_data(int const typenum, void *data, size_t ndim, npy_intp *shape)
 nparray * newarray(int const typenum, newtype const newt, char const layout,
                    size_t ndim, npy_intp *shape)
 {
-    nparray *arr;
-    if ((arr = Mem_New(nparray, 1)) == NULL)
-        return NULL;
-
     int fortran = 0;
     
     switch (layout) {
@@ -94,29 +75,30 @@ nparray * newarray(int const typenum, newtype const newt, char const layout,
             break;
     }
     
+    PyObject *npobj = NULL;
     
     switch (newt) {
         case empty:
-            arr->npobj = (PyArrayObject*) PyArray_EMPTY(ndim, shape, typenum, fortran);
+            npobj = PyArray_EMPTY(ndim, shape, typenum, fortran);
             break;
         case zeros:
-            arr->npobj = (PyArrayObject*) PyArray_ZEROS(ndim, shape, typenum, fortran);
+            npobj = PyArray_ZEROS(ndim, shape, typenum, fortran);
             break;
         default:
             // raise Exception
-            Mem_Free(arr);
             return NULL;
     }
     
-    if (arr->npobj == NULL) {
-        Mem_Free(arr);
+    nparray *arr = init_array(npobj);
+
+    if (arr == NULL)
         return NULL;
-    }
-    
+
     if (setup_array(arr, 0)) {
         Mem_Free(arr);
         return NULL;
     }
+
     return arr;
 }
 
@@ -169,6 +151,21 @@ static void dtor_(void *obj)
     Py_XDECREF(((nparray *)obj)->npobj);
 }
 
+
+static nparray * init_array(PyObject const * nparr)
+{
+    if (nparr == NULL)
+        return NULL;
+    
+    nparray *arr = Mem_New(nparray, 1);
+    
+    if (arr == NULL)
+        return NULL;
+
+    arr->npobj = (PyArrayObject*) nparr;
+    
+    return arr;
+}
 
 static bool setup_array(nparray *arr, size_t const edim)
 {

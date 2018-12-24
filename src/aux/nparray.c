@@ -3,13 +3,13 @@
 
 extern_begin
 
-static nparray * init_array(PyObject const * arr);
-static bool setup_array(nparray *arr, size_t const edim);
+static nparray init_array(PyObject const * arr);
+static bool setup_array(nparray arr, size_t const edim);
 
-nparray * from_otf(int const typenum, size_t const ndim, PyObject* obj)
+nparray from_otf(int const typenum, size_t const ndim, PyObject* obj)
 {
     
-    nparray *arr = init_array(PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY));
+    nparray arr = init_array(PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY));
 
     if (arr == NULL)
         return NULL;
@@ -22,9 +22,9 @@ nparray * from_otf(int const typenum, size_t const ndim, PyObject* obj)
 }
 
 
-nparray * from_of(size_t const ndim, PyObject *obj)
+nparray from_of(size_t const ndim, PyObject *obj)
 {
-    nparray *arr = init_array(PyArray_FROM_OF(obj, NPY_ARRAY_IN_ARRAY));
+    nparray arr = init_array(PyArray_FROM_OF(obj, NPY_ARRAY_IN_ARRAY));
 
     if (arr == NULL)
         return NULL;
@@ -39,9 +39,9 @@ nparray * from_of(size_t const ndim, PyObject *obj)
 
 
 
-nparray * from_data(int const typenum, void *data, size_t ndim, npy_intp *shape)
+nparray from_data(int const typenum, void *data, size_t ndim, npy_intp *shape)
 {
-    nparray *arr = init_array(PyArray_SimpleNewFromData(ndim, shape, typenum, data));
+    nparray arr = init_array(PyArray_SimpleNewFromData(ndim, shape, typenum, data));
 
     if (arr == NULL)
         return NULL;
@@ -55,8 +55,8 @@ nparray * from_data(int const typenum, void *data, size_t ndim, npy_intp *shape)
 }
 
 
-nparray * newarray(int const typenum, newtype const newt, char const layout,
-                   size_t ndim, npy_intp *shape)
+nparray newarray(int const typenum, newtype const newt, char const layout,
+                 size_t ndim, npy_intp *shape)
 {
     int fortran = 0;
     
@@ -89,7 +89,7 @@ nparray * newarray(int const typenum, newtype const newt, char const layout,
             return NULL;
     }
     
-    nparray *arr = init_array(npobj);
+    nparray arr = init_array(npobj);
 
     if (arr == NULL)
         return NULL;
@@ -103,7 +103,7 @@ nparray * newarray(int const typenum, newtype const newt, char const layout,
 }
 
 
-bool check_rows(nparray *arr, size_t const rows)
+bool check_rows(nparray arr, size_t const rows)
 {
     if (arr->shape[0] != rows) {
         PyErr_Format(PyExc_TypeError, "Expected array to have rows %u but got "
@@ -114,7 +114,7 @@ bool check_rows(nparray *arr, size_t const rows)
 }
 
 
-bool check_cols(nparray *arr, size_t const cols)
+bool check_cols(nparray arr, size_t const cols)
 {
     if (arr->shape[1] != cols) {
         PyErr_Format(PyExc_TypeError, "Expected array to have cols %u but got "
@@ -125,28 +125,28 @@ bool check_cols(nparray *arr, size_t const cols)
 }
 
 
-bool is_f_cont(nparray *arr) { return PyArray_IS_F_CONTIGUOUS(arr->npobj); }
+bool is_f_cont(nparray arr) { return PyArray_IS_F_CONTIGUOUS(arr->npobj); }
 
-bool is_zero_dim(nparray *arr) { return PyArray_IsZeroDim(arr->npobj); }
+bool is_zero_dim(nparray arr) { return PyArray_IsZeroDim(arr->npobj); }
 
-bool check_scalar(nparray *arr) { return PyArray_CheckScalar(arr->npobj); }
+bool check_scalar(nparray arr) { return PyArray_CheckScalar(arr->npobj); }
 
-bool is_python_number(nparray *arr) { return PyArray_IsPythonNumber(arr->npobj); }
+bool is_python_number(nparray arr) { return PyArray_IsPythonNumber(arr->npobj); }
 
-bool is_python_scalar(nparray *arr) { return PyArray_IsPythonScalar(arr->npobj); }
+bool is_python_scalar(nparray arr) { return PyArray_IsPythonScalar(arr->npobj); }
 
-bool is_not_swapped(nparray *arr) { return PyArray_ISNOTSWAPPED(arr->npobj); }
+bool is_not_swapped(nparray arr) { return PyArray_ISNOTSWAPPED(arr->npobj); }
 
-bool is_byte_swapped(nparray *arr) { return PyArray_ISBYTESWAPPED(arr->npobj); }
+bool is_byte_swapped(nparray arr) { return PyArray_ISBYTESWAPPED(arr->npobj); }
 
-bool can_cast_to(nparray *arr, int const totypenum)
+bool can_cast_to(nparray arr, int const totypenum)
 {
     return PyArray_CanCastTo(PyArray_DescrFromType(arr->typenum),
                              PyArray_DescrFromType(totypenum));
 }
 
 
-void * ar_data(nparray const *arr)
+void * ar_data(nparray const arr)
 {
     return PyArray_DATA(arr->npobj);
 }
@@ -154,16 +154,16 @@ void * ar_data(nparray const *arr)
 
 static void dtor_(void *obj)
 {
-    Py_XDECREF(((nparray *)obj)->npobj);
+    Py_XDECREF(((nparray)obj)->npobj);
 }
 
 
-static nparray * init_array(PyObject const * nparr)
+static nparray init_array(PyObject const * nparr)
 {
     if (nparr == NULL)
         return NULL;
     
-    nparray *arr = Mem_New(nparray, 1);
+    nparray arr = Mem_New(struct _nparray, 1);
     
     if (arr == NULL)
         return NULL;
@@ -173,7 +173,7 @@ static nparray * init_array(PyObject const * nparr)
     return arr;
 }
 
-static bool setup_array(nparray *arr, size_t const edim)
+static bool setup_array(nparray arr, size_t const edim)
 {
     PyArrayObject *array = arr->npobj;
     size_t _ndim = (size_t)PyArray_NDIM(array);

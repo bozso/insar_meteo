@@ -24,14 +24,14 @@ static py_ptr ell_to_merc(py_varargs)
 
     parse_varargs("OOdddII", &plon, &plat, &lon0, &a, &e, &isdeg, &fast);
     
-    nparray *_lon = from_otf(np_cdouble, 1, plon),
-            *_lat = from_otf(np_cdouble, 1, plat);
+    nparray _lon = from_otf(np_cdouble, 1, plon),
+            _lat = from_otf(np_cdouble, 1, plat);
 
     size_t rows = _lon->shape[0];
     m_check_fail(not(_lon and _lat));
     m_check_fail(check_rows(_lat, rows));
     
-    nparray *_xy = newarray(np_cdouble, empty, 'c', (npy_intp) rows, (npy_intp[]){2});
+    nparray _xy = newarray(np_cdouble, empty, 'c', (npy_intp) rows, (npy_intp[]){2});
 
     
     view_double lon, lat, xy;
@@ -105,13 +105,13 @@ static py_ptr azi_inc(py_varargs)
                   &deg, &pmean_coords, &pmean_coords, &pcoords,
                   &is_lonlat, &max_iter);
     
-    nparray *_mean_coords = from_otf(np_cdouble, 1, pmean_coords),
-            *_coeffs      = from_otf(np_cdouble, 2, pcoeffs),
-            *_coords      = from_otf(np_cdouble, 2, pcoords);
+    nparray _mean_coords = from_otf(np_cdouble, 1, pmean_coords),
+            _coeffs      = from_otf(np_cdouble, 2, pcoeffs),
+            _coords      = from_otf(np_cdouble, 2, pcoords);
     
     m_check_fail(not(_mean_coords and _coeffs and _coords));
     
-    nparray *_azi_inc = newarray(np_cdouble, empty, 'c', _coords->shape[0], (npy_intp[]){2});
+    nparray _azi_inc = newarray(np_cdouble, empty, 'c', _coords->shape[0], (npy_intp[]){2});
     
     view_double coeffs;
     setup_view(coeffs, _coeffs);

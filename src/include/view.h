@@ -12,7 +12,7 @@ typedef struct view_meta {
 
 #define __unpack(view) (void **) &((view).data), &((view).md)
 
-void _setup_view(void **data, view_meta *md, nparray *arr);
+void _setup_view(void **data, view_meta *md, nparray arr);
 
 #define setup_view(view, arr) _setup_view(__unpack(view), arr)
 

@@ -4,10 +4,14 @@
 #include "pymacros.h"
 #include "utils.h"
 #include "common.h"
+#include "view.h"
 
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
+typedef unsigned int uint;
+
+m_def_view(double, view_double)
 
 
 static py_ptr ell_to_merc(py_varargs)
@@ -22,51 +26,62 @@ static py_ptr ell_to_merc(py_varargs)
     
     nparray *_lon = from_otf(np_cdouble, 1, plon),
             *_lat = from_otf(np_cdouble, 1, plat);
-    
+
+    size_t rows = _lon->shape[0];
     m_check_fail(not(_lon and _lat));
     m_check_fail(check_rows(_lat, rows));
     
-    size_t rows = _lon.shape[0];
     nparray *_xy = newarray(np_cdouble, empty, 'c', (npy_intp) rows, (npy_intp[]){2});
+
     
-    view_double lon(_lon), lat(_lat), xy(_xy);
+    view_double lon, lat, xy;
+    setup_view(lon, _lon); setup_view(lat, _lat); setup_view(xy, _xy);
+    
     
     if (isdeg) {
         if (fast) {
             FOR(ii, rows) {
-                xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
+                double Lon = ar_elem1(lon, ii);
+                double Lat = ar_elem1(lat, ii);
+                double tmp = a * deg2rad * (Lon - lon0);
                 
-                double scale = xy(ii,0) / lon(ii);
+                ar_elem2(xy, ii, 0) = tmp;
                 
-                xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) * deg2rad / 2.0)) * scale;
+                ar_elem2(xy, ii, 1) =
+                rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0)) * (tmp / Lon);
             }
         } else {
             FOR(ii, rows) {
-                xy(ii,0) = a * deg2rad * (lon(ii) - lon0);
+                double Lat = ar_elem1(lat, ii);
+                ar_elem2(xy, ii, 0) = a * deg2rad * (ar_elem1(lon, ii) - lon0);
                 
-                double sin_lat = sin(deg2rad * lat(ii));
-                double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
+                double sin_lat = sin(deg2rad * Lat);
+                double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat), e / 2.0);
                 
-                xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+                ar_elem2(xy, ii, 1) = a * (tan((pi_per_4 + Lat / 2.0)) * tmp);
             }
         }
     } else {
         if (fast) {
             FOR(ii, rows) {
-                xy(ii,0) = a * (lon(ii) - lon0);
+                double Lon = ar_elem1(lon, ii);
+                double Lat = ar_elem1(lat, ii);
+                double tmp = a * (Lon - lon0);
                 
-                double scale = xy(ii,0) / lon(ii);
+                ar_elem2(xy, ii, 0) = tmp;
                 
-                xy(ii,1) = rad2deg * log(tan(pi_per_4 + lat(ii) / 2.0)) * scale;
+                ar_elem2(xy, ii, 1) =
+                rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0)) * (tmp / Lon);
             }
         } else {
             FOR(ii, rows) {
-                xy(ii,0) = a * (lon(ii) - lon0);
+                double Lat = ar_elem1(lat, ii);
+                ar_elem2(xy, ii, 0) = a * (ar_elem1(lon, ii) - lon0);
                 
-                double sin_lat = sin(lat(ii));
+                double sin_lat = sin(Lat);
                 double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
                 
-                xy(ii,1) = a * (tan((pi_per_4 + lat(ii) / 2.0)) * tmp);
+                ar_elem2(xy, ii, 1) = a * (tan((pi_per_4 + Lat / 2.0)) * tmp);
             }
         }
     }
@@ -79,6 +94,7 @@ fail:
     return NULL;
 }
 
+#if 0
 
 static py_ptr test(py_varargs)
 {
@@ -197,6 +213,7 @@ static py_ptr dominant(py_keywords)
     Py_RETURN_NONE;
 } // dominant
 
+#endif
 
 //------------------------------------------------------------------------------
 
@@ -206,10 +223,10 @@ static char const* module_doc = "inmet_aux";
 
 static PyMethodDef module_methods[] = {
     pymeth_varargs(ell_to_merc, "ell_to_merc"),
-    pymeth_varargs(test, "test"),
-    pymeth_varargs(azi_inc, "azi_inc"),
-    pymeth_keywords(asc_dsc_select, "asc_dsc_select"),
-    pymeth_keywords(dominant, "dominant"),
+    //pymeth_varargs(test, "test"),
+    //pymeth_varargs(azi_inc, "azi_inc"),
+    //pymeth_keywords(asc_dsc_select, "asc_dsc_select"),
+    //pymeth_keywords(dominant, "dominant"),
     {NULL, NULL, 0, NULL}
 };
 

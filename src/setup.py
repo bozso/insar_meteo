@@ -24,7 +24,7 @@ def main():
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
     flags = get_config_var('CFLAGS').split()
-    flags += ["-std=c11"]
+    flags += ["-std=c11", "-Wall", "-Wextra"]
 
     macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     
@@ -35,6 +35,7 @@ def main():
     
     sources = []
     sources.append(join("aux", "utils.c"))
+    sources.append(join("aux", "view.c"))
     sources.append(join("aux", "nparray.c"))
     sources.append("inmet_aux.c")
 

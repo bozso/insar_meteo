@@ -9,7 +9,7 @@ extern_begin
 
 #include "numpy/ndarrayobject.h"
 
-typedef struct _nparray {
+typedef struct nparray {
     int typenum;
     size_t ndim, *shape, *strides;
     PyArrayObject *npobj;
@@ -17,7 +17,7 @@ typedef struct _nparray {
 } nparray;
 
 
-typedef enum _newtype {
+typedef enum newtype {
     empty,
     zeros
 } newtype;
@@ -38,7 +38,7 @@ bool is_not_swapped(nparray *arr);
 bool is_byte_swapped(nparray *arr);
 bool can_cast_to(nparray *arr, int const totypenum);
 
-typedef enum _dtype {
+typedef enum dtype {
     np_bool = NPY_BOOL,
 
     np_byte = NPY_BYTE,

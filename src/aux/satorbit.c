@@ -18,8 +18,12 @@
 #include <tgmath.h>
 
 #include "satorbit.h"
+#include "math_aux.h"
 #include "utils.h"
+#include "common.h"
 
+
+extern_begin
 
 static inline double norm(cdouble x, cdouble y, cdouble z)
 {
@@ -79,11 +83,11 @@ static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
                        vel_x, vel_y, vel_z, power, inorm;
     size_t n_poly = orb->deg + 1;
     
-    view_double const coeffs = orb->coeffs;
+    view_double const coeffs = *(orb->coeffs);
     double const *mean_coords = orb->mean_coords;
     
-    if (orb.is_centered)
-        time -= orb.mean_t;
+    if (orb->is_centered)
+        time -= orb->mean_t;
     
     // linear case 
     if(n_poly == 2) {
@@ -117,14 +121,14 @@ static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
         vel_z = ar_elem2(coeffs, 2, n_poly - 2);
         
         FOR1(ii, 0, n_poly - 3) {
-            power = double(n_poly - 1.0 - ii);
+            power = (double) (n_poly - 1.0 - ii);
             vel_x += ii * ar_elem2(coeffs, 0, ii) * pow(time, power);
             vel_y += ii * ar_elem2(coeffs, 1, ii) * pow(time, power);
             vel_z += ii * ar_elem2(coeffs, 2, ii) * pow(time, power);
         }
     }
     
-    if (orb.is_centered) {
+    if (orb->is_centered) {
         sat_x += mean_coords[0];
         sat_y += mean_coords[1];
         sat_z += mean_coords[2];
@@ -147,8 +151,8 @@ static inline void closest_appr(fit_poly const *orb, cdouble X, cdouble Y,
                                 cdouble Z, size_t max_iter, cart *sat_pos)
 {
     // first, last and middle time, extending the time window by 5 seconds
-    double t_start = orb.start_t - 5.0,
-           t_stop  = orb.stop_t + 5.0,
+    double t_start = orb->start_t - 5.0,
+           t_stop  = orb->stop_t + 5.0,
            t_middle = 0.0;
     
     // dot products
@@ -159,7 +163,7 @@ static inline void closest_appr(fit_poly const *orb, cdouble X, cdouble Y,
     
     dot_start = dot_product(orb, X, Y, Z, t_start);
     
-    while( fabs(dot_middle) > 1.0e-11 && itr < max_iter) {
+    while (abs(dot_middle) > 1.0e-11 && itr < max_iter) {
         t_middle = (t_start + t_stop) / 2.0;
 
         dot_middle = dot_product(orb, X, Y, Z, t_middle);
@@ -186,9 +190,9 @@ void ell_cart(cdouble lon, cdouble lat, cdouble h,
 {
     double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
 
-    x = (              n + h) * cos(lat) * cos(lon);
-    y = (              n + h) * cos(lat) * sin(lon);
-    z = ( (1.0 - E2) * n + h) * sin(lat);
+    *x = (              n + h) * cos(lat) * cos(lon);
+    *y = (              n + h) * cos(lat) * sin(lon);
+    *z = ( (1.0 - E2) * n + h) * sin(lat);
 
 } // ell_cart
 
@@ -207,11 +211,11 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
     so = sin(o); co = cos(o);
     n = WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
 
-    lat = o;
+    *lat = o;
     
     o = atan(y/x); if(x < 0.0) o += pi;
-    lon = o;
-    h = p / co - n;
+    *lon = o;
+    *h = p / co - n;
 } // cart_ell
 
 
@@ -241,7 +245,7 @@ static inline void _azi_inc(fit_poly const *orb, cdouble X, cdouble Y,
     
     t0 = norm(xl, yl, zl);
     
-    inc = acos(zl / t0) * rad2deg;
+    *inc = acos(zl / t0) * rad2deg;
     
     if(xl == 0.0) xl = 0.000000001;
     
@@ -258,46 +262,51 @@ static inline void _azi_inc(fit_poly const *orb, cdouble X, cdouble Y,
     else
         temp_azi += 180.0;
     
-    azi = temp_azi;
+    *azi = temp_azi;
 } // calc_azi_inc
 
 
-void calc_azi_inc(fit_poly const *orb, view_double const *coords,
-                  view_double *azi_inc, size_t const max_iter,
-                  bool const is_lonlat)
+void calc_azi_inc(fit_poly const *orb, nparray *_coords,
+                  nparray *__azi_inc, size_t const max_iter,
+                  uint const is_lonlat)
 {
     double X, Y, Z, lon, lat, h;
     X = Y = Z = lon = lat = h = 0.0;
     
-    size_t nrows = coords.shape[0];
+    view_double coords, azi_inc;
+    setup_view(coords, _coords); setup_view(azi_inc, __azi_inc);
+    
+    size_t nrows = _coords->shape[0];
     
     // coords contains lon, lat, h
     if (is_lonlat) {
         FOR(ii, nrows) {
-            lon = coords(ii, 0) * deg2rad;
-            lat = coords(ii, 1) * deg2rad;
-            h   = coords(ii, 2);
+            lon = ar_elem2(coords, ii, 0) * deg2rad;
+            lat = ar_elem2(coords, ii, 1) * deg2rad;
+            h   = ar_elem2(coords, ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates
-            ell_cart(lon, lat, h, X, Y, Z);
+            ell_cart(lon, lat, h, &X, &Y, &Z);
             
             _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                     azi_inc(ii, 0), azi_inc(ii, 1));
+                     ar_ptr2(azi_inc, ii, 0), ar_ptr2(azi_inc, ii, 1));
             
         } // for
     }
     // coords contains X, Y, Z
     else {
         FOR(ii, nrows) {
-            X = coords(ii, 0);
-            Y = coords(ii, 1);
-            Z = coords(ii, 2);
+            X = ar_elem2(coords, ii, 0);
+            Y = ar_elem2(coords, ii, 1);
+            Z = ar_elem2(coords, ii, 2);
             
             // calulate surface WGS-84 geodetic coordinates
-            cart_ell(X, Y, Z, lon, lat, h);
+            cart_ell(X, Y, Z, &lon, &lat, &h);
         
             _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                     azi_inc(ii, 0), azi_inc(ii, 1));
+                     ar_ptr2(azi_inc, ii, 0), ar_ptr2(azi_inc, ii, 1));
         } // for
     } // if
 }
+
+extern_end

@@ -28,6 +28,8 @@ nparray * from_of(size_t const ndim, PyObject *obj);
 nparray * from_data(int const typenum, void *data, size_t ndim, npy_intp *shape);
 nparray * newarray(int const typenum, newtype const newt, char const layout,
                    size_t ndim, npy_intp *shape);
+void * ar_data(nparray const *arr);
+
 bool check_rows(nparray *arr, size_t const rows);
 bool check_cols(nparray *arr, size_t const cols);
 bool is_f_cont(nparray *arr);

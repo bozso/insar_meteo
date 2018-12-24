@@ -14,36 +14,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SATORBIT_H
-#define SATORBIT_H
 
-#include "utils.h"
-#include "nparray.h"
+#ifndef MATH_AUX_HH
+#define MATH_AUX_HH
+
 #include "common.h"
+#include "view.h"
 
 extern_begin
 
-/***********
- * Structs *
- ***********/
+// structure for storing fitted polynom coefficients
+typedef struct fit_poly {
+    double mean_t, start_t, stop_t, *mean_coords;
+    view_double *coeffs;
+    size_t is_centered, deg;
+} fit_poly;
 
-// cartesian coordinate
-typedef struct cart {
-    double x, y, z;
-} cart;
-
-typedef double const cdouble;
-
-void ell_cart (cdouble lon, cdouble lat, cdouble h,
-               double *x, double *y, double *z);
-
-void cart_ell(cdouble x, cdouble y, cdouble z,
-              double *lon, double *lat, double *h);
-
-void calc_azi_inc(fit_poly const *orb, nparray const *_coords,
-                  nparray *__azi_inc, size_t const max_iter,
-                  uint const is_lonlat);
 
 extern_end
 
-#endif // SATORBIT_H
+#endif

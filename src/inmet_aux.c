@@ -1,7 +1,9 @@
 #include <stdio.h>
 
 #include "nparray.h"
+#include "math_aux.h"
 #include "pymacros.h"
+#include "satorbit.h"
 #include "utils.h"
 #include "common.h"
 #include "view.h"
@@ -10,8 +12,6 @@
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
 typedef unsigned int uint;
-
-m_def_view(double, view_double)
 
 
 static py_ptr ell_to_merc(py_varargs)
@@ -94,6 +94,44 @@ fail:
     return NULL;
 }
 
+
+static py_ptr azi_inc(py_varargs)
+{
+    py_ptr pmean_coords = NULL, pcoeffs = NULL, pcoords = NULL;
+    double mean_t = 0.0, start_t = 0.0, stop_t = 0.0;
+    uint is_centered = 0, deg = 0, is_lonlat = 0, max_iter = 0;
+    
+    parse_varargs("dddIIOOOII", &mean_t, &start_t, &stop_t, &is_centered,
+                  &deg, &pmean_coords, &pmean_coords, &pcoords,
+                  &is_lonlat, &max_iter);
+    
+    nparray *_mean_coords = from_otf(np_cdouble, 1, pmean_coords),
+            *_coeffs      = from_otf(np_cdouble, 2, pcoeffs),
+            *_coords      = from_otf(np_cdouble, 2, pcoords);
+    
+    m_check_fail(not(_mean_coords and _coeffs and _coords));
+    
+    nparray *_azi_inc = newarray(np_cdouble, empty, 'c', _coords->shape[0], (npy_intp[]){2});
+    
+    view_double coeffs;
+    setup_view(coeffs, _coeffs);
+    
+    
+    // Set up orbit polynomial structure
+    fit_poly orb = {mean_t, start_t, stop_t, ar_data(_mean_coords),
+                    &coeffs, is_centered, deg};
+    
+    calc_azi_inc(&orb, _coords, _azi_inc, max_iter, is_lonlat);
+    
+    del(_mean_coords); del(_coeffs); del(_coords);
+    return Py_BuildValue("N", _azi_inc->npobj);
+
+fail:
+    del(_mean_coords); del(_coeffs); del(_coords); del(_azi_inc);
+    return NULL;
+} // azi_inc
+
+
 #if 0
 
 static py_ptr test(py_varargs)
@@ -123,33 +161,6 @@ static py_ptr test(py_varargs)
 
     Py_RETURN_NONE;
 }
-
-
-static py_ptr azi_inc(py_varargs)
-{
-    py_ptr pmean_coords(NULL), pcoeffs(NULL), pcoords(NULL);
-    double mean_t = 0.0, start_t = 0.0, stop_t = 0.0;
-    uint is_centered = 0, deg = 0, is_lonlat = 0, max_iter = 0;
-    
-    parse_varargs("dddIIOOOII", &mean_t, &start_t, &stop_t, &is_centered,
-                  &deg, &pmean_coords, &pmean_coords, &pcoords,
-                  &is_lonlat, &max_iter);
-    
-    nparray _mean_coords(np_cdouble, 1, pmean_coords),
-                _coeffs(np_cdouble, 2, pcoeffs), _coords(np_cdouble, 2, pcoords),
-                _azi_inc(np_cdouble, empty, 'c', npy_intp(_coords.shape[0]), 2);
-    err_check(NULL);
-    
-    view<npy_double> coeffs(_coeffs), coords(_coords), azi_inc(_azi_inc);
-    
-    // Set up orbit polynomial structure
-    fit_poly orb(mean_t, start_t, stop_t, _mean_coords.data<npy_double>(),
-                 coeffs, is_centered, deg);
-    
-    calc_azi_inc(orb, coords, azi_inc, max_iter, is_lonlat);
-    
-    return Py_BuildValue("N", _azi_inc.ret());
-} // azi_inc
 
 
 static py_ptr asc_dsc_select(py_keywords)

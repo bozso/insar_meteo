@@ -146,6 +146,12 @@ bool can_cast_to(nparray *arr, int const totypenum)
 }
 
 
+void * ar_data(nparray const *arr)
+{
+    return PyArray_DATA(arr->npobj);
+}
+
+
 static void dtor_(void *obj)
 {
     Py_XDECREF(((nparray *)obj)->npobj);

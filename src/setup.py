@@ -37,6 +37,7 @@ def main():
     sources.append(join("aux", "utils.c"))
     sources.append(join("aux", "view.c"))
     sources.append(join("aux", "nparray.c"))
+    sources.append(join("aux", "satorbit.c"))
     sources.append("inmet_aux.c")
 
     ext_modules = [

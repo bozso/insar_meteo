@@ -1,13 +1,7 @@
-#include "File.h"
 #include "utils.h"
-#include "arrayio.h"
+#include "array.h"
 
 extern_begin
-
-enum size_idx {
-    dt_
-};
-
 
 static size_t const sizes[] = {
     [dt_size_t]       = sizeof(size_t),
@@ -39,7 +33,7 @@ static size_t const sizes[] = {
     [dt_complex128]   = sizeof(double complex)
 };
 
-static void array_dtor(void *arr);
+static void dtor_(void *arr);
 
 arrayptr array_new(dtype const type, size_t const ndim,
                    char const layout, size_t const* shape)
@@ -68,7 +62,7 @@ arrayptr array_new(dtype const type, size_t const ndim,
     
     new->stride = new->shape + ndim;
     new->data = new->shape + 2 * ndim
-    new->dtor_ = array_dtor;
+    new->dtor_ = dtor_;
     
     return new;
 }
@@ -111,9 +105,6 @@ fail:
 }
 
 
-
-
-
 int array_write(arrayptr const arr, char const* path, char const* doc)
 {
     File outfile = open(path, "wb");
@@ -143,7 +134,8 @@ fail:
     return 1;
 }
 
-static void array_dtor(void *arr)
+
+static void dtor_(void *arr)
 {
     Mem_Free(((arrayptr)arr)->shape);
     ((arrayptr)arr)->shape = NULL;

@@ -6,37 +6,37 @@
 extern_begin
 
 typedef enum dtype {
-    np_bool,
+    dt_size_t,
+    dt_char,
+    dt_dtype,
+    dt_bool,
+    dt_byte,
+    dt_ubyte,
+    dt_short,
+    dt_ushort,
+    dt_int,
+    dt_uint,
+    dt_long,
+    dt_ulong,
+    dt_longlong,
+    dt_ulonglong,
 
-    np_byte,
-    np_ubyte,
-    np_short,
-    np_ushort,
-    np_int,
-    np_uint,
-    np_long,
-    np_ulong,
-    np_longlong,
-    np_ulonglong,
-
-    np_double,
-    np_longdouble,
-    np_cfloat,
-    np_cdouble,
-    np_clongdouble,
+    dt_double,
+    dt_longdouble,
+    dt_cfloat,
     
-    np_int8,
-    np_int16,
-    np_int64,
-    np_uint8,
-    np_uint16,
-    np_uint64,
+    dt_int8,
+    dt_int16,
+    dt_int64,
+    dt_uint8,
+    dt_uint16,
+    dt_uint64,
     
-    np_float32,
-    np_float64,
+    dt_float32,
+    dt_float64,
     
-    np_complex64,
-    np_complex128
+    dt_complex64,
+    dt_complex128
 } dtype;
 
 
@@ -44,9 +44,13 @@ struct _array {
     dtype type;
     size_t ndim, ndata, datasize, *shape, *stride;
     void *data;
+    dtor dtor_;
 };
 
 typedef struct _array* arrayptr;
+
+arrayptr array_new(dtype const type, size_t const ndim,
+                   char const layout, size_t const* shape);
 
 arrayptr array_read(char const* path);
 int array_write(arrayptr const arr, char const* path, char const* doc);

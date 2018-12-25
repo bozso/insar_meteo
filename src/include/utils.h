@@ -34,16 +34,6 @@ void error(char const* fmt, ...);
 void Perror(char const* perror_str, char const* fmt, ...);
 
 
-/**************
- * for macros *
- **************/
-
-#define FOR(ii, max) for(size_t (ii) = (max); (ii)--; )
-#define FORZ(ii, max) for(size_t (ii) = 0; (ii) < max; ++(ii))
-#define FORS(ii, min, max, step) for(size_t (ii) = (min); (ii) < (max); (ii) += (step))
-#define FOR1(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
-
-
 extern_end
 
 #endif

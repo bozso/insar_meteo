@@ -4,7 +4,7 @@
 #include "nparray.h"
 
 typedef struct view_meta {
-        size_t ndim, *shape, *strides;
+        size_t ndim, *shape, *stride;
 } view_meta;
 
 #define m_def_view(TYPE, name) \

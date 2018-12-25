@@ -11,7 +11,8 @@ extern_begin
 static void
 dtor_(void *obj);
 
-File *
+
+File
 open(char const* path, char const* mode)
 {
     File *new;
@@ -41,7 +42,7 @@ dtor_(void *obj)
 
 
 int
-write(File const *file, char const* fmt, ...)
+write(File const file, char const* fmt, ...)
 {
     va_list ap;
     
@@ -52,7 +53,7 @@ write(File const *file, char const* fmt, ...)
 }
 
 int
-read(File const *file, char const* fmt, ...)
+read(File const file, char const* fmt, ...)
 {
     va_list ap;
     
@@ -60,6 +61,18 @@ read(File const *file, char const* fmt, ...)
     int ret = vfscanf(file->_file, fmt, ap);
     va_end(ap);
     return ret;
+}
+
+size_t
+writeb(File const file, size_t const size, size_t const count, void const* data)
+{
+    return fwrite(data, size, count, file->_file);
+}
+
+size_t
+readb(File const file, size_t const size, size_t const count, void const* data)
+{
+    return fread(data, size, count, file->_file);
 }
 
 

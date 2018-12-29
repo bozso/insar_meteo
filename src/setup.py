@@ -28,17 +28,12 @@ def main():
 
     macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     
-    inc_dirs = [join(miniconda, "include"), "include"]
+    inc_dirs = [join(miniconda, "include"), "aux"]
     lib_dirs = [join(miniconda, "lib")]
     
     libs = []
     
-    sources = []
-    sources.append(join("aux", "utils.c"))
-    sources.append(join("aux", "view.c"))
-    sources.append(join("aux", "nparray.c"))
-    sources.append(join("aux", "satorbit.c"))
-    sources.append("inmet_aux.c")
+    sources = ["implement.c", "inmet_auxmodule.c"]
 
     ext_modules = [
         Extension(name="inmet_aux", sources=sources,

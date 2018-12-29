@@ -14,6 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef SATORBIT_H
+#define SATORBIT_H
+
 
 #include <tgmath.h>
 
@@ -21,6 +24,35 @@
 #include "math_aux.h"
 #include "utils.h"
 #include "common.h"
+
+extern_begin
+
+/***********
+ * Structs *
+ ***********/
+
+// cartesian coordinate
+typedef struct cart {
+    double x, y, z;
+} cart;
+
+typedef double const cdouble;
+
+void ell_cart (cdouble lon, cdouble lat, cdouble h,
+               double *x, double *y, double *z);
+
+void cart_ell(cdouble x, cdouble y, cdouble z,
+              double *lon, double *lat, double *h);
+
+void calc_azi_inc(fit_poly const *orb, nparray const _coords,
+                  nparray __azi_inc, size_t const max_iter,
+                  uint const is_lonlat);
+
+extern_end
+
+
+
+#ifdef m_inmet_get_impl
 
 
 extern_begin
@@ -310,3 +342,7 @@ void calc_azi_inc(fit_poly const *orb, nparray *_coords,
 }
 
 extern_end
+
+#endif
+
+#endif // SATORBIT_H

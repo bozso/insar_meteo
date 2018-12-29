@@ -2,9 +2,12 @@
 #define VIEW_H
 
 #include "nparray.h"
+#include "common.h"
+
+extern_begin
 
 typedef struct view_meta {
-        size_t ndim, *shape, *stride;
+        size_t ndim, *shape, *strides;
 } view_meta;
 
 #define m_def_view(TYPE, name) \
@@ -46,5 +49,24 @@ m_def_view(double, view_double)
         (ar_struct).data + (ii) * (ar_struct).md.strides[0]\
                          + (jj) * (ar_struct).md.strides[1]\
                          + (kk) * (ar_struct).md.strides[2]
+
+
+extern_end
+
+#ifdef m_inmet_get_impl
+
+extern_begin
+
+void _setup_view(void **data, view_meta *md, nparray arr)
+{
+    md->ndim = arr->ndim;
+    md->shape = arr->shape;
+    md->strides = arr->strides;
+    *data = PyArray_DATA(arr->npobj);
+}
+
+extern_end
+
+#endif
 
 #endif

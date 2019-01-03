@@ -30,7 +30,6 @@ typedef struct fit_poly {
     size_t is_centered, deg;
 } fit_poly;
 
-
 extern_end
 
 #endif

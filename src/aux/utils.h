@@ -28,8 +28,7 @@ Read(File const file, char const* fmt, ...);
 size_t
 Writeb(File const file, size_t const size, size_t const count, void const* data);
 
-size_t
-Readb(File const file, size_t const size, size_t const count, void const* data);
+size_t Readb(File file, size_t const size, size_t const count, void* data);
 
 
 typedef struct argp {

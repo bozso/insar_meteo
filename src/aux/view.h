@@ -51,11 +51,7 @@ m_def_view(double, view_double)
                          + (kk) * (ar_struct).md.strides[2]
 
 
-extern_end
-
-#ifdef m_inmet_get_impl
-
-extern_begin
+#ifdef m_get_impl
 
 void _setup_view(void **data, view_meta *md, nparray arr)
 {
@@ -65,8 +61,8 @@ void _setup_view(void **data, view_meta *md, nparray arr)
     *data = PyArray_DATA(arr->npobj);
 }
 
-extern_end
-
 #endif
+
+extern_end
 
 #endif

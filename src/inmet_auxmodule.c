@@ -11,7 +11,6 @@
 
 typedef PyArrayObject* np_ptr;
 typedef PyObject* py_ptr;
-typedef unsigned int uint;
 
 
 static py_ptr ell_to_merc(py_varargs)
@@ -235,7 +234,7 @@ static char const* module_doc = "inmet_aux";
 static PyMethodDef module_methods[] = {
     pymeth_varargs(ell_to_merc, "ell_to_merc"),
     //pymeth_varargs(test, "test"),
-    //pymeth_varargs(azi_inc, "azi_inc"),
+    pymeth_varargs(azi_inc, "azi_inc"),
     //pymeth_keywords(asc_dsc_select, "asc_dsc_select"),
     //pymeth_keywords(dominant, "dominant"),
     {NULL, NULL, 0, NULL}

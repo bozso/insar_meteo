@@ -7,8 +7,8 @@
 #include "common.h"
 #include "numpy/arrayobject.h"
 
-extern_begin
 
+extern_begin
 
 struct _nparray {
     int typenum;
@@ -78,12 +78,7 @@ typedef enum dtype {
 } dtype;
 
 
-extern_end
-
-
-#ifdef m_inmet_get_impl
-
-extern_begin
+#ifdef m_get_impl
 
 
 static nparray init_array(PyObject const * arr);
@@ -297,10 +292,8 @@ static bool setup_array(nparray arr, size_t const edim)
     return false;
 }
 
-
-extern_end
-
 #endif
 
+extern_end
 
 #endif

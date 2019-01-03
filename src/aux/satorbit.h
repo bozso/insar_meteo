@@ -27,6 +27,8 @@
 
 extern_begin
 
+typedef unsigned int uint;
+
 /***********
  * Structs *
  ***********/
@@ -44,18 +46,13 @@ void ell_cart (cdouble lon, cdouble lat, cdouble h,
 void cart_ell(cdouble x, cdouble y, cdouble z,
               double *lon, double *lat, double *h);
 
+
 void calc_azi_inc(fit_poly const *orb, nparray const _coords,
                   nparray __azi_inc, size_t const max_iter,
                   uint const is_lonlat);
 
-extern_end
 
-
-
-#ifdef m_inmet_get_impl
-
-
-extern_begin
+#ifdef m_get_impl
 
 static inline double norm(cdouble x, cdouble y, cdouble z)
 {
@@ -298,8 +295,8 @@ static inline void _azi_inc(fit_poly const *orb, cdouble X, cdouble Y,
 } // calc_azi_inc
 
 
-void calc_azi_inc(fit_poly const *orb, nparray *_coords,
-                  nparray *__azi_inc, size_t const max_iter,
+void calc_azi_inc(fit_poly const *orb, nparray _coords,
+                  nparray __azi_inc, size_t const max_iter,
                   uint const is_lonlat)
 {
     double X, Y, Z, lon, lat, h;

@@ -81,7 +81,7 @@ static inline void calc_pos(fit_poly const *orb, double time, cart *pos)
         y = ar_elem2(coeffs, 1, 0)  * time;
         z = ar_elem2(coeffs, 2, 0)  * time;
 
-        FOR1(ii, 1, n_poly - 1) {
+        m_for1(ii, 1, n_poly - 1) {
             x = (x + ar_elem2(coeffs, 0, ii)) * time;
             y = (y + ar_elem2(coeffs, 1, ii)) * time;
             z = (z + ar_elem2(coeffs, 2, ii)) * time;
@@ -135,7 +135,7 @@ static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
         sat_y = ar_elem2(coeffs, 1, 0)  * time;
         sat_z = ar_elem2(coeffs, 2, 0)  * time;
 
-        FOR1(ii, 1, n_poly - 1) {
+        m_for1(ii, 1, n_poly - 1) {
             sat_x = (sat_x + ar_elem2(coeffs, 0, ii)) * time;
             sat_y = (sat_y + ar_elem2(coeffs, 1, ii)) * time;
             sat_z = (sat_z + ar_elem2(coeffs, 2, ii)) * time;
@@ -149,7 +149,7 @@ static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
         vel_y = ar_elem2(coeffs, 1, n_poly - 2);
         vel_z = ar_elem2(coeffs, 2, n_poly - 2);
         
-        FOR1(ii, 0, n_poly - 3) {
+        m_for1(ii, 0, n_poly - 3) {
             power = (double) (n_poly - 1.0 - ii);
             vel_x += ii * ar_elem2(coeffs, 0, ii) * pow(time, power);
             vel_y += ii * ar_elem2(coeffs, 1, ii) * pow(time, power);
@@ -309,7 +309,7 @@ void calc_azi_inc(fit_poly const *orb, nparray _coords,
     
     // coords contains lon, lat, h
     if (is_lonlat) {
-        FOR(ii, nrows) {
+        m_for(ii, nrows) {
             lon = ar_elem2(coords, ii, 0) * deg2rad;
             lat = ar_elem2(coords, ii, 1) * deg2rad;
             h   = ar_elem2(coords, ii, 2);
@@ -324,7 +324,7 @@ void calc_azi_inc(fit_poly const *orb, nparray _coords,
     }
     // coords contains X, Y, Z
     else {
-        FOR(ii, nrows) {
+        m_for(ii, nrows) {
             X = ar_elem2(coords, ii, 0);
             Y = ar_elem2(coords, ii, 1);
             Z = ar_elem2(coords, ii, 2);

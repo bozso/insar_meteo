@@ -39,7 +39,7 @@ static py_ptr ell_to_merc(py_varargs)
     
     if (isdeg) {
         if (fast) {
-            FOR(ii, rows) {
+            m_forz(ii, rows) {
                 double Lon = ar_elem1(lon, ii);
                 double Lat = ar_elem1(lat, ii);
                 double tmp = a * deg2rad * (Lon - lon0);
@@ -50,7 +50,7 @@ static py_ptr ell_to_merc(py_varargs)
                 rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0)) * (tmp / Lon);
             }
         } else {
-            FOR(ii, rows) {
+            m_forz(ii, rows) {
                 double Lat = ar_elem1(lat, ii);
                 ar_elem2(xy, ii, 0) = a * deg2rad * (ar_elem1(lon, ii) - lon0);
                 
@@ -62,7 +62,7 @@ static py_ptr ell_to_merc(py_varargs)
         }
     } else {
         if (fast) {
-            FOR(ii, rows) {
+            m_forz(ii, rows) {
                 double Lon = ar_elem1(lon, ii);
                 double Lat = ar_elem1(lat, ii);
                 double tmp = a * (Lon - lon0);
@@ -73,7 +73,7 @@ static py_ptr ell_to_merc(py_varargs)
                 rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0)) * (tmp / Lon);
             }
         } else {
-            FOR(ii, rows) {
+            m_forz(ii, rows) {
                 double Lat = ar_elem1(lat, ii);
                 ar_elem2(xy, ii, 0) = a * (ar_elem1(lon, ii) - lon0);
                 
@@ -131,73 +131,83 @@ fail:
 } // azi_inc
 
 
-#if 0
-
 static py_ptr test(py_varargs)
 {
-    py_ptr parr(NULL);
+    py_ptr parr = NULL;
     parse_varargs("O", &parr);
     
-    printf("%p\n", parr);
+    nparray _arr = from_otf(np_double, 1, parr);
     
-    np_ptr aa = (np_ptr) PyArray_FROM_OTF(parr, np_cdouble, NPY_ARRAY_IN_ARRAY);
+    if (_arr == NULL)
+        return NULL;
     
-    _log;
-    nparray _arr(np_cdouble, 1, parr);
-    _log;
-    err_check(NULL);
+    view_double arr;
+    setup_view(arr, _arr);
     
-    view<npy_double> arr(_arr);
-    
-    size_t n = _arr.shape[0];
+    size_t n = _arr->shape[0];
     
     double sum = 0.0;
     
-    FORZ(ii, n)
-        sum += arr(ii) + 1.0;
+    m_forz(ii, n)
+        sum += ar_elem1(arr, ii) + 1.0;
     
     printf("Sum: %lf\n", sum);
-
+    
+    del(_arr);
     Py_RETURN_NONE;
 }
 
+
+#if 0
 
 static py_ptr asc_dsc_select(py_keywords)
 {
     keywords("array1", "array2", "max_sep");
     
-    py_ptr parr1(NULL), parr2(NULL);
+    py_ptr parr1 = NULL, parr2 = NULL;
     double max_sep = 100.0;
     
     parse_keywords("OO|d:asc_dsc_select", &parr1, &parr2, &max_sep);
     
-    nparray _arr1(np_cdouble, 2, parr1), _arr2(np_cdouble, 2, parr2),
-            _idx(np_cdouble, zeros, 'c', _arr1.shape[0]);
-    err_check(NULL);
+    nparray _arr1 = from_otf(np_double, 2, parr1),
+            _arr2 = from_otf(np_double, 2, parr2);
+    
+    m_check_fail(not(_arr1 and _arr2));
+
+            
+    nparray _idx = newarray(np_double, zeros, 'c', _arr1->shape[0]);
+    m_check_fail(not(_idx));
     
     max_sep /=  R_earth;
     max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
     
-    npy_double dlon, dlat;
     uint nfound = 0;
+    size_t n1 = arr1->shape[0], n2 = arr2->shape[0];
     
-    view<npy_double> arr1(_arr1), arr2(_arr2);
-    view<npy_bool> idx(_idx);
+    view_double arr1(_arr1), arr2(_arr2);
+    setup_array(arr1, _arr1); setup_array(arr2, _arr2);
+    view_bool idx;
+    setup_array(idx, _idx);
     
-    FOR(ii, arr1.shape[0]) {
-        FOR(jj, arr2.shape[0]) {
-            dlon = arr1(ii,0) - arr2(jj,0);
-            dlat = arr1(ii,1) - arr2(jj,1);
+    m_forz(ii, n1) {
+        m_forz(jj, n2) {
+            double dlon = ar_elem2(arr1, ii, 0) - ar_elem2(arr2, jj, 0),
+                   dlat = ar_elem2(arr1, ii, 1) - ar_elem2(arr2, jj, 1);
             
             if ((dlon * dlon + dlat * dlat) < max_sep) {
-                idx(ii) = NPY_TRUE;
+                *(ar_ptr1(idx, ii)) = NPY_TRUE;
                 nfound++;
                 break;
             }
         }
     }
     
-    return Py_BuildValue("NI", _idx.ret(), nfound);
+    del(_arr1); del(_arr2);
+    return Py_BuildValue("NI", _idx.npobj, nfound);
+
+fail:
+    del(_arr1); del(_arr2); del(_idx);
+    return NULL;
 } // asc_dsc_select
 
 
@@ -233,9 +243,9 @@ static char const* module_doc = "inmet_aux";
 
 static PyMethodDef module_methods[] = {
     pymeth_varargs(ell_to_merc, "ell_to_merc"),
-    //pymeth_varargs(test, "test"),
+    pymeth_varargs(test, "test"),
     pymeth_varargs(azi_inc, "azi_inc"),
-    //pymeth_keywords(asc_dsc_select, "asc_dsc_select"),
+    pymeth_keywords(asc_dsc_select, "asc_dsc_select"),
     //pymeth_keywords(dominant, "dominant"),
     {NULL, NULL, 0, NULL}
 };

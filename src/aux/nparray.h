@@ -86,16 +86,21 @@ static bool setup_array(nparray arr, size_t const edim);
 
 nparray from_otf(int const typenum, size_t const ndim, PyObject* obj)
 {
-    
+    printf("%p\n", obj);
+    m_log;
     nparray arr = init_array(PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY));
-
+    
+    m_log;
+    
     if (arr == NULL)
         return NULL;
+    m_log;
     
     if (setup_array(arr, ndim)) {
         Mem_Free(arr);
         return NULL;
     }
+    
     return arr;
 }
 
@@ -238,15 +243,19 @@ static void nparray_dtor(void *obj)
 
 static nparray init_array(PyObject const * nparr)
 {
+    printf("%p\n", nparr);
     if (nparr == NULL)
         return NULL;
     
     nparray arr = Mem_New(struct _nparray, 1);
+    m_log;
     
     if (arr == NULL)
         return NULL;
-
+    m_log;
+    
     arr->npobj = (PyArrayObject*) nparr;
+    m_log;
     
     return arr;
 }

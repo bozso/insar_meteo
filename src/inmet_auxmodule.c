@@ -23,15 +23,19 @@ static py_ptr ell_to_merc(py_varargs)
 
     parse_varargs("OOdddII", &plon, &plat, &lon0, &a, &e, &isdeg, &fast);
     
-    nparray _lon = from_otf(np_cdouble, 1, plon),
-            _lat = from_otf(np_cdouble, 1, plat);
+    nparray _lon = NULL, _lat = NULL, _xy = NULL;
+    
+    if (from_otf(&_lon, np_cdouble, 1, plon) or
+        from_otf(&_lat, np_cdouble, 1, plat))
+        goto fail;
 
     size_t rows = _lon->shape[0];
-    m_check_fail(not(_lon and _lat));
-    m_check_fail(check_rows(_lat, rows));
-    
-    nparray _xy = newarray(np_cdouble, empty, 'c', (npy_intp) rows, (npy_intp[]){2});
 
+    if (check_rows(_lat, rows))
+        goto fail;
+    
+    if (newarray(&_xy, np_cdouble, empty, 'c', (npy_intp) rows, (npy_intp[]){2}))
+        goto fail;
     
     view_double lon, lat, xy;
     setup_view(lon, _lon); setup_view(lat, _lat); setup_view(xy, _xy);
@@ -104,13 +108,14 @@ static py_ptr azi_inc(py_varargs)
                   &deg, &pmean_coords, &pmean_coords, &pcoords,
                   &is_lonlat, &max_iter);
     
-    nparray _mean_coords = from_otf(np_cdouble, 1, pmean_coords),
-            _coeffs      = from_otf(np_cdouble, 2, pcoeffs),
-            _coords      = from_otf(np_cdouble, 2, pcoords);
+    nparray _mean_coords = NULL, _coeffs = NULL, _coords = NULL, _azi_inc = NULL;
     
-    m_check_fail(not(_mean_coords and _coeffs and _coords));
-    
-    nparray _azi_inc = newarray(np_cdouble, empty, 'c', _coords->shape[0], (npy_intp[]){2});
+    if (from_otf(&_mean_coords, np_cdouble, 1, pmean_coords) or
+        from_otf(&_coeffs, np_cdouble, 2, pcoeffs) or
+        from_otf(&_coords, np_cdouble, 2, pcoords) or
+        newarray(&_azi_inc, np_cdouble, empty, 'c',
+                 _coords->shape[0], (npy_intp[]){2}))
+        goto fail;
     
     view_double coeffs;
     setup_view(coeffs, _coeffs);
@@ -136,9 +141,9 @@ static py_ptr test(py_varargs)
     py_ptr parr = NULL;
     parse_varargs("O", &parr);
     
-    nparray _arr = from_otf(np_double, 1, parr);
+    nparray _arr = NULL;
     
-    if (_arr == NULL)
+    if (from_otf(&_arr, np_double, 1, parr))
         return NULL;
     
     view_double arr;
@@ -158,8 +163,6 @@ static py_ptr test(py_varargs)
 }
 
 
-#if 0
-
 static py_ptr asc_dsc_select(py_keywords)
 {
     keywords("array1", "array2", "max_sep");
@@ -169,25 +172,25 @@ static py_ptr asc_dsc_select(py_keywords)
     
     parse_keywords("OO|d:asc_dsc_select", &parr1, &parr2, &max_sep);
     
-    nparray _arr1 = from_otf(np_double, 2, parr1),
-            _arr2 = from_otf(np_double, 2, parr2);
+    nparray _arr1 = NULL, _arr2 = NULL, _idx = NULL;
     
-    m_check_fail(not(_arr1 and _arr2));
+    if (from_otf(&_arr1, np_double, 2, parr1) or
+        from_otf(&_arr2, np_double, 2, parr2) or
+        newarray(&_idx, np_double, zeros, 'c', 1,
+                            (npy_intp[]){(npy_intp)_arr1->shape[0]}))
+        goto fail;
 
             
-    nparray _idx = newarray(np_double, zeros, 'c', _arr1->shape[0]);
-    m_check_fail(not(_idx));
-    
     max_sep /=  R_earth;
     max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
     
     uint nfound = 0;
-    size_t n1 = arr1->shape[0], n2 = arr2->shape[0];
+    size_t n1 = _arr1->shape[0], n2 = _arr2->shape[0];
     
-    view_double arr1(_arr1), arr2(_arr2);
-    setup_array(arr1, _arr1); setup_array(arr2, _arr2);
+    view_double arr1, arr2;
+    setup_view(arr1, _arr1); setup_view(arr2, _arr2);
     view_bool idx;
-    setup_array(idx, _idx);
+    setup_view(idx, _idx);
     
     m_forz(ii, n1) {
         m_forz(jj, n2) {
@@ -203,12 +206,15 @@ static py_ptr asc_dsc_select(py_keywords)
     }
     
     del(_arr1); del(_arr2);
-    return Py_BuildValue("NI", _idx.npobj, nfound);
+    return Py_BuildValue("NI", _idx->npobj, nfound);
 
 fail:
     del(_arr1); del(_arr2); del(_idx);
     return NULL;
 } // asc_dsc_select
+
+
+#if 0
 
 
 static py_ptr dominant(py_keywords)

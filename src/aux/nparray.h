@@ -25,11 +25,12 @@ typedef enum newtype {
 } newtype;
 
 
-nparray from_otf(int const typenum, size_t const ndim, PyObject* obj);
-nparray from_of(size_t const ndim, PyObject *obj);
-nparray from_data(int const typenum, void *data, size_t ndim, npy_intp *shape);
-nparray newarray(int const typenum, newtype const newt, char const layout,
-                 size_t ndim, npy_intp *shape);
+bool from_otf(nparray* arr, int const typenum, size_t const ndim, PyObject* obj);
+bool from_of(nparray* arr, size_t const ndim, PyObject *obj);
+bool from_data(nparray* arr, int const typenum, void *data, size_t ndim,
+               npy_intp *shape);
+bool newarray(nparray* arr, int const typenum, newtype const newt,
+              char const layout, size_t ndim, npy_intp *shape);
 void * ar_data(nparray const arr);
 
 bool check_rows(nparray arr, size_t const rows);
@@ -84,62 +85,69 @@ typedef enum dtype {
 static nparray init_array(PyObject const * arr);
 static bool setup_array(nparray arr, size_t const edim);
 
-nparray from_otf(int const typenum, size_t const ndim, PyObject* obj)
+bool from_otf(nparray* arr, int const typenum, size_t const ndim,
+                 PyObject* obj)
 {
     printf("%p\n", obj);
     m_log;
-    nparray arr = init_array(PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY));
+    nparray _arr = init_array(PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY));
     
     m_log;
     
-    if (arr == NULL)
-        return NULL;
+    if (_arr == NULL)
+        return true;
     m_log;
     
-    if (setup_array(arr, ndim)) {
-        Mem_Free(arr);
-        return NULL;
+    if (setup_array(_arr, ndim)) {
+        Mem_Free(_arr);
+        return true;
     }
     
-    return arr;
-}
-
-
-nparray from_of(size_t const ndim, PyObject *obj)
-{
-    nparray arr = init_array(PyArray_FROM_OF(obj, NPY_ARRAY_IN_ARRAY));
-
-    if (arr == NULL)
-        return NULL;
-
-    if (setup_array(arr, ndim)) {
-        Mem_Free(arr);
-        return NULL;
-    }
-
-    return arr;
-}
-
-
-
-nparray from_data(int const typenum, void *data, size_t ndim, npy_intp *shape)
-{
-    nparray arr = init_array(PyArray_SimpleNewFromData(ndim, shape, typenum, data));
-
-    if (arr == NULL)
-        return NULL;
+    *arr = _arr;
     
-    if (setup_array(arr, 0)) {
-        Mem_Free(arr);
-        return NULL;
-    }
-
-    return arr;
+    return false;
 }
 
 
-nparray newarray(int const typenum, newtype const newt, char const layout,
-                 size_t ndim, npy_intp *shape)
+bool from_of(nparray* arr, size_t const ndim, PyObject *obj)
+{
+    nparray _arr = init_array(PyArray_FROM_OF(obj, NPY_ARRAY_IN_ARRAY));
+
+    if (_arr == NULL)
+        return true;
+
+    if (setup_array(_arr, ndim)) {
+        Mem_Free(_arr);
+        return true;
+    }
+    
+    *arr = _arr;
+    
+    return false;
+}
+
+
+
+bool from_data(nparray* arr, int const typenum, void *data, size_t ndim, npy_intp *shape)
+{
+    nparray _arr = init_array(PyArray_SimpleNewFromData(ndim, shape, typenum, data));
+
+    if (_arr == NULL)
+        return true;
+    
+    if (setup_array(_arr, 0)) {
+        Mem_Free(_arr);
+        return true;
+    }
+    
+    *arr = _arr;
+
+    return false;
+}
+
+
+bool newarray(nparray* arr, int const typenum, newtype const newt,
+                 char const layout, size_t ndim, npy_intp *shape)
 {
     int fortran = 0;
     
@@ -172,17 +180,19 @@ nparray newarray(int const typenum, newtype const newt, char const layout,
             return NULL;
     }
     
-    nparray arr = init_array(npobj);
+    nparray _arr = init_array(npobj);
 
-    if (arr == NULL)
-        return NULL;
+    if (_arr == NULL)
+        return true;
 
-    if (setup_array(arr, 0)) {
-        Mem_Free(arr);
-        return NULL;
+    if (setup_array(_arr, 0)) {
+        Mem_Free(_arr);
+        return true;
     }
-
-    return arr;
+    
+    *arr = _arr;
+    
+    return false;
 }
 
 

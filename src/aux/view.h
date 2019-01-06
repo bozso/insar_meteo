@@ -21,6 +21,7 @@ void _setup_view(void **data, view_meta *md, nparray arr);
 
 
 m_def_view(double, view_double)
+m_def_view(npy_bool, view_bool)
 
 
 #define ar_elem1(ar_struct, ii)\

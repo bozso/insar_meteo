@@ -47,7 +47,6 @@ do {                                   \
 
 typedef void (*dtor)(void *);
 
-#if 1
 #define del(obj)                \
 do{                             \
     if ((obj)) {                \
@@ -56,6 +55,23 @@ do{                             \
         (obj) = NULL;           \
     }                           \
 } while(0)
+
+
+#if defined(_OS_WINDOWS_) && defined(_COMPILER_INTEL_)
+#  define m_static_inline static
+#elif defined(_OS_WINDOWS_) && defined(_COMPILER_MICROSOFT_)
+#  define m_static_inline static __inline
+#else
+#  define m_static_inline static inline
+#endif
+
+
+#if defined(_OS_WINDOWS_) && !defined(_COMPILER_MINGW_)
+#  define m_noinline __declspec(noinline)
+#  define m_noinline_decl(f) __declspec(noinline) f
+#else
+#  define m_noinline __attribute__((noinline))
+#  define m_noinline_decl(f) f __attribute__((noinline))
 #endif
 
 #endif

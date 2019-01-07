@@ -11,6 +11,7 @@
 #define Mem_Malloc(num) malloc(num)
 #define Mem_Free(ptr) free((ptr))
 
+#define str_equal(str1, str2) (strcmp((str1), (str2)) == 0)
 
 /**************
  * for macros *
@@ -55,6 +56,19 @@ do{                             \
         (obj) = NULL;           \
     }                           \
 } while(0)
+
+
+#if defined(_MSC_VER)
+        #define m_inline __inline
+#elif defined(__GNUC__)
+    #if defined(__STRICT_ANSI__)
+         #define m_inline __inline__
+    #else
+         #define m_inline inline
+    #endif
+#else
+    #define m_inline
+#endif
 
 
 #if defined(_OS_WINDOWS_) && defined(_COMPILER_INTEL_)

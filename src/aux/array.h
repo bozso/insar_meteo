@@ -1,5 +1,9 @@
-#ifndef ARRAYIO_H
-#define ARRAYIO_H
+#ifndef ARRAY_H
+#define ARRAY_H
+
+#include <stdint.h>
+#include <string.h>
+#include <complex.h>
 
 #include "utils.h"
 #include "common.h"
@@ -39,6 +43,12 @@ typedef enum dtype {
 } dtype;
 
 
+typedef enum layout {
+    colmajor,
+    rowmajor
+} layout;
+
+
 struct _array {
     dtype type;
     size_t ndim, ndata, datasize, *shape, *stride;
@@ -49,10 +59,10 @@ struct _array {
 
 typedef struct _array* arrayptr;
 
-arrayptr array_new(dtype const type, size_t const ndim,
-                   char const layout, size_t const* shape);
+bool array_new(arrayptr* arr, dtype const type, size_t const ndim,
+               layout const lay, size_t const* shape);
 
-bool array_read(arrayptr* arr, char const* path)
+bool array_read(arrayptr* arr, char const* path);
 bool array_write(arrayptr const arr, char const* path, char const* doc);
 
 int get_typenum(char const* name);
@@ -63,7 +73,7 @@ int get_typenum(char const* name);
 static size_t const sizes[] = {
     [dt_size_t]       = sizeof(size_t),
     [dt_char]         = sizeof(char),
-    [dt_dtype]        = sizeof(dtype)
+    [dt_dtype]        = sizeof(dtype),
     [dt_bool]         = sizeof(unsigned char),
     [dt_byte]         = sizeof(char),
     [dt_ubyte]        = sizeof(unsigned char),
@@ -78,7 +88,6 @@ static size_t const sizes[] = {
     [dt_float]        = sizeof(float),
     [dt_double]       = sizeof(double),
     [dt_longdouble]   = sizeof(long double),
-    [dt_float]        = sizeof(float),
     [dt_int8]         = sizeof(int8_t),
     [dt_int16]        = sizeof(int16_t),
     [dt_int64]        = sizeof(int64_t),
@@ -86,7 +95,7 @@ static size_t const sizes[] = {
     [dt_uint16]       = sizeof(uint16_t),
     [dt_uint64]       = sizeof(uint64_t),
     [dt_cfloat]       = sizeof(float complex),
-    [dt_cdouble]      = sizeof(double complex)
+    [dt_cdouble]      = sizeof(double complex),
     [dt_clongdouble]  = sizeof(double complex)
 };
 
@@ -163,13 +172,12 @@ int get_typenum(char const* name)
 static void array_dtor(void *arr);
 
 bool array_new(arrayptr* arr, dtype const type, size_t const ndim,
-               char const layout, size_t const* shape)
+               layout const lay, size_t const* shape)
 {
     arrayptr new = Mem_New(struct _array, 1);
     
     if (new == NULL) {
         Perror("array_new", "Memory allocation failed!\n");
-        Mem_Free(new);
         return true;
     }
     
@@ -181,15 +189,45 @@ bool array_new(arrayptr* arr, dtype const type, size_t const ndim,
     new->datasize = sizes[type];
     new->ndata = total;
     
-    if ((new->shape = Mem_New(size_t, 2 * ndim + sizes[type] * total)) == NULL)
+    if ((new->shape = Mem_New(size_t, 2 * ndim + sizes[type] * total)) == NULL) {
         Perror("array_new", "Memory allocation failed!\n");
         Mem_Free(new);
         return true;
     }
     
+    // check memcpy
+    new->shape = memcpy(new->shape, shape, ndim * sizes[dt_size_t]);
+    
     new->stride = new->shape + ndim;
-    new->data = new->shape + 2 * ndim
-    new->dtor_ = array_dtor;
+    
+    switch(lay) {
+        case rowmajor:
+            for(size_t ii = 0; ii < ndim; ++ii) {
+                new->stride[ii] = 1;
+                for(size_t jj = ii + 1; jj < ndim; ++jj) {
+                    new->stride[ii] *= new->shape[jj];
+                }
+            }
+            
+            break;
+
+        case colmajor:
+            for(size_t ii = 0; ii < ndim; ++ii) {
+                new->stride[ii] = 1;
+                for(size_t jj = 1; jj < ii - 1; ++jj) {
+                    new->stride[ii] *= new->shape[jj];
+                }
+            }
+            
+            break;
+        //default:
+            // error
+    }
+    
+    new->data   = new->shape + 2 * ndim;
+    new->dtor_  = array_dtor;
+    
+    *arr = new;
     
     return false;
 }
@@ -204,25 +242,26 @@ bool array_read(arrayptr* arr, char const* path)
         goto fail;
     
     size_t doc_len = 0;
+    char *doc;
     
-    if (readb(outfile, sizes[s_size_t], 1, &doc_len) < 0 or
-        readb(outfile, sizes[s_char], doc_len, doc) < 0)
+    if (Readb(infile, sizes[dt_size_t], 1, &doc_len) < 0 or
+        Readb(infile, sizes[dt_char], doc_len, doc) < 0)
         goto fail;
     
     size_t ndim = 0, ndata = 0, *shape = NULL;
     dtype type = 0;
     
-    if (readb(infile, sizes[dt_dtype], 1, &type) < 0 or
-        readb(infile, sizes[dt_size_t], 1, &ndim) < 0 or
-        readb(infile, sizes[dt_size_t], 1, &ndata) < 0 or
-        readb(infile, sizes[dt_size_t], ndim, shape) < 0 or)
+    if (Readb(infile, sizes[dt_dtype], 1, &type) < 0 or
+        Readb(infile, sizes[dt_size_t], 1, &ndim) < 0 or
+        Readb(infile, sizes[dt_size_t], 1, &ndata) < 0 or
+        Readb(infile, sizes[dt_size_t], ndim, shape) < 0 or)
         goto fail;
     
-    if ((new = array_new(type, ndim, ,shape)) == NULL)
+    if (array_new(&new, type, ndim, ,shape))
         goto fail;
     
-    if (readb(infile, sizes[dt_size_t], ndim, arr->stride) < 0 or
-        readb(infile, arr->datasize, ndata, arr->data) < 0)
+    if (Readb(infile, sizes[dt_size_t], ndim, arr->stride) < 0 or
+        Readb(infile, arr->datasize, ndata, arr->data) < 0)
         goto fail;
     
     *arr = new;
@@ -245,22 +284,22 @@ bool array_write(arrayptr const arr, char const* path, char const* doc)
     
     size_t doc_len = strlen(doc);
     
-    if(writeb(outfile, sizes[s_size_t], 1, &doc_len) < 0 or
-       writeb(outfile, sizes[s_char], strlen(doc), doc) < 0)
+    if(Writeb(outfile, sizes[s_size_t], 1, &doc_len) < 0 or
+       Writeb(outfile, sizes[s_char], strlen(doc), doc) < 0)
        goto fail;
     
     size_t ndim = arr->ndim, ndata = arr->ndata;
     
-    if (writeb(outfile, sizes[dt_dtype], 1, &(arr->type)) < 0 or
-        writeb(outfile, sizes[dt_size_t], 1, &ndim) < 0)
+    if (Writeb(outfile, sizes[dt_dtype], 1, &(arr->type)) < 0 or
+        Writeb(outfile, sizes[dt_size_t], 1, &ndim) < 0)
         goto fail;
         
-    if (writeb(outfile, sizes[dt_dtype], 1, &(arr->type)) < 0 or
-        writeb(outfile, sizes[dt_size_t], 1, &ndim) < 0 or
-        writeb(outfile, sizes[dt_size_t], 1, &ndata) < 0 or
-        writeb(outfile, sizes[dt_size_t], ndim, arr->shape) < 0 or
-        writeb(outfile, sizes[dt_size_t], ndim, arr->stride) < 0 or
-        writeb(outfile, arr->datasize, ndata, arr->data) < 0)
+    if (Writeb(outfile, sizes[dt_dtype], 1, &(arr->type)) < 0 or
+        Writeb(outfile, sizes[dt_size_t], 1, &ndim) < 0 or
+        Writeb(outfile, sizes[dt_size_t], 1, &ndata) < 0 or
+        Writeb(outfile, sizes[dt_size_t], ndim, arr->shape) < 0 or
+        Writeb(outfile, sizes[dt_size_t], ndim, arr->stride) < 0 or
+        Writeb(outfile, arr->datasize, ndata, arr->data) < 0)
         goto fail;
     
     del(outfile);

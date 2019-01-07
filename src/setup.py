@@ -15,7 +15,8 @@
 
 from os.path import join
 #from distutils.ccompiler import new_compiler
-from numpy.distutils.core import Extension, setup
+#from numpy.distutils.core import Extension, setup
+from distutils.ccompiler import new_compiler
 from sysconfig import get_config_var
 
 def main():
@@ -26,13 +27,28 @@ def main():
     flags = get_config_var('CFLAGS').split()
     flags += ["-std=c99", "-Wall", "-Wextra"]
 
-    macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
+    
+    macros = []
     
     inc_dirs = [join(miniconda, "include"), "aux"]
     lib_dirs = [join(miniconda, "lib")]
     
     libs = []
     
+    sources = ["inmet_aux.c", "implement.c"]
+    
+    comp = new_compiler()
+    
+    objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
+                           extra_preargs=flags)
+    
+    lib = comp.library_filename("inmet_aux", lib_type="dynamic", output_dir=".")
+    
+    comp.link_shared_lib(objects, lib, extra_preargs=flags)
+    
+    
+    """
+    macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     sources = ["inmet_auxmodule.c", "implement.c"]
 
     ext_modules = [
@@ -43,6 +59,9 @@ def main():
     ]
 
     setup(ext_modules=ext_modules)
+    """
+    
+    
     
     return 0
 

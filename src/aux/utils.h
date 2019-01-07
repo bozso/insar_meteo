@@ -16,8 +16,8 @@ struct _File {
 
 typedef struct _File* File;
 
-File
-open(char const* path, char const* mode);
+bool
+open(File* file, char const* path, char const* mode);
 
 int
 Write(File const file, char const* fmt, ...);
@@ -28,7 +28,8 @@ Read(File const file, char const* fmt, ...);
 size_t
 Writeb(File const file, size_t const size, size_t const count, void const* data);
 
-size_t Readb(File file, size_t const size, size_t const count, void* data);
+size_t
+Readb(File file, size_t const size, size_t const count, void* data);
 
 
 typedef struct argp {
@@ -76,32 +77,30 @@ void error(char const* fmt, ...);
 void Perror(char const* perror_str, char const* fmt, ...);
 
 
-extern_end
-
 #ifdef m_inmet_get_impl
-
-extern_begin
 
 
 static void File_dtor(void *obj);
 
-File open(char const* path, char const* mode)
+bool open(File* file, char const* path, char const* mode)
 {
     File new;
     
     if ((new = Mem_New(struct _File, 1)) == NULL) {
-        return NULL;
+        return true;
     }
     
     if ((new->_file = fopen(path, mode)) == NULL) {
         Perror("open", "Could not open file: %s\n", path);
         Mem_Free(new);
-        return NULL;
+        return true;
     }
     
     new->dtor_ = &File_dtor;
-
-    return new;
+    
+    *file = new;
+    
+    return false;
 }
 
 

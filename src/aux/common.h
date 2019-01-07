@@ -3,7 +3,9 @@
 
 #include <iso646.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
 

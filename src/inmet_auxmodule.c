@@ -143,9 +143,11 @@ static py_ptr test(py_varargs)
     
     nparray _arr = NULL;
     
+    m_log;
     if (from_otf(&_arr, np_double, 1, parr))
         return NULL;
     
+
     view_double arr;
     setup_view(arr, _arr);
     

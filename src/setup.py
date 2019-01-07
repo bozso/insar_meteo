@@ -24,7 +24,7 @@ def main():
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
     flags = get_config_var('CFLAGS').split()
-    flags += ["-std=c11", "-Wall", "-Wextra"]
+    flags += ["-std=c99", "-Wall", "-Wextra"]
 
     macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     
@@ -33,7 +33,7 @@ def main():
     
     libs = []
     
-    sources = ["implement.c", "inmet_auxmodule.c"]
+    sources = ["inmet_auxmodule.c", "implement.c"]
 
     ext_modules = [
         Extension(name="inmet_aux", sources=sources,
@@ -43,6 +43,7 @@ def main():
     ]
 
     setup(ext_modules=ext_modules)
+    
     return 0
 
 

@@ -82,15 +82,16 @@ typedef enum dtype {
 #ifdef m_get_impl
 
 
-static nparray init_array(PyObject const * arr);
+static nparray init_array(PyObject * arr);
 static bool setup_array(nparray arr, size_t const edim);
 
-bool from_otf(nparray* arr, int const typenum, size_t const ndim,
-                 PyObject* obj)
+
+bool from_otf(nparray* arr, int const typenum, size_t const ndim, PyObject* obj)
 {
-    printf("%p\n", obj);
     m_log;
-    nparray _arr = init_array(PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY));
+    PyObject *tmp = PyArray_FROM_OTF(obj, typenum, NPY_ARRAY_IN_ARRAY);
+    m_log;
+    nparray _arr = init_array(tmp);
     
     m_log;
     
@@ -247,11 +248,11 @@ void * ar_data(nparray const arr)
 
 static void nparray_dtor(void *obj)
 {
-    Py_XDECREF(((nparray)obj)->npobj);
+    Py_DECREF(((nparray)obj)->npobj);
 }
 
 
-static nparray init_array(PyObject const * nparr)
+static nparray init_array(PyObject * nparr)
 {
     printf("%p\n", nparr);
     if (nparr == NULL)

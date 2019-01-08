@@ -19,10 +19,10 @@
  * for macros *
  **************/
 
-#define m_for(ii, max) for(size_t (ii) = (max); (ii)--; )
-#define m_forz(ii, max) for(size_t (ii) = 0; (ii) < max; ++(ii))
-#define m_fors(ii, min, max, step) for(size_t (ii) = (min); (ii) < (max); (ii) += (step))
-#define m_for1(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
+#define m_for(ii, max) for((ii) = (max); (ii)--; )
+#define m_forz(ii, max) for((ii) = 0; (ii) < max; ++(ii))
+#define m_fors(ii, min, max, step) for((ii) = (min); (ii) < (max); (ii) += (step))
+#define m_for1(ii, min, max) for((ii) = (min); (ii) < (max); ++(ii))
 
 
 #define m_check_fail(condition) \

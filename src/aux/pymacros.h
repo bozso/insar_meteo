@@ -3,7 +3,7 @@
 
 #include "Python.h"
 
-// turn s into string "s"
+/* turn s into string "s" */
 #define QUOTE(s) # s
 
 #define CONCAT(a,b) a ## b
@@ -47,7 +47,7 @@ do {                                                                 \
  * Module initialization macros *
  ********************************/
 
-// Python 3
+/* Python 3 */
 #if PY_VERSION_HEX >= 0x03000000
 
 #define PyString_Check PyBytes_Check
@@ -65,12 +65,12 @@ do {                                                                 \
 
 #define PyNumber_Int PyNumber_Long
 
-// Python 2
+/* Python 2 */
 #else 
 
 #define PyUString_FromStringAndSize PyString_FromStringAndSize
 
-// Python 2/3
+/* Python 2/3 */
 #endif 
 
 

@@ -23,7 +23,7 @@
 
 extern_begin
 
-// structure for storing fitted polynom coefficients
+/* structure for storing fitted polynom coefficients */
 typedef struct fit_poly {
     double mean_t, start_t, stop_t, *mean_coords;
     view_double *coeffs;

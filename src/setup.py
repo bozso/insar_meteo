@@ -15,7 +15,7 @@
 
 from os.path import join
 #from distutils.ccompiler import new_compiler
-#from numpy.distutils.core import Extension, setup
+from numpy.distutils.core import Extension, setup
 from distutils.ccompiler import new_compiler
 from sysconfig import get_config_var
 
@@ -25,7 +25,7 @@ def main():
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
     flags = get_config_var('CFLAGS').split()
-    flags += ["-std=c99", "-Wall", "-Wextra"]
+    flags += ["-ansi", "-Wall", "-Wextra"]
 
     
     macros = []
@@ -35,6 +35,7 @@ def main():
     
     libs = []
     
+    """
     sources = ["inmet_aux.c", "implement.c"]
     
     comp = new_compiler()
@@ -45,9 +46,9 @@ def main():
     lib = comp.library_filename("inmet_aux", lib_type="dynamic", output_dir=".")
     
     comp.link_shared_lib(objects, lib, extra_preargs=flags)
-    
-    
     """
+    
+    
     macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
     sources = ["inmet_auxmodule.c", "implement.c"]
 
@@ -59,8 +60,6 @@ def main():
     ]
 
     setup(ext_modules=ext_modules)
-    """
-    
     
     
     return 0

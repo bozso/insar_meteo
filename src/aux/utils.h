@@ -48,13 +48,13 @@ int get_arg(argp const *ap, int const pos, char const *fmt, void *par);
  * WGS-84 ELLIPSOID PARAMETERS *
  *******************************/
 
-// RADIUS OF EARTH
+/* Radius of Earth */
 static const double R_earth = 6372000.0;
 
 static const double WA = 6378137.0;
 static const double WB = 6356752.3142;
 
-// (WA*WA-WB*WB)/WA/WA
+/* (WA * WA - WB* WB) / WA / WA */
 static const double E2 = 6.694380e-03;
 
 

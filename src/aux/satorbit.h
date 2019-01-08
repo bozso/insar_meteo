@@ -33,7 +33,7 @@ typedef unsigned int uint;
  * Structs *
  ***********/
 
-// cartesian coordinate
+/* cartesian coordinate */
 typedef struct cart {
     double x, y, z;
 } cart;
@@ -47,8 +47,8 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
               double *lon, double *lat, double *h);
 
 
-void calc_azi_inc(fit_poly const *orb, nparray const _coords,
-                  nparray __azi_inc, size_t const max_iter,
+void calc_azi_inc(fit_poly const *orb, view_double const* coords,
+                  view_double* azi_inc, size_t const max_iter,
                   uint const is_lonlat);
 
 
@@ -128,7 +128,7 @@ static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
         vel_y = ar_elem2(coeffs, 1, 0);
         vel_z = ar_elem2(coeffs, 2, 0);
     }
-    // evaluation of polynom with Horner's method
+    /* evaluation of polynom with Horner's method */
     else {
         
         sat_x = ar_elem2(coeffs, 0, 0)  * time;
@@ -342,4 +342,5 @@ extern_end
 
 #endif
 
-#endif // SATORBIT_H
+/* SATORBIT_H */
+#endif 

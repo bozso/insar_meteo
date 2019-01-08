@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#define PY_ARRAY_UNIQUE_SYMBOL inmet_ARRAY_API
 #include "nparray.h"
 #include "math_aux.h"
 #include "pymacros.h"
@@ -9,13 +10,38 @@
 #include "view.h"
 
 
-typedef PyArrayObject* np_ptr;
-typedef PyObject* py_ptr;
+typedef PyObject* pyptr;
 
 
-static py_ptr ell_to_merc(py_varargs)
+static pyptr test(py_varargs)
 {
-    py_ptr plon, plat;
+    pyptr parr = NULL;
+    nparray _arr = NULL;
+    view_double arr;
+    size_t ii = 0;
+    parse_varargs("O", &parr);
+    
+    if (np_from_otf(&_arr, np_double, 1, parr))
+        return NULL;
+    
+    setup_view(arr, _arr);
+    
+    printf("%lu %lu %lu\n", _arr->ndim, _arr->shape[0], _arr->shape[1]);
+    
+    m_forz(ii, _arr->shape[0]) {
+        printf("%lu ", _arr->strides[ii]);
+        printf("\n");
+    }
+    
+    Py_DECREF(_arr);
+    Py_RETURN_NONE;
+}
+
+#if 0
+
+static pyptr ell_to_merc(py_varargs)
+{
+    pyptr plon, plat;
     plon = plat = NULL;
     
     double a, e, lon0;
@@ -23,7 +49,7 @@ static py_ptr ell_to_merc(py_varargs)
 
     parse_varargs("OOdddII", &plon, &plat, &lon0, &a, &e, &isdeg, &fast);
     
-    nparray _lon = NULL, _lat = NULL, _xy = NULL;
+    npptr _lon = NULL, _lat = NULL, _xy = NULL;
     
     if (from_otf(&_lon, np_cdouble, 1, plon) or
         from_otf(&_lat, np_cdouble, 1, plat))
@@ -98,9 +124,9 @@ fail:
 }
 
 
-static py_ptr azi_inc(py_varargs)
+static pyptr azi_inc(py_varargs)
 {
-    py_ptr pmean_coords = NULL, pcoeffs = NULL, pcoords = NULL;
+    pyptr pmean_coords = NULL, pcoeffs = NULL, pcoords = NULL;
     double mean_t = 0.0, start_t = 0.0, stop_t = 0.0;
     uint is_centered = 0, deg = 0, is_lonlat = 0, max_iter = 0;
     
@@ -136,40 +162,11 @@ fail:
 } // azi_inc
 
 
-static py_ptr test(py_varargs)
-{
-    py_ptr parr = NULL;
-    parse_varargs("O", &parr);
-    
-    nparray _arr = NULL;
-    
-    m_log;
-    if (from_otf(&_arr, np_double, 1, parr))
-        return NULL;
-    
-
-    view_double arr;
-    setup_view(arr, _arr);
-    
-    size_t n = _arr->shape[0];
-    
-    double sum = 0.0;
-    
-    m_forz(ii, n)
-        sum += ar_elem1(arr, ii) + 1.0;
-    
-    printf("Sum: %lf\n", sum);
-    
-    del(_arr);
-    Py_RETURN_NONE;
-}
-
-
-static py_ptr asc_dsc_select(py_keywords)
+static pyptr asc_dsc_select(py_keywords)
 {
     keywords("array1", "array2", "max_sep");
     
-    py_ptr parr1 = NULL, parr2 = NULL;
+    pyptr parr1 = NULL, parr2 = NULL;
     double max_sep = 100.0;
     
     parse_keywords("OO|d:asc_dsc_select", &parr1, &parr2, &max_sep);
@@ -215,15 +212,11 @@ fail:
     return NULL;
 } // asc_dsc_select
 
-
-#if 0
-
-
-static py_ptr dominant(py_keywords)
+static pyptr dominant(py_keywords)
 {
     keywords("asc_data", "dsc_data", "cluster_sep");
     
-    py_ptr pasc(NULL), pdsc(NULL);
+    pyptr pasc(NULL), pdsc(NULL);
     double max_sep = 100.0;
     parse_keywords("OO|d:dominant", &pasc, &pdsc, &max_sep);
     
@@ -243,22 +236,22 @@ static py_ptr dominant(py_keywords)
 
 #endif
 
-//------------------------------------------------------------------------------
+/*----------------------------------------------------------------------------*/
 
 #define version "0.0.1"
 #define module_name "inmet_aux"
 static char const* module_doc = "inmet_aux";
 
 static PyMethodDef module_methods[] = {
-    pymeth_varargs(ell_to_merc, "ell_to_merc"),
+    /*pymeth_varargs(ell_to_merc, "ell_to_merc"),*/
     pymeth_varargs(test, "test"),
-    pymeth_varargs(azi_inc, "azi_inc"),
+    /*pymeth_varargs(azi_inc, "azi_inc"),
     pymeth_keywords(asc_dsc_select, "asc_dsc_select"),
-    //pymeth_keywords(dominant, "dominant"),
+    pymeth_keywords(dominant, "dominant"),*/
     {NULL, NULL, 0, NULL}
 };
 
-//------------------------------------------------------------------------------
+/*----------------------------------------------------------------------------*/
 
 static PyObject * module_error;
 static PyObject * module;

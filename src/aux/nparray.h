@@ -44,6 +44,7 @@ int is_not_swapped(nparray arr);
 int is_byte_swapped(nparray arr);
 int can_cast_to(nparray arr, int const totypenum);
 
+
 typedef enum dtype {
     np_bool = NPY_BOOL,
 
@@ -234,7 +235,12 @@ int can_cast_to(nparray arr, int const totypenum)
 
 void * ar_data(nparray const arr) { return PyArray_DATA(arr->npobj); }
 
-static void nparray_dtor(void *obj) { Py_DECREF(((nparray)obj)->npobj); }
+static void nparray_dtor(void *obj)
+{
+    nparray arr = (nparray) obj;
+    PyMem_Del(arr->strides); arr->strides = NULL;
+    Py_DECREF(arr->npobj); arr->npobj = NULL;
+}
 
 
 static nparray init_array(PyObject * nparr)
@@ -258,10 +264,14 @@ static nparray init_array(PyObject * nparr)
 static int setup_array(nparray arr, size_t const edim)
 {
     PyArrayObject *array = arr->npobj;
-    size_t ndim_ = (size_t)PyArray_NDIM(array), ii = 0;
-    int elemsize = (int) PyArray_ITEMSIZE(array);
-    size_t *tmp = Mem_New(size_t, 2 * ndim_);
     npy_intp *shape, *strides;
+
+    size_t ndim_ = (size_t)PyArray_NDIM(array), ii = 0;
+
+    int elemsize = (int) PyArray_ITEMSIZE(array);
+
+    size_t *tmp = PyMem_New(size_t, 2 * ndim_);
+
     
     if (tmp == NULL) {
         PyErr_Format(PyExc_MemoryError, "Could not allocate memory for numpy "
@@ -276,6 +286,7 @@ static int setup_array(nparray arr, size_t const edim)
         return 1;
     }
     
+    arr->ndim = ndim_;
     arr->strides = tmp;
     arr->shape = arr->strides + ndim_;
     
@@ -284,7 +295,6 @@ static int setup_array(nparray arr, size_t const edim)
     for(ii = ndim_; ii--; )
         arr->strides[ii] = (size_t) ((double) strides[ii] / elemsize);
 
- 
     shape = PyArray_DIMS(array);
     
     for(ii = ndim_; ii--; )

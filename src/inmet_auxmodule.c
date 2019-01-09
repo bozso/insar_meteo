@@ -26,14 +26,13 @@ static pyptr test(py_varargs)
     
     setup_view(arr, _arr);
     
-    printf("%lu %lu %lu\n", _arr->ndim, _arr->shape[0], _arr->shape[1]);
-    
     m_forz(ii, _arr->shape[0]) {
-        printf("%lu ", _arr->strides[ii]);
-        printf("\n");
+        printf("%lf ", ar_elem1(arr, ii));
     }
-    
-    Py_DECREF(_arr);
+
+    printf("\n");
+
+    del(_arr);
     Py_RETURN_NONE;
 }
 

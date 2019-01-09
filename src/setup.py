@@ -14,8 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from os.path import join
-#from distutils.ccompiler import new_compiler
-from numpy.distutils.core import Extension, setup
+from distutils.ccompiler import new_compiler
+#from numpy.distutils.core import Extension, setup
 from distutils.ccompiler import new_compiler
 from sysconfig import get_config_var
 
@@ -25,7 +25,7 @@ def main():
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
     flags = get_config_var('CFLAGS').split()
-    flags += ["-ansi", "-Wall", "-Wextra"]
+    flags += ["-ansi", "-Wall", "-Wextra", "-fPIC"]
 
     
     macros = []
@@ -35,32 +35,32 @@ def main():
     
     libs = []
     
-    """
-    sources = ["inmet_aux.c", "implement.c"]
-    
-    comp = new_compiler()
-    
-    objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
-                           extra_preargs=flags)
-    
-    lib = comp.library_filename("inmet_aux", lib_type="dynamic", output_dir=".")
-    
-    comp.link_shared_lib(objects, lib, extra_preargs=flags)
-    """
-    
-    
-    macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
-    sources = ["inmet_auxmodule.c", "implement.c"]
+    if 1:
+        sources = ["inmet_aux.c", "implement.c"]
+        
+        comp = new_compiler()
+        
+        objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
+                               extra_preargs=flags)
+        
+        #lib = comp.library_filename("inmet_aux", lib_type="shared",
+                                    #output_dir=".")
+        
+        comp.link_shared_lib(objects, "inmet_aux", extra_preargs=flags)
 
-    ext_modules = [
-        Extension(name="inmet_aux", sources=sources,
-                  define_macros=macros,
-                  extra_compile_args=flags,
-                  include_dirs=inc_dirs)
-    ]
 
-    setup(ext_modules=ext_modules)
+    if 0:
+        macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
+        sources = ["inmet_auxmodule.c", "implement.c"]
     
+        ext_modules = [
+            Extension(name="inmet_aux", sources=sources,
+                      define_macros=macros,
+                      extra_compile_args=flags,
+                      include_dirs=inc_dirs)
+        ]
+    
+        setup(ext_modules=ext_modules)
     
     return 0
 

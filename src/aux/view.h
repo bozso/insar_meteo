@@ -1,7 +1,7 @@
 #ifndef VIEW_H
 #define VIEW_H
 
-#include "numpy/arrayobject.h"
+/*#include "numpy/arrayobject.h"*/
 #include "common.h"
 
 extern_begin
@@ -15,13 +15,14 @@ typedef struct view_meta {
 
 #define __unpack(view) (void **) &((view).data), &((view).md)
 
-void _setup_view(void **data, view_meta *md, nparray arr);
+/*void _setup_view(void **data, view_meta *md, nparray arr);*/
+void _setup_view(void **data, view_meta *md, arrayptr arr);
 
 #define setup_view(view, arr) _setup_view(__unpack(view), (arr))
 
 
-m_def_view(npy_double, view_double)
-m_def_view(npy_bool, view_bool)
+m_def_view(double, view_double)
+m_def_view(int, view_bool)
 
 
 #define ar_elem1(ar_struct, ii)\
@@ -54,12 +55,22 @@ m_def_view(npy_bool, view_bool)
 
 #ifdef m_get_impl
 
+/*
 void _setup_view(void **data, view_meta *md, nparray arr)
 {
     md->ndim = arr->ndim;
     md->shape = arr->shape;
     md->strides = arr->strides;
     *data = PyArray_DATA(arr->npobj);
+}
+*/
+
+void _setup_view(void **data, view_meta *md, arrayptr arr)
+{
+    md->ndim = arr->ndim;
+    md->shape = arr->shape;
+    md->strides = arr->strides;
+    *data = arr->data;
 }
 
 #endif

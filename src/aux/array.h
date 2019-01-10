@@ -10,6 +10,7 @@
 
 extern_begin
 
+
 typedef enum dtype {
     unknown       = 0,
     np_bool       = 1,
@@ -48,13 +49,13 @@ struct _array {
 };
 
 
-typedef struct _array* arrayptr;
+typedef struct _array* arptr;
 
-bool array_new(arrayptr* arr, dtype const type, size_t const ndim,
+bool array_new(arptr* arr, dtype const type, size_t const ndim,
                layout const lay, size_t const* shape);
 
-bool array_read(arrayptr* arr, char const* path);
-bool array_write(arrayptr const arr, char const* path, char const* doc);
+bool array_read(arptr* arr, char const* path);
+bool array_write(arptr const arr, char const* path, char const* doc);
 
 int get_typenum(char const* name);
 
@@ -92,7 +93,7 @@ static size_t const sizes[] = {
 };
 */
 
-
+/*
 int get_typenum(char const* name)
 {
     
@@ -161,15 +162,17 @@ int get_typenum(char const* name)
     else
         return -1;
 }
+*/
+
 
 /*
 
 static void array_dtor(void *arr);
 
-bool array_new(arrayptr* arr, dtype const type, size_t const ndim,
+bool array_new(arptr* arr, dtype const type, size_t const ndim,
                layout const lay, size_t const* shape)
 {
-    arrayptr new = Mem_New(struct _array, 1);
+    arptr new = Mem_New(struct _array, 1);
     size_t ii = 0 total = 0;
     
     if (new == NULL) {
@@ -227,9 +230,9 @@ bool array_new(arrayptr* arr, dtype const type, size_t const ndim,
 }
 
 
-bool array_read(arrayptr* arr, char const* path)
+bool array_read(arptr* arr, char const* path)
 {
-    arrayptr new = NULL;
+    arptr new = NULL;
     File infile = NULL;
     
     if (open(&infile, path, "rb"))
@@ -269,7 +272,7 @@ fail:
 }
 
 
-bool array_write(arrayptr const arr, char const* path, char const* doc)
+bool array_write(arptr const arr, char const* path, char const* doc)
 {
     File outfile = NULL;
     
@@ -307,8 +310,8 @@ fail:
 
 static void array_dtor(void *arr)
 {
-    Mem_Free(((arrayptr)arr)->shape);
-    ((arrayptr)arr)->shape = NULL;
+    Mem_Free(((arptr)arr)->shape);
+    ((arptr)arr)->shape = NULL;
 }
 */
 

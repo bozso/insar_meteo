@@ -2,8 +2,8 @@
 
 #include "array.h"
 
-int test(arrayptr* arr)
+int test(arptr arr)
 {
-    
+    printf("%lu %lu\n", arr->shape[0], arr->strides[0]);
     return 0;
 }

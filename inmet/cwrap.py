@@ -7,14 +7,13 @@ filedir = dirname(realpath(__file__))
 
 ia = nct.load_library("libinmet_aux", join(filedir, "..", "src"))
 
-print(np.dtype(np.float32))
-
 class Carray(Structure):
     _fields_ = [("type", c_int),
-                ("ndim", c_ssize_t),
-                ("ndata", c_ssize_t),
-                ("shape", POINTER(c_ssize_t)), 
-                ("strides", POINTER(c_ssize_t)),
+                ("ndim", c_size_t),
+                ("ndata", c_size_t),
+                ("datasize", c_size_t),
+                ("shape", POINTER(c_size_t)), 
+                ("strides", POINTER(c_size_t)),
                 ("data", c_void_p)]
 
 
@@ -46,9 +45,12 @@ def npc(array):
     array = np.array(array)
     act = array.ctypes
     
+    print(array.ndim, array.size)
+    
     return Carray(type_conversion[array.dtype],
-                  array.ndim, array.size, act.shape_as(c_size_t),
-                  act.strides_as(c_size_t), act.data_as(c_void_p))
+                  array.ndim, array.size, array.itemsize,
+                  act.shape_as(c_size_t), act.strides_as(c_size_t),
+                  act.data_as(c_void_p))
     
 
 ia.test.argtypes = [POINTER(Carray)]

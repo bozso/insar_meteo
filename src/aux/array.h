@@ -8,10 +8,7 @@
 #include "utils.h"
 #include "common.h"
 
-extern_begin
-
-
-typedef enum dtype {
+enum dtype {
     unknown       = 0,
     np_bool       = 1,
     np_int        = 2,
@@ -33,37 +30,162 @@ typedef enum dtype {
 
     np_complex64  = 15,
     np_complex128 = 16
-} dtype;
+};
 
 
-typedef enum layout {
+enum layout {
     colmajor,
     rowmajor
-} layout;
+};
 
 
-struct _array {
+class Array {
     dtype type;
     int isnumpy;
     size_t ndim, ndata, datasize, *shape, *strides;
     void *data;
+    
+    public:
+        int check_ndim(size_t const ndim) const;
+        int check_type(int const type) const;
+        int check_rows(size_t const rows) const;
+        int check_cols(size_t const cols) const;
+        
+        void *get_data() const {
+            return this->data;
+        }
 };
 
-typedef struct _array* arptr;
+typedef Array* arptr;
 
-int array_init(arptr arr, size_t const edim, int const type);
-void array_dtor(void *arr);
 
-int array_new(arptr* arr, dtype const type, size_t const ndim,
-              layout const lay, size_t const* shape);
+template<typename T>
+class View {
+    public:
+        size_t ndim, *shape, *strides;
 
-int array_read(arptr* arr, char const* path);
-int array_write(arptr const arr, char const* path, char const* doc);
+        View(arptr const arr);
+        
+        T* get_data() const {
+            return this->data;
+        }
 
-int get_typenum(char const* name);
+        ~View()
+        {
+            if (this->isnumpy)
+                delete[] this->strides;
+        }
+        
+        T& operator()(size_t ii) {
+            return this->data[ii * this->strides[0]];
+        }
+
+        T& operator()(size_t ii, size_t jj) {
+            return this->data[ii * this->strides[0] + jj * this->strides[1]];
+        }
+
+        T& operator()(size_t ii, size_t jj, size_t kk) {
+            return this->data[ii * this->strides[0] + jj * this->strides[1] + 
+                              kk * this->strides[2]];
+        }
+
+        T& operator()(size_t ii, size_t jj, size_t kk, size_t ll) {
+            return this->data[ii * this->strides[0] + jj * this->strides[1] + 
+                              kk * this->strides[2] + ll * this->strides[3]];
+        }
+
+        T const& operator()(size_t ii) const {
+            return this->data[ii * this->strides[0]];
+        }
+
+        T const& operator()(size_t ii, size_t jj) const {
+            return this->data[ii * this->strides[0] + jj * this->strides[1]];
+        }
+
+        T const& operator()(size_t ii, size_t jj, size_t kk) const {
+            return this->data[ii * this->strides[0] + jj * this->strides[1] + 
+                              kk * this->strides[2]];
+        }
+
+        T const& operator()(size_t ii, size_t jj, size_t kk, size_t ll) const {
+            return this->data[ii * this->strides[0] + jj * this->strides[1] + 
+                              kk * this->strides[2] + ll * this->strides[3]];
+        }
+    private:
+        bool isnumpy;
+        T* data;
+};
 
 
 #ifdef m_get_impl
+
+template<typename T>
+View<T>::View(arptr const arr)
+{
+    size_t datasize = arr->datasize, ndim = arr->ndim;
+    
+    if (arr->isnumpy)
+    {
+        this->isnumpy = true;
+        this->strides = new size_t[ndim];
+        
+        for(size_t ii = ndim; ii--;)
+        {
+            this->strides[ii] = size_t(double(arr->strides[ii]) / datasize);
+        }
+    }
+    else
+        this->strides = arr->strides;
+        
+    this->ndim = arr->ndim;
+    this->shape = arr->shape;
+    data = static_cast<T*>(arr->data);
+}
+
+
+int Array::check_ndim(size_t const ndim) const
+{
+    if (this->ndim != ndim)
+    {
+        // error
+        return 1;
+    }
+    return 0;
+}
+
+
+int Array::check_type(int const type) const
+{
+    if (this->type != type)
+    {
+        // error
+        return 1;
+    }
+    return 0;
+}
+
+
+int Array::check_rows(size_t const rows) const
+{
+    if (this->shape[0] != rows)
+    {
+        // error
+        return 1;
+    }
+    return 0;
+}
+
+
+int Array::check_cols(size_t const cols) const
+{
+    if (this->shape[1] != cols)
+    {
+        // error
+        return 1;
+    }
+    return 0;
+}
+
 
 /*
 static size_t const sizes[] = {
@@ -316,10 +438,19 @@ static void array_dtor(void *arr)
     Mem_Free(((arptr)arr)->shape);
     ((arptr)arr)->shape = NULL;
 }
+int array_init(arptr arr, size_t const edim, int const type);
+void array_dtor(void *arr);
+
+int array_new(arptr* arr, dtype const type, size_t const ndim,
+              layout const lay, size_t const* shape);
+
+int array_read(arptr* arr, char const* path);
+int array_write(arptr const arr, char const* path, char const* doc);
+
+int get_typenum(char const* name);
+
 */
 
 #endif
-
-extern_end
 
 #endif

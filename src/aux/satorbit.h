@@ -18,38 +18,36 @@
 #define SATORBIT_H
 
 
-#include <tgmath.h>
+#include <cmath>
 
-#include "satorbit.h"
 #include "math_aux.h"
 #include "utils.h"
 #include "common.h"
-
-extern_begin
-
-typedef unsigned int uint;
 
 /***********
  * Structs *
  ***********/
 
 /* cartesian coordinate */
-typedef struct cart {
+struct cart {
     double x, y, z;
-} cart;
+    cart(double x, double y, double z):
+        x(x), y(y), z(z) {}
+    ~cart() = delete;
+};
 
 typedef double const cdouble;
 
 void ell_cart (cdouble lon, cdouble lat, cdouble h,
-               double *x, double *y, double *z);
+               double& x, double& y, double& z);
 
 void cart_ell(cdouble x, cdouble y, cdouble z,
-              double *lon, double *lat, double *h);
+              double& lon, double& lat, double& h);
 
 
-void calc_azi_inc(fit_poly const *orb, view_double const* coords,
-                  view_double* azi_inc, size_t const max_iter,
-                  uint const is_lonlat);
+void calc_azi_inc(fit_poly const& orb, View<double> const& coords,
+                  View<double>& azi_inc, size_t const max_iter,
+                  size_t const is_lonlat);
 
 
 #ifdef m_get_impl
@@ -60,36 +58,36 @@ static inline double norm(cdouble x, cdouble y, cdouble z)
 }
 
 // Calculate satellite position based on fitted polynomial orbits at time
-static inline void calc_pos(fit_poly const *orb, double time, cart *pos)
+static inline void calc_pos(fit_poly const& orb, double time, cart& pos)
 {
-    size_t n_poly = orb->deg + 1, is_centered = orb->is_centered;
+    size_t n_poly = orb.deg + 1, is_centered = orb.is_centered;
     double x = 0.0, y = 0.0, z = 0.0;
     
-    view_double const coeffs = *(orb->coeffs);
-    double const *mean_coords = orb->mean_coords;
+    View<double> const& coeffs = orb.coeffs;
+    double const *mean_coords = orb.mean_coords;
     
     if (is_centered)
         time -= orb->mean_t;
     
     if(n_poly == 2) {
-        x = ar_elem2(coeffs, 0, 0) * time + ar_elem2(coeffs, 0, 1);
-        y = ar_elem2(coeffs, 1, 0) * time + ar_elem2(coeffs, 1, 1);
-        z = ar_elem2(coeffs, 2, 0) * time + ar_elem2(coeffs, 2, 1);
+        x = coeffs(0, 0) * time + coeffs(0, 1);
+        y = coeffs(1, 0) * time + coeffs(1, 1);
+        z = coeffs(2, 0) * time + coeffs(2, 1);
     }
     else {
-        x = ar_elem2(coeffs, 0, 0)  * time;
-        y = ar_elem2(coeffs, 1, 0)  * time;
-        z = ar_elem2(coeffs, 2, 0)  * time;
+        x = coeffs(0, 0)  * time;
+        y = coeffs(1, 0)  * time;
+        z = coeffs(2, 0)  * time;
 
         m_for1(ii, 1, n_poly - 1) {
-            x = (x + ar_elem2(coeffs, 0, ii)) * time;
-            y = (y + ar_elem2(coeffs, 1, ii)) * time;
-            z = (z + ar_elem2(coeffs, 2, ii)) * time;
+            x = (x + coeffs(0, ii)) * time;
+            y = (y + coeffs(1, ii)) * time;
+            z = (z + coeffs(2, ii)) * time;
         }
         
-        x += ar_elem2(coeffs, 0, n_poly - 1);
-        y += ar_elem2(coeffs, 1, n_poly - 1);
-        z += ar_elem2(coeffs, 2, n_poly - 1);
+        x += coeffs(0, n_poly - 1);
+        y += coeffs(1, n_poly - 1);
+        z += coeffs(2, n_poly - 1);
     }
     
     if (is_centered) {
@@ -98,11 +96,11 @@ static inline void calc_pos(fit_poly const *orb, double time, cart *pos)
         z += mean_coords[2];
     }
     
-    pos->x = x; pos->y = y; pos->z = z;
+    pos.x = x; pos.y = y; pos.z = z;
 } // calc_pos
 
 
-static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
+static inline double dot_product(fit_poly const& orb, cdouble X, cdouble Y,
                                  cdouble Z, double time)
 {
     /* Calculate dot product between satellite velocity vector and
@@ -110,54 +108,53 @@ static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
     
     double dx, dy, dz, sat_x = 0.0, sat_y = 0.0, sat_z = 0.0,
                        vel_x, vel_y, vel_z, power, inorm;
-    size_t n_poly = orb->deg + 1;
+    size_t n_poly = orb.deg + 1;
     
-    view_double const coeffs = *(orb->coeffs);
-    double const *mean_coords = orb->mean_coords;
+    View<double> const& coeffs = orb.coeffs;
+    double const *mean_coords = orb.mean_coords;
     
-    if (orb->is_centered)
+    if (orb.is_centered)
         time -= orb->mean_t;
     
     // linear case 
     if(n_poly == 2) {
-        sat_x = ar_elem2(coeffs, 0, 0) * time + ar_elem2(coeffs, 0, 1);
-        sat_y = ar_elem2(coeffs, 1, 0) * time + ar_elem2(coeffs, 1, 1);
-        sat_z = ar_elem2(coeffs, 2, 0) * time + ar_elem2(coeffs, 2, 1);
+        sat_x = coeffs(0, 0) * time + coeffs(0, 1);
+        sat_y = coeffs(1, 0) * time + coeffs(1, 1);
+        sat_z = coeffs(2, 0) * time + coeffs(2, 1);
         
-        vel_x = ar_elem2(coeffs, 0, 0);
-        vel_y = ar_elem2(coeffs, 1, 0);
-        vel_z = ar_elem2(coeffs, 2, 0);
+        vel_x = coeffs(0, 0);
+        vel_y = coeffs(1, 0);
+        vel_z = coeffs(2, 0);
     }
-    /* evaluation of polynom with Horner's method */
+    // evaluation of polynom with Horner's method
     else {
-        
-        sat_x = ar_elem2(coeffs, 0, 0)  * time;
-        sat_y = ar_elem2(coeffs, 1, 0)  * time;
-        sat_z = ar_elem2(coeffs, 2, 0)  * time;
+        sat_x = coeffs(0, 0)  * time;
+        sat_y = coeffs(1, 0)  * time;
+        sat_z = coeffs(2, 0)  * time;
 
         m_for1(ii, 1, n_poly - 1) {
-            sat_x = (sat_x + ar_elem2(coeffs, 0, ii)) * time;
-            sat_y = (sat_y + ar_elem2(coeffs, 1, ii)) * time;
-            sat_z = (sat_z + ar_elem2(coeffs, 2, ii)) * time;
+            sat_x = (sat_x + coeffs(0, ii)) * time;
+            sat_y = (sat_y + coeffs(1, ii)) * time;
+            sat_z = (sat_z + coeffs(2, ii)) * time;
         }
         
-        sat_x += ar_elem2(coeffs, 0, n_poly - 1);
-        sat_y += ar_elem2(coeffs, 1, n_poly - 1);
-        sat_z += ar_elem2(coeffs, 2, n_poly - 1);
+        sat_x += coeffs(0, n_poly - 1);
+        sat_y += coeffs(1, n_poly - 1);
+        sat_z += coeffs(2, n_poly - 1);
 
-        vel_x = ar_elem2(coeffs, 0, n_poly - 2);
-        vel_y = ar_elem2(coeffs, 1, n_poly - 2);
-        vel_z = ar_elem2(coeffs, 2, n_poly - 2);
+        vel_x = coeffs(0, n_poly - 2);
+        vel_y = coeffs(1, n_poly - 2);
+        vel_z = coeffs(2, n_poly - 2);
         
         m_for1(ii, 0, n_poly - 3) {
-            power = (double) (n_poly - 1.0 - ii);
-            vel_x += ii * ar_elem2(coeffs, 0, ii) * pow(time, power);
-            vel_y += ii * ar_elem2(coeffs, 1, ii) * pow(time, power);
-            vel_z += ii * ar_elem2(coeffs, 2, ii) * pow(time, power);
+            power = double(n_poly - 1.0 - ii);
+            vel_x += ii * coeffs(0, ii) * pow(time, power);
+            vel_y += ii * coeffs(1, ii) * pow(time, power);
+            vel_z += ii * coeffs(2, ii) * pow(time, power);
         }
     }
     
-    if (orb->is_centered) {
+    if (orb.is_centered) {
         sat_x += mean_coords[0];
         sat_y += mean_coords[1];
         sat_z += mean_coords[2];
@@ -176,12 +173,12 @@ static inline double dot_product(fit_poly const *orb, cdouble X, cdouble Y,
 
 
 // Compute the sat position using closest approche.
-static inline void closest_appr(fit_poly const *orb, cdouble X, cdouble Y,
-                                cdouble Z, size_t max_iter, cart *sat_pos)
+static inline void closest_appr(fit_poly const& orb, cdouble X, cdouble Y,
+                                cdouble Z, size_t max_iter, cart& sat_pos)
 {
     // first, last and middle time, extending the time window by 5 seconds
-    double t_start = orb->start_t - 5.0,
-           t_stop  = orb->stop_t + 5.0,
+    double t_start = orb.start_t - 5.0,
+           t_stop  = orb.stop_t + 5.0,
            t_middle = 0.0;
     
     // dot products
@@ -192,7 +189,7 @@ static inline void closest_appr(fit_poly const *orb, cdouble X, cdouble Y,
     
     dot_start = dot_product(orb, X, Y, Z, t_start);
     
-    while (abs(dot_middle) > 1.0e-11 && itr < max_iter) {
+    while (abs(dot_middle) > 1.0e-11 and itr < max_iter) {
         t_middle = (t_start + t_stop) / 2.0;
 
         dot_middle = dot_product(orb, X, Y, Z, t_middle);
@@ -215,19 +212,19 @@ static inline void closest_appr(fit_poly const *orb, cdouble X, cdouble Y,
 
 
 void ell_cart(cdouble lon, cdouble lat, cdouble h,
-              double *x, double *y, double *z)
+              double& x, double& y, double& z)
 {
     double n = WA / sqrt(1.0 - E2 * sin(lat) * sin(lat));
 
-    *x = (              n + h) * cos(lat) * cos(lon);
-    *y = (              n + h) * cos(lat) * sin(lon);
-    *z = ( (1.0 - E2) * n + h) * sin(lat);
+    x = (              n + h) * cos(lat) * cos(lon);
+    y = (              n + h) * cos(lat) * sin(lon);
+    z = ( (1.0 - E2) * n + h) * sin(lat);
 
 } // ell_cart
 
 
 void cart_ell(cdouble x, cdouble y, cdouble z,
-              double *lon, double *lat, double *h)
+              double& lon, double& lat, double& h)
 {
     double n, p, o, so, co;
 
@@ -240,24 +237,24 @@ void cart_ell(cdouble x, cdouble y, cdouble z,
     so = sin(o); co = cos(o);
     n = WA * WA / sqrt(WA * co * co * WA + WB * so * so * WB);
 
-    *lat = o;
+    lat = o;
     
     o = atan(y/x); if(x < 0.0) o += pi;
-    *lon = o;
-    *h = p / co - n;
+    lon = o;
+    h = p / co - n;
 } // cart_ell
 
 
 
-static inline void _azi_inc(fit_poly const *orb, cdouble X, cdouble Y,
+static inline void _azi_inc(fit_poly const& orb, cdouble X, cdouble Y,
                             cdouble Z, cdouble lon, cdouble lat,
-                            size_t max_iter, double *azi, double *inc)
+                            size_t max_iter, double& azi, double& inc)
 {
     double xf, yf, zf, xl, yl, zl, t0;
     cart sat;
     
     // satellite closest approache cooridantes
-    closest_appr(orb, X, Y, Z, max_iter, &sat);
+    closest_appr(orb, X, Y, Z, max_iter, sat);
     
     xf = sat.x - X;
     yf = sat.y - Y;
@@ -274,7 +271,7 @@ static inline void _azi_inc(fit_poly const *orb, cdouble X, cdouble Y,
     
     t0 = norm(xl, yl, zl);
     
-    *inc = acos(zl / t0) * rad2deg;
+    inc = acos(zl / t0) * rad2deg;
     
     if(xl == 0.0) xl = 0.000000001;
     
@@ -291,56 +288,52 @@ static inline void _azi_inc(fit_poly const *orb, cdouble X, cdouble Y,
     else
         temp_azi += 180.0;
     
-    *azi = temp_azi;
-} // calc_azi_inc
+    azi = temp_azi;
+}
+// _azi_inc
 
 
-void calc_azi_inc(fit_poly const *orb, nparray _coords,
-                  nparray __azi_inc, size_t const max_iter,
+void calc_azi_inc(fit_poly const& orb, View<double> const& coords,
+                  View<double>& azi_inc, size_t const max_iter,
                   uint const is_lonlat)
 {
     double X, Y, Z, lon, lat, h;
     X = Y = Z = lon = lat = h = 0.0;
     
-    view_double coords, azi_inc;
-    setup_view(coords, _coords); setup_view(azi_inc, __azi_inc);
-    
-    size_t nrows = _coords->shape[0];
+    size_t nrows = coords.shape[0];
     
     // coords contains lon, lat, h
     if (is_lonlat) {
         m_for(ii, nrows) {
-            lon = ar_elem2(coords, ii, 0) * deg2rad;
-            lat = ar_elem2(coords, ii, 1) * deg2rad;
-            h   = ar_elem2(coords, ii, 2);
+            lon = coords(ii, 0) * deg2rad;
+            lat = coords(ii, 1) * deg2rad;
+            h   = coords(ii, 2);
             
             // calulate surface WGS-84 Cartesian coordinates
-            ell_cart(lon, lat, h, &X, &Y, &Z);
+            ell_cart(lon, lat, h, X, Y, Z);
             
-            _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                     ar_ptr2(azi_inc, ii, 0), ar_ptr2(azi_inc, ii, 1));
+            azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+                    azi_inc(ii, 0), azi_inc(ii, 1));
             
         } // for
     }
     // coords contains X, Y, Z
     else {
         m_for(ii, nrows) {
-            X = ar_elem2(coords, ii, 0);
-            Y = ar_elem2(coords, ii, 1);
-            Z = ar_elem2(coords, ii, 2);
+            X = coords(ii, 0);
+            Y = coords(ii, 1);
+            Z = coords(ii, 2);
             
             // calulate surface WGS-84 geodetic coordinates
             cart_ell(X, Y, Z, &lon, &lat, &h);
         
-            _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
-                     ar_ptr2(azi_inc, ii, 0), ar_ptr2(azi_inc, ii, 1));
+            azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+                    azi_inc(ii, 0), azi_inc(ii, 1));
         } // for
     } // if
 }
-
-extern_end
-
 #endif
 
-/* SATORBIT_H */
+
 #endif 
+// SATORBIT_H

@@ -18,18 +18,20 @@
 #ifndef MATH_AUX_HH
 #define MATH_AUX_HH
 
-#include "common.h"
-#include "view.h"
+#include "array.h"
 
-extern_begin
-
-/* structure for storing fitted polynom coefficients */
-typedef struct fit_poly {
+// Structure for storing fitted polynom coefficients
+struct fit_poly {
     double mean_t, start_t, stop_t, *mean_coords;
-    view_double *coeffs;
+    View<double> const& coeffs;
     size_t is_centered, deg;
-} fit_poly;
-
-extern_end
+    fit_poly(double mean_t, double start_t, double stop_t, double *mean_coords,
+             View<double> const& coeffs, size_t is_centered, size_t deg):
+        mean_t(mean_t), start_t(start_t), stop_t(stop_t),
+        mean_coords(mean_coords), coeffs(coeffs), is_centered(is_centered),
+        deg(deg)
+        {}
+    ~fit_poly() {};
+};
 
 #endif

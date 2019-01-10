@@ -25,9 +25,9 @@ def main():
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
     flags = get_config_var('CFLAGS').split()
+    flags.remove("-Wstrict-prototypes")
     flags += ["-std=c++11", "-Wall", "-Wextra", "-fPIC"]
 
-    
     macros = []
     
     inc_dirs = [join(miniconda, "include"), "aux"]

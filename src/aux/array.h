@@ -44,18 +44,21 @@ typedef enum layout {
 
 struct _array {
     dtype type;
+    int isnumpy;
     size_t ndim, ndata, datasize, *shape, *strides;
     void *data;
 };
 
-
 typedef struct _array* arptr;
 
-bool array_new(arptr* arr, dtype const type, size_t const ndim,
-               layout const lay, size_t const* shape);
+int array_init(arptr arr, size_t const edim, int const type);
+void array_dtor(void *arr);
 
-bool array_read(arptr* arr, char const* path);
-bool array_write(arptr const arr, char const* path, char const* doc);
+int array_new(arptr* arr, dtype const type, size_t const ndim,
+              layout const lay, size_t const* shape);
+
+int array_read(arptr* arr, char const* path);
+int array_write(arptr const arr, char const* path, char const* doc);
 
 int get_typenum(char const* name);
 

@@ -9,12 +9,31 @@ ia = nct.load_library("libinmet_aux", join(filedir, "..", "src"))
 
 class Carray(Structure):
     _fields_ = [("type", c_int),
+                ("isnumpy", c_int),
                 ("ndim", c_size_t),
                 ("ndata", c_size_t),
                 ("datasize", c_size_t),
                 ("shape", POINTER(c_size_t)), 
                 ("strides", POINTER(c_size_t)),
                 ("data", c_void_p)]
+    
+    
+    def __init__(self, array):
+        array = np.array(array)
+        act = array.ctypes
+        
+        self.owned = False
+        
+        self.type, self.isnumpy, self.ndim, self.ndata, self.datasize, \
+        self.shape, self.strides, self.data = \
+        type_conversion[array.dtype], 1, array.ndim, array.size, \
+        array.itemsize, act.shape_as(c_size_t), act.strides_as(c_size_t), \
+        act.data_as(c_void_p)
+    
+    
+    def __del__(self):
+        pass
+        # to write
 
 
 type_conversion = {
@@ -56,4 +75,4 @@ def npc(array):
 ia.test.argtypes = [POINTER(Carray)]
 ia.test.restypes = c_int
 
-ia.test(npc([1,2,3]))
+ia.test(Carray([[1,2,3], [4,5,6]]))

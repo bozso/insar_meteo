@@ -25,7 +25,7 @@ def main():
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
     flags = get_config_var('CFLAGS').split()
-    flags += ["-ansi", "-Wall", "-Wextra", "-fPIC"]
+    flags += ["-std=c++11", "-Wall", "-Wextra", "-fPIC"]
 
     
     macros = []
@@ -33,10 +33,10 @@ def main():
     inc_dirs = [join(miniconda, "include"), "aux"]
     lib_dirs = [join(miniconda, "lib")]
     
-    libs = []
+    libs = ["stdc++"]
     
     if 1:
-        sources = ["inmet_aux.c", "implement.c"]
+        sources = ["inmet_aux.cpp", "implement.cpp"]
         
         comp = new_compiler()
         
@@ -46,7 +46,8 @@ def main():
         #lib = comp.library_filename("inmet_aux", lib_type="shared",
                                     #output_dir=".")
         
-        comp.link_shared_lib(objects, "inmet_aux", extra_preargs=flags)
+        comp.link_shared_lib(objects, "inmet_aux", extra_preargs=flags,
+                             libraries=libs)
 
 
     if 0:

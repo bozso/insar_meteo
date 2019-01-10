@@ -12,11 +12,11 @@ int test(arptr _arr)
 {
     View<int64_t> const arr{_arr};
     
-    printf("%lu\n", arr.ndim);
+    printf("%lu\n", arr.ndim());
     
-    for(size_t ii = 0; ii < arr.shape[0]; ++ii)
+    for(size_t ii = 0; ii < arr.shape(0); ++ii)
     {
-        for(size_t jj = 0; jj < arr.shape[1]; ++jj)
+        for(size_t jj = 0; jj < arr.shape(1); ++jj)
             printf("%ld ", arr(ii, jj));
         printf("\n");
     }
@@ -38,7 +38,7 @@ int ell_to_merc(arptr plon, arptr plat, arptr pxy, double a, double e,
             return 1;
         
         View<double> lon{plon}, lat{plat}, xy{pxy};
-        size_t rows = lon.shape[0];
+        size_t const rows = lon.shape(0);
         
         if (plon->check_ndim(1) or plat->check_ndim(1) or
             pxy->check_ndim(2) or plat->check_rows(rows))
@@ -140,7 +140,7 @@ int asc_dsc_select(arptr parr1, arptr parr2, arptr pidx, double max_sep,
         max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
         
         *nfound = 0;
-        size_t n1 = arr1.shape[0], n2 = arr2.shape[0];
+        size_t const n1 = arr1.shape(0), n2 = arr2.shape(0);
         
         m_forz(ii, n1)
         {
@@ -175,8 +175,8 @@ int dominant(arptr pasc, arptr pdsc, arptr clustered, double max_sep)
         vector<bool> asc_selected, dsc_selected;
         vector<double> clustered;
         
-        asc_selected.reserve(asc.shape[0]);
-        dsc_selected.reserve(dsc.shape[0]);
+        asc_selected.reserve(asc.shape(0));
+        dsc_selected.reserve(dsc.shape(0));
         
         
     }

@@ -20,9 +20,32 @@
 
 #include <cmath>
 
-#include "math_aux.h"
-#include "utils.h"
-#include "common.h"
+#include "math_aux.hpp"
+#include "utils.hpp"
+#include "common.hpp"
+
+
+namespace consts {
+    /*******************************
+     * WGS-84 ELLIPSOID PARAMETERS *
+     *******************************/
+    constexpr double R_earth = 6372000.0;
+    
+    constexpr double WA = 6378137.0;
+    constexpr double WB = 6356752.3142;
+
+    // (WA * WA - WB* WB) / WA / WA
+    constexpr double E2 = 6.694380e-03;
+    /********************
+     * Useful constants *
+     ********************/
+    
+    constexpr double pi = 3.14159265358979;
+    constexpr double pi_per_4 = 3.14159265358979 / 4.0;
+    
+    constexpr double deg2rad = 1.745329e-02;
+    constexpr double rad2deg = 5.729578e+01;
+}
 
 /***********
  * Structs *
@@ -51,6 +74,8 @@ void calc_azi_inc(fit_poly const& orb, View<double> const& coords,
 
 
 #ifdef m_get_impl
+
+using namespace consts;
 
 static inline double norm(cdouble x, cdouble y, cdouble z)
 {
@@ -277,9 +302,9 @@ static inline void _azi_inc(fit_poly const& orb, cdouble X, cdouble Y,
     
     double temp_azi = atan(abs(yl / xl));
     
-    if( (xl < 0.0) && (yl > 0.0) ) temp_azi = pi - temp_azi;
-    if( (xl < 0.0) && (yl < 0.0) ) temp_azi = pi + temp_azi;
-    if( (xl > 0.0) && (yl < 0.0) ) temp_azi = 2.0 * pi - temp_azi;
+    if( (xl < 0.0) && (yl > 0.0) ) temp_azi = consts::pi - temp_azi;
+    if( (xl < 0.0) && (yl < 0.0) ) temp_azi = consts::pi + temp_azi;
+    if( (xl > 0.0) && (yl < 0.0) ) temp_azi = 2.0 * consts::pi - temp_azi;
     
     temp_azi *= rad2deg;
     

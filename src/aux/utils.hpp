@@ -4,70 +4,24 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "common.h"
-#include "utils.h"
+#include "common.hpp"
 
 extern_begin
 
-struct _File {
+class File {
     FILE *_file;
-    dtor dtor_;
+    ~File();
+    
+    public:
+        File(char const* path, char const* mode);
+        void open(char const* path, char const* mode);
+
+        void write(char const* fmt, ...);
+        void read(char const* fmt, ...);
+
+        void write(size_t const size, size_t const count, void const* data);
+        void read(size_t const size, size_t const count, void* data);
 };
-
-typedef struct _File* File;
-
-bool
-open(File* file, char const* path, char const* mode);
-
-int
-Write(File const file, char const* fmt, ...);
-
-int
-Read(File const file, char const* fmt, ...);
-
-size_t
-Writeb(File const file, size_t const size, size_t const count, void const* data);
-
-size_t
-Readb(File file, size_t const size, size_t const count, void* data);
-
-
-typedef struct argp {
-    int argc, req;
-    char **argv;
-    char const *module_name;
-    char const *doc;
-} argp;
-
-
-int check_narg(argp const *ap);
-int get_arg(argp const *ap, int const pos, char const *fmt, void *par);
-
-
-/*******************************
- * WGS-84 ELLIPSOID PARAMETERS *
- *******************************/
-
-/* Radius of Earth */
-static const double R_earth = 6372000.0;
-
-static const double WA = 6378137.0;
-static const double WB = 6356752.3142;
-
-/* (WA * WA - WB* WB) / WA / WA */
-static const double E2 = 6.694380e-03;
-
-
-/********************
- * Useful constants *
- ********************/
-
-static double const pi = 3.14159265358979;
-static double const pi_per_4 = 3.14159265358979 / 4.0;
-
-static const double deg2rad = 1.745329e-02;
-static const double rad2deg = 5.729578e+01;
-
 
 /******************
  * Error messages *
@@ -79,97 +33,64 @@ void Perror(char const* perror_str, char const* fmt, ...);
 
 #ifdef m_inmet_get_impl
 
-
-static void File_dtor(void *obj);
-
-bool open(File* file, char const* path, char const* mode)
+File::File(char const* path, char const* mode)
 {
-    File new;
-    
-    if ((new = Mem_New(struct _File, 1)) == NULL) {
-        return true;
+    if ((this->_file = fopen(path, mode)) == nullptr)
+    {
+        Perror("File", "Could not open file: %s\n", path);
+        // TODO: throw
     }
-    
-    if ((new->_file = fopen(path, mode)) == NULL) {
-        Perror("open", "Could not open file: %s\n", path);
-        Mem_Free(new);
-        return true;
-    }
-    
-    new->dtor_ = &File_dtor;
-    
-    *file = new;
-    
-    return false;
+}
+
+File::~File()
+{
+    fclose(this->_file);
 }
 
 
-static void File_dtor(void *obj)
+void File::open(char const* path, char const* mode)
 {
-    fclose(((File)obj)->_file);
-    ((File)obj)->_file = NULL;
+    if ((this->_file = fopen(path, mode)) == nullptr)
+    {
+        Perror("File", "Could not open file: %s\n", path);
+        // TODO: throw
+    }
 }
 
-
-int Write(File const file, char const* fmt, ...)
+void File::Write(char const* fmt, ...)
 {
     va_list ap;
     
     va_start(ap, fmt);
-    int ret = vfprintf(file->_file, fmt, ap);
+    int ret = vfprintf(this->_file, fmt, ap);
     va_end(ap);
-    return ret;
+    
+    
 }
 
-int Read(File const file, char const* fmt, ...)
+
+void File::read(char const* fmt, ...)
 {
     va_list ap;
     
     va_start(ap, fmt);
     int ret = vfscanf(file->_file, fmt, ap);
     va_end(ap);
-    return ret;
-}
-
-size_t Writeb(File const file, size_t const size, size_t const count, void const* data)
-{
-    return fwrite(data, size, count, file->_file);
-}
-
-size_t Readb(File file, size_t const size, size_t const count, void* data)
-{
-    return fread(data, size, count, file->_file);
-}
-
-
-static void print_usage(argp const *ap)
-{
-    error("Usage: inmet %s %s", ap->module_name, ap->doc);
-}
-
-
-int check_narg(argp const *ap)
-{
-    if (ap->argc != ap->req) {
-        error("Required number of arguments is %d, but got %d number of "
-              "arguments!\n");
-        print_usage(ap);
-        return 1;
-    }
-    return 0;
-}
-
-
-int get_arg(argp const *ap, int const pos, char const *fmt, void *par)
-{
-    char const *buffer = ap->argv[pos];
     
-    if (sscanf(buffer, fmt, par) <= 0) {
-        error("Failed to parse argument %s!\n", buffer);
-        print_usage(ap);
-        return 1;
-    }
-    return 0;
+    // TODO: check ret
+}
+
+
+void File::write(size_t const size, size_t const count, void const* data)
+{
+    fwrite(data, size, count, this->_file);
+    // TODO: check
+}
+
+void File::read(size_t const size, size_t const count, void* data)
+{
+    fread(data, size, count, this->_file);
+    // TODO: check
 }
 
 

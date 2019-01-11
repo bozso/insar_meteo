@@ -5,8 +5,8 @@
 #include <string.h>
 #include <complex.h>
 
-#include "utils.h"
-#include "common.h"
+#include "utils.hpp"
+#include "common.hpp"
 
 enum dtype {
     unknown       = 0,

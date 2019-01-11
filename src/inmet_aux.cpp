@@ -3,8 +3,13 @@
 
 using std::vector;
 
-#include "array.h"
-#include "satorbit.h"
+#include "array.hpp"
+#include "satorbit.hpp"
+
+using consts::deg2rad;
+using consts::rad2deg;
+using consts::pi_per_4;
+using consts::R_earth;
 
 extern "C" {
 

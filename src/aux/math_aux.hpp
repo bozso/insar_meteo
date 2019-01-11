@@ -18,7 +18,7 @@
 #ifndef MATH_AUX_HH
 #define MATH_AUX_HH
 
-#include "array.h"
+#include "array.hpp"
 
 // Structure for storing fitted polynom coefficients
 struct fit_poly {

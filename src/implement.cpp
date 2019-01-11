@@ -2,8 +2,8 @@
 
 /*#include "DG_dynarr.h"
 #include "nparray.h"*/
-#include "array.h"
-/*#include "satorbit.h"*/
-#include "utils.h"
+#include "array.hpp"
+#include "satorbit.hpp"
+#include "utils.hpp"
 
 #undef m_get_impl

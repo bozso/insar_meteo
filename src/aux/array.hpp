@@ -1,9 +1,7 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
-#include <stdint.h>
 #include <string.h>
-#include <complex.h>
 
 #include "utils.hpp"
 #include "common.hpp"

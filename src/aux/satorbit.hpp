@@ -54,9 +54,10 @@ namespace consts {
 /* cartesian coordinate */
 struct cart {
     double x, y, z;
+    cart() = default;
     cart(double x, double y, double z):
         x(x), y(y), z(z) {}
-    ~cart() = delete;
+    ~cart() {};
 };
 
 typedef double const cdouble;
@@ -92,7 +93,7 @@ static inline void calc_pos(fit_poly const& orb, double time, cart& pos)
     double const *mean_coords = orb.mean_coords;
     
     if (is_centered)
-        time -= orb->mean_t;
+        time -= orb.mean_t;
     
     if(n_poly == 2) {
         x = coeffs(0, 0) * time + coeffs(0, 1);
@@ -139,7 +140,7 @@ static inline double dot_product(fit_poly const& orb, cdouble X, cdouble Y,
     double const *mean_coords = orb.mean_coords;
     
     if (orb.is_centered)
-        time -= orb->mean_t;
+        time -= orb.mean_t;
     
     // linear case 
     if(n_poly == 2) {
@@ -325,7 +326,7 @@ void calc_azi_inc(fit_poly const& orb, View<double> const& coords,
     double X, Y, Z, lon, lat, h;
     X = Y = Z = lon = lat = h = 0.0;
     
-    size_t nrows = coords.shape[0];
+    size_t nrows = coords.shape(0);
     
     // coords contains lon, lat, h
     if (is_lonlat) {
@@ -337,7 +338,7 @@ void calc_azi_inc(fit_poly const& orb, View<double> const& coords,
             // calulate surface WGS-84 Cartesian coordinates
             ell_cart(lon, lat, h, X, Y, Z);
             
-            azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+            _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
                     azi_inc(ii, 0), azi_inc(ii, 1));
             
         } // for
@@ -350,9 +351,9 @@ void calc_azi_inc(fit_poly const& orb, View<double> const& coords,
             Z = coords(ii, 2);
             
             // calulate surface WGS-84 geodetic coordinates
-            cart_ell(X, Y, Z, &lon, &lat, &h);
+            cart_ell(X, Y, Z, lon, lat, h);
         
-            azi_inc(orb, X, Y, Z, lon, lat, max_iter,
+            _azi_inc(orb, X, Y, Z, lon, lat, max_iter,
                     azi_inc(ii, 0), azi_inc(ii, 1));
         } // for
     } // if

@@ -132,6 +132,53 @@ class View {
 
 #ifdef m_get_impl
 
+template<class T>
+struct tpl2dtype { static int const type; };
+
+unknown       = 0,
+np_bool       = 1,
+np_int        = 2,
+np_intc       = 3,
+np_intp       = 4,
+
+np_int8       = 5,
+np_int16      = 6,
+np_int32      = 7,
+np_int64      = 8,
+
+np_uint8      = 9,
+np_uint16     = 10,
+np_uint32     = 11,
+np_uint64     = 12,
+
+np_float32    = 13,
+np_float64    = 14,
+
+np_complex64  = 15,
+np_complex128 = 16
+
+
+template<> const int tpl2dtype<char>::type = 1;
+template<> const int tpl2dtype<long>::type = 2;
+template<> const int tpl2dtype<int>::type = 3;
+template<> const int tpl2dtype<ssize_t>::type = 4;
+
+template<> const int tpl2dtype<int8_t>::type = 5;
+template<> const int tpl2dtype<int16_t>::type = 6;
+template<> const int tpl2dtype<int32_t>::type = 7;
+template<> const int tpl2dtype<int64_t>::type = 8;
+
+template<> const int tpl2dtype<uint8_t>::type = 9;
+template<> const int tpl2dtype<uint16_t>::type = 10;
+template<> const int tpl2dtype<uint32_t>::type = 11;
+template<> const int tpl2dtype<uint64_t>::type = 12;
+
+template<> const int tpl2dtype<float>::type = 13;
+template<> const int tpl2dtype<double>::type = 14;
+
+template<> const int tpl2dtype<complex<float>>::type = 15;
+template<> const int tpl2dtype<complex<double>>::type = 16;
+
 void setup_view(void**data, view_meta* md, arptr const arr)
 {
     size_t datasize = arr->datasize, ndim = arr->ndim;

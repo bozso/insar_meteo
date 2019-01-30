@@ -17,6 +17,9 @@ from argparse import ArgumentParser
 from subprocess import check_output, CalledProcessError, STDOUT
 from shlex import split
 from logging import getLogger
+from os.path import join as pjoin
+from imp import load_source
+
 #from inmet.inmet_aux import ell_to_merc_full, ell_to_merc_fast 
 
 log = getLogger("inmet.utils")
@@ -25,6 +28,11 @@ ellipsoids = {
     "mercator": (6378137.0, 8.1819190903e-2)
 }
 
+
+def make(*path):
+    make = load_source("main", pjoin(*path))
+    make.main()
+    
 
 def ell2merc(lon, lat, isdeg=True, ellipsoid="mercator", lon0=None, fast=False):
     

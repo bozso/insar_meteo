@@ -15,8 +15,6 @@
 
 from os.path import join
 from distutils.ccompiler import new_compiler
-#from numpy.distutils.core import Extension, setup
-from distutils.ccompiler import new_compiler
 from sysconfig import get_config_var
 
 def main():

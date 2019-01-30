@@ -18,9 +18,43 @@
 #ifndef MATH_AUX_HH
 #define MATH_AUX_HH
 
+#include <vector>
+
+using std::vector;
+
+
 #include "array.hpp"
 
 // Structure for storing fitted polynom coefficients
+
+template<typename T>
+struct MinMax {
+    T min, max;
+    MinMax() = min(0), max(0);
+    ~MinMax() = default;
+};
+
+template<typename T>
+struct Scale {
+    T min, scale;
+    Scale() : min(0), scale(0);
+    
+    Scale(MinMax<T> const& m) : min(m.min), scale(m.max - m.min) {};
+    ~Scale() = default;
+};
+
+
+
+template<typename T>
+class PolyFit {
+    Array coeffs;
+    int deg;
+    bool scaled;
+    union {Scale<T>; void} xs;
+    union {vector<Scale<T>>; void} ys;
+}
+    
+    
 struct fit_poly {
     double mean_t, start_t, stop_t, *mean_coords;
     View<double> const& coeffs;

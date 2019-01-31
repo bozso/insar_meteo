@@ -6,8 +6,6 @@
 
 #include "common.hpp"
 
-extern_begin
-
 class File {
     FILE *_file;
     ~File();

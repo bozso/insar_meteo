@@ -14,8 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from inmet.utils import make
-#from os.path import join as pjoin
-#from imp import load_source
 
 if __name__ == "__main__":
     make("..", "make.py")

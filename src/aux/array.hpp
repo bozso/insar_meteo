@@ -6,12 +6,17 @@
 #include "utils.hpp"
 #include "common.hpp"
 
+enum layout {
+    colmajor,
+    rowmajor
+};
+
 enum dtype {
     unknown       = 0,
     np_bool       = 1,
-    np_int        = 2,
-    np_intc       = 3,
-    np_intp       = 4,
+    np_int        = 2, // long
+    np_intc       = 3, // int
+    np_intp       = 4, // ssize_t
 
     np_int8       = 5,
     np_int16      = 6,
@@ -31,17 +36,28 @@ enum dtype {
 };
 
 
-enum layout {
-    colmajor,
-    rowmajor
-};
+class ArrayMeta {
+    dtype type;
+    size_t ndim, ndata, datasize, *shape, *strides;
+    SMem mem;
+    ArrayMeta() : type(unknown), ndim(0), ndata(0), datasize(0),
+                  shape(nullptr), strides(nullptr), mem(nullptr) {};
+    ArrayMeta(dtype const type, size_t const ndim);
+    ArrayMeta operator=(ArrayMeta const& meta);
+    ~ArrayMeta() = default;
+}
+
 
 class Array {
+    using ptr = Array*;
+     
     public:
-        dtype type;
-        int isnumpy;
-        size_t ndim, ndata, datasize, *shape, *strides;
-
+        ArrayMeta meta;
+        
+        Array() = default;
+        
+        Array(dtype const type, std::initializer_list<size_t> shape);
+        
         int check_ndim(size_t const ndim) const;
         int check_type(int const type) const;
         int check_rows(size_t const rows) const;
@@ -54,151 +70,120 @@ class Array {
         void *data;
 };
 
-typedef Array* arptr;
-
-struct view_meta {
-    bool isnumpy;
-    size_t ndim, *shape, *strides;
-};
-
-
-void setup_view(void**data, view_meta* md, arptr const arr);
+void setup_view(void** data, ArrayMeta& md, Array const& arr);
 
 template<typename T>
 class View {
     public:
-        View(arptr const arr) {
-            setup_view((void**) &(this->data), &(this->md), arr);
+        View(Array const& arr) {
+            setup_view((void**) &(this->data), this->meta, arr);
         }
         
         T* get_data() const {
             return this->data;
         }
 
-        ~View()
-        {
-            if (this->md.isnumpy)
-                delete[] this->md.strides;
-        }
+        ~View() = default;
         
         size_t const ndim() const {
-            return this->md.ndim;
+            return this->meta.ndim;
         }
         
         size_t const shape(size_t ii) const {
-            return this->md.shape[ii];
+            return this->meta.shape[ii];
         }
 
         T& operator()(size_t ii) {
-            return this->data[ii * this->md.strides[0]];
+            return this->data[calc_offset(this->meta.strides, ii)];
         }
 
         T& operator()(size_t ii, size_t jj) {
-            return this->data[ii * this->md.strides[0] + jj * this->md.strides[1]];
+            return this->data[calc_offset(this->meta.strides, ii, jj)];
         }
 
         T& operator()(size_t ii, size_t jj, size_t kk) {
-            return this->data[ii * this->md.strides[0] + jj * this->md.strides[1] + 
-                              kk * this->md.strides[2]];
+            return this->data[calc_offset(this->meta.strides, ii, jj, kk)];
         }
 
         T& operator()(size_t ii, size_t jj, size_t kk, size_t ll) {
-            return this->data[ii * this->md.strides[0] + jj * this->md.strides[1] + 
-                              kk * this->md.strides[2] + ll * this->md.strides[3]];
+            return this->data[calc_offset(this->meta.strides, ii, jj, kk, ll)];
         }
 
         T const& operator()(size_t ii) const {
-            return this->data[ii * this->md.strides[0]];
+            return this->data[calc_offset(this->meta.strides, ii)];
         }
 
         T const& operator()(size_t ii, size_t jj) const {
-            return this->data[ii * this->md.strides[0] + jj * this->md.strides[1]];
+            return this->data[calc_offset(this->meta.strides, ii, jj)];
         }
 
         T const& operator()(size_t ii, size_t jj, size_t kk) const {
-            return this->data[ii * this->md.strides[0] + jj * this->md.strides[1] + 
-                              kk * this->md.strides[2]];
+            return this->data[calc_offset(this->meta.strides, ii, jj, kk)];
         }
 
         T const& operator()(size_t ii, size_t jj, size_t kk, size_t ll) const {
-            return this->data[ii * this->md.strides[0] + jj * this->md.strides[1] + 
-                              kk * this->md.strides[2] + ll * this->md.strides[3]];
+            return this->data[calc_offset(this->meta.strides, ii, jj, kk, ll)];
         }
     private:
-        view_meta md;
+        ArrayMeta meta;
         T* data;
 };
 
 
 #ifdef m_get_impl
 
-template<class T>
-struct tpl2dtype { static int const type; };
-
-unknown       = 0,
-np_bool       = 1,
-np_int        = 2,
-np_intc       = 3,
-np_intp       = 4,
-
-np_int8       = 5,
-np_int16      = 6,
-np_int32      = 7,
-np_int64      = 8,
-
-np_uint8      = 9,
-np_uint16     = 10,
-np_uint32     = 11,
-np_uint64     = 12,
-
-np_float32    = 13,
-np_float64    = 14,
-
-np_complex64  = 15,
-np_complex128 = 16
-
-
-template<> const int tpl2dtype<char>::type = 1;
-template<> const int tpl2dtype<long>::type = 2;
-template<> const int tpl2dtype<int>::type = 3;
-template<> const int tpl2dtype<ssize_t>::type = 4;
-
-template<> const int tpl2dtype<int8_t>::type = 5;
-template<> const int tpl2dtype<int16_t>::type = 6;
-template<> const int tpl2dtype<int32_t>::type = 7;
-template<> const int tpl2dtype<int64_t>::type = 8;
-
-template<> const int tpl2dtype<uint8_t>::type = 9;
-template<> const int tpl2dtype<uint16_t>::type = 10;
-template<> const int tpl2dtype<uint32_t>::type = 11;
-template<> const int tpl2dtype<uint64_t>::type = 12;
-
-template<> const int tpl2dtype<float>::type = 13;
-template<> const int tpl2dtype<double>::type = 14;
-
-template<> const int tpl2dtype<complex<float>>::type = 15;
-template<> const int tpl2dtype<complex<double>>::type = 16;
-
-void setup_view(void**data, view_meta* md, arptr const arr)
+inline size_t const calc_offset(size_t const* strides, size_t ii)
 {
-    size_t datasize = arr->datasize, ndim = arr->ndim;
-    
-    if (arr->isnumpy)
-    {
-        md->isnumpy = true;
-        md->strides = new size_t[ndim];
-        
-        for(size_t ii = ndim; ii--;)
-        {
-            md->strides[ii] = size_t(double(arr->strides[ii]) / datasize);
-        }
-    }
-    else
-        md->strides = arr->strides;
-        
-    md->ndim = arr->ndim;
-    md->shape = arr->shape;
+    return ii * strides[0];
+}
+
+inline size_t const calc_offset(size_t const* strides, size_t ii, size_t jj)
+{
+    return ii * strides[0] + jj * strides[1];
+}
+
+inline size_t const calc_offset(size_t const* strides, size_t ii, size_t jj,
+                                size_t kk)
+{
+    return ii * strides[0] + jj * strides[1] + kk * strides[2];
+}
+
+inline size_t const calc_offset(size_t const* strides, size_t ii, size_t jj,
+                                size_t kk, size_t ll)
+{
+    return ii * strides[0] + jj * strides[1] + kk * strides[2] + ll * strides[3];
+}
+
+
+ArrayMeta(ArrayMeta const& meta)
+{
+    this->ndim = meta.ndim;
+    this->ndata = meta.ndata;
+    this->datasize = meta.datasize;
+    this->shape = meta.shape;
+    this->strides = meta.strides;
+    this->mem = meta.mem;
+}
+
+
+ArrayMeta operator=(ArrayMeta const& meta) { return ArrayMeta{meta}; }
+
+
+void setup_view(void**data, ArrayMeta& meta, Array const& arr)
+{
+    meta = arr.meta;
     *data = arr->get_data();
+}
+
+ArrayMeta::ArrayMeta()
+{
+    this->mem = make_smem(sizeof(size_t) * 2 * ndim + datasize * ndata); 
+}
+
+
+Array::Array(dtype const type, std::initializer_list<size_t> shape)
+{
+    this->meta{};    
 }
 
 

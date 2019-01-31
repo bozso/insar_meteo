@@ -19,39 +19,81 @@
 #define MATH_AUX_HH
 
 #include <vector>
+#include <complex>
 
 using std::vector;
+using std::complex;
 
 
 #include "array.hpp"
 
 // Structure for storing fitted polynom coefficients
 
-template<typename T>
+class Number {
+    dtype type;
+    union {
+        bool b;
+        long il;
+        int  ii;
+        ssize_t is;
+    
+        int8_t i8;
+        int16_t i16;
+        int32_t i32;
+        int64_t i64;
+    
+        uint8_t  ui8;
+        uint16_t ui16;
+        uint32_t ui32;
+        uint64_t ui64;
+    
+        float f32;
+        double f64;
+    
+        complex<float> c64;
+        complex<double> c128;
+    } val;
+    
+    Number() = default;
+
+    template<typename T>
+    Number(T& num)
+    {
+        if std::is_same<T, bool> {
+            this->val.b = num;
+            this->type = dt_bool
+        } else if std::is_same<T, long> {
+            
+        }
+         
+        
+        
+    }
+}        
+
 struct MinMax {
-    T min, max;
+    Number min, max;
     MinMax() = min(0), max(0);
     ~MinMax() = default;
 };
 
-template<typename T>
 struct Scale {
-    T min, scale;
+    Number min, scale;
     Scale() : min(0), scale(0);
     
-    Scale(MinMax<T> const& m) : min(m.min), scale(m.max - m.min) {};
+    Scale(MinMax const& m) : min(m.min), scale(m.max - m.min) {};
     ~Scale() = default;
 };
 
-
-
-template<typename T>
 class PolyFit {
     Array coeffs;
     int deg;
     bool scaled;
     union {Scale<T>; void} xs;
     union {vector<Scale<T>>; void} ys;
+    
+    PolyFit(Array const& x, Array const& y, int deg, bool scaled);
+    ~PolyFit;
 }
     
     

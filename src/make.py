@@ -19,6 +19,7 @@ from sysconfig import get_config_var
 
 def main():
     miniconda = "/home/istvan/miniconda3"
+    root = "/home/istvan/progs/insar_meteo/src"
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
@@ -34,9 +35,10 @@ def main():
     libs = ["stdc++"]
     
     if 1:
-        sources = ["inmet_aux.cpp", "implement.cpp"]
+        sources = [join(root, "inmet_aux.cpp"), join(root, "implement.cpp")]
         
         comp = new_compiler()
+        print(vars(comp))
         
         objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
                                extra_preargs=flags)

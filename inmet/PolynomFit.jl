@@ -2,14 +2,14 @@ __precompile__(true)
 
 module PolynomFit
 
-export poly_fit, PolyFit
+export poly_fit, PolyFit, Scale, MinMax
 
 struct MinMax{T<:Number}
     min::T
     max::T
 end
 
-function Base.show(io::IO, p::MinMax)
+function Base.show(io::IO, p::MinMax{T}) where T<:Number
     print(io, "Min: $p.min; Max: $p.max")
 end
 
@@ -18,7 +18,7 @@ struct Scale{T<:Number}
     min::T
     scale::T
     
-    Scale(m::MinMax{T}) = new(m.min, m.max - m.min)
+    Scale(m::MinMax{T}) where T<:Number = new{T}(m.min, m.max - m.min)
 end
 
 function Base.show(io::IO, p::Scale)

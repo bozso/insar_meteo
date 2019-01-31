@@ -1,11 +1,18 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <iso646.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <memory>
+
+typedef std::shared_ptr<uint8_t> SMem;
+
+SMem make_smem(size_t num)
+{
+    SMem ret(new uint8_t[num], std::default_delete<uint8_t[]>());
+    return ret;
+}
 
 #define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
 

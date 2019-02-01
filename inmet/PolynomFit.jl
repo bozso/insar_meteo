@@ -10,7 +10,7 @@ struct MinMax{T<:Number}
 end
 
 function Base.show(io::IO, p::MinMax{T}) where T<:Number
-    print(io, "Min: $p.min; Max: $p.max")
+    print(io, "Min: $(p.min); Max: $(p.max)")
 end
 
 
@@ -22,7 +22,7 @@ struct Scale{T<:Number}
 end
 
 function Base.show(io::IO, p::Scale)
-    print(io, "Min: $p.min; Scale: $p.scale")
+    print(io, "Min: $(p.min); Scale: $(p.scale)")
 end
 
 
@@ -30,8 +30,8 @@ struct PolyFit{T<:Number}
     coeffs::VecOrMat{T}
     deg::Int64
     scaled::Bool
-    xs::Union{Scale{T}, Nothing}
-    ys::Union{Vector{Scale{T}}, Nothing}
+    xs::Union{Scale{T}, Void}
+    ys::Union{Vector{Scale{T}}, Void}
 
     """
     f(x) = (x - x_min) / (x_max - x_min)
@@ -44,11 +44,11 @@ end
 function Base.show(io::IO, p::PolyFit)
     scaled = p.scaled
     if centered
-        print(io, "Fit degree: $p.deg, Centered:$centered, x-scale: $p.xs\n",
-                  "y-scale: $p.ys\nFitted Coefficients: $p.coeffs")
+        print(io, "Fit degree: $(p.deg), Centered:$centered, x-scale: $(p.xs)\n",
+                  "y-scale: $(p.ys)\nFitted Coefficients: $(p.coeffs)")
     else
-        print(io, "Fit degree: $p.deg, Centered:$centered\n",
-                  "Fitted Coefficients: $p.coeffs")
+        print(io, "Fit degree: $(p.deg), Centered:$centered\n",
+                  "Fitted Coefficients: $(p.coeffs)")
     end
 end
 

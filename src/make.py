@@ -13,13 +13,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from os.path import join
 from distutils.ccompiler import new_compiler
 from sysconfig import get_config_var
 
+def make_join(root, path):
+    from os.path import join
+    
+    def f(path):
+        return join(root, path)
+    
+    return f
+
+
 def main():
-    miniconda = "/home/istvan/miniconda3"
-    root = "/home/istvan/progs/insar_meteo/src"
+    mjoin = make_join("/home/istvan/miniconda3")
+    rjoin = make_join("/home/istvan/progs/insar_meteo/src")
+
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
@@ -29,16 +38,15 @@ def main():
 
     macros = []
     
-    inc_dirs = [join(miniconda, "include"), join(root, "aux")]
-    lib_dirs = [join(miniconda, "lib")]
+    inc_dirs = [mjoin("include"), pjoin("aux")]
+    lib_dirs = [mjoin("lib")]
     
     libs = ["stdc++"]
     
     if 1:
-        sources = [join(root, "inmet_aux.cpp"), join(root, "implement.cpp")]
+        sources = [rjoin("inmet_aux.cpp"), rjoin("implement.cpp")]
         
         comp = new_compiler()
-        print(vars(comp))
         
         objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
                                extra_preargs=flags)

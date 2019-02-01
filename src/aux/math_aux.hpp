@@ -29,15 +29,15 @@ using std::complex;
 
 // Structure for storing fitted polynom coefficients
 
-class Number {
-    dtype type;
+struct Number {
+    ArrayMeta::dtype type;
     union {
-        bool b;
-        long il;
-        int  ii;
-        ssize_t is;
+        bool   b;
+        long   il;
+        int    ii;
+        size_t is;
     
-        int8_t i8;
+        int8_t  i8;
         int16_t i16;
         int32_t i32;
         int64_t i64;
@@ -47,33 +47,39 @@ class Number {
         uint32_t ui32;
         uint64_t ui64;
     
-        float f32;
-        double f64;
+        float  fl32;
+        double fl64;
     
-        complex<float> c64;
+        complex<float>  c64;
         complex<double> c128;
-    } val;
+    };
     
-    Number() = default;
+    Number() = delete;
+    Number(bool n)            : b(n) {};
+    Number(int  n)            : ii(n) {};
+    Number(long n)            : il(n) {};
+    Number(size_t n)          : is(n) {};
+    Number(int8_t n)          : i8(n) {};
+    Number(int16_t n)         : i16(n) {};
+    Number(int32_t n)         : i32(n) {};
+    Number(int64_t n)         : i64(n) {};
 
-    template<typename T>
-    Number(T& num)
-    {
-        if std::is_same<T, bool> {
-            this->val.b = num;
-            this->type = dt_bool
-        } else if std::is_same<T, long> {
-            
-        }
-         
-        
-        
-    }
-}        
+    Number(uint8_t n)         : ui8(n) {};
+    Number(uint16_t n)        : ui16(n) {};
+    Number(uint32_t n)        : ui32(n) {};
+    Number(uint64_t n)        : ui64(n) {};
+    
+    Number(float n)           : fl32(n) {};
+    Number(double n)          : fl64(n) {};
+    
+    Number(complex<float> n)  : c64(n) {};
+    Number(complex<double> n) : c128(n) {};
+    
+};        
 
 struct MinMax {
     Number min, max;
-    MinMax() = min(0), max(0);
+    MinMax() : min(0), max(0) {};
     ~MinMax() = default;
 };
 
@@ -85,17 +91,18 @@ struct Scale {
     ~Scale() = default;
 };
 
+/*
 class PolyFit {
     Array coeffs;
     int deg;
     bool scaled;
-    union {Scale<T>; void} xs;
-    union {vector<Scale<T>>; void} ys;
+    union {Scale; void} xs;
+    union {uarr<Scale>; void} ys;
     
     PolyFit(Array const& x, Array const& y, int deg, bool scaled);
-    ~PolyFit;
+    ~PolyFit() = default;
 }
-    
+*/    
     
 struct fit_poly {
     double mean_t, start_t, stop_t, *mean_coords;

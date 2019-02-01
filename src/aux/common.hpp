@@ -6,7 +6,10 @@
 #include <string.h>
 #include <memory>
 
-typedef std::shared_ptr<uint8_t> SMem;
+template<class T>
+using uarr<T> = std::unique_ptr<T[]>;
+
+using SMem = std::shared_ptr<uint8_t>;
 
 SMem make_smem(size_t num)
 {
@@ -47,13 +50,15 @@ do {                                   \
 } while(0)
 
 
+/*
 #ifdef __cplusplus
 #define extern_begin extern "C" {
 #define extern_end }
 #else
+*/
 #define extern_begin
 #define extern_end
-#endif
+//#endif
 
 
 typedef void (*dtor)(void *);

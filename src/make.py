@@ -29,7 +29,7 @@ def main():
 
     macros = []
     
-    inc_dirs = [join(miniconda, "include"), "aux"]
+    inc_dirs = [join(miniconda, "include"), join(root, "aux")]
     lib_dirs = [join(miniconda, "lib")]
     
     libs = ["stdc++"]

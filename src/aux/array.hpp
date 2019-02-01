@@ -6,57 +6,49 @@
 #include "utils.hpp"
 #include "common.hpp"
 
-enum layout {
-    colmajor,
-    rowmajor
-};
-
-enum dtype {
-    unknown       = 0,
-    np_bool       = 1,
-    np_int        = 2, // long
-    np_intc       = 3, // int
-    np_intp       = 4, // ssize_t
-
-    np_int8       = 5,
-    np_int16      = 6,
-    np_int32      = 7,
-    np_int64      = 8,
-
-    np_uint8      = 9,
-    np_uint16     = 10,
-    np_uint32     = 11,
-    np_uint64     = 12,
-
-    np_float32    = 13,
-    np_float64    = 14,
-
-    np_complex64  = 15,
-    np_complex128 = 16
-};
 
 
-class ArrayMeta {
+struct ArrayMeta {
+    enum class order { colmajor, rowmajor };
+    
+    enum class dtype { Unknown, Bool, Int, Long, Size_t,
+                       Int8, Int16, Int32, Int64,
+                       UInt8, UInt16, UInt32, UInt64,
+                       Float32, Float64, Complex64, Complex128 };
+
     dtype type;
+    order layout;
     size_t ndim, ndata, datasize, *shape, *strides;
     SMem mem;
-    ArrayMeta() : type(unknown), ndim(0), ndata(0), datasize(0),
-                  shape(nullptr), strides(nullptr), mem(nullptr) {};
-    ArrayMeta(dtype const type, size_t const ndim);
+
+    ArrayMeta() : type(dtype::Unknown), layout(order::rowmajor),
+                  ndim(0), ndata(0), datasize(0), shape(nullptr),
+                  strides(nullptr), mem(nullptr) {};
+    
+    ArrayMeta(std::initializer_list<size_t>& shape,
+              dtype const type,
+              order const layout);
+    
+    ArrayMeta(ArrayMeta const& meta);
+    
     ArrayMeta operator=(ArrayMeta const& meta);
+
     ~ArrayMeta() = default;
-}
+};
 
 
 class Array {
     using ptr = Array*;
+    using AM = ArrayMeta;
      
     public:
         ArrayMeta meta;
         
         Array() = default;
         
-        Array(dtype const type, std::initializer_list<size_t> shape);
+        Array(std::initializer_list<size_t> const& shape,
+              AM::dtype const type,
+              AM::order const layout);
         
         int check_ndim(size_t const ndim) const;
         int check_type(int const type) const;
@@ -75,53 +67,77 @@ void setup_view(void** data, ArrayMeta& md, Array const& arr);
 template<typename T>
 class View {
     public:
-        View(Array const& arr) {
+        View(Array const& arr)
+        {
             setup_view((void**) &(this->data), this->meta, arr);
         }
         
-        T* get_data() const {
+        T* get_data() const
+        {
             return this->data;
         }
 
         ~View() = default;
         
-        size_t const ndim() const {
+        size_t const ndim() const
+        {
             return this->meta.ndim;
         }
         
-        size_t const shape(size_t ii) const {
+        size_t const shape(size_t ii) const
+        {
             return this->meta.shape[ii];
         }
 
-        T& operator()(size_t ii) {
+        T& operator()(size_t ii)
+        {
             return this->data[calc_offset(this->meta.strides, ii)];
         }
 
-        T& operator()(size_t ii, size_t jj) {
+        T& operator()(size_t ii,
+                      size_t jj) {
             return this->data[calc_offset(this->meta.strides, ii, jj)];
         }
 
-        T& operator()(size_t ii, size_t jj, size_t kk) {
+        T& operator()(size_t ii,
+                      size_t jj,
+                      size_t kk)
+        {
             return this->data[calc_offset(this->meta.strides, ii, jj, kk)];
         }
 
-        T& operator()(size_t ii, size_t jj, size_t kk, size_t ll) {
+        T& operator()(size_t ii,
+                      size_t jj,
+                      size_t kk,
+                      size_t ll)
+        {
             return this->data[calc_offset(this->meta.strides, ii, jj, kk, ll)];
         }
 
-        T const& operator()(size_t ii) const {
+        
+        T const& operator()(size_t ii) const
+        {
             return this->data[calc_offset(this->meta.strides, ii)];
         }
 
-        T const& operator()(size_t ii, size_t jj) const {
+        T const& operator()(size_t ii,
+                            size_t jj) const
+        {
             return this->data[calc_offset(this->meta.strides, ii, jj)];
         }
 
-        T const& operator()(size_t ii, size_t jj, size_t kk) const {
+        T const& operator()(size_t ii,
+                            size_t jj,
+                            size_t kk) const
+        {
             return this->data[calc_offset(this->meta.strides, ii, jj, kk)];
         }
 
-        T const& operator()(size_t ii, size_t jj, size_t kk, size_t ll) const {
+        T const& operator()(size_t ii,
+                            size_t jj,
+                            size_t kk,
+                            size_t ll) const
+        {
             return this->data[calc_offset(this->meta.strides, ii, jj, kk, ll)];
         }
     private:
@@ -132,24 +148,32 @@ class View {
 
 #ifdef m_get_impl
 
-inline size_t const calc_offset(size_t const* strides, size_t ii)
+inline size_t const calc_offset(size_t const* strides,
+                                size_t ii)
 {
     return ii * strides[0];
 }
 
-inline size_t const calc_offset(size_t const* strides, size_t ii, size_t jj)
+inline size_t const calc_offset(size_t const* strides,
+                                size_t ii,
+                                size_t jj)
 {
     return ii * strides[0] + jj * strides[1];
 }
 
-inline size_t const calc_offset(size_t const* strides, size_t ii, size_t jj,
+inline size_t const calc_offset(size_t const* strides,
+                                size_t ii,
+                                size_t jj,
                                 size_t kk)
 {
     return ii * strides[0] + jj * strides[1] + kk * strides[2];
 }
 
-inline size_t const calc_offset(size_t const* strides, size_t ii, size_t jj,
-                                size_t kk, size_t ll)
+inline size_t const calc_offset(size_t const* strides,
+                                size_t ii,
+                                size_t jj,
+                                size_t kk,
+                                size_t ll)
 {
     return ii * strides[0] + jj * strides[1] + kk * strides[2] + ll * strides[3];
 }
@@ -169,7 +193,9 @@ ArrayMeta(ArrayMeta const& meta)
 ArrayMeta operator=(ArrayMeta const& meta) { return ArrayMeta{meta}; }
 
 
-void setup_view(void**data, ArrayMeta& meta, Array const& arr)
+void setup_view(void**data,
+                ArrayMeta& meta,
+                Array const& arr)
 {
     meta = arr.meta;
     *data = arr->get_data();
@@ -183,7 +209,7 @@ ArrayMeta::ArrayMeta()
 
 Array::Array(dtype const type, std::initializer_list<size_t> shape)
 {
-    this->meta{};    
+    this->meta{shape};    
 }
 
 
@@ -230,108 +256,30 @@ int Array::check_cols(size_t const cols) const
     return 0;
 }
 
-
-/*
 static size_t const sizes[] = {
-    [dt_size_t]       = sizeof(size_t),
-    [dt_char]         = sizeof(char),
-    [dt_dtype]        = sizeof(dtype),
-    [dt_bool]         = sizeof(unsigned char),
-    [dt_byte]         = sizeof(char),
-    [dt_ubyte]        = sizeof(unsigned char),
-    [dt_short]        = sizeof(short),
-    [dt_ushort]       = sizeof(unsigned short),
-    [dt_int]          = sizeof(int),
-    [dt_uint]         = sizeof(unsigned int),
-    [dt_long]         = sizeof(long),
-    [dt_ulong]        = sizeof(unsigned long),
-    [dt_longlong]     = sizeof(long long int),
-    [dt_ulonglong]    = sizeof(unsigned long long int),
-    [dt_float]        = sizeof(float),
-    [dt_double]       = sizeof(double),
-    [dt_longdouble]   = sizeof(long double),
-    [dt_int8]         = sizeof(int8_t),
-    [dt_int16]        = sizeof(int16_t),
-    [dt_int64]        = sizeof(int64_t),
-    [dt_uint8]        = sizeof(uint8_t),
-    [dt_uint16]       = sizeof(uint16_t),
-    [dt_uint64]       = sizeof(uint64_t),
-    [dt_cfloat]       = sizeof(float complex),
-    [dt_cdouble]      = sizeof(double complex),
-    [dt_clongdouble]  = sizeof(double complex)
+    [dtype::Unknown]       = 0,
+    [dtype::Bool]          = sizeof(bool),
+    [dtype::Int]           = sizeof(int),
+    [dtype::Long]          = sizeof(long),
+    [dtype::Size_t]        = sizeof(size_t),
+    
+    [dtype::Int8]          = sizeof(int8_t),
+    [dtype::Int16]         = sizeof(int16_t),
+    [dtype::Int32]         = sizeof(int32_t),
+    [dtype::Int64]         = sizeof(int64_t),
+    
+    [dtype::UInt8]         = sizeof(uint8_t),
+    [dtype::UInt16]        = sizeof(uint16_t),
+    [dtype::UInt32]        = sizeof(uint32_t),
+    [dtype::UInt64]        = sizeof(uint64_t),
+    
+    [dtype::Float32]       = sizeof(float),
+    [dtype::Float64]       = sizeof(double),
+    
+    [dtype::Complex64]     = sizeof(complex<float>),
+    [dtype::Complex128]    = sizeof(complex<double>)
 };
-*/
 
-/*
-int get_typenum(char const* name)
-{
-    
-    if (str_equal(name, "size_t"))
-        return dt_size_t;
-    else if (str_equal(name, "char"))
-         return dt_char;
-    else if (str_equal(name, "dtype"))
-         return dt_dtype;
-
-    else if (str_equal(name, "bool"))
-         return dt_bool;
-
-    else if (str_equal(name, "byte"))
-         return dt_byte;
-    else if (str_equal(name, "ubyte"))
-         return dt_ubyte;
-
-    else if (str_equal(name, "short"))
-         return dt_short;
-    else if (str_equal(name, "ushort"))
-         return dt_ushort;
-
-    else if (str_equal(name, "int"))
-         return dt_int;
-    else if (str_equal(name, "uint"))
-         return dt_uint;
-
-    else if (str_equal(name, "long"))
-         return dt_long;
-    else if (str_equal(name, "ulong"))
-         return dt_ulong;
-
-    else if (str_equal(name, "longlong"))
-         return dt_longlong;
-    else if (str_equal(name, "ulonglong"))
-         return dt_ulonglong;
-
-    else if (str_equal(name, "float"))
-         return dt_float;
-    else if (str_equal(name, "double"))
-         return dt_double;
-    else if (str_equal(name, "longdouble"))
-         return dt_longdouble;
-    
-    else if (str_equal(name, "int8"))
-         return dt_int8;
-    else if (str_equal(name, "int16"))
-         return dt_int16;
-    else if (str_equal(name, "int64"))
-         return dt_int64;
-    
-    else if (str_equal(name, "uint8"))
-         return dt_uint8;
-    else if (str_equal(name, "uint16"))
-         return dt_uint16;
-    else if (str_equal(name, "uint64"))
-         return dt_uint64;
-
-    else if (str_equal(name, "cfloat"))
-         return dt_cfloat;
-    else if (str_equal(name, "cdouble"))
-         return dt_cdouble;
-    else if (str_equal(name, "clongdouble"))
-         return dt_clongdouble;
-    else
-        return -1;
-}
-*/
 
 
 /*
@@ -476,25 +424,7 @@ fail:
     Perror("array_write", "Failed to write array to file: %s\n", path);
     return true;
 }
-
-static void array_dtor(void *arr)
-{
-    Mem_Free(((arptr)arr)->shape);
-    ((arptr)arr)->shape = NULL;
-}
-int array_init(arptr arr, size_t const edim, int const type);
-void array_dtor(void *arr);
-
-int array_new(arptr* arr, dtype const type, size_t const ndim,
-              layout const lay, size_t const* shape);
-
-int array_read(arptr* arr, char const* path);
-int array_write(arptr const arr, char const* path, char const* doc);
-
-int get_typenum(char const* name);
-
 */
-
 #endif
 
 #endif

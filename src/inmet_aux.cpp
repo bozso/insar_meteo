@@ -11,11 +11,45 @@ using consts::rad2deg;
 using consts::pi_per_4;
 using consts::R_earth;
 
+#define select_module(module) (strcmp((argv[1]), (module)) == 0)
+#define modules "test, azi_inc"
+
 extern "C" {
 
-int test(arptr _arr)
+int inmet_aux(int argc, char **argv) {
+    try
+    {
+        int argc_ = argc - 1;
+        char **argv_ = argv + 1;
+        
+        if (select_module("test"))
+        {
+            return test(argc_, argv_);
+        }
+        //else if (select_module("azi_inc"))
+        //{
+            //return azi_inc(argc_, argv_)
+        //}
+        else
+        {
+            // TODO: Print: "unknown module"
+            return 1;
+        }
+    }
+    catch(std::exception& e)
+    {
+        // TODO: get info of exception and print it
+        return 1;
+    }
+}
+
+// extern "C"
+}
+
+
+static int test(int argc, char **argv)
 {
-    View<int64_t> const arr{_arr};
+    Array arr{argv[2]};
     
     printf("%lu\n", arr.ndim());
     
@@ -31,104 +65,85 @@ int test(arptr _arr)
     return 0;
 }
 
-
-int ell_to_merc(arptr plon, arptr plat, arptr pxy, double a, double e,
-                double lon0, size_t isdeg, size_t fast)
+/*
+static int ell_to_merc(int argc, char **argv)
 {
     // check size, datatype
-    try
-    {
-        if (plon->check_type(np_float64) or plat->check_type(np_float64) or
-            pxy->check_type(np_float64))
-            return 1;
-        
-        View<double> lon{plon}, lat{plat}, xy{pxy};
-        size_t const rows = lon.shape(0);
-        
-        if (plon->check_ndim(1) or plat->check_ndim(1) or
-            pxy->check_ndim(2) or plat->check_rows(rows))
-            return 1;
-        
-        
-        if (isdeg) {
-            if (fast) {
-                m_forz(ii, rows) {
-                    double Lon = lon(ii);
-                    double Lat = lat(ii);
-                    double tmp = a * deg2rad * (Lon - lon0);
-                    
-                    xy(ii, 0) = tmp;
-                    
-                    xy(ii, 1) =
-                    rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0 )) * (tmp / Lon);
-                }
-            } else {
-                m_forz(ii, rows) {
-                    double Lat = lat(ii);
-                    xy(ii, 0) = a * deg2rad * (lon(ii) - lon0);
-                    
-                    double sin_lat = sin(deg2rad * Lat);
-                    double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat), e / 2.0);
-                    
-                    xy(ii, 1) = a * (tan((pi_per_4 + Lat / 2.0)) * tmp);
-                }
+    if (plon->check_type(np_float64) or plat->check_type(np_float64) or
+        pxy->check_type(np_float64))
+        return 1;
+    
+    View<double> lon{plon}, lat{plat}, xy{pxy};
+    size_t const rows = lon.shape(0);
+    
+    if (plon->check_ndim(1) or plat->check_ndim(1) or
+        pxy->check_ndim(2) or plat->check_rows(rows))
+        return 1;
+    
+    
+    if (isdeg) {
+        if (fast) {
+            m_forz(ii, rows) {
+                double Lon = lon(ii);
+                double Lat = lat(ii);
+                double tmp = a * deg2rad * (Lon - lon0);
+                
+                xy(ii, 0) = tmp;
+                
+                xy(ii, 1) =
+                rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0 )) * (tmp / Lon);
             }
         } else {
-            if (fast) {
-                m_forz(ii, rows) {
-                    double Lon = lon(ii);
-                    double Lat = lat(ii);
-                    double tmp = a * (Lon - lon0);
-                    
-                    xy(ii, 0) = tmp;
-                    
-                    xy(ii, 1) =
-                    rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0)) * (tmp / Lon);
-                }
-            } else {
-                m_forz(ii, rows) {
-                    double Lat = lat(ii);
-                    xy(ii, 0) = a * (lon(ii) - lon0);
-                    
-                    double sin_lat = sin(Lat);
-                    double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
-                    
-                    xy(ii, 1) = a * (tan((pi_per_4 + Lat / 2.0)) * tmp);
-                }
+            m_forz(ii, rows) {
+                double Lat = lat(ii);
+                xy(ii, 0) = a * deg2rad * (lon(ii) - lon0);
+                
+                double sin_lat = sin(deg2rad * Lat);
+                double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat), e / 2.0);
+                
+                xy(ii, 1) = a * (tan((pi_per_4 + Lat / 2.0)) * tmp);
             }
         }
-        return 0;
+    } else {
+        if (fast) {
+            m_forz(ii, rows) {
+                double Lon = lon(ii);
+                double Lat = lat(ii);
+                double tmp = a * (Lon - lon0);
+                
+                xy(ii, 0) = tmp;
+                
+                xy(ii, 1) =
+                rad2deg * log(tan(pi_per_4 + Lat * deg2rad / 2.0)) * (tmp / Lon);
+            }
+        } else {
+            m_forz(ii, rows) {
+                double Lat = lat(ii);
+                xy(ii, 0) = a * (lon(ii) - lon0);
+                
+                double sin_lat = sin(Lat);
+                double tmp = pow( (1 - e * sin_lat) / (1 + e * sin_lat) , e / 2.0);
+                
+                xy(ii, 1) = a * (tan((pi_per_4 + Lat / 2.0)) * tmp);
+            }
+        }
     }
-    catch(...)
-    {
-        // handle errors
-        return 1;
-    }
+    return 0;
 }
 // ell_to_merc
 
 
-int azi_inc(arptr pmean, arptr pcoeffs, arptr pcoords, arptr pazi_inc,
-            double mean_t, double start_t, double stop_t, size_t is_centered,
-            size_t deg, size_t islonlat, size_t max_iter)
+static int azi_inc(int argc, char **argv)
 {
-    try 
-    {
-        View<double> coeffs{pcoeffs}, coords{pcoords}, azi_inc{pazi_inc};
-        
-        // Set up orbit polynomial structure
-        fit_poly orb{mean_t, start_t, stop_t, (double*) pmean->get_data(),
-                     coeffs, is_centered, deg};
-        
-        calc_azi_inc(orb, coords, azi_inc, max_iter, islonlat);
-        
-        return 0;
-    }
-    catch(...)
-    {
-        // handle errors
-        return 1;
-    }
+    View<double> coeffs{pcoeffs}, coords{pcoords}, azi_inc{pazi_inc};
+    
+    // Set up orbit polynomial structure
+    fit_poly orb{mean_t, start_t, stop_t, (double*) pmean->get_data(),
+                 coeffs, is_centered, deg};
+    
+    calc_azi_inc(orb, coords, azi_inc, max_iter, islonlat);
+    
+    return 0;
 }
 // azi_inc
 
@@ -136,64 +151,48 @@ int azi_inc(arptr pmean, arptr pcoeffs, arptr pcoords, arptr pazi_inc,
 int asc_dsc_select(arptr parr1, arptr parr2, arptr pidx, double max_sep,
                    size_t* nfound)
 {
-    try
+    View<double> arr1{parr1}, arr2{parr2};
+    View<char> idx{pidx};
+    
+    max_sep /=  R_earth;
+    max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
+    
+    *nfound = 0;
+    size_t const n1 = arr1.shape(0), n2 = arr2.shape(0);
+    
+    m_forz(ii, n1)
     {
-        View<double> arr1{parr1}, arr2{parr2};
-        View<char> idx{pidx};
-        
-        max_sep /=  R_earth;
-        max_sep = (max_sep * rad2deg) * (max_sep * rad2deg);
-        
-        *nfound = 0;
-        size_t const n1 = arr1.shape(0), n2 = arr2.shape(0);
-        
-        m_forz(ii, n1)
+        m_forz(jj, n2)
         {
-            m_forz(jj, n2)
+            double dlon = arr1(ii, 0) - arr2(jj, 0),
+                   dlat = arr1(ii, 1) - arr2(jj, 1);
+            
+            if ((dlon * dlon + dlat * dlat) < max_sep)
             {
-                double dlon = arr1(ii, 0) - arr2(jj, 0),
-                       dlat = arr1(ii, 1) - arr2(jj, 1);
-                
-                if ((dlon * dlon + dlat * dlat) < max_sep)
-                {
-                    idx(ii) = 1;
-                    nfound++;
-                    break;
-                }
+                idx(ii) = 1;
+                nfound++;
+                break;
             }
         }
     }
-    catch(...)
-    {
-        // handle errors
-        return 1;
-    }
+
     return 0;
 
-} // asc_dsc_select
+}
+// asc_dsc_select
 
-int dominant(arptr pasc, arptr pdsc, arptr clustered, double max_sep)
+
+static int dominant(int argc, char **argv)
 {
-    try
-    {
-        View<double> asc{pasc}, dsc{pdsc};
-        vector<bool> asc_selected, dsc_selected;
-        vector<double> clustered;
-        
-        asc_selected.reserve(asc.shape(0));
-        dsc_selected.reserve(dsc.shape(0));
-        
-        
-    }
-    catch(...)
-    {
-        // handle errors
-        return 1;
-    }
+    View<double> asc{pasc}, dsc{pdsc};
+    vector<bool> asc_selected, dsc_selected;
+    vector<double> clustered;
+    
+    asc_selected.reserve(asc.shape(0));
+    dsc_selected.reserve(dsc.shape(0));
+
     return 0;
 }
 // dominant
+*/
 
-
-}
-// extern "C"

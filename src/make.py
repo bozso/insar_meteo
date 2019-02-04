@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from distutils.ccompiler import new_compiler
+from distutils.ccompiler import new_compiler, show_compilers, get_default_compiler
 from sysconfig import get_config_var
 
-def make_join(root, path):
+def make_join(root):
     from os.path import join
     
     def f(path):
@@ -26,6 +26,9 @@ def make_join(root, path):
 
 
 def main():
+    #print(get_default_compiler(), show_compilers())
+    # return
+    
     mjoin = make_join("/home/istvan/miniconda3")
     rjoin = make_join("/home/istvan/progs/insar_meteo/src")
 
@@ -38,7 +41,7 @@ def main():
 
     macros = []
     
-    inc_dirs = [mjoin("include"), pjoin("aux")]
+    inc_dirs = [mjoin("include"), rjoin("aux")]
     lib_dirs = [mjoin("lib")]
     
     libs = ["stdc++"]

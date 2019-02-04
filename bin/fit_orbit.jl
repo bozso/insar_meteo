@@ -1,14 +1,13 @@
 #!/usr/bin/env julia
 
-push!(LOAD_PATH, "/home/istvan/progs/insar_meteo/inmet")
-
-using PolynomFit
-
-function main()
-    println(Scale(MinMax(1.0, 2.0)))
+module Test
+    include("../inmet/PolynomFit.jl")
+    
+    using InteractiveUtils
+    using .PolynomFit
+    
+    @time poly_fit([1.0; 2.0; 3.0;], [4.0 5.0; 5.0 6.0; 6.0 7.0], 1, true)
     #fit_orbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res",
     #          "doris", "orbit.fit")
     #load_fit("orbit.fit", display=true)
 end
-
-main()

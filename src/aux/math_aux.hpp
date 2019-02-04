@@ -74,7 +74,7 @@ struct Number {
     
     Number(complex<float> n)  : c64(n) {};
     Number(complex<double> n) : c128(n) {};
-    
+    ~Number() = default;
 };        
 
 struct MinMax {

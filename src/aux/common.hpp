@@ -7,13 +7,14 @@
 #include <memory>
 
 template<class T>
-using uarr<T> = std::unique_ptr<T[]>;
+using unique_arr<T> = std::unique_ptr<T[]>;
 
-using SMem = std::shared_ptr<uint8_t>;
+typedef uint8_t mem_var;
+typedef std::shared_ptr<mem_var> shared_mem;
 
-SMem make_smem(size_t num)
+shared_mem make_shared(size_t num)
 {
-    SMem ret(new uint8_t[num], std::default_delete<uint8_t[]>());
+    shared_mem ret(new mem_var[num], std::default_delete<mem_var[]>());
     return ret;
 }
 

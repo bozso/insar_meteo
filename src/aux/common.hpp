@@ -7,7 +7,7 @@
 #include <memory>
 
 template<class T>
-using unique_arr<T> = std::unique_ptr<T[]>;
+using uarray = std::unique_ptr<T[]>;
 
 typedef uint8_t mem_var;
 typedef std::shared_ptr<mem_var> shared_mem;

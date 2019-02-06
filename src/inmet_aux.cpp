@@ -4,64 +4,33 @@
 using std::vector;
 
 #include "array.hpp"
-#include "satorbit.hpp"
+//#include "satorbit.hpp"
 
+/*
 using consts::deg2rad;
 using consts::rad2deg;
 using consts::pi_per_4;
 using consts::R_earth;
+*/
 
 #define select_module(module) (strcmp((argv[1]), (module)) == 0)
 #define modules "test, azi_inc"
 
-extern "C" {
-
-int inmet_aux(int argc, char **argv) {
-    try
-    {
-        int argc_ = argc - 1;
-        char **argv_ = argv + 1;
-        
-        if (select_module("test"))
-        {
-            return test(argc_, argv_);
-        }
-        //else if (select_module("azi_inc"))
-        //{
-            //return azi_inc(argc_, argv_)
-        //}
-        else
-        {
-            // TODO: Print: "unknown module"
-            return 1;
-        }
-    }
-    catch(std::exception& e)
-    {
-        // TODO: get info of exception and print it
-        return 1;
-    }
-}
-
-// extern "C"
-}
-
+using idx = Array::idx;
 
 static int test(int argc, char **argv)
 {
-    Array arr{argv[2]};
+    Array arr_{Array::Float64, {2,2}};
+    auto arr = arr_.view<double>();
     
     printf("%lu\n", arr.ndim());
     
-    for(size_t ii = 0; ii < arr.shape(0); ++ii)
-    {
-        for(size_t jj = 0; jj < arr.shape(1); ++jj)
-            printf("%ld ", arr(ii, jj));
-        printf("\n");
-    }
+    for(idx ii = 0; ii < arr.shape(0); ++ii)
+        for(idx jj = 0; jj < arr.shape(1); ++jj)
+            arr(ii, jj) = ii + jj;
     
-    printf("\n");
-
+    arr_.save(argv[1], argv[2]);
+    
     return 0;
 }
 
@@ -196,3 +165,35 @@ static int dominant(int argc, char **argv)
 // dominant
 */
 
+
+extern "C" {
+
+int inmet_aux(int argc, char **argv) {
+    try
+    {
+        int argc_ = argc - 1;
+        char **argv_ = argv + 1;
+        
+        if (select_module("test"))
+        {
+            return test(argc_, argv_);
+        }
+        //else if (select_module("azi_inc"))
+        //{
+            //return azi_inc(argc_, argv_)
+        //}
+        else
+        {
+            // TODO: Print: "unknown module"
+            return 1;
+        }
+    }
+    catch(std::exception& e)
+    {
+        // TODO: get info of exception and print it
+        return 1;
+    }
+}
+
+// extern "C"
+}

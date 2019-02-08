@@ -13,7 +13,7 @@ struct Scale{T<:Number}
     Scale(m::Tuple{T,T}) where T<:Number = new{T}(m[1], m[2] - m[1])
 end
 
-function Base.show(io::IO, p::Scale{T}) where T <: Number
+function Base.show(io::IO, p::Scale{T}) where T<:Number
     print(io, "Scale{$T} Min: $(p.min); Scale: $(p.scale)")
 end
 
@@ -33,7 +33,9 @@ struct PolyFit{T<:Number}
     """
 end
 
-function Base.show(io::IO, p::PolyFit)
+
+function Base.show(io::IO, p::PolyFit{T}) where T<:Number
+    print("PolyFit{$T} ")
     if p.scaled
         print(io, "Fit degree: $(p.deg), Scaled: true, x-scale: $(p.xs)\n",
                   "y-scale: $(p.ys)\nFitted Coefficients: $(p.coeffs)")
@@ -46,10 +48,6 @@ end
 
 function poly_fit(x::Vector{T}, y::VecOrMat{T}, deg::Integer,
                   scaled::Bool=false, dim::Integer=1) where T<:Number
-    elt = eltype(y)
-    println("9")
-    @show y
-    return
     if scaled
         # TODO: properly calculate scales
         n = ndims(y)
@@ -95,7 +93,7 @@ function poly_fit(x::Vector{T}, y::VecOrMat{T}, deg::Integer,
         yy, xs, ys = y, nothing, nothing
         design = collect(xx^p for xx in x, p in 0:deg)
     end
-    return PolyFit{elt}(design \ yy, deg, scaled, xs, ys)
+    return PolyFit{T}(design \ yy, deg, scaled, xs, ys)
 end
 
 # module

@@ -47,7 +47,8 @@ def main():
     libs = ["stdc++"]
     
     if 1:
-        sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
+        #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
+        sources = [rjoin("inmet_aux.cpp")]
         
         comp = new_compiler()
         

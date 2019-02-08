@@ -1,10 +1,16 @@
 #include <stdio.h>
-#include <vector>
+#include <string.h>
+
+#include <iostream>
+
+
+#include "tpl_inst.hpp"
+
+//#include "array.hpp"
+//#include "satorbit.hpp"
 
 using std::vector;
 
-#include "array.hpp"
-//#include "satorbit.hpp"
 
 /*
 using consts::deg2rad;
@@ -16,6 +22,7 @@ using consts::R_earth;
 #define select_module(module) (strcmp((argv[1]), (module)) == 0)
 #define modules "test, azi_inc"
 
+/*
 using idx = Array::idx;
 
 static int test(int argc, char **argv)
@@ -33,6 +40,8 @@ static int test(int argc, char **argv)
     
     return 0;
 }
+
+*/
 
 /*
 static int ell_to_merc(int argc, char **argv)
@@ -171,12 +180,24 @@ extern "C" {
 int inmet_aux(int argc, char **argv) {
     try
     {
+        std::vector<double> v({1.0, 2.0});
+        
+        for (auto const& vv: v)
+            std::cout << vv << "\n";
+        
+        std::cout << argc << "\n";
+        
+        for (int ii = 0; ii < argc; ++ii)
+            std::cout << argv[ii] << "\n";
+        
+        
         int argc_ = argc - 1;
         char **argv_ = argv + 1;
         
         if (select_module("test"))
         {
-            return test(argc_, argv_);
+            //return test(argc_, argv_);
+            return 0;
         }
         //else if (select_module("azi_inc"))
         //{

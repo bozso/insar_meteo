@@ -48,7 +48,7 @@ def main():
     
     if 1:
         #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
-        sources = [rjoin("inmet_aux.cpp")]
+        sources = [rjoin("inmet_aux.cpp"), rjoin("tpl_inst.cpp")]
         
         comp = new_compiler()
         

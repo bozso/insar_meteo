@@ -48,12 +48,14 @@ end
 
 
 function poly_fit(x::Vector{T}, y::VecOrMat{T}, deg::Int64,
-                  scaled::Bool=false, dim::Int64=1) where T<:Number
+                  scaled::Bool=true, dim::Int64=1) where T<:Number
     
     # TODO: make it general for y::Array{T,N}; transpose when dim == 1
     dim <= 0 && error("dim should be > 0!")
     
     n = ndims(y)
+    
+    @inbounds begin
     
     if n == 1
         dim > 1 && error("")
@@ -86,14 +88,14 @@ function poly_fit(x::Vector{T}, y::VecOrMat{T}, deg::Int64,
         
         if n == 1
             ys = scales[2]
-            for jj in eachindex(yy)
+            @simd for jj in eachindex(yy)
                 yy[jj] = (yy[jj] - ys.min) / ys.scale
             end
         else
             rows, cols = size(yy)
             for jj in 1:cols
                 ys = scales[jj + 1]
-                for ii in 1:rows
+                @simd for ii in 1:rows
                     iscale = 1.0 / ys.scale
                     yy[ii,jj] = (yy[ii,jj] - ys.min) * iscale
                 end
@@ -103,6 +105,10 @@ function poly_fit(x::Vector{T}, y::VecOrMat{T}, deg::Int64,
         yy, xs, ys = y, nothing, nothing
         design = collect(xx^p for xx in x, p in deg:-1:0)
     end
+    
+    # @inbounds
+    end
+    
     return PolyFit{T}(design \ yy, deg, nfit, scaled, scales)
 end
 
@@ -111,6 +117,8 @@ function eval_poly(p::PolyFit{T}, x::T) where T<:Number
     nfit, deg, coeffs = p.nfit, p.deg, p.coeffs
     
     ret = Vector{T}(undef, nfit)
+    
+    @inbounds begin
     
     if p.scaled
         scales = p.scales
@@ -156,6 +164,9 @@ function eval_poly(p::PolyFit{T}, x::T) where T<:Number
         end
     # if p.scaled
     end
+    
+    # @inbounds
+    end
 # eval_poly
 end
 
@@ -164,6 +175,8 @@ function eval_poly(p::PolyFit{T}, x::Vector{T}) where T<:Number
     nfit, nx, deg, coeffs = p.nfit, length(x), p.deg, p.coeffs
     
     ret = Matrix{T}(undef, nfit, nx)
+    
+    @inbounds begin
     
     if p.scaled
         scales = p.scales
@@ -204,10 +217,8 @@ function eval_poly(p::PolyFit{T}, x::Vector{T}) where T<:Number
     else
         if deg == 1
             for jj in 1:nx
-                xx = (x[jj] - xs.min) / xs.scale
                 for ii in 1:nfit
-                    ys = scales[ii + 1]
-                    ret[ii, jj] = (coeffs[1, ii] * xx + coeffs[2, ii]) * ys.scale + ys.min
+                    ret[ii, jj] = coeffs[1, ii] * x + coeffs[2, ii]
                 end
             end
             return ret
@@ -228,6 +239,10 @@ function eval_poly(p::PolyFit{T}, x::Vector{T}) where T<:Number
         end
     # if p.scaled
     end
+    
+    # @inbounds
+    end
+    
 # eval_poly
 end
 
@@ -235,6 +250,40 @@ end
 function (p::PolyFit{T})(x::Union{T,Vector{T}}) where T<:Number
     return eval_poly(p, x)
 end
+
+
+function scale_back(p::Scale{T}, x::T) where T<:Number
+    return x * p.scale + p.min
+end
+
+
+function scale_back(p::Scale{T}, x::Vector{T}) where T<:Number
+    n, min, scale = length(x), p.min, p.scale
+    xx::Vector{T}(undef, n)
+    
+    @inbounds @simd for ii = 1:n
+        xx[ii] = x[ii] * scale + min
+    end
+    
+    return xx
+end
+
+function scale_it(p::Scale{T}, x::T) where T<:Number
+    return (x - p.min) / p.scale
+end
+
+
+function scale_it(p::Scale{T}, x::Vector{T}) where T<:Number
+    n, min, iscale = length(x), p.min, 1.0 / p.scale
+    xx::Vector{T}(undef, n)
+    
+    @inbounds @simd for ii = 1:n
+        xx[ii] = (x[ii] - min) / iscale
+    end
+    
+    return xx
+end
+
 
 # module
 end

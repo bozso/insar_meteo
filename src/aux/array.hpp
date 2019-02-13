@@ -22,18 +22,18 @@ struct Array {
     dtype type;
     order layout;
     idx ndim, ndata, datasize, *shape, *strides;
-    mem_var *data;
-    shared_mem mem;
+    SharedMemory::memory_type* data;
+    SharedMemory memory;
 
     Array() : type(Unknown), layout(RowMajor), ndim(0), ndata(0), datasize(0),
-              shape(nullptr), strides(nullptr), mem(nullptr) {};
+              shape(nullptr), strides(nullptr), memory() {};
     
     Array(dtype const type,
           std::initializer_list<idx>& shape,
           order const layout = RowMajor);
     
     static Array load(char const* data,
-                           char const* table);
+                      char const* table);
 
     void save(char const* data,
               char const* table);
@@ -194,12 +194,12 @@ Array::Array(Array::dtype const type,
     this->ndim = shape.size();
     this->ndata = total;
     
-    this->mem = make_shared(this->datasize * total 
-                            + 2 * this->ndim * sizeof(Aidx));
+    this->memory(this->datasize * total + 2 * this->ndim * sizeof(Aidx))
     
-    this->shape = static_cast<Aidx*>(this->mem.get())
+    this->shape = static_cast<Aidx*>(this->memory.ptr() )
     this->stride = this->shape + ndim;
     this->data = static_cast<mem_var*>(this->strides + ndim);
+    
     
     switch(layout) {
         case Array::RowMajor:

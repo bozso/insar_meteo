@@ -4,19 +4,64 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <memory>
+
+#include "stl_inst.hpp"
 
 template<class T>
 using uarray = std::unique_ptr<T[]>;
 
-typedef uint8_t mem_var;
-typedef std::shared_ptr<mem_var> shared_mem;
+class SharedMemory {
+    public:
+        typedef char memory_type;
 
-shared_mem make_shared(size_t num)
-{
-    shared_mem ret(new mem_var[num], std::default_delete<mem_var[]>());
-    return ret;
-}
+        SharedMemory(): shared_memory{nullptr}, size_{0} {};
+
+        SharedMemory(long size): size_{size}
+        {
+            this->shared_memory{new memory_type[size],
+                                std::default_delete<memory_type[]>()};
+        };
+        
+        SharedMemory(SharedMemory const& other)
+        {
+            this->shared_memory = other.shared_memory;
+            this->size_ = other.size_;
+        }
+
+        SharedMemory(SharedMemory const&& other)
+        {
+            this->shared_memory = std::move(other.shared_memory);
+            this->size_ = std::move(other.size_);
+        }
+        
+        SharedMemory operator=(SharedMemory const& other)
+        {
+            SharedMemory ret(other);
+            return ret;
+        }
+
+        SharedMemory operator=(SharedMemory const&& other)
+        {
+            SharedMemory ret(other);
+            return ret;
+        }
+        
+        ~SharedMemory() = default;
+        
+        memory_type* ptr() const noexcept
+        {
+            return this->shared_memory.get();
+        }
+        
+        long size() const noexcept
+        {
+            return this->size_;
+        }
+
+    std::shared_ptr<memory_type> shared_memory;
+    long size_;
+};
+
 
 #define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
 

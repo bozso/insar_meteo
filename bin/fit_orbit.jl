@@ -1,19 +1,21 @@
 #!/usr/bin/env julia
 
 module Test
-    include("../inmet/PolynomFit.jl")
+    push!(LOAD_PATH, "../inmet/")
+    
+    include("../inmet/SatOrbit.jl")
     
     using InteractiveUtils
-    using .PolynomFit
+    using .SatOrbit
+        
+    fit = fit_orbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res",
+                    "doris", nothing)
     
-    @show x, y = [1.0; 2.0; 3.0;], [4.0 5.0; 5.0 6.0; 6.0 7.0]
+    a = Ellip(25.5515, 46.33215, 19.3452)
     
-    fit = poly_fit(x, y, 1, true)
-
-    @show yy = fit(x)
-    @time yy = fit(x)
+    dot_product(fit, ell_cart(a))
     
-    #fit_orbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res",
-    #          "doris", "orbit.fit")
+    @show load_fit("orbit.fit")
+    
     #load_fit("orbit.fit", display=true)
 end

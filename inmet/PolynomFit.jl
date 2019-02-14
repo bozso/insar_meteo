@@ -2,7 +2,7 @@ __precompile__(true)
 
 module PolynomFit
 
-export PolyFit, Scale, poly_fit
+export PolyFit, Scale, fit_poly
 
 struct Scale{T<:Number}
     min::T
@@ -47,7 +47,7 @@ function Base.show(io::IO, p::PolyFit{T}) where T<:Number
 end
 
 
-function poly_fit(x::Vector{T}, y::VecOrMat{T}, deg::Int64,
+function fit_poly(x::Vector{T}, y::VecOrMat{T}, deg::Int64,
                   scaled::Bool=true, dim::Int64=1) where T<:Number
     
     # TODO: make it general for y::Array{T,N}; transpose when dim == 1

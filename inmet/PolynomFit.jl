@@ -2,7 +2,7 @@ __precompile__(true)
 
 module PolynomFit
 
-export PolyFit, Scale, fit_poly
+export PolyFit, MultiPolyFit, Scale, fit_poly
 
 struct Scale{T<:Number}
     min::T
@@ -16,6 +16,143 @@ function Base.show(io::IO, p::Scale{T}) where T<:Number
 end
 
 
+struct PolyFit{T<:Number}
+    coeffs::Vector{T}
+    deg::Int64
+    scaled::Bool
+    xs::Union{Scale{T}, Nothing}
+    ys::Union{Scale{T}, Nothing}
+end
+
+function Base.show(io::IO, p::PolyFit{T}) where T<:Number
+    print(io, "PolyFit{$T} Fit degree: $(p.deg); Fitted Coefficients: ",
+              "$(p.coeffs)")
+    
+    if p.scaled
+        print(io, "Scaled: true; Scale: $(p.scale)\n")
+    else
+        print(io, "Scaled: false")
+    end
+end
+
+
+
+struct MultiPolyFit{T<:Number}
+    fits::Vector{PolyFit{T}}
+    nfits::Int64
+end
+
+
+function Base.show(io::IO, p::MultiPolyFit{T}) where T<:Number
+    print(io, "MultiPolyFit{$T} Fits: $(p.fits) Number of fits: $(p.nfits)")
+end
+
+
+function fit_poly(x::Vector{T},
+                  y::Vector{T},
+                  deg::Int64,
+                  scaled::Bool=true) where T<:Number
+
+    if scaled
+        ny = length(y)
+        search = hcat(x, y)
+        
+        minmax = extrema(search, dims=1)
+        
+        scales = vec([Scale(m) for m in minmax])
+        
+        # f(x) = (x - x_min) / (x_max - x_min)
+        
+        xs = scales[1]
+        design = collect( ((xx - xs.min) / xs.scale)^p for xx in x, p in deg:-1:0)
+        
+        ys = scales[2]
+        
+        yy = Vector{T}(undef, ny)
+        
+        @simd for jj in 1:ny
+            yy[jj] = (y[jj] - ys.min) / ys.scale
+        end
+    else    
+        xs, ys, design, yy = nothing, nothing, \
+        collect(xx^p for xx in x, p in deg:-1:0), y
+    end
+    
+    return PolyFit{T}(design \ yy, deg, scaled, xs, ys)
+end
+
+
+function fit_poly(x::Vector{T},
+                  y::Matrix{T},
+                  deg::Int64,
+                  scaled::Bool=true,
+                  dim::Int64=1) where T<:Number
+    
+    # TODO: make it general for y::Array{T,N}; transpose when dim == 1
+    dim <= 0 && error("dim should be > 0!")
+    
+    n = ndims(y)
+    
+    @inbounds begin
+    
+    if n == 1
+        dim > 1 && error("")
+        yy = y
+    elseif n == 2
+        if dim == 1
+            yy = y
+        elseif dim == 2
+            yy = transpose(y)
+        else
+            error("dim >= 2")
+        end
+    else
+        error("Max 2 dim.")
+    end
+
+    nfit = size(yy, 2)
+
+    if scaled
+        search = hcat(x, yy)
+        
+        minmax = extrema(search, dims=1)
+        
+        scales = vec([Scale(m) for m in minmax])
+        
+        # f(x) = (x - x_min) / (x_max - x_min)
+        
+        xs = scales[1]
+        design = collect( ((xx - xs.min) / xs.scale)^p for xx in x, p in deg:-1:0)
+        
+        if n == 1
+            ys = scales[2]
+            @simd for jj in eachindex(yy)
+                yy[jj] = (yy[jj] - ys.min) / ys.scale
+            end
+        else
+            rows, cols = size(yy)
+            for jj in 1:cols
+                ys = scales[jj + 1]
+                @simd for ii in 1:rows
+                    iscale = 1.0 / ys.scale
+                    yy[ii,jj] = (yy[ii,jj] - ys.min) * iscale
+                end
+            end
+        end
+    else
+        yy, xs, ys = y, nothing, nothing
+        design = collect(xx^p for xx in x, p in deg:-1:0)
+    end
+    
+    # @inbounds
+    end
+    
+    return PolyFit{T}(design \ yy, deg, nfit, scaled, scales)
+end
+
+
+
+#=
 struct PolyFit{T<:Number}
     coeffs::VecOrMat{T}
     deg::Int64
@@ -33,7 +170,6 @@ struct PolyFit{T<:Number}
     f(x_min) = 0.0
     """
 end
-
 
 function Base.show(io::IO, p::PolyFit{T}) where T<:Number
     print(io, "PolyFit{$T} Fit degree: $(p.deg) Fitted Coefficients: ",
@@ -283,6 +419,7 @@ function scale_it(p::Scale{T}, x::Vector{T}) where T<:Number
     
     return xx
 end
+=#
 
 
 # module

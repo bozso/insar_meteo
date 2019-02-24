@@ -10,9 +10,39 @@
 template<class T>
 using uarray = std::unique_ptr<T[]>;
 
+
+class Memory {
+    public:
+        typedef char* memory_ptr;
+        typedef char memory_type;
+
+        Memory(): memory{nullptr}, size_{0} {};
+
+        Memory(long size): size_{size}
+        {
+            this->memory{new memory_type[size]};
+        }
+        
+        ~Memory() = default;
+        
+        memory_ptr ptr() const noexcept
+        {
+            return this->memory.get();
+        }
+        
+        long size() const noexcept
+        {
+            return this->size_;
+        }
+
+    std::unique_ptr<memory_type[]> memory;
+    long size_;
+};
+
+
 class SharedMemory {
     public:
-        typedef char memory_type;
+        typedef char* memory_ptr;
 
         SharedMemory(): shared_memory{nullptr}, size_{0} {};
 

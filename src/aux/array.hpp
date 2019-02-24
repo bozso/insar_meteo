@@ -22,8 +22,8 @@ struct Array {
     dtype type;
     order layout;
     idx ndim, ndata, datasize, *shape, *strides;
-    SharedMemory::memory_type* data;
-    SharedMemory memory;
+    Memory::memory_ptr data;
+    Memory memory;
 
     Array() : type(Unknown), layout(RowMajor), ndim(0), ndata(0), datasize(0),
               shape(nullptr), strides(nullptr), memory() {};
@@ -71,12 +71,14 @@ struct Array {
                                         idx ll);
 };
 
+using SArray = std::shared_ptr<Array>;
+
 
 template<typename T>
 struct View {
     View(Array const& arr)
     {
-        this->arr = arr;
+        this->arr = &arr;
         data = (T*) arr.data;
     }
     

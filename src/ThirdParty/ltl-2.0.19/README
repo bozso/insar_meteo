@@ -1,0 +1,123 @@
+LTL Little Template Library
+===========================
+
+   (c)  Niv Drory, Claus A. Goessl, Jan Snigula
+   released under the GNU Public License (GPL)
+
+   LTL provides dynamic arrays of up to 7-dimensions, subarrays and
+   slicing, support for fixed size vectors and matrices including
+   basic linear algebra operations, expression templates based
+   evaluation, and I/O facilities for ascii and FITS format files.
+
+   Although the library is developed with application to astronomical
+   image and data processing in mind (therefore FITS format I/O), it
+   is by no means restricted to these fields of application. In fact,
+   it qualifies as a fully general array processing package.
+
+   Focus is laid on a high abstraction level regarding the handling of
+   expressions involving arrays or parts thereof and linear algebra
+   related operations without the usually involved negative impact on
+   performance. Hence the use of expression templates throughout the
+   library. The price to pay is dependence on a compiler implementing
+   enough of the current ANSI C++ specification, as well as
+   significantly higher demand on resources at compile time compared
+   to a hand coded C implementation.
+
+   A new feature as of LTL 1.7 is the automatic use of the vector 
+   execution unit present in some modern processors for evaluation
+   of array expressions. This is basically a compiler independent 
+   auto-vectorizer. Currently PowerPC processors (Altivec) and x86 
+   processors (MMX/SSE/SSE2) are supported.
+   
+   Version 1.8 supports multithreaded environments, for example use
+   with OpenMP.
+   
+   Version 1.9 adds an interface to BLAS and LAPACK routines.
+
+   Version 2.0 adds an support for convolutions in expression templates, an
+   interface to the FFTW library and a simple method to plot directly into gnuplot. 
+   The types complex<T> are now fully supported, including all functions defined in 
+   the C++ standard header \<complex\>.
+   Vector and tensor fields (implemented as MArray<FVector<>> and MArray<FMatrix<>>
+   are now also supported in expression templates. Some convolutions, e.g. the gradient
+   return such fields.
+   Internally, the expression template engine has been simplified. Now all expression
+   operands are derived from a single base type, simplifying the code significantly.
+
+   LTL is known to compile on GCC versions 2.95.2 and above
+   (Linux/x86/x86_64, Mac OS X/PPC/x86/x86_64, Solaris/SPARC), Intel ICC version 7.1
+   and above (Linux/x86/x86_64), Sun C++ version 5.5 and above (Solaris/SPARC), 
+   IBM xlC version 6 and above (AIX/PPC, Mac OS X/PPC), and LLVM/Clang. Other 
+   sufficiently ANSI complient C++ compilers should also do, but might 
+   require small modifications. Patches welcome. Old compiler versions do
+   not receive the same amount of testing as more recent versions, so support for
+   some old compiler/architecture combinatins may have been lost. Most development
+   and testing is done on Linux and Mac OS X using g++ 4.x, LLVM, and Intel ICC.
+
+   The dynamically allocated multidimensional array ltl::MArray provides
+   
+    - creating and referencing subarrays (rank preserving)
+    - slicing (rank reducing), e.g. a column of an image
+    - mixing subarrays and slices in the same indexing expression
+      e.g. a submatrix of a slice of a cube
+    - referencing the data of other arrays ('views')
+    - reference counting for the memory chunks holding the actual data
+    - STL-compatible iterators
+    - arbitrary complex arithmetic expressions without creation of
+      temporary objects: 'expression templates'
+    - support for all standard library math functions
+    - support for complex<float> and complex<double>
+    - support for FVector and FMatrix element types: tensor fields
+    - user supplied functions can be added easily
+    - auto-vectorization of expressions (Altivec, SSE2,3,4)
+    - indexing arbitrary sets of elements: where()
+    - conditional expression evaluation: merge( A!=0, 1/A, 0 )
+    - applying arbitrary functors to expressions: apply(f, Expr)
+    - statistical and logical reductions: sum, average, variance,
+      kappa-sigma-clipping, biweight, ..., allof, anyof, noneof
+    - full and partial reductions
+    - optional bounds-checking for debugging
+    - stream I/O: cout << A; cin >> A;
+    - ASCII-file I/O for columnar data
+    - FITS file I/O. Convenient interface via operator>>
+    - transparent memory-mapped arrays
+    - threadsafe reference counting memory management
+    - BLAS and LAPACK interface for 1 and 2D arrays.
+    - FFTW interface
+    - support for convolution operators in expression templates, e.g. gradient, Laplacian, ...
+    - gnuplot interface
+	
+   The fixed-size ltl::FVector and ltl::FMatrix provide:
+
+    - compile time fixed size (allows strong optimization)
+    - expression template based evaluation of arithmetic and linear
+      algebra expressions
+    - referencing column and row vectors of a matrix
+    - vector dot product
+    - matrix-vector and matrix-matrix dot-product
+    - all operations on small enough objects are automatically
+      unrolled by template metaprograms
+    - STL-compatible iterators
+    - Gauss-Jordan-Elimination
+    - LU decomposition
+    - Singular Value decomposition
+    - Linear Least Squares Fitting method(s)
+    - Nonlinear Least Squares Fitting methods(s)
+    - gnuplot interface
+
+   Additionally, there are some utility classes providing:
+	
+    - command line and config file parsing
+    - output formatting utilities
+    - date format handling
+	
+   The code is hosted at http://www.mpe.mpg.de/~drory/ltl/index.html.
+	
+   The author's email addresses are:
+   	Niv Drory < drory at mpe dot mpg dot de >
+	Claus A. Goessl < cag at usm dot uni-muenchen dot de >
+	Jan Snigula < snigula at usm dot uni-muenchen dot de >
+	
+   Comments, suggestions, and code contributions are welcome anytime.
+
+   See doc/* for full documentation.

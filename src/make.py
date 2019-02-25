@@ -19,8 +19,8 @@ from sysconfig import get_config_var
 def make_join(root):
     from os.path import join
     
-    def f(path):
-        return join(root, path)
+    def f(*paths):
+        return join(root, *paths)
     
     return f
 
@@ -41,7 +41,8 @@ def main():
 
     macros = []
     
-    inc_dirs = [mjoin("include"), rjoin("aux")]
+    inc_dirs = [mjoin("include"), rjoin("aux"),
+                rjoin("ThirdParty", "ltl-2.0.19")]
     lib_dirs = [mjoin("lib")]
     
     libs = ["stdc++"]
@@ -49,7 +50,7 @@ def main():
     if 1:
         #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
         sources = [rjoin("inmet_aux.cpp"), rjoin("tpl_inst.cpp"),
-                   rjoin("aux/stl_inst.cpp"), rjoin("aux/array.cpp")]
+                   rjoin("aux", "static_tpl_inst.cpp")]
         
         comp = new_compiler()
         

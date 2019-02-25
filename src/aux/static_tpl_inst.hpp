@@ -5,6 +5,5 @@
 #include <memory>
 
 extern template class std::vector<double>;
-extern template class std::shared_ptr<char>;
 
 #endif

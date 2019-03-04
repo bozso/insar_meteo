@@ -37,12 +37,11 @@ def main():
 
     flags = get_config_var('CFLAGS').split()
     flags.remove("-Wstrict-prototypes")
-    flags += ["-std=c++11", "-Wall", "-Wextra", "-fPIC"]
+    flags += ["-std=c++14", "-Wall", "-Wextra", "-fPIC"]
 
     macros = []
     
-    inc_dirs = [mjoin("include"), rjoin("aux"),
-                rjoin("ThirdParty")]
+    inc_dirs = [mjoin("include"), rjoin("aux")]
     lib_dirs = [mjoin("lib")]
     
     libs = ["stdc++"]

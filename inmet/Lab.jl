@@ -13,6 +13,10 @@ end
 
 workspace = nothing
 
+const str2type = Dict(
+    "Float32"=>Float32,
+    "Float64"=>Float64,
+
 
 function activate(path::AbstractString)
     global workspace
@@ -26,13 +30,13 @@ function save(arr::Array, path::AbstractString, alias::AbstractString = "")
     
     conf = workspace.config
     
-    commit!(conf, path, Dict())
-    
-    commit!(conf, path, "type", "Array")
-    commit!(conf, path, "dtype", "a")
-    commit!(conf, path, "dim", "$(ndims(arr))")
-    commit!(conf, path, "shape", "$(size(arr))")
-    
+    commit!(conf, path,
+            Dict("type"=>"Array",
+                 "dtype"=>"$(eltype(arr))",
+                 "ndims"=>"$(ndims(arr))",
+                 "shape"=>"$(size(arr))"
+                )
+            )
 end
 
 

@@ -4,7 +4,18 @@ module Test
     push!(LOAD_PATH, "../inmet/")
     
     include("../inmet/SatOrbit.jl")
+    include("../inmet/Lab.jl")
+    using .Lab
     
+    activate("test.ini")
+    
+    save([1,2,3], "a.dat")
+    
+    
+    
+    deactivate()
+    
+    #=
     using InteractiveUtils
     using .SatOrbit
         
@@ -16,6 +27,6 @@ module Test
     dot_product(fit, ell_cart(a))
     
     @show load_fit("orbit.fit")
-    
+    =#
     #load_fit("orbit.fit", display=true)
 end

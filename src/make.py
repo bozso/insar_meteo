@@ -42,7 +42,7 @@ def main():
     macros = []
     
     inc_dirs = [mjoin("include"), rjoin("aux"),
-                rjoin("ThirdParty", "ltl-2.0.19")]
+                rjoin("ThirdParty")]
     lib_dirs = [mjoin("lib")]
     
     libs = ["stdc++"]

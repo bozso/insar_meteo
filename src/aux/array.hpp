@@ -6,11 +6,14 @@
 #include "utils.hpp"
 #include "common.hpp"
 
+struct Array;
+
+using SArray = std::shared_ptr<Array>;
+
 template<typename T> struct View;
 
 struct Array {
     typedef long idx;
-    typedef Array* ptr;
 
     enum order { ColMajor, RowMajor };
     
@@ -22,7 +25,7 @@ struct Array {
     dtype type;
     order layout;
     idx ndim, ndata, datasize, *shape, *strides;
-    Memory::memory_ptr data;
+    Memory::ptr_type data;
     Memory memory;
 
     Array() : type(Unknown), layout(RowMajor), ndim(0), ndata(0), datasize(0),
@@ -42,116 +45,11 @@ struct Array {
     Array operator=(Array const& arr);
 
     template<class T>
-    View<T> view() const
-    {
-        View<T> ret{*this};
-        return ret;
-    }
-    
+    View<T> view() const { return View<T>{*this}; }
     
     ~Array() = default;
-
-
-    static idx const calc_offset(idx const* strides,
-                                 idx ii);
-    
-    static idx const calc_offset(idx const* strides,
-                                 idx ii,
-                                 idx jj);
-    
-    static idx const calc_offset(idx const* strides,
-                                 idx ii,
-                                 idx jj,
-                                 idx kk);
-    
-    static idx const calc_offset(idx const* strides,
-                                        idx ii,
-                                        idx jj,
-                                        idx kk,
-                                        idx ll);
 };
 
-using SArray = std::shared_ptr<Array>;
-
-
-template<typename T>
-struct View {
-    View(Array const& arr)
-    {
-        this->arr = &arr;
-        data = (T*) arr.data;
-    }
-    
-    T* get_data() const { return this->data; }
-
-    ~View() = default;
-    
-    Array::idx ndim() const
-    {
-        return this->arr.ndim;
-    }
-    
-    Array::idx shape(Array::idx ii) const
-    {
-        return this->arr.shape[ii];
-    }
-
-    T& operator()(Array::idx ii)
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii)];
-    }
-
-    T& operator()(Array::idx ii,
-                  Array::idx jj)
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii, jj)];
-    }
-
-    T& operator()(Array::idx ii,
-                  Array::idx jj,
-                  Array::idx kk)
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii, jj, kk)];
-    }
-
-    T& operator()(Array::idx ii,
-                  Array::idx jj,
-                  Array::idx kk,
-                  Array::idx ll)
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii, jj, kk, ll)];
-    }
-
-    
-    T const& operator()(Array::idx ii) const
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii)];
-    }
-
-    T const& operator()(Array::idx ii,
-                        Array::idx jj) const
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii, jj)];
-    }
-
-    T const& operator()(Array::idx ii,
-                        Array::idx jj,
-                        Array::idx kk) const
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii, jj, kk)];
-    }
-
-    T const& operator()(Array::idx ii,
-                        Array::idx jj,
-                        Array::idx kk,
-                        Array::idx ll) const
-    {
-        return this->data[Array::calc_offset(this->arr.strides, ii, jj, kk, ll)];
-    }
-    private:
-        Array& arr;
-        T* data;
-};
 
 
 #ifdef m_get_impl
@@ -163,7 +61,6 @@ using std::string;
 using std::ios::binary;
 
 typedef Array::idx Aidx;
-
 
 static Array Array::load(char const* data, char const* table)
 {
@@ -314,37 +211,6 @@ static Array::idx const sizes[] = {
     [Array::Complex64]     = sizeof(complex<float>),
     [Array::Complex128]    = sizeof(complex<double>)
 };
-
-
-static inline Aidx const Array::calc_offset(Aidx const* strides,
-                                            Aidx ii)
-{
-    return ii * strides[0];
-}
-
-static inline Aidx const Array::calc_offset(Aidx const* strides,
-                                            Aidx ii,
-                                            Aidx jj)
-{
-    return ii * strides[0] + jj * strides[1];
-}
-
-static inline Aidx const Array::calc_offset(Aidx const* strides,
-                                            Aidx ii,
-                                            Aidx jj,
-                                            Aidx kk)
-{
-    return ii * strides[0] + jj * strides[1] + kk * strides[2];
-}
-
-static inline Aidx const Array::calc_offset(Aidx const* strides,
-                                            Aidx ii,
-                                            Aidx jj,
-                                            Aidx kk,
-                                            Aidx ll)
-{
-    return ii * strides[0] + jj * strides[1] + kk * strides[2] + ll * strides[3];
-}
 
 #endif
 

@@ -13,8 +13,8 @@ using uarray = std::unique_ptr<T[]>;
 
 class Memory {
     public:
-        typedef char* memory_ptr;
-        typedef char memory_type;
+        typedef char* ptr_type;
+        typedef char value_type;
 
         Memory(): memory{nullptr}, size_{0} {};
 

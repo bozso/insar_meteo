@@ -4,9 +4,9 @@
 #include <vector>
 #include <memory>
 
-#include <ltl/marray.h>
+#include <xtensor/xarray.h>
 
 extern template class std::vector<double>;
-extern template class ltl::MArray<double,2>;
+extern template struct xt::xarray<double>;
 
 #endif

@@ -4,12 +4,11 @@
 #include <iostream>
 
 
+#include "lab.hpp"
 #include "tpl_inst.hpp"
 
 //#include "array.hpp"
 //#include "satorbit.hpp"
-
-using std::vector;
 
 
 /*
@@ -22,26 +21,16 @@ using consts::R_earth;
 #define select_module(module) (strcmp((argv[1]), (module)) == 0)
 #define modules "test, azi_inc"
 
-/*
-using idx = Array::idx;
+using DT = DataFile;
 
 static int test(int argc, char **argv)
 {
-    Array arr_{Array::Float64, {2,2}};
-    auto arr = arr_.view<double>();
+    activate(argv[1]);
     
-    printf("%lu\n", arr.ndim());
-    
-    for(idx ii = 0; ii < arr.shape(0); ++ii)
-        for(idx jj = 0; jj < arr.shape(1); ++jj)
-            arr(ii, jj) = ii + jj;
-    
-    arr_.save(argv[1], argv[2]);
+    DataFile test{argv[2], DT::write};
     
     return 0;
 }
-
-*/
 
 /*
 static int ell_to_merc(int argc, char **argv)
@@ -180,24 +169,12 @@ extern "C" {
 int inmet_aux(int argc, char **argv) {
     try
     {
-        std::vector<double> v({1.0, 2.0});
-        
-        for (auto const& vv: v)
-            std::cout << vv << "\n";
-        
-        std::cout << argc << "\n";
-        
-        for (int ii = 0; ii < argc; ++ii)
-            std::cout << argv[ii] << "\n";
-        
-        
         int argc_ = argc - 1;
         char **argv_ = argv + 1;
         
         if (select_module("test"))
         {
-            //return test(argc_, argv_);
-            return 0;
+            return test(argc_, argv_);
         }
         //else if (select_module("azi_inc"))
         //{

@@ -15,6 +15,8 @@
 
 from distutils.ccompiler import new_compiler, show_compilers, get_default_compiler
 from sysconfig import get_config_var
+from glob import iglob
+
 
 def make_join(root):
     from os.path import join
@@ -37,11 +39,11 @@ def main():
 
     flags = get_config_var('CFLAGS').split()
     flags.remove("-Wstrict-prototypes")
-    flags += ["-std=c++14", "-Wall", "-Wextra", "-fPIC"]
+    flags += ["-std=c++11", "-Wall", "-Wextra", "-fPIC"]
 
     macros = []
     
-    inc_dirs = [mjoin("include"), rjoin("aux")]
+    inc_dirs = [mjoin("include"), rjoin("aux"), rjoin("ThirdParty")]
     lib_dirs = [mjoin("lib")]
     
     libs = ["stdc++"]
@@ -49,7 +51,11 @@ def main():
     if 1:
         #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
         sources = [rjoin("inmet_aux.cpp"), rjoin("tpl_inst.cpp"),
-                   rjoin("aux", "static_tpl_inst.cpp")]
+                   rjoin("aux", "static_tpl_inst.cpp"),
+                   rjoin("aux", "lab.cpp")]
+        
+        # sources.extend(rjoin("aux" source)
+                       # for source in iglob(rjoin("aux" "*.cpp")))
         
         comp = new_compiler()
         

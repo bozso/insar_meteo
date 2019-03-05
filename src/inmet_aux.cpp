@@ -2,9 +2,11 @@
 #include <string.h>
 
 #include <iostream>
+#include <time.h>
 
 
 #include "lab.hpp"
+#include "common.hpp"
 #include "tpl_inst.hpp"
 
 //#include "array.hpp"
@@ -18,18 +20,74 @@ using consts::pi_per_4;
 using consts::R_earth;
 */
 
-#define select_module(module) (strcmp((argv[1]), (module)) == 0)
+#define select_module(module) (strcmp((argv[0]), (module)) == 0)
 #define modules "test, azi_inc"
 
 using DT = DataFile;
 
+#define nrange 22831
+
+
+static void swap4(void *v)
+{
+    char    in[4], out[4];
+    memcpy(in, v, 4);
+    out[0] = in[3];
+    out[1] = in[2];
+    out[2] = in[1];
+    out[3] = in[0];
+    memcpy(v, out, 4);
+}
+
 static int test(int argc, char **argv)
 {
-    activate(argv[1]);
+    struct timespec start, finish;
+    double elapsed;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+
+    FILE* inf = fopen("/media/nas1/Dszekcso/ASC_PS_proc/SLC/20160912.mli", "rb");
     
-    DataFile test{argv[2], DT::write};
+    auto size = sizeof(float);
+    auto arr = uarray<float>(nrange);
+    
+    double avg = 0.0;
+    int n = 0;
+    
+    for (int ii = 0; ii < 4185; ++ii)
+    {
+        fread(arr.get(), size, nrange, inf);
+        
+        for (int jj = 0; jj < nrange; ++jj)
+        {
+            swap4(&arr[jj]);
+            avg += static_cast<double>(arr[jj] * arr[jj]);
+            avg += static_cast<double>(arr[jj] * arr[jj]);
+            avg += static_cast<double>(arr[jj] * arr[jj]);
+            n++;
+        }
+    }
+    
+    printf("Avg: %lf\n", avg / double(n));
+    
+    fclose(inf);
+
+    clock_gettime(CLOCK_MONOTONIC, &finish);
+
+    elapsed = (finish.tv_sec - start.tv_sec);
+    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+    printf("Time: %lf\n", elapsed);
+
     
     return 0;
+    
+    //activate(argv[1]);
+    
+    //DataFile test{argv[2]};
+    
+    //return 0;
 }
 
 /*

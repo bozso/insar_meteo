@@ -69,20 +69,20 @@ static string ftype2str(DataFile::ftype filetype)
 {
     switch (filetype)
     {
-        case array:
+        case DataFile::array:
             return "array";
-        case matrix:
+        case DataFile::matrix:
             return "matrix";
-        case vector:
+        case DataFile::vector:
             return "vector";
-        case records:
+        case DataFile::records:
             return "records";
         default:
             throw;
     }
 }
 
-static DataFile::filetype str2ftype(string const& str)
+static DataFile::ftype str2ftype(string const& str)
 {
     if (str == "array")
     {

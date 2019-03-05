@@ -11,7 +11,7 @@ ia = nct.load_library("libinmet_aux", join(filedir, "..", "src")).inmet_aux
 def main():
     ia.restypes = c_int
     
-    argv = "a b c d".split()
+    argv = "test".split()
     n = len(argv)
     
     mem = (c_char_p * n)()

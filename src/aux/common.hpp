@@ -5,10 +5,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "stl_inst.hpp"
+
+#include <memory>
+
 
 template<class T>
-using uarray = std::unique_ptr<T[]>;
+std::unique_ptr<T[]> uarray(size_t size)
+{
+    return std::unique_ptr<T[]>(new T[size]);
+}
 
 
 class Memory {
@@ -16,16 +21,16 @@ class Memory {
         typedef char* ptr_type;
         typedef char value_type;
 
-        Memory(): memory{nullptr}, size_{0} {};
+        Memory(): memory(nullptr), size_(0) {};
 
-        Memory(long size): size_{size}
+        Memory(long size): size_(size)
         {
-            this->memory{new memory_type[size]};
+            this->memory = uarray<value_type>(size);
         }
         
         ~Memory() = default;
         
-        memory_ptr ptr() const noexcept
+        ptr_type ptr() const noexcept
         {
             return this->memory.get();
         }
@@ -35,60 +40,7 @@ class Memory {
             return this->size_;
         }
 
-    std::unique_ptr<memory_type[]> memory;
-    long size_;
-};
-
-
-class SharedMemory {
-    public:
-        typedef char* memory_ptr;
-
-        SharedMemory(): shared_memory{nullptr}, size_{0} {};
-
-        SharedMemory(long size): size_{size}
-        {
-            this->shared_memory{new memory_type[size],
-                                std::default_delete<memory_type[]>()};
-        };
-        
-        SharedMemory(SharedMemory const& other)
-        {
-            this->shared_memory = other.shared_memory;
-            this->size_ = other.size_;
-        }
-
-        SharedMemory(SharedMemory const&& other)
-        {
-            this->shared_memory = std::move(other.shared_memory);
-            this->size_ = std::move(other.size_);
-        }
-        
-        SharedMemory operator=(SharedMemory const& other)
-        {
-            SharedMemory ret(other);
-            return ret;
-        }
-
-        SharedMemory operator=(SharedMemory const&& other)
-        {
-            SharedMemory ret(other);
-            return ret;
-        }
-        
-        ~SharedMemory() = default;
-        
-        memory_type* ptr() const noexcept
-        {
-            return this->shared_memory.get();
-        }
-        
-        long size() const noexcept
-        {
-            return this->size_;
-        }
-
-    std::shared_ptr<memory_type> shared_memory;
+    std::unique_ptr<value_type[]> memory;
     long size_;
 };
 

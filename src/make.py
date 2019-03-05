@@ -50,8 +50,8 @@ def main():
     
     if 1:
         #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
-        sources = [rjoin("inmet_aux.cpp"), rjoin("tpl_inst.cpp"),
-                   rjoin("aux", "static_tpl_inst.cpp"),
+        sources = [rjoin("inmet_aux.cpp"), rjoin("inmet.cpp"),
+                   rjoin("tpl_inst.cpp"), rjoin("aux", "static_tpl_inst.cpp"),
                    rjoin("aux", "lab.cpp")]
         
         # sources.extend(rjoin("aux" source)
@@ -65,9 +65,12 @@ def main():
         #lib = comp.library_filename("inmet_aux", lib_type="shared",
                                     #output_dir=".")
         
-        comp.link_shared_lib(objects, "inmet_aux", extra_preargs=flags,
+        comp.link_shared_lib(objects, rjoin("inmet_aux"), extra_preargs=flags,
                              libraries=libs)
-
+        
+        comp.link_executable(objects, rjoin("inmet"), extra_preargs=flags,
+                             libraries=libs)
+        
 
     if 0:
         macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]

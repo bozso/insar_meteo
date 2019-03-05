@@ -27,7 +27,7 @@ struct DataFile {
     FILE* file;          
     bool is_closed;
     
-    DataFile(string const& name, iomode const mode);
+    DataFile(string const& name);
     void close();
     ~DataFile();
 };
@@ -65,27 +65,56 @@ void deactivate(string const& path)
 }
 
 
-DataFile::DataFile(string const& name, iomode const mode)
+static string ftype2str(DataFile::ftype filetype)
+{
+    switch (filetype)
+    {
+        case array:
+            return "array";
+        case matrix:
+            return "matrix";
+        case vector:
+            return "vector";
+        case records:
+            return "records";
+        default:
+            throw;
+    }
+}
+
+static DataFile::filetype str2ftype(string const& str)
+{
+    if (str == "array")
+    {
+        return DataFile::array;
+    }
+    else if (str == "matrix")
+    {
+        return DataFile::matrix;
+    }
+    else if (str == "vector")
+    {
+        return DataFile::vector;
+    }
+    else if (str == "records")
+    {
+        return DataFile::records;
+    }
+    else
+    {
+        throw;
+    }
+}
+
+
+
+DataFile::DataFile(string const& name)
 {
     auto sec = ws.inifile[name];
     
     this->datapath = sec["datapath"].as<string>();
     
-    char *mode_ = NULL;
-    
-    switch (mode)
-    {
-        case DataFile::read:
-            mode_ = "rb";
-            break;
-
-        case DataFile::write:
-            mode_ = "wb";
-            break;
-    }
-    
-
-    if ((this->file = fopen(this->datapath.c_str(), mode_)) == NULL)
+    if ((this->file = fopen(this->datapath.c_str(), "rb")) == NULL)
     {
          throw;
     }
@@ -95,17 +124,17 @@ DataFile::DataFile(string const& name, iomode const mode)
 
 void DataFile::close()
 {
-    fclose(this->file);
-    this->is_closed = true;
+    if (this->file != NULL)
+    {
+        fclose(this->file);
+        this->file = NULL;
+    }
 }
 
 
 DataFile::~DataFile()
 {
-    if (not this->is_closed)
-    {
-        this->close();
-    }
+    this->close();
 }
 
 

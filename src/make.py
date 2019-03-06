@@ -51,8 +51,10 @@ def main():
     if 1:
         #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
         sources = [rjoin("inmet_aux.cpp"), rjoin("inmet.cpp"),
-                   rjoin("tpl_inst.cpp"), rjoin("aux", "static_tpl_inst.cpp"),
-                   rjoin("aux", "lab.cpp")]
+                   rjoin("aux", "static_tpl_inst.cpp")]
+        
+        sources.extend(rjoin("impl", cfile)
+                       for cfile in iglob(rjoin("impl", "*.cpp")))
         
         # sources.extend(rjoin("aux" source)
                        # for source in iglob(rjoin("aux" "*.cpp")))

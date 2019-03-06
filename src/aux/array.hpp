@@ -3,8 +3,7 @@
 
 #include <string.h>
 
-#include "utils.hpp"
-#include "common.hpp"
+#include "aux/aux.hpp"
 
 struct Array;
 

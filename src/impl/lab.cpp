@@ -1,3 +1,3 @@
 #define m_get_impl
-#include "lab.hpp"
+#include "lab/lab.hpp"
 #undef m_get_impl

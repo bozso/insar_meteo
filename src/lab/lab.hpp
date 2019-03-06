@@ -76,11 +76,9 @@ static DataFile::ftype str2ftype(string const& str)
 
 
 
-DataFile::DataFile(string const& name)
+DataFile::DataFile(string const& datapath)
 {
-    auto sec = ws.inifile[name];
-    
-    this->datapath = sec["datapath"].as<string>();
+    this->datapath = datapath;
     
     if ((this->file = fopen(this->datapath.c_str(), "rb")) == NULL)
     {

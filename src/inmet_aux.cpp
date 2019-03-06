@@ -28,12 +28,12 @@ using DT = DataFile;
 
 static int test(int argc, char **argv)
 {
-    Timer t;
+    aux::Timer t;
 
     FILE* inf = fopen("/media/nas1/Dszekcso/ASC_PS_proc/SLC/20160912.mli", "rb");
     
     auto size = sizeof(float);
-    auto arr = uarray<float>(nrange);
+    auto arr = aux::uarray<float>(nrange);
     
     double avg = 0.0;
     int n = 0;
@@ -44,7 +44,7 @@ static int test(int argc, char **argv)
         
         for (int jj = 0; jj < nrange; ++jj)
         {
-            endswap(arr[jj]);
+            aux::endswap(arr[jj]);
             avg += static_cast<double>(arr[jj] * arr[jj]);
             avg += static_cast<double>(arr[jj] * arr[jj]);
             avg += static_cast<double>(arr[jj] * arr[jj]);

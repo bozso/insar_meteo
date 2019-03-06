@@ -56,7 +56,7 @@ struct cart {
     cart() = default;
     cart(double x, double y, double z):
         x(x), y(y), z(z) {}
-    ~cart() {};
+    ~cart() = default;
 };
 
 typedef double const cdouble;

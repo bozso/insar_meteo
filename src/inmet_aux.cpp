@@ -2,9 +2,9 @@
 #include <string.h>
 
 #include <iostream>
-#include <time.h>
 
 
+#include "aux.hpp"
 #include "lab.hpp"
 #include "common.hpp"
 #include "tpl_inst.hpp"
@@ -39,13 +39,10 @@ static void swap4(void *v)
     memcpy(v, out, 4);
 }
 
+
 static int test(int argc, char **argv)
 {
-    struct timespec start, finish;
-    double elapsed;
-
-    clock_gettime(CLOCK_MONOTONIC, &start);
-
+    Timer t;
 
     FILE* inf = fopen("/media/nas1/Dszekcso/ASC_PS_proc/SLC/20160912.mli", "rb");
     
@@ -73,13 +70,7 @@ static int test(int argc, char **argv)
     
     fclose(inf);
 
-    clock_gettime(CLOCK_MONOTONIC, &finish);
-
-    elapsed = (finish.tv_sec - start.tv_sec);
-    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-
-    printf("Time: %lf\n", elapsed);
-
+    t.report();
     
     return 0;
     

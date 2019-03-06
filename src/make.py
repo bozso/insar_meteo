@@ -68,8 +68,8 @@ def main():
         comp.link_shared_lib(objects, rjoin("inmet_aux"), extra_preargs=flags,
                              libraries=libs)
         
-        comp.link_executable(objects, rjoin("inmet"), extra_preargs=flags,
-                             libraries=libs)
+        #comp.link_executable(objects, rjoin("inmet"), extra_preargs=flags,
+                             #libraries=libs)
         
 
     if 0:

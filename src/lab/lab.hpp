@@ -3,8 +3,6 @@
 
 #include <string>
 
-#include <ini.hpp>
-
 using std::string;
 
 struct DataFile {
@@ -33,37 +31,7 @@ struct DataFile {
 };
 
 
-void activate(string const& path);
-void deactivate(std::string const& path = "0");
-
-
 #ifdef m_get_impl
-
-struct Workspace {
-    ini::IniFile inifile;
-    string path;
-};
-
-
-static Workspace ws;
-
-void activate(string const& path)
-{
-    ws.path = path;
-    ws.inifile.load(path);
-}
-
-
-void deactivate(string const& path)
-{
-    if (path != "0")
-    {
-        ws.path = path;
-    }
-    
-    ws.inifile.save(ws.path);
-}
-
 
 static string ftype2str(DataFile::ftype filetype)
 {
@@ -121,6 +89,7 @@ DataFile::DataFile(string const& name)
     
     
 }
+
 
 void DataFile::close()
 {

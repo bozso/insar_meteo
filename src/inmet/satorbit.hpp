@@ -20,9 +20,8 @@
 
 #include <cmath>
 
-#include "math_aux.hpp"
 #include "utils.hpp"
-#include "common.hpp"
+#include "aux/aux.hpp"
 
 
 namespace consts {

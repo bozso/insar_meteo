@@ -3,12 +3,11 @@
 
 #include <iostream>
 
+#include "aux/aux.hpp"
+#include "lab/lab.hpp"
 
-#include "aux.hpp"
-#include "lab.hpp"
-#include "common.hpp"
-#include "tpl_inst.hpp"
 
+//#include "tpl_inst.hpp"
 //#include "array.hpp"
 //#include "satorbit.hpp"
 
@@ -20,24 +19,11 @@ using consts::pi_per_4;
 using consts::R_earth;
 */
 
-#define select_module(module) (strcmp((argv[0]), (module)) == 0)
 #define modules "test, azi_inc"
 
 using DT = DataFile;
 
 #define nrange 22831
-
-
-static void swap4(void *v)
-{
-    char    in[4], out[4];
-    memcpy(in, v, 4);
-    out[0] = in[3];
-    out[1] = in[2];
-    out[2] = in[1];
-    out[3] = in[0];
-    memcpy(v, out, 4);
-}
 
 
 static int test(int argc, char **argv)
@@ -58,7 +44,7 @@ static int test(int argc, char **argv)
         
         for (int jj = 0; jj < nrange; ++jj)
         {
-            swap4(&arr[jj]);
+            endswap(arr[jj]);
             avg += static_cast<double>(arr[jj] * arr[jj]);
             avg += static_cast<double>(arr[jj] * arr[jj]);
             avg += static_cast<double>(arr[jj] * arr[jj]);
@@ -215,29 +201,33 @@ static int dominant(int argc, char **argv)
 
 extern "C" {
 
-int inmet_aux(int argc, char **argv) {
+int inmet_aux(int argc, char **argv)
+{
     try
     {
+        std::string modname = argv[0];
+        
         int argc_ = argc - 1;
         char **argv_ = argv + 1;
         
-        if (select_module("test"))
+        if (modname == "test")
         {
             return test(argc_, argv_);
         }
-        //else if (select_module("azi_inc"))
+        //else if (modname == "azi_inc")
         //{
             //return azi_inc(argc_, argv_)
         //}
         else
         {
-            // TODO: Print: "unknown module"
+            std::cerr << "Unknown module: " << modname
+                      << " Available modules: " << modules << "\n";
             return 1;
         }
     }
     catch(std::exception& e)
     {
-        // TODO: get info of exception and print it
+        std::cerr << "Excaption caught: " << e.what() << "\n";
         return 1;
     }
 }

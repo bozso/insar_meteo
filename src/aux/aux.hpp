@@ -2,6 +2,17 @@
 #define AUX_HPP
 
 #include <chrono>
+#include <algorithm>
+
+namespace aux {
+
+template <class T>
+void endswap(T& objp)
+{
+    unsigned char *memp = reinterpret_cast<unsigned char*>(&objp);
+    std::reverse(memp, memp + sizeof(T));
+}
+
 
 class Timer
 {
@@ -28,5 +39,8 @@ public:
         std::cout << "Elapsed time: " << this->elapsed() << " seconds.\n";
     }
 };
+
+// namespace
+}
 
 #endif

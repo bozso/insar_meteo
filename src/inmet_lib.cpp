@@ -3,21 +3,10 @@
 
 #include <iostream>
 
-#include "aux/aux.hpp"
+#include "lab/aux.hpp"
 #include "lab/lab.hpp"
 
-
-//#include "tpl_inst.hpp"
-//#include "array.hpp"
 //#include "satorbit.hpp"
-
-
-/*
-using consts::deg2rad;
-using consts::rad2deg;
-using consts::pi_per_4;
-using consts::R_earth;
-*/
 
 #define modules "test, azi_inc"
 
@@ -201,7 +190,13 @@ static int dominant(int argc, char **argv)
 
 extern "C" {
 
-int inmet_aux(int argc, char **argv)
+long get_datasize(char *dtype_name)
+{
+    return dtype_size(DT::str2dt(std::string(dtype_name)));
+}
+
+
+int inmet(int argc, char **argv)
 {
     try
     {
@@ -233,4 +228,4 @@ int inmet_aux(int argc, char **argv)
 }
 
 // extern "C"
-}
+}                

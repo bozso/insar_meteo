@@ -1,0 +1,25 @@
+cc = gcc
+cflags = -g -Wall -I.
+
+bdir = build
+idir = impl
+# include = /home/istvan/progs/insar_meteo/src/
+
+rule cc
+  command = $cc $cflags -c -o $out $in 
+
+rule link
+  command = $cc $cflags -o $out -L$bdir -lstdc++ $in
+
+rule slib
+  command = $cc 
+
+
+build $bdir/aux.o: cc $idir/aux.cpp
+build $bdir/lab.o: cc $idir/lab.cpp
+build $bdir/static_tpl_inst.o: cc $idir/static_tpl_inst.cpp
+build $bdir/inmet.o: cc inmet.cpp
+build $bdir/inmet_lib.o: cc inmet_lib.cpp
+
+build $bdir/inmet: link $bdir/inmet.o $bdir/static_tpl_inst.o $bdir/lab.o $
+    $bdir/aux.o $bdir/inmet_lib.o

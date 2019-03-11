@@ -7,6 +7,8 @@
 #include <memory>
 
 
+// #define exc(type, 
+
 namespace aux {
 
 /********************
@@ -21,7 +23,6 @@ std::unique_ptr<T[]> uarray(size_t size)
 {
     return std::unique_ptr<T[]>(new T[size]);
 }
-
 
 
 template <class T>
@@ -53,13 +54,13 @@ public:
 
 void Timer::reset()
 {
-    m_beg = clock_t::now();
+    this->m_beg = clock_t::now();
 }
 
 
 double Timer::elapsed() const
 {
-    return std::chrono::duration_cast<second_t>(clock_t::now() - m_beg).count();
+    return std::chrono::duration_cast<second_t>(clock_t::now() - this->m_beg).count();
 }
 
 

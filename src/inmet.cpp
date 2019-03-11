@@ -1,6 +1,6 @@
-extern "C" int inmet_aux(int argc, char **argv);
+extern "C" int inmet(int argc, char **argv);
 
 int main(int argc, char **argv)
-{
-    return inmet_aux(argc - 1, argv + 1);
+{                   
+    return inmet(argc - 1, argv + 1);
 }

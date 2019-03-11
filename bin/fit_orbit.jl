@@ -9,7 +9,13 @@ module Test
     
     activate("test.ini")
     
-    save([1,2,3], "a.dat")
+    a = [1,2,3]
+    @show Base.cconvert(Ptr{UInt8}, a)
+    
+    save(a, "a", "a.dat")
+    
+    a = load("a")
+    
     
     
     

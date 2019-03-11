@@ -1,3 +1,12 @@
+# Other
+*.dat
+*.ini
+.sconsign.dblite
+SConstruct
+.ninja_deps
+.ninja_log
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -6,6 +15,7 @@ __pycache__/
 # C extensions and object files
 *.so
 *.o
+*.os
 
 # Distribution / packaging
 .Python

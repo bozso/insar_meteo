@@ -4,7 +4,7 @@ module Lab
 
 using ConfParser
 
-export workspace_init, activate, deactivate, save
+export workspace_init, activate, deactivate, save, load
 
 mutable struct Workspace
     config::ConfParse
@@ -13,9 +13,12 @@ end
 
 workspace = nothing
 
-const str2type = Dict(
-    "Float32"=>Float32,
-    "Float64"=>Float64,
+const Astr = AbstractString
+
+const valid_types = (Float32, Float64, Int64)
+
+const str2dtype = Dict((("$(dtype)", dtype)
+                       for dtype in valid_types))
 
 
 function activate(path::AbstractString)
@@ -25,18 +28,45 @@ function activate(path::AbstractString)
 end
 
 
-function save(arr::Array, path::AbstractString, alias::AbstractString = "")
+function save(arr::Array, name::Astr, path::Astr)
     global workspace
     
-    conf = workspace.config
-    
-    commit!(conf, path,
+    etype = eltype(arr)
+
+    commit!(workspace.config, name,
             Dict("type"=>"Array",
-                 "dtype"=>"$(eltype(arr))",
+                 "dtype"=>"$(etype)",
                  "ndims"=>"$(ndims(arr))",
-                 "shape"=>"$(size(arr))"
+                 "shape"=> join(("$elem" for elem in size(arr)), ";"),
+                 "path"=>path
                 )
             )
+    
+    open(path, "w") do f
+        unsafe_write(f, Ref(arr), sizeof(etype) * length(arr))
+    end
+end
+
+
+function load(name::Astr)
+    global workspace, str2dtype
+
+    tp = retrieve(workspace.config, name, "type")
+    dt = str2dtype[retrieve(workspace.config, name, "dtype")]
+    nd = retrieve(workspace.config, name, "ndims", Int64)
+    shape = string(retrieve(workspace.config, name, "shape"))
+    path = retrieve(workspace.config, name, "path")
+    
+    shape = [parse(Int64, elem) for elem in split(shape, ";")]
+    
+    arr = Array{dt, nd}(shape)
+    
+    open(path, "r") do f
+        unsafe_read(f, Ref(arr), sizeof(dt) * length(arr))
+    end
+    
+    return arr
+    
 end
 
 

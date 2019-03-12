@@ -105,10 +105,13 @@ struct DataFile {
     
     std::ios_base::openmode iomode;
     std::string datapath;
-    std::unique_ptr<memtype[]> buffer;
-    std::unique_ptr<idx[]> offsets;
-    std::unique_ptr<dtype[]> dtypes;
-    std::fstream file;          
+    std::fstream file;
+    
+    Memory mem;
+    memtype* buffer;
+    idx* offsets;
+    dtype* dtypes;
+
     long ntypes, recsize, nio;
 
     
@@ -127,7 +130,7 @@ struct DataFile {
     template<long ii, class T>
     T get()
     {
-        memtype* in = this->buffer.get() + this->offsets[ii];
+        memtype* in = this->buffer + this->offsets[ii];
         
         switch(this->dtypes[ii])
         {

@@ -1,7 +1,5 @@
 #include <lab/aux.hpp>
 
-namespace aux {
-
 void Timer::reset()
 {
     this->m_beg = clock_t::now();
@@ -31,7 +29,4 @@ bool is_big_endian()
     {
         return false;
     }
-}
-
-// namespace
 }

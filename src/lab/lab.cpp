@@ -16,9 +16,11 @@ iomode(iomode), ntypes(ntypes), recsize(recsize), nio(0)
          throw;
     }
     
-    this->buffer = aux::uarray<memtype>(this->recsize);
-    this->offsets = aux::uarray<DataFile::idx>(this->ntypes);
-    this->dtypes = aux::uarray<dtype>(this->ntypes);
+    this->mem((sizeof(memtype) + sizeof(DataFile::idx) + sizeof(dtype)) * ntypes)
+    
+    this->buffer = this->mem.get();
+    this->offsets = this->mem.offset<memtype>(ntypes);
+    this->dtypes = this->mem.offset<DataFile::idx>(ntypes);
 }
 
 void DataFile::readrec()

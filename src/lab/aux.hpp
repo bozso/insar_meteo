@@ -9,14 +9,45 @@
 
 // #define exc(type, 
 
-namespace aux {
-
 /********************
  * Endianness check *
  ********************/
 
 bool is_big_endian();
 
+class Memory {
+    public:
+        typedef char* ptr_type;
+        typedef char value_type;
+
+        Memory(): memory(nullptr), _size(0) {};
+
+        Memory(long size): _size(size)
+        {
+            this->memory(new value_type[size]);
+        }
+        
+        ~Memory() = default;
+        
+        ptr_type get() const noexcept
+        {
+            return this->memory.get();
+        }
+        
+        template<class T>
+        ptr_type offset(long ii) const
+        {
+            return this->memory.get() + sizeof(T) * ii;
+        }
+        
+        long size() const noexcept
+        {
+            return this->_size;
+        }
+
+    std::unique_ptr<value_type[]> memory;
+    long _size;
+};
 
 template<class T>
 std::unique_ptr<T[]> uarray(size_t size)
@@ -50,8 +81,6 @@ public:
     void report() const;
 };
 
-// namespace
-}
 
 #define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
 

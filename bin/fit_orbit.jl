@@ -9,15 +9,12 @@ module Test
     
     activate("test.ini")
     
-    a = [1,2,3]
-    @show Base.cconvert(Ptr{UInt8}, a)
+    a = reshape([1 2 3 4 5 6], (2,3))
+    @show a
     
     save(a, "a", "a.dat")
     
-    a = load("a")
-    
-    
-    
+    @show a = load("a")
     
     deactivate()
     

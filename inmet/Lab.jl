@@ -43,7 +43,9 @@ function save(arr::Array, name::Astr, path::Astr)
             )
     
     open(path, "w") do f
-        unsafe_write(f, Ref(arr), sizeof(etype) * length(arr))
+        for elem in arr
+            write(f, elem)
+        end
     end
 end
 
@@ -59,14 +61,13 @@ function load(name::Astr)
     
     shape = [parse(Int64, elem) for elem in split(shape, ";")]
     
-    arr = Array{dt, nd}(shape)
+    # _arr = Vector{dt}(undef, prod(shape))
     
     open(path, "r") do f
-        unsafe_read(f, Ref(arr), sizeof(dt) * length(arr))
+        _arr = reinterpret(dt, read(f))
     end
     
-    return arr
-    
+    return reshape(_arr, shape)
 end
 
 

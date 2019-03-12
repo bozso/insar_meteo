@@ -4,9 +4,12 @@
 
 #include <string>
 #include <complex>
+#include <fstream>
+#include <memory>
+#include <functional>
 
-using complex128 = std::complex<double>;
-using complex64 = std::complex<float>;
+using cpx128 = std::complex<double>;
+using cpx64 = std::complex<float>;
 
 enum dtype {
     Unknown = 0,
@@ -28,8 +31,68 @@ enum dtype {
     Complex128 = 16
 };
 
+/*
+struct Number {
+    dtype type;
+    union {
+        bool   b;
+        long   il;
+        int    ii;
+        size_t is;
+    
+        int8_t  i8;
+        int16_t i16;
+        int32_t i32;
+        int64_t i64;
+    
+        uint8_t  ui8;
+        uint16_t ui16;
+        uint32_t ui32;
+        uint64_t ui64;
+    
+        float  fl32;
+        double fl64;
+    
+        complex<float>  c64;
+        complex<double> c128;
+    };
+    
+    Number() = delete;
+    Number(bool n)            : b(n) {};
+    Number(int  n)            : ii(n) {};
+    Number(long n)            : il(n) {};
+    Number(size_t n)          : is(n) {};
+    Number(int8_t n)          : i8(n) {};
+    Number(int16_t n)         : i16(n) {};
+    Number(int32_t n)         : i32(n) {};
+    Number(int64_t n)         : i64(n) {};
+
+    Number(uint8_t n)         : ui8(n) {};
+    Number(uint16_t n)        : ui16(n) {};
+    Number(uint32_t n)        : ui32(n) {};
+    Number(uint64_t n)        : ui64(n) {};
+    
+    Number(float n)           : fl32(n) {};
+    Number(double n)          : fl64(n) {};
+    
+    Number(cpx64 n)  : c64(n) {};
+    Number(cpx128 n) : c128(n) {};
+    ~Number() = default;
+}; 
+*/
+
+typedef char memtype;
+
+template<class T1, class T2>
+static T1 convert(memtype* in)
+{
+    return static_cast<T1>(*reinterpret_cast<T2*>(in));
+}
+
 
 struct DataFile {
+    typedef long idx;
+    
     enum ftype {
         Unknown = 0,
         Array = 1,
@@ -38,14 +101,16 @@ struct DataFile {
         Records = 4
     };
     
-    enum iomode { read, write };
-    
-    dtype datatype;
     ftype filetype;
     
+    std::ios_base::openmode iomode;
     std::string datapath;
-    FILE* file;          
-    bool is_closed;
+    std::unique_ptr<memtype[]> buffer;
+    std::unique_ptr<idx[]> offsets;
+    std::unique_ptr<dtype[]> dtypes;
+    std::fstream file;          
+    long ntypes, recsize, nio;
+
     
     static std::string const dt2str(int type) noexcept;
     static std::string const ft2str(int type) noexcept;
@@ -53,146 +118,66 @@ struct DataFile {
     static dtype str2dt(std::string const& type) noexcept;
     static ftype str2ft(std::string const& type) noexcept;
     
-    DataFile(std::string const& name);
+    DataFile(std::string const& datapath, long const recsize,
+             long const ntypes, std::ios_base::openmode iomode);
+
+    void readrec();
+    
+
+    template<long ii, class T>
+    T get()
+    {
+        memtype* in = this->buffer.get() + this->offsets[ii];
+        
+        switch(this->dtypes[ii])
+        {
+            case Bool:
+                return convert<T, bool>(in);
+            case Int:
+                return convert<T, int>(in);
+            case Long:
+                return convert<T, long>(in);
+            case Size_t:
+                return convert<T, size_t>(in);
+
+            case Int8:
+                return convert<T, int8_t>(in);
+            case Int16:
+                return convert<T, int16_t>(in);
+            case Int32:
+                return convert<T, int32_t>(in);
+            case Int64:
+                return convert<T, int64_t>(in);
+
+            case UInt8:
+                return convert<T, uint8_t>(in);
+            case UInt16:
+                return convert<T, uint16_t>(in);
+            case UInt32:
+                return convert<T, uint32_t>(in);
+            case UInt64:
+                return convert<T, uint64_t>(in);
+
+            case Float32:
+                return convert<T, float>(in);
+            case Float64:
+                return convert<T, float>(in);
+
+            case Complex64:
+                return convert<T, cpx64>(in);
+            case Complex128:
+                return convert<T, cpx128>(in);
+        }
+    }
+    
+    
     void close();
-    ~DataFile();
+    ~DataFile() = default;
 };
 
 
 long dtype_size(dtype type) noexcept;
 
-#ifdef m_get_impl
-
-using std::string;
-
-constexpr int ndtype = 17;
-
-static string const dtype_names[17] = {
-    "Unknown",
-    "Bool",
-    "Int",
-    "Long",
-    "Size_t",
-    "Int8",
-    "Int16",
-    "Int32",
-    "Int64",
-    "UInt8",
-    "UInt16",
-    "UInt32",
-    "UInt64",
-    "Float32",
-    "Float64",
-    "Complex64",
-    "Complex128"
-};
-
-
-string const DataFile::dt2str(int type) noexcept
-{
-    return type < ndtype ? dtype_names[type] : dtype_names[0];
-}
-
-dtype DataFile::str2dt(string const& type) noexcept
-{
-    for (int ii = 0; ii < ndtype; ++ii)
-    {
-        if (type == dtype_names[ii])
-        {
-            return static_cast<dtype>(ii);
-        }
-    }
-    
-    return static_cast<dtype>(0);
-}
-
-
-static constexpr int nftype = 5;
-
-static string const ftype_names[nftype] = {
-    "Unknown",
-    "Array",
-    "Matrix",
-    "Vector",
-    "Records"
-};
-
-
-string const DataFile::ft2str(int type) noexcept
-{
-    return type < nftype ? ftype_names[type] : ftype_names[0];
-}
-
-DataFile::ftype DataFile::str2ft(string const& type) noexcept
-{
-    for (int ii = 0; ii < nftype; ++ii)
-    {
-        if (type == ftype_names[ii])
-        {
-            return static_cast<DataFile::ftype>(ii);
-        }
-    }
-    
-    return DataFile::Unknown;
-}
-
-
-static long const sizes[ndtype] = {
-    0,
-    sizeof(bool),
-    sizeof(int),
-    sizeof(long),
-    sizeof(size_t),
-    sizeof(int8_t),
-    sizeof(int16_t),
-    sizeof(int32_t),
-    sizeof(int64_t),
-    sizeof(uint8_t),
-    sizeof(uint16_t),
-    sizeof(uint32_t),
-    sizeof(uint64_t),
-    sizeof(float),
-    sizeof(double),
-    sizeof(complex64),
-    sizeof(complex128)
-};
-
-
-long dtype_size(dtype type) noexcept
-{
-    return type < ndtype ? sizes[type] : sizes[0];
-}
-
-DataFile::DataFile(string const& datapath)
-{
-    this->datapath = datapath;
-    
-    if ((this->file = fopen(this->datapath.c_str(), "rb")) == NULL)
-    {
-         throw;
-    }
-    
-    
-}
-
-
-void DataFile::close()
-{
-    if (this->file != NULL)
-    {
-        fclose(this->file);
-        this->file = NULL;
-    }
-}
-
-
-DataFile::~DataFile()
-{
-    this->close();
-}
-
-
-#endif
 
 // guard
 #endif

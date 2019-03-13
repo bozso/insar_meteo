@@ -1,8 +1,9 @@
+#include <iostream>
 #include <lab/lab.hpp>
-#include <lab/aux.hpp>
 
 using std::string;
 
+/*
 DataFile::DataFile(string const& datapath, long const recsize,
                    long const ntypes, std::ios_base::openmode iomode) :
 iomode(iomode), ntypes(ntypes), recsize(recsize), nio(0)
@@ -22,15 +23,16 @@ iomode(iomode), ntypes(ntypes), recsize(recsize), nio(0)
     this->offsets = this->mem.offset<memtype>(ntypes);
     this->dtypes = this->mem.offset<DataFile::idx>(ntypes);
 }
+*/
 
 void DataFile::readrec()
 {
-    this->file.read(this->buffer.get(), this->recsize);
+    //this->file.read(this->buffer, this->recsize);
     this->nio++;
 }
 
 
-void DataFile::close() { this->file.close(); }
+//void DataFile::close() { this->file.close(); }
 
 constexpr int ndtype = 17;
 
@@ -125,7 +127,17 @@ static long const sizes[ndtype] = {
 };
 
 
-long dtype_size(dtype type) noexcept
+extern "C" {
+
+long dtype_size(long type) noexcept
 {
     return type < ndtype ? sizes[type] : sizes[0];
+}
+
+void dtor_datafile(DataFile* datafile)
+{
+    std::cout << "Calling DataFile destructor.\n";
+    dtor_memory(&(datafile->mem));
+}
+
 }

@@ -7,20 +7,22 @@ idir = impl
 # include = /home/istvan/progs/insar_meteo/src/
 
 rule cc
-  command = $cc $cflags -c -o $out $in 
+  command = $cc $cflags -c -fPIC -o $out $in 
 
 rule link
   command = $cc $cflags -o $out -L$bdir $in
 
 rule slib
-  command = $cc 
+  command = $cc $cflags -shared -fPIC -o $out $in
 
 
 build $bdir/aux.o: cc $ldir/aux.cpp
 build $bdir/lab.o: cc $ldir/lab.cpp
 # build $bdir/static_tpl_inst.o: cc $idir/static_tpl_inst.cpp
-build $bdir/inmet.o: cc inmet.cpp
-build $bdir/inmet_lib.o: cc inmet_lib.cpp
+# build $bdir/inmet.o: cc inmet.cpp
+# build $bdir/inmet_lib.o: cc inmet_lib.cpp
 
-build $bdir/inmet: link $bdir/inmet.o $bdir/lab.o $
-    $bdir/aux.o $bdir/inmet_lib.o
+# build $bdir/inmet: link $bdir/inmet.o $bdir/lab.o $
+#     $bdir/aux.o $bdir/inmet_lib.o
+
+build $bdir/liblab.so: slib $bdir/lab.o $bdir/aux.o

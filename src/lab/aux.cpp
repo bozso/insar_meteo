@@ -1,4 +1,6 @@
-#include <lab/aux.hpp>
+#include <iostream>
+
+#include "lab/lab.hpp"
 
 void Timer::reset()
 {
@@ -18,7 +20,9 @@ void Timer::report() const
 }
 
 
-bool is_big_endian()
+extern "C" {
+
+bool is_big_endian() noexcept
 {
     short word = 0x4321;
     if ((*(char *)& word) != 0x21 )
@@ -29,4 +33,14 @@ bool is_big_endian()
     {
         return false;
     }
+}
+
+
+void dtor_memory(Memory* mem)
+{
+    std::cout << "Calling Memory destructor.\n";
+    delete[] mem->memory;
+}
+
+
 }

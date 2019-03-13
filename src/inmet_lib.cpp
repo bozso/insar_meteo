@@ -3,7 +3,6 @@
 
 #include <iostream>
 
-#include "lab/aux.hpp"
 #include "lab/lab.hpp"
 
 //#include "satorbit.hpp"

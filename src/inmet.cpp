@@ -1,4 +1,3 @@
-#include "lab/aux.hpp"
 #include "lab/lab.hpp"
 
 #define modules "test, azi_inc"

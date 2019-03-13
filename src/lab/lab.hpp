@@ -1,13 +1,14 @@
 #ifndef LAB_HPP
 #define LAB_HPP
 
+
 #include <chrono>
 #include <algorithm>
 #include <string>
 #include <complex>
-#include <fstream>
 #include <memory>
-#include <functional>
+
+typedef FILE* fileptr;
 
 typedef unsigned char memtype;
 typedef memtype* memptr;
@@ -21,6 +22,12 @@ struct Memory {
         this->memory = new memtype[size];
     }
     
+    void alloc(long size)
+    {
+        this->_size = size;
+        this->memory = new memtype[size];
+    }
+    
     ~Memory() = default;
     
     memptr get() const noexcept
@@ -29,9 +36,9 @@ struct Memory {
     }
     
     template<class T>
-    memptr offset(long ii) const
+    T* offset(long offset) const
     {
-        return this->memory + sizeof(T) * ii;
+        return reinterpret_cast<T*>(this->memory + offset);
     }
     
     long size() const noexcept
@@ -59,26 +66,8 @@ void endswap(T& objp)
 }
 
 
-class Timer
-{
-private:
-	// Type aliases to make accessing nested type easier
-	using clock_t = std::chrono::high_resolution_clock;
-	using second_t = std::chrono::duration<double, std::ratio<1> >;
-	
-	std::chrono::time_point<clock_t> m_beg;
- 
-public:
-	Timer() : m_beg(clock_t::now()) {}
-	
-	void reset();
-	double elapsed() const;
-    void report() const;
-};
-
-
-using cpx128 = std::complex<double>;
-using cpx64 = std::complex<float>;
+typedef std::complex<double> cpx128;
+typedef std::complex<float> cpx64;
 
 enum dtype {
     Unknown = 0,
@@ -151,15 +140,6 @@ struct Number {
 */
 
 
-template<class T1, class T2>
-static T1 convert(memtype* in)
-{
-    return static_cast<T1>(*reinterpret_cast<T2*>(in));
-}
-
-
-
-
 struct DataFile {
     typedef long idx;
 
@@ -172,24 +152,42 @@ struct DataFile {
     };
     
     int filetype;
-    int* dtypes;
+    int *dtypes;
     long ntypes, recsize, nio;
-    char* iomode, datapath;
-    memtype* file;
+    char *iomode, *datapath;
+    memptr _file;
     
     Memory mem;
     memptr buffer;
     idx* offsets;
+
+    fileptr file()
+    {
+        return reinterpret_cast<fileptr>(this->_file);
+    }
 
     static std::string const dt2str(int type) noexcept;
     static std::string const ft2str(int type) noexcept;
     
     static dtype str2dt(std::string const& type) noexcept;
     static ftype str2ft(std::string const& type) noexcept;
+
+
+    template<class T1, class T2>
+    static T1 convert(memptr in)
+    {
+        return static_cast<T1>(*reinterpret_cast<T2*>(in));
+    }
+
     
     DataFile() = default;
+    void open();
+    
+    
+    void read_rec();
 
-    void readrec();
+    template<class T>
+    void write_rec(T* obj);
     
 
     template<long ii, class T>
@@ -239,8 +237,26 @@ struct DataFile {
     }
     
     
-    //void close();
+    void close();
     ~DataFile() = default;
+};
+
+
+class Timer
+{
+private:
+	// Type aliases to make accessing nested type easier
+	using clock_t = std::chrono::high_resolution_clock;
+	using second_t = std::chrono::duration<double, std::ratio<1> >;
+	
+	std::chrono::time_point<clock_t> m_beg;
+ 
+public:
+	Timer() : m_beg(clock_t::now()) {}
+	
+	void reset();
+	double elapsed() const;
+    void report() const;
 };
 
 
@@ -250,10 +266,10 @@ struct DataFile {
  * for macros *
  **************/
 
-#define m_for(ii, max) for(size_t (ii) = (max); (ii)--; )
-#define m_forz(ii, max) for(size_t (ii) = 0; (ii) < max; ++(ii))
-#define m_fors(ii, min, max, step) for(size_t (ii) = (min); (ii) < (max); (ii) += (step))
-#define m_for1(ii, min, max) for(size_t (ii) = (min); (ii) < (max); ++(ii))
+#define m_for(ii, max) for(long (ii) = (max); (ii)--; )
+#define m_forz(ii, max) for(long (ii) = 0; (ii) < max; ++(ii))
+#define m_fors(ii, min, max, step) for(long (ii) = (min); (ii) < (max); (ii) += (step))
+#define m_for1(ii, min, max) for(long (ii) = (min); (ii) < (max); ++(ii))
 
 
 #if defined(_MSC_VER)

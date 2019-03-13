@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "lab/lab.hpp"
 
 void Timer::reset()
@@ -16,7 +14,7 @@ double Timer::elapsed() const
 
 void Timer::report() const
 {
-    std::cout << "Elapsed time: " << this->elapsed() << " seconds.\n";
+    printf("Elapsed time: %lf seconds,\n", this->elapsed());
 }
 
 
@@ -38,7 +36,7 @@ bool is_big_endian() noexcept
 
 void dtor_memory(Memory* mem)
 {
-    std::cout << "Calling Memory destructor.\n";
+    printf("Calling Memory destructor.\n");
     delete[] mem->memory;
 }
 

@@ -1,38 +1,64 @@
-#include <iostream>
+#include <string>
 #include <lab/lab.hpp>
 
 using std::string;
 
-/*
-DataFile::DataFile(string const& datapath, long const recsize,
-                   long const ntypes, std::ios_base::openmode iomode) :
-iomode(iomode), ntypes(ntypes), recsize(recsize), nio(0)
+typedef DataFile DT;
+
+void DataFile::open()
 {
-    this->datapath = datapath;
-    this->file.open(datapath, this->iomode | std::ios::binary);
+    auto file = this->file();
     
-    
-    if (not this->file.is_open())
+    if ((file = fopen(this->datapath, this->iomode)) == NULL)
     {
-         throw;
+        throw;
     }
-    
-    this->mem((sizeof(memtype) + sizeof(DataFile::idx) + sizeof(dtype)) * ntypes)
+
+    this->mem.alloc(sizeof(memtype) * this->recsize
+                    + (sizeof(DataFile::idx) + sizeof(dtype)) * ntypes);
     
     this->buffer = this->mem.get();
-    this->offsets = this->mem.offset<memtype>(ntypes);
-    this->dtypes = this->mem.offset<DataFile::idx>(ntypes);
+    this->offsets = this->mem.offset<DT::idx>(this->recsize);
+    this->dtypes = this->mem.offset<int>(this->recsize
+                                         + ntypes * sizeof(DT::idx));
 }
-*/
 
-void DataFile::readrec()
+
+void DataFile::read_rec()
 {
-    //this->file.read(this->buffer, this->recsize);
+    auto file = this->file();
+    
+    if (fread(this->buffer, this->recsize, 1, file) <= 0)
+    {
+        throw;
+    }
+    
+    this->nio++;
+}
+
+template<class T>
+void DataFile::write_rec(T* obj)
+{
+    auto file = this->file();
+    
+    if (fwrite(obj, sizeof(T), 1, file) <= 0)
+    {
+        throw;
+    }
+    
     this->nio++;
 }
 
 
-//void DataFile::close() { this->file.close(); }
+void DataFile::close()
+{
+    auto file = this->file();
+    if (file)
+    {
+        fclose(file);
+        file = NULL;
+    }
+}
 
 constexpr int ndtype = 17;
 
@@ -136,7 +162,8 @@ long dtype_size(long type) noexcept
 
 void dtor_datafile(DataFile* datafile)
 {
-    std::cout << "Calling DataFile destructor.\n";
+    printf("Calling DataFile destructor.\n");
+    datafile->close();
     dtor_memory(&(datafile->mem));
 }
 

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from distutils.ccompiler import new_compiler, show_compilers, get_default_compiler
+from distutils.ccompiler import new_compiler
 from sysconfig import get_config_var
 from glob import iglob
 
@@ -28,9 +28,6 @@ def make_join(root):
 
 
 def main():
-    #print(get_default_compiler(), show_compilers())
-    # return
-    
     mjoin = make_join("/home/istvan/miniconda3")
     rjoin = make_join("/home/istvan/progs/insar_meteo/src")
 
@@ -48,45 +45,24 @@ def main():
     
     libs = ["stdc++"]
     
-    if 1:
-        #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
-        sources = [rjoin("inmet_aux.cpp"), rjoin("inmet.cpp"),
-                   rjoin("aux", "static_tpl_inst.cpp")]
-        
-        sources.extend(rjoin("impl", cfile)
-                       for cfile in iglob(rjoin("impl", "*.cpp")))
-        
-        # sources.extend(rjoin("aux" source)
-                       # for source in iglob(rjoin("aux" "*.cpp")))
-        
-        comp = new_compiler()
-        
-        objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
-                               extra_preargs=flags)
-        
-        #lib = comp.library_filename("inmet_aux", lib_type="shared",
-                                    #output_dir=".")
-        
-        comp.link_shared_lib(objects, rjoin("inmet_aux"), extra_preargs=flags,
-                             libraries=libs)
-        
-        #comp.link_executable(objects, rjoin("inmet"), extra_preargs=flags,
-                             #libraries=libs)
-        
-
-    if 0:
-        macros = [("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]
-        sources = ["inmet_auxmodule.c", "implement.c"]
+    #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
+    sources = [rjoin("inmet_aux.cpp"), rjoin("inmet.cpp"),
+               rjoin("aux", "static_tpl_inst.cpp")]
     
-        ext_modules = [
-            Extension(name="inmet_aux", sources=sources,
-                      define_macros=macros,
-                      extra_compile_args=flags,
-                      include_dirs=inc_dirs)
-        ]
+    sources.extend(rjoin("impl", cfile)
+                   for cfile in iglob(rjoin("impl", "*.cpp")))
     
-        setup(ext_modules=ext_modules)
+    # sources.extend(rjoin("aux" source)
+                   # for source in iglob(rjoin("aux" "*.cpp")))
     
+    comp = new_compiler()
+    
+    objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
+                           extra_preargs=flags)
+    
+    comp.link_shared_lib(objects, rjoin("inmet_aux"), extra_preargs=flags,
+                         libraries=libs)
+        
     return 0
 
 

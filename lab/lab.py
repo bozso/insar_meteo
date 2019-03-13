@@ -1,9 +1,20 @@
-from numpy import ctypeslib as nct
+from distutils.ccompiler import new_compiler
 from ctypes import *
 from os.path import dirname, realpath, join
 
+
 filedir = dirname(realpath(__file__))
-lb = nct.load_library("liblab", join(filedir, "..", "src", "build"))
+
+
+def get_library(libname, searchdir):
+    lib_filename = new_compiler().library_filename
+    
+    libpath = join(searchdir, lib_filename(libname, lib_type="shared"))
+
+    return CDLL(libpath)
+
+
+lb = get_library("lab", join(filedir, "..", "src", "build"))
 
 
 memptr = POINTER(c_ubyte)
@@ -36,7 +47,7 @@ class DataFile(Structure):
 
 
 def main():
-    
+    DataFile()
     return 0
 
 

@@ -33,12 +33,4 @@ bool is_big_endian() noexcept
     }
 }
 
-
-void dtor_memory(Memory* mem)
-{
-    printf("Calling Memory destructor.\n");
-    delete[] mem->memory;
-}
-
-
 }

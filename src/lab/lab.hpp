@@ -13,32 +13,48 @@ typedef FILE* fileptr;
 typedef unsigned char memtype;
 typedef memtype* memptr;
 
+// make_unique from https://herbsutter.com/gotw/_102/
+
+template<typename T, typename ...Args>
+std::unique_ptr<T> make_unique( Args&& ...args )
+{
+    return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
+}
+
+template<typename T, typename ...Args>
+std::unique_ptr<T[]> make_array(long size, Args&& ...args)
+{
+    return std::unique_ptr<T[]>( new T[size]( std::forward<Args>(args)... ) );
+}
+
+
+
 
 struct Memory {
-    Memory(): memory(NULL), _size(0) {};
+    Memory(): memory(nullptr), _size(0) {};
     
     Memory(long size): _size(size)
     {
-        this->memory = new memtype[size];
-    }
-    
-    void alloc(long size)
-    {
-        this->_size = size;
-        this->memory = new memtype[size];
+        this->memory = make_array<memtype>(size);
     }
     
     ~Memory() = default;
     
+    void realloc(long size)
+    {
+        this->_size = size;
+        this->memory = make_array<memtype>(size);
+    }
+    
     memptr get() const noexcept
     {
-        return this->memory;
+        return this->memory.get();
     }
     
     template<class T>
     T* offset(long offset) const
     {
-        return reinterpret_cast<T*>(this->memory + offset);
+        return reinterpret_cast<T*>(this->memory.get() + offset);
     }
     
     long size() const noexcept
@@ -46,16 +62,9 @@ struct Memory {
         return this->_size;
     }
 
-    memptr memory;
+    std::unique_ptr<memtype[]> memory;
     long _size;
 };
-
-
-template<class T>
-std::unique_ptr<T[]> uarray(size_t size)
-{
-    return std::unique_ptr<T[]>(new T[size]);
-}
 
 
 template <class T>
@@ -139,6 +148,8 @@ struct Number {
 }; 
 */
 
+
+// TODO: separate DataFile into DataFile (C++) and DataFileMeta (C, Python interface)
 
 struct DataFile {
     typedef long idx;

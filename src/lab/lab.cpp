@@ -5,60 +5,50 @@ using std::string;
 
 typedef DataFile DT;
 
-void DataFile::open()
+memptr endswap(memptr objp, long size)
 {
-    auto file = this->file();
+    std::reverse(objp, objp + size);
+    return objp;
+}
+
+
+memptr noswap(memptr objp, long size)
+{
+    return objp;
+}
+
+
+void DT::open(FileInfo* _info, iomode mode)
+{
+    info = *_info;
     
-    if ((file = fopen(this->datapath, this->iomode)) == NULL)
+    file.open(info.path, mode);
+    
+    if (not file.is_open())
     {
         throw;
     }
-
-    this->mem.alloc(sizeof(memtype) * this->recsize
-                    + (sizeof(DataFile::idx) + sizeof(dtype)) * ntypes);
     
-    this->buffer = this->mem.get();
-    this->offsets = this->mem.offset<DT::idx>(this->recsize);
-    this->dtypes = this->mem.offset<int>(this->recsize
-                                         + ntypes * sizeof(DT::idx));
+    if (info.endswap)
+    {
+        sfun = endswap;
+    }
+    else
+    {
+        sfun = noswap;
+    }
+    
+    mem.alloc(sizeof(memtype) * info.recsize);
+    buffer = mem.get();
 }
 
 
 void DataFile::read_rec()
 {
-    auto file = this->file();
-    
-    if (fread(this->buffer, this->recsize, 1, file) <= 0)
-    {
-        throw;
-    }
-    
-    this->nio++;
+    file.read(reinterpret_cast<memptr>(buffer), info.recsize);
+    nio++;
 }
 
-template<class T>
-void DataFile::write_rec(T* obj)
-{
-    auto file = this->file();
-    
-    if (fwrite(obj, sizeof(T), 1, file) <= 0)
-    {
-        throw;
-    }
-    
-    this->nio++;
-}
-
-
-void DataFile::close()
-{
-    auto file = this->file();
-    if (file)
-    {
-        fclose(file);
-        file = NULL;
-    }
-}
 
 constexpr int ndtype = 17;
 
@@ -83,12 +73,12 @@ static string const dtype_names[17] = {
 };
 
 
-string const DataFile::dt2str(int type) noexcept
+string const DT::dt2str(int type) noexcept
 {
     return type < ndtype ? dtype_names[type] : dtype_names[0];
 }
 
-dtype DataFile::str2dt(string const& type) noexcept
+dtype DT::str2dt(string const& type) noexcept
 {
     for (int ii = 0; ii < ndtype; ++ii)
     {
@@ -98,17 +88,15 @@ dtype DataFile::str2dt(string const& type) noexcept
         }
     }
     
-    return static_cast<dtype>(0);
+    return dtype::Unknown;
 }
 
 
-static constexpr int nftype = 5;
+static constexpr int nftype = 3;
 
 static string const ftype_names[nftype] = {
     "Unknown",
     "Array",
-    "Matrix",
-    "Vector",
     "Records"
 };
 
@@ -118,17 +106,17 @@ string const DataFile::ft2str(int type) noexcept
     return type < nftype ? ftype_names[type] : ftype_names[0];
 }
 
-DataFile::ftype DataFile::str2ft(string const& type) noexcept
+ftype DT::str2ft(string const& type) noexcept
 {
     for (int ii = 0; ii < nftype; ++ii)
     {
         if (type == ftype_names[ii])
         {
-            return static_cast<DataFile::ftype>(ii);
+            return static_cast<ftype>(ii);
         }
     }
     
-    return DataFile::Unknown;
+    return ftype::Unknown;
 }
 
 
@@ -158,13 +146,6 @@ extern "C" {
 long dtype_size(long type) noexcept
 {
     return type < ndtype ? sizes[type] : sizes[0];
-}
-
-void dtor_datafile(DataFile* datafile)
-{
-    printf("Calling DataFile destructor.\n");
-    datafile->close();
-    dtor_memory(&(datafile->mem));
 }
 
 }

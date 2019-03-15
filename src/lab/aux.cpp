@@ -20,16 +20,16 @@ void Timer::report() const
 
 extern "C" {
 
-bool is_big_endian() noexcept
+int is_big_endian() noexcept
 {
     short word = 0x4321;
     if ((*(char *)& word) != 0x21 )
     {
-        return true;
+        return 1;
     }
     else
     {
-        return false;
+        return 0;
     }
 }
 

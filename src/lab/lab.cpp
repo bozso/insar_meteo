@@ -5,6 +5,22 @@ using std::string;
 
 typedef DataFile DT;
 
+error::error(string& format,  ...) : std::exception()
+{
+    va_list args;
+    va_start(args, format);
+    vsnprintf(error_msg, m_max_error_len, format.c_str(), args);
+    va_end(args);
+}
+
+error::error(string&& format, ...) : std::exception()
+{
+    va_list args;
+    va_start(args, format);
+    vsnprintf(error_msg, m_max_error_len, format.c_str(), args);
+    va_end(args);
+}
+
 memptr endswap(memptr objp, long size)
 {
     std::reverse(objp, objp + size);
@@ -17,16 +33,18 @@ memptr noswap(memptr objp, long size)
     return objp;
 }
 
-
-void DT::open(FileInfo* _info, iomode mode)
+DT::DataFile(FileInfo* _info, iomode mode) : info(*_info)
 {
-    info = *_info;
-    
+    open(mode);
+}
+
+void DT::open(iomode mode)
+{
     file.open(info.path, mode);
     
     if (not file.is_open())
     {
-        throw;
+        throw error("Could not open file: %s!", info.path);
     }
     
     if (info.endswap)

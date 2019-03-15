@@ -10,9 +10,12 @@
 #include <fstream>
 #include <functional>
 
+#include <stdarg.h>
+
 
 typedef std::fstream::char_type memtype;
 typedef memtype* memptr;
+
 
 
 // make_unique from https://herbsutter.com/gotw/_102/
@@ -74,29 +77,29 @@ typedef std::complex<double> cpx128;
 typedef std::complex<float> cpx64;
 
 enum class dtype : int {
-    Unknown = 0,
-    Bool = 1,
-    Int = 2,
-    Long = 3,
-    Size_t = 4,
-    Int8 = 5,
-    Int16 = 6,
-    Int32 = 7,
-    Int64 = 8,
-    UInt8 = 9,
-    UInt16 = 10,
-    UInt32 = 11,
-    UInt64 = 12,
-    Float32 = 13,
-    Float64 = 14,
-    Complex64 = 15,
-    Complex128 = 16
+    Unknown     = 0,
+    Bool        = 1,
+    Int         = 2,
+    Long        = 3,
+    Size_t      = 4,
+    Int8        = 5,
+    Int16       = 6,
+    Int32       = 7,
+    Int64       = 8,
+    UInt8       = 9,
+    UInt16      = 10,
+    UInt32      = 11,
+    UInt64      = 12,
+    Float32     = 13,
+    Float64     = 14,
+    Complex64   = 15,
+    Complex128  = 16
 };
 
 
 enum class ftype : int {
     Unknown = 0,
-    Array = 1,
+    Array   = 1,
     Records = 2
 };
 
@@ -108,10 +111,8 @@ typedef long idx;
 
 struct FileInfo {
     char *path;
-    idx *offsets;
-    int *dtypes;
-    int filetype, endswap;
-    long ntypes, recsize;
+    idx *offsets, ntypes, recsize;
+    int *dtypes, filetype, endswap;
 };
 
 
@@ -127,6 +128,9 @@ struct DataFile {
     swap_fun sfun;
 
     DataFile() = default;
+    DataFile(FileInfo* _info, iomode mode);
+    void open(iomode mode);    
+    
     ~DataFile() = default;
 
 
@@ -143,7 +147,6 @@ struct DataFile {
         return static_cast<T1>(*reinterpret_cast<T2*>(in));
     }
 
-    void open(FileInfo* _info, iomode mode);
     void read_rec();
 
     template<class T>
@@ -266,10 +269,8 @@ public:
 
 extern "C" {
     
-bool is_big_endian() noexcept;
+int is_big_endian() noexcept;
 long dtype_size(long type) noexcept;
-void dtor_memory(Memory* mem);
-void dtor_datafile(DataFile* datafile);
 
 }
 
@@ -324,6 +325,19 @@ struct Number {
     ~Number() = default;
 }; 
 */
+
+
+#define m_max_error_len 256
+
+class error : public std::exception {
+public:
+    error(std::string&, ...);
+    error(std::string&&, ...);
+    virtual const char * what() const throw() { return error_msg; }
+    virtual ~error() throw() {};
+private:
+    char error_msg[m_max_error_len];
+};
 
 
 // guard

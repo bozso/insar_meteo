@@ -1,7 +1,11 @@
-from distutils.ccompiler import new_compiler
-from ctypes import *
-from os.path import dirname, realpath, join
+import os
 
+from tempfile import NamedTemporaryFile
+from distutils.ccompiler import new_compiler
+from os.path import dirname, realpath, join
+from itertools import accumulate
+
+from ctypes import *
 
 filedir = dirname(realpath(__file__))
 
@@ -15,39 +19,131 @@ def get_library(libname, searchdir):
 
 
 lb = get_library("lab", join(filedir, "..", "src", "build"))
+im = get_library("inmet", join(filedir, "..", "src", "build"))
+
+big_end = lb.is_big_endian()
+
+memptr = POINTER(c_char)
+c_idx = c_long
+c_idx_p = POINTER(c_long)
+c_int_p = POINTER(c_int)
 
 
-memptr = POINTER(c_ubyte)
-
-class Memory(Structure):
+class _FileInfo(Structure):
     _fields_ = (
-        ("memory", memptr),
-        ("_size", c_long)
-    )
-
-    def __del__(self):
-        lb.dtor_memory(byref(self))
-
-
-class DataFile(Structure):
-    _fields_ = (
+        ("path", c_char_p),
+        ("offsets", c_idx_p),
+        ("ntypes", c_idx),
+        ("recsize", c_idx),
+        ("dtypes", c_int_p),
         ("filetype", c_int),
-        ("dtypes", POINTER(c_int)),
-        ("ntypes", c_long),
-        ("recsize", c_long),
-        ("nio", c_long),
-        ("file", memptr),
-        ("mem", Memory),
-        ("buffer", memptr),
-        ("offsets", POINTER(c_long)),
+        ("endswap", c_int)
     )
 
+
+class FileInfo(object):
+    filetype2int = {
+        "Unknown" : 0,
+        "Array" : 1,
+        "Records" : 2
+    }
+
+    dtype2int = {
+        "Unknown"    : 0,
+        "Bool"       : 1,
+        "Int"        : 2,
+        "Long"       : 3,
+        "Size_t"     : 4,
+        "Int8"       : 5,
+        "Int16"      : 6,
+        "Int32"      : 7,
+        "Int64"      : 8,
+        "UInt8"      : 9,
+        "UInt16"     : 10,
+        "UInt32"     : 11,
+        "UInt64"     : 12,
+        "Float32"    : 13,
+        "Float64"    : 14,
+        "Complex64"  : 15,
+        "Complex128" : 16
+    }
+
+    def __init__(self, filetype, dtypes, path=None, keep=False,
+                 endian="native"):
+        """
+        ("path", c_char_p),
+        ("offsets", c_idx_p),
+        ("ntypes", c_idx),
+        ("recsize", c_idx),
+        ("dtypes", c_int_p),
+        ("filetype", c_int),
+        ("endswap", c_int)
+        """
+        self.keep, self.info = keep, None
+        ntypes = len(dtypes)
+        
+        if filetype is "Array":
+            assert ntypes == 1, "Array one dtype needed!"
+
+        if path is None:
+            path = bytes(NamedTemporaryFile(mode="w+b", delete=False).name,
+                         "ascii")
+        
+        path = path
+        
+        filetype = FileInfo.filetype2int[filetype]
+        dtypes = (c_int * ntypes)(*(FileInfo.dtype2int[elem] for elem in dtypes))
+        
+        sizes = tuple(lb.dtype_size(dtypes[ii]) for ii in range(ntypes))
+        
+        offsets = (c_idx * (ntypes))(0, *accumulate(sizes[:ntypes - 1]))
+        
+        if endian == "native":
+            swap = 0
+        elif endian == "big":
+            if big_end:
+                swap = 0
+            else:
+                swap = 1
+        elif endian == "little":
+            if big_end:
+                swap = 1
+            else:
+                swap = 0
+        else:
+            raise ValueError('endian should either be "big", "little" '
+                             'or "native"')
+        
+        
+        self.info = _FileInfo(path, offsets, ntypes, sum(sizes),
+                              dtypes, filetype, swap)
+
+    
+    def ptr(self):
+        return byref(self.info)    
+
+        
     def __del__(self):
-        lb.dtor_datafile(byref(self))
+        if not self.keep and self.info is not None:
+            os.remove(self.info.path)
+        
+        
+
+def open(name):
+    path = bytes(workspace.get(name, "path"), "ascii")
+    ntypes = workspace.getint(name, "ntypes")
+    recsize = workspace.getint(name, "recsize")
+    filetype = workspace.get(name, "filetype")
+    endian = workspace.get(name, "endian")
+
+
+def save(info, name, path):
+    pass
 
 
 def main():
-    DataFile()
+    a = FileInfo("Records", ["Float32", "Float32", "Float32", "Complex128"])
+
     return 0
 
 

@@ -13,7 +13,7 @@ extern "C" {
     {
         try
         {
-            DataFile a(info, std::ios::in | std::ios::binary);
+            DataFile a(info, std::ios::out | std::ios::binary);
         }
         catch(std::exception& e)
         {

@@ -1,13 +1,14 @@
 import os
 
-from tempfile import NamedTemporaryFile
+from tempfile import _get_default_tempdir, _get_candidate_names
 from distutils.ccompiler import new_compiler
-from os.path import dirname, realpath, join
+from os.path import dirname, realpath, join, isfile
 from itertools import accumulate
 
 from ctypes import *
 
 filedir = dirname(realpath(__file__))
+tmpdir = _get_default_tempdir()
 
 
 def get_library(libname, searchdir):
@@ -21,7 +22,13 @@ def get_library(libname, searchdir):
 lb = get_library("lab", join(filedir, "..", "src", "build"))
 im = get_library("inmet", join(filedir, "..", "src", "build"))
 
-big_end = lb.is_big_endian()
+lb.is_big_endian.restype = c_int
+lb.is_big_endian.argtype = None
+
+lb.dtype_size.restype = c_long
+lb.dtype_size.argtype = c_long
+
+big_end = c_int(lb.is_big_endian())
 
 memptr = POINTER(c_char)
 c_idx = c_long
@@ -70,15 +77,7 @@ class FileInfo(object):
 
     def __init__(self, filetype, dtypes, path=None, keep=False,
                  endian="native"):
-        """
-        ("path", c_char_p),
-        ("offsets", c_idx_p),
-        ("ntypes", c_idx),
-        ("recsize", c_idx),
-        ("dtypes", c_int_p),
-        ("filetype", c_int),
-        ("endswap", c_int)
-        """
+
         self.keep, self.info = keep, None
         ntypes = len(dtypes)
         
@@ -86,10 +85,8 @@ class FileInfo(object):
             assert ntypes == 1, "Array one dtype needed!"
 
         if path is None:
-            path = bytes(NamedTemporaryFile(mode="w+b", delete=False).name,
-                         "ascii")
-        
-        path = path
+            _path = join(tmpdir, next(_get_candidate_names()))
+            path = bytes(_path, "ascii")
         
         filetype = FileInfo.filetype2int[filetype]
         dtypes = (c_int * ntypes)(*(FileInfo.dtype2int[elem] for elem in dtypes))
@@ -97,6 +94,7 @@ class FileInfo(object):
         sizes = tuple(lb.dtype_size(dtypes[ii]) for ii in range(ntypes))
         
         offsets = (c_idx * (ntypes))(0, *accumulate(sizes[:ntypes - 1]))
+
         
         if endian == "native":
             swap = 0
@@ -118,14 +116,15 @@ class FileInfo(object):
         self.info = _FileInfo(path, offsets, ntypes, sum(sizes),
                               dtypes, filetype, swap)
 
-    
+        
     def ptr(self):
         return byref(self.info)    
 
         
     def __del__(self):
-        if not self.keep and self.info is not None:
-            os.remove(self.info.path)
+        if not self.keep and self.info is not None \
+        and isfile(self.info.path):
+            os.remove(self.info.path.decode("ascii"))
         
         
 
@@ -143,7 +142,10 @@ def save(info, name, path):
 
 def main():
     a = FileInfo("Records", ["Float32", "Float32", "Float32", "Complex128"])
-
+    
+    im.test(a.ptr())
+    
+    
     return 0
 
 

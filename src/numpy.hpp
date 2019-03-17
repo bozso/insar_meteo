@@ -1,21 +1,21 @@
 #ifndef NUMPY_HPP
 #define NUMPY_HPP
 
-#include "Eigen/Core"
-#include <cassert>
+#include <complex>
+#include <memory>
 
-class Array;
-using array_ptr = Array*;
-using DStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
+namespace numpy
+{
 
-template<class T>
-using DMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
+struct Array;
+typedef Array* array_ptr;
+typedef long idx;
 
-using memtype = char;
-using memptr = memtype*;
+typedef char memtype;
+typedef memtype* memptr;
 
-using cpx64  = std::complex<float>;
-using cpx128 = std::complex<double>;
+typedef std::complex<float> cpx64;
+typedef std::complex<double> cpx128;
 
 
 enum class dtype : int {
@@ -45,14 +45,83 @@ enum layout {
 };
 
 
-class Array {
-public:
-    typedef long idx;
 
-    int type;
+struct Array
+{
+    int type, is_numpy;
     idx ndim, ndata, datasize, *shape, *strides;
     memptr data;
 };
+
+
+static std::unique_ptr<memtype[]> make_memory(long size)
+{
+    return std::unique_ptr<memtype[]>(new memtype[size]);
+}
+
+
+struct Data
+{
+    Data() = delete;
+    Data(memptr ptr) : _data(ptr), owned(false) {};
+    Data(long size) :  _data(size), owned(true) {};
+    
+    ~Data() { dtor(); }
+    
+    memptr get_data() const
+    {
+        if (owned)
+        {
+            return _data.uptr.get();
+        }
+        else
+        {
+            return _data.ptr;
+        }
+    }
+    
+private:
+    union data
+    {
+        memptr ptr;
+        std::unique_ptr<memtype[]> uptr;        
+
+        data() : ptr(nullptr) {};
+        data(memptr ptr) : ptr(ptr) {};
+        data(long size) : uptr(make_memory(size)) {};
+        
+        ~data() {};
+        
+    } _data;
+    bool owned;
+    
+    void dtor()
+    {
+        if (owned)
+        {
+            _data.uptr.~unique_ptr<memtype[]>();
+        }
+    }
+};
+
+
+template<class T>
+struct View
+{
+private:
+    Data _data_;
+    T* _data;
+    idx ndim, *shape;
+    std::unique_ptr<idx[]> strides;
+};
+
+
+
+/*
+using DStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
+
+template<class T>
+using DMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 
 
@@ -118,7 +187,9 @@ DMatrix<T> from_numpy(array_ptr arr, bool colvec = true)
             //return convert<T, cpx128>(arr);
     }
 }
+*/
 
-
+// namespace
+}
 
 #endif

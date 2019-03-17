@@ -36,6 +36,7 @@ type_conversion = {
 
 class Carray(Structure):
     _fields_ = [("type", c_int),
+                ("is_numpy", c_int),
                 ("ndim", c_idx),
                 ("ndata", c_idx),
                 ("datasize", c_idx),
@@ -50,7 +51,7 @@ def npc(array):
     
     print(array.ndim)
     
-    return Carray(c_int(type_conversion[array.dtype]),
+    return Carray(type_conversion[array.dtype], 1
                   c_idx(array.ndim), c_idx(array.size), c_idx(array.itemsize),
                   act.shape_as(c_idx), act.strides_as(c_idx),
                   act.data_as(c_char_p))
@@ -59,4 +60,4 @@ def npc(array):
 ia.test.argtypes = [POINTER(Carray)]
 ia.test.restypes = c_int
 
-ia.test(npc([1,2,3]))
+ia.test(npc([[1,2,3]]))

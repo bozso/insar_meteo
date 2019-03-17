@@ -6,19 +6,16 @@
 using std::cout;
 using std::cerr;
 
+namespace np = numpy;
 
 extern "C" {
-    int test(array_ptr a)
+
+
+    int test(np::array_ptr a)
     {
         try
         {
-            auto mtx = from_numpy<float>(a);
-            
-            for (int ii = 0; ii < mtx.rows(); ++ii)
-            {
-                printf("%f ", mtx(0, ii));
-            }
-            cout << "\n";
+            cout << "Asd\n";
         }
         catch(std::exception& e)
         {

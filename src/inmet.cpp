@@ -1,19 +1,24 @@
 #include <iostream>
 #include <exception>
 
-#include "lab/lab.hpp"
+#include "numpy.hpp"
 
-using DT = DataFile;
 using std::cout;
 using std::cerr;
 
 
 extern "C" {
-    int test(FileInfo* info)
+    int test(array_ptr a)
     {
         try
         {
-            DataFile a(info, std::ios::out | std::ios::binary);
+            auto mtx = from_numpy<float>(a);
+            
+            for (int ii = 0; ii < mtx.rows(); ++ii)
+            {
+                printf("%f ", mtx(0, ii));
+            }
+            cout << "\n";
         }
         catch(std::exception& e)
         {

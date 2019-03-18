@@ -49,9 +49,7 @@ def npc(array):
     array = np.array(array)
     act = array.ctypes
     
-    print(array.ndim)
-    
-    return Carray(type_conversion[array.dtype], 1
+    return Carray(type_conversion[array.dtype], 1,
                   c_idx(array.ndim), c_idx(array.size), c_idx(array.itemsize),
                   act.shape_as(c_idx), act.strides_as(c_idx),
                   act.data_as(c_char_p))

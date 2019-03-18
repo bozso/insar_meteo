@@ -1,7 +1,8 @@
 cc = g++
-cflags = -std=c++11 -g -O0 -Wall -I. -IThirdParty
+cflags = -std=c++11 -g -O0 -Wall -I. -Iaux
 
 bdir = build
+adir = aux
 # include = /home/istvan/progs/insar_meteo/src/
 
 rule cc
@@ -9,19 +10,13 @@ rule cc
 
 rule link
   command = $cc $cflags -o $out -L$bdir $in
-  depfile = numpy.hpp
 
 rule slib
   command = $cc $cflags -shared -fPIC -o $out $in
 
 
 build $bdir/inmet.o: cc inmet.cpp
-# build $bdir/static_tpl_inst.o: cc $idir/static_tpl_inst.cpp
+build $bdir/aux.o: cc $adir/aux.cpp
 
 
-# build $bdir/inmet: link $bdir/inmet.o $bdir/lab.o $
-#     $bdir/aux.o $bdir/inmet_lib.o
-
-build $bdir/libinmet_aux.so: slib $bdir/inmet.o
-
-build $bdir/liblab.so: slib $bdir/lab.o $bdir/aux.o
+build $bdir/libinmet_aux.so: slib $bdir/inmet.o $bdir/aux.o

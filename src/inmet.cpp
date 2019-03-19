@@ -17,6 +17,7 @@ extern "C" {
             auto a = _a->view<double>();
             
             
+            
             for (idx ii = 0; ii < a.shape(0); ++ii)
                 printf("%f ", a(ii));
             

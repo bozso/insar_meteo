@@ -225,7 +225,7 @@ struct ArrayInfo {
             ret._strides = strides;
         }
         
-        ret.data = reinterpret_cast<T*>(this->data);
+        ret.data = reinterpret_cast<T*>(data);
 
         return ret;
     }

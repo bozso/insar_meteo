@@ -7,26 +7,24 @@ using std::cerr;
 
 
 using aux::array_ptr;
-using aux::Array;
-using aux::DArray;
-using aux::View;
 using aux::idx;
-using aux::print;
+//using aux::print;
 
 extern "C" {
     int test(array_ptr const _a)
     {
         try {
-            DArray const a(_a);
-
+            auto a = _a->view<double>();
+            
             
             for (idx ii = 0; ii < a.shape(0); ++ii)
-                printf("%d ", a.get<int>(ii));
+                printf("%f ", a(ii));
             
-            print("\n");
+            
+            printf("\n");
             
             auto aa = aux::type_info(aux::dtype::Int);
-            print("%\n", aa.is_complex);
+            printf("%d\n", aa.is_complex);
         }
         catch(std::exception& e) {
             cerr << "Exception caught: " << e.what() << "\n";

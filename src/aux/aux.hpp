@@ -11,6 +11,7 @@ namespace aux {
 
 // from https://www.modernescpp.com/index.php/c-core-guidelines-rules-for-variadic-templates
 
+/*
 void print(const char* format)
 {
     std::cout << format;
@@ -29,27 +30,35 @@ void print(const char* format, T value, Args ... args)
         std::cout << *format;
     }
 }
-
+*/
 
 
 template<class T>
 using ptr = T*;
 
 typedef long idx;
+
+// Dynamic number of dimensions
 static idx constexpr Dynamic = -1;
 
-struct ArrayMeta;
-typedef ptr<ArrayMeta> array_ptr;
+
+// Forward declarations
+
+struct ArrayInfo;
+
+//template<idx ndim>
+//struct Array;
+
+template<class T, idx ndim>
+struct View;
 
 
-template<idx ndim>
-struct Array;
+typedef ptr<ArrayInfo> array_ptr;
+//typedef Array<Dynamic> DArray;
 
-typedef Array<Dynamic> DArray;
 
 typedef char memtype;
 typedef ptr<memtype> memptr;
-
 
 
 RTypeInfo const& type_info(int const type);
@@ -70,14 +79,6 @@ enum layout {
 
 
 
-struct ArrayMeta {
-    int type, is_numpy;
-    idx ndim, ndata, datasize;
-    ptr<idx> shape, strides;
-    memptr data;
-};
-
-
 template<class T1, class T2>
 static T1 convert(memptr in)
 {
@@ -86,9 +87,9 @@ static T1 convert(memptr in)
 
 
 template<class T>
-static T get_type(dtype type, memptr in)
+static T get_type(int const type, memptr in)
 {
-    switch(type) {
+    switch(static_cast<dtype>(type)) {
         case dtype::Int:
             return convert<T, int>(in);
         case dtype::Long:
@@ -127,101 +128,66 @@ static T get_type(dtype type, memptr in)
 }
 
 
-
-// TODO: better converting with std::function
-
-template<idx ndim>
-struct Array {
-    Array() = delete;
-    ~Array() = default;
-    
-    Array(array_ptr const arr) : _arr(*arr),
-                                 type(static_cast<dtype>(arr->type)),
-                                 data(arr->data), strides(arr->strides)
-    {
-        static_assert(ndim > 0 or ndim == Dynamic,
-                      "ndim should be a positive integer or Dynamic");
-        
-        if (ndim != Dynamic and ndim != arr->ndim) {
-            print("View ndim: %, array ndim: %\n", ndim, arr->ndim); 
-            throw std::runtime_error("Dimension mismatch!");
-        }
-    }
-    
-    
-    template<class T>
-    T get(idx const ii)
-    {
-        return get_type<T>(type, data + ii * strides[0]);
-    }
-
-    template<class T>
-    T const get(idx const ii) const
-    {
-        return get_type<T>(type, data + ii * strides[0]);
-    }
-
-    idx const& shape(idx const ii) const { return _arr.shape[ii]; }
-
-
-private:
-    ArrayMeta& _arr;
-    dtype type;
-    memptr data;
-    ptr<idx> strides;
-};
-
 struct Memory 
 {
-    Memory(): memory(nullptr), _size(0) {};
+    Memory(): _memory(nullptr), _size(0) {};
+    Memory(idx const size);
+
+    Memory(Memory const&) = default;
+    Memory(Memory&&) = default;
+    
+    Memory& operator=(Memory const&) = default;
+    Memory& operator=(Memory&&) = default;
+    
     ~Memory() = default;
     
-    Memory(long size);
     void alloc(long size);
     
-    memptr get() const noexcept { return memory.get(); }
+    memptr get() const noexcept { return _memory.get(); }
 
-    template<class T>
-    ptr<T> ptr(idx const offset = 0) const noexcept {
-        return reinterpret_cast<T*>(memory.get());
-    }
-    
     long size() const noexcept {
-        return this->_size;
+        return _size;
     }
 
-    std::unique_ptr<memtype[]> memory;
+    std::unique_ptr<memtype[]> _memory;
     long _size;
 };
 
 
-
-template<class T, idx ndim = Dynamic>
-struct View
-{
-private:
-    Memory memory;
-    ptr<T> data;
-    ptr<idx> _shape, strides;
-
-public:
-    View() = default;
-    ~View() = default;
+struct ArrayInfo {
+    int type, is_numpy;
+    idx ndim, ndata, datasize;
+    ptr<idx> shape, strides;
+    memptr data;
     
-    View(array_ptr const arr) : memory(), _shape(arr->shape)
+    ArrayInfo() = delete;
+    ~ArrayInfo() = default;
+    
+    /*
+    bool check_ndim(idx const ndim) const
+    {
+        if (ndim != this->ndim) {
+            return true;
+        }
+        return false;
+    }
+    */
+
+    
+    template<class T, idx ndim = Dynamic>
+    View<T, ndim> view()
     {
         static_assert(ndim > 0 or ndim == Dynamic,
                       "ndim should be a positive integer or Dynamic");
         
-        idx const _ndim = arr->ndim;
+        idx const _ndim = this->ndim;
         
         if (ndim != Dynamic and ndim != _ndim) {
             printf("View ndim: %ld, array ndim: %ld\n", ndim, _ndim); 
             throw std::runtime_error("Dimension mismatch!");
         }
 
-        
-        auto const& arr_type = type_info(arr->type), req_type = type_info<T>();
+        auto const& arr_type = type_info(type), req_type = type_info<T>();
         
         if (arr_type.id != req_type.id) {
             printf("View id: %d, array id: %d\n", arr_type.id, req_type.id); 
@@ -240,66 +206,125 @@ public:
         }
 
 
-        idx const dsize = arr->datasize;
         
-        if (arr->is_numpy) {
-            memory.alloc(TypeInfo<idx>::size * _ndim);
-            strides = memory.ptr<idx>();
+        View<T, ndim> ret;
+        ret._shape = shape;
+        
+        if (is_numpy) {
+            ret.memory.alloc(TypeInfo<idx>::size * _ndim);
+            
+            ret._strides = reinterpret_cast<idx*>(ret.memory.get());
+            idx const dsize = datasize;
+
             
             for (idx ii = 0; ii < _ndim; ++ii) {
-                strides[ii] = idx( double(arr->strides[ii]) / dsize );
+                ret._strides[ii] = idx( double(strides[ii]) / dsize );
             }
         }
         else {
-            strides = arr->strides;
+            ret._strides = strides;
         }
         
-        data = reinterpret_cast<T*>(arr->data);
+        ret.data = reinterpret_cast<T*>(this->data);
+
+        return ret;
     }
+};
+
+
+// TODO: better converting with std::function
+
+/*
+template<class T, idx ndim>
+struct Array {
+    Array() = default;
+    
+    Array(Array const&) = default;
+    Array(Array const&&) = default;
+    
+    Array operator=(Array const&) = default;
+    Array operator=(Array const&&) = default;
+    
+    ~Array() = default;
+
+
+    template<class T>
+    T get(idx const ii)
+    {
+        return get_type<T>(type, data + ii * strides[0]);
+    }
+
+
+    template<class T>
+    T const get(idx const ii) const
+    {
+        return get_type<T>(type, data + ii * strides[0]);
+    }
+};
+*/
+
+
+template<class T, idx ndim = Dynamic>
+struct View
+{
+    Memory memory;
+    ptr<T> data;
+    ptr<idx> _shape, _strides;
+
+
+    View() = default;
+    
+    View(View const&) = default;
+    View(View&&) = default;
+    
+    View& operator=(View const&) = default;
+    View& operator=(View&&) = default;
+    
+    ~View() = default;
     
     idx const& shape(idx const ii) const { return _shape[ii]; }
     
     T& operator()(idx const ii)
     {
-        return data[ii * strides[0]];
+        return data[ii * _strides[0]];
     }
 
     T& operator()(idx const ii, idx const jj)
     {
-        return data[ii * strides[0] + jj * strides[1]];
+        return data[ii * _strides[0] + jj * _strides[1]];
     }
 
     T& operator()(idx const ii, idx const jj, idx const kk)
     {
-        return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]];
     }
 
     T& operator()(idx const ii, idx const jj, idx const kk, idx const ll)
     {
-        return data[ii * strides[0] + jj * strides[1] + kk * strides[2]
-                    + ll * strides[4]];
+        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]
+                    + ll * _strides[4]];
     }
 
 
     T const& operator()(idx const ii) const
     {
-        return data[ii * strides[0]];
+        return data[ii * _strides[0]];
     }
 
     T const& operator()(idx const ii, idx const jj) const
     {
-        return data[ii * strides[0] + jj * strides[1]];
+        return data[ii * _strides[0] + jj * _strides[1]];
     }
 
     T const& operator()(idx const ii, idx const jj, idx const kk) const
     {
-        return data[ii * strides[0] + jj * strides[1] + kk * strides[2]];
+        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]];
     }
 
     T const& operator()(idx const ii, idx const jj, idx const kk, idx const ll) const
     {
-        return data[ii * strides[0] + jj * strides[1] + kk * strides[2]
-                    + ll * strides[4]];
+        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]
+                    + ll * _strides[4]];
     }
 };
 

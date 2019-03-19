@@ -7,12 +7,12 @@ static std::unique_ptr<memtype[]> make_memory(long size)
     return std::unique_ptr<memtype[]>(new memtype[size]);
 }
 
-Memory::Memory(long size): _size(size) { memory = make_memory(size); }
+Memory::Memory(idx const size): _size(size) { _memory = make_memory(size); }
 
 void Memory::alloc(long size)
 {
     this->_size = size;
-    this->memory = make_memory(size);
+    this->_memory = make_memory(size);
 }
 
 

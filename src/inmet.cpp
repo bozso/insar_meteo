@@ -14,9 +14,7 @@ extern "C" {
     int test(array_ptr const _a)
     {
         try {
-            auto a = _a->view<double>();
-            
-            
+            auto a = _a->view<float>();
             
             for (idx ii = 0; ii < a.shape(0); ++ii)
                 printf("%f ", a(ii));

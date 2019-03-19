@@ -4,6 +4,7 @@
 #include <iostream>
 #include <complex>
 #include <memory>
+#include <functional>
 
 #include "type_info.hpp"
 
@@ -46,16 +47,7 @@ static idx constexpr Dynamic = -1;
 
 struct ArrayInfo;
 
-//template<idx ndim>
-//struct Array;
-
-template<class T, idx ndim>
-struct View;
-
-
 typedef ptr<ArrayInfo> array_ptr;
-//typedef Array<Dynamic> DArray;
-
 
 typedef char memtype;
 typedef ptr<memtype> memptr;
@@ -63,6 +55,15 @@ typedef ptr<memtype> memptr;
 
 RTypeInfo const& type_info(int const type);
 RTypeInfo const& type_info(dtype const type);
+
+
+static void check_match(RTypeInfo const& one, RTypeInfo const& two)
+{
+    if (one.is_complex != two.is_complex) {
+        throw std::runtime_error("Cannot convert complex to non complex "
+                                 "type!");
+    }
+}
 
 
 template<class T>
@@ -154,114 +155,42 @@ struct Memory
 };
 
 
-struct ArrayInfo {
-    int type, is_numpy;
-    idx ndim, ndata, datasize;
-    ptr<idx> shape, strides;
-    memptr data;
-    
-    ArrayInfo() = delete;
-    ~ArrayInfo() = default;
-    
-    /*
-    bool check_ndim(idx const ndim) const
-    {
-        if (ndim != this->ndim) {
-            return true;
-        }
-        return false;
-    }
-    */
-
-    
-    template<class T, idx ndim = Dynamic>
-    View<T, ndim> view()
-    {
-        static_assert(ndim > 0 or ndim == Dynamic,
-                      "ndim should be a positive integer or Dynamic");
-        
-        idx const _ndim = this->ndim;
-        
-        if (ndim != Dynamic and ndim != _ndim) {
-            printf("View ndim: %ld, array ndim: %ld\n", ndim, _ndim); 
-            throw std::runtime_error("Dimension mismatch!");
-        }
-
-        auto const& arr_type = type_info(type), req_type = type_info<T>();
-        
-        if (arr_type.id != req_type.id) {
-            printf("View id: %d, array id: %d\n", arr_type.id, req_type.id); 
-            throw std::runtime_error("Not same id!");
-        }
-        
-
-        if (arr_type.is_complex and not req_type.is_complex) {
-            throw std::runtime_error("Input array is complex but not "
-                                     "complex array is requested!");
-        }
-
-        if (not arr_type.is_complex and req_type.is_complex) {
-            throw std::runtime_error("Input array is not complex but "
-                                     "complex array is requested!");
-        }
-
-
-        
-        View<T, ndim> ret;
-        ret._shape = shape;
-        
-        if (is_numpy) {
-            ret.memory.alloc(TypeInfo<idx>::size * _ndim);
-            
-            ret._strides = reinterpret_cast<idx*>(ret.memory.get());
-            idx const dsize = datasize;
-
-            
-            for (idx ii = 0; ii < _ndim; ++ii) {
-                ret._strides[ii] = idx( double(strides[ii]) / dsize );
-            }
-        }
-        else {
-            ret._strides = strides;
-        }
-        
-        ret.data = reinterpret_cast<T*>(data);
-
-        return ret;
-    }
-};
-
-
 // TODO: better converting with std::function
 
-/*
-template<class T, idx ndim>
+template<class T, idx ndim = Dynamic>
 struct Array {
+    ArrayInfo& array;
+    memptr data;
+    ptr<idx> strides;
+    std::function<T(memptr)> convert;
+
+
     Array() = default;
     
     Array(Array const&) = default;
-    Array(Array const&&) = default;
+    Array(Array&&) = default;
     
-    Array operator=(Array const&) = default;
-    Array operator=(Array const&&) = default;
+    Array& operator=(Array const&) = default;
+    Array& operator=(Array&&) = default;
     
     ~Array() = default;
-
-
-    template<class T>
+    
+    /*
     T get(idx const ii)
     {
         return get_type<T>(type, data + ii * strides[0]);
     }
 
 
-    template<class T>
     T const get(idx const ii) const
     {
         return get_type<T>(type, data + ii * strides[0]);
     }
+    */
 };
-*/
+
+template<class T>
+using DArray = Array<T, Dynamic> ;
 
 
 template<class T, idx ndim = Dynamic>
@@ -325,6 +254,92 @@ struct View
     {
         return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]
                     + ll * _strides[4]];
+    }
+};
+
+
+struct ArrayInfo {
+    int type, is_numpy;
+    idx ndim, ndata, datasize;
+    ptr<idx> shape, strides;
+    memptr data;
+    
+    ArrayInfo() = delete;
+    ~ArrayInfo() = default;
+    
+    
+    /*
+    bool check_ndim(idx const ndim) const
+    {
+        if (ndim != this->ndim) {
+            return true;
+        }
+        return false;
+    }
+    */
+
+    template<idx ndim>
+    void check_dim()
+    {
+        static_assert(ndim > 0 or ndim == Dynamic,
+                      "ndim should be either a positive integer or Dynamic");
+        
+        auto const _ndim = this->ndim;
+        
+        if (ndim != Dynamic and ndim != _ndim) {
+            printf("View ndim: %ld, array ndim: %ld\n", ndim, _ndim); 
+            throw std::runtime_error("Dimension mismatch!");
+        }
+    }
+
+
+    template<class T, idx ndim = Dynamic>
+    View<T, ndim> view()
+    {
+        check_dim<ndim>();
+        
+        auto const& arr_type = type_info(type), req_type = type_info<T>();
+        
+        if (arr_type.id != req_type.id) {
+            printf("View id: %d, array id: %d\n", arr_type.id, req_type.id); 
+            throw std::runtime_error("Not same id!");
+        }
+        
+        check_match(arr_type, req_type);
+
+        View<T, ndim> ret;
+        ret._shape = shape;
+        
+        if (is_numpy) {
+            auto const _ndim = this->ndim;
+            
+            ret.memory.alloc(TypeInfo<idx>::size * _ndim);
+            
+            ret._strides = reinterpret_cast<idx*>(ret.memory.get());
+            idx const dsize = datasize;
+
+            
+            for (idx ii = 0; ii < _ndim; ++ii) {
+                ret._strides[ii] = idx(double(strides[ii]) / dsize);
+            }
+        }
+        else {
+            ret._strides = strides;
+        }
+        
+        ret.data = reinterpret_cast<T*>(data);
+
+        return ret;
+    }
+    
+    template<class T, idx ndim = Dynamic>
+    Array<T, ndim> array()
+    {
+        check_dim<ndim>();
+
+        auto const& arr_type = type_info(type), req_type = type_info<T>();
+
+        check_match(arr_type, req_type);
     }
 };
 

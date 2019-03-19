@@ -90,18 +90,21 @@ struct RTypeInfo {
     ~RTypeInfo() = default;
 };
 
+namespace tmp {
+
 template<class T>
-struct _is_complex : std::false_type {};
+struct is_complex : std::false_type {};
 
-template<> struct _is_complex<cpx64> : std::true_type {};
-template<> struct _is_complex<cpx128> : std::true_type {};
+template<> struct is_complex<cpx64> : std::true_type {};
+template<> struct is_complex<cpx128> : std::true_type {};
 
+}
 
 template<class T>
 struct TypeInfo {
     static constexpr bool is_pointer = std::is_pointer<T>::value;
     static constexpr bool is_void = std::is_void<T>::value;
-    static bool constexpr is_complex = _is_complex<T>::value;
+    static bool constexpr is_complex = tmp::is_complex<T>::value;
     static bool constexpr is_float = std::is_floating_point<T>::value;
     static bool constexpr is_scalar = std::is_scalar<T>::value;
     static bool constexpr is_arithmetic = std::is_arithmetic<T>::value;

@@ -122,22 +122,3 @@ struct TypeInfo {
 
 // guard
 #endif
-
-/*
-
-Long      
-Size_t    
-Int8       
-Int16      
-Int32     }
-Int64     
-UInt8     /
-UInt16    }
-UInt32    
-UInt64    /
-Float32   #
-Float64   
-Complex64 
-Complex128
-
-*/

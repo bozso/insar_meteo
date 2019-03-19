@@ -1,4 +1,3 @@
-#include <iostream>
 #include <exception>
 
 #include "aux.hpp"
@@ -8,23 +7,26 @@ using std::cerr;
 
 
 using aux::array_ptr;
+using aux::Array;
+using aux::DArray;
 using aux::View;
 using aux::idx;
+using aux::print;
 
 extern "C" {
-    int test(array_ptr _a)
+    int test(array_ptr const _a)
     {
         try {
-            View<float> a(_a);
-            
+            DArray const a(_a);
+
             
             for (idx ii = 0; ii < a.shape(0); ++ii)
-                cout << a(ii) << " ";
+                printf("%d ", a.get<int>(ii));
             
-            cout << "\n";
+            print("\n");
             
-            //auto a = aux::type_info(aux::dtype::Int);
-            //cout << a.is_complex << "\n";
+            auto aa = aux::type_info(aux::dtype::Int);
+            print("%\n", aa.is_complex);
         }
         catch(std::exception& e) {
             cerr << "Exception caught: " << e.what() << "\n";

@@ -16,7 +16,15 @@ typedef char memtype;
 typedef memtype* memptr;
 
 
-bool is_complex(int type);
+RTypeInfo const& type_info(int const type);
+RTypeInfo const& type_info(dtype const type);
+
+
+template<class T>
+RTypeInfo const& type_info()
+{
+    return type_info(tpl2dtype<T>());
+}
 
 
 enum layout {
@@ -187,8 +195,6 @@ public:
 };
 */
 
-TypeInfo const& type_info(int const type);
-TypeInfo const& type_info(dtype const type);
 
 // aux namespace
 }

@@ -13,8 +13,9 @@ extern "C" {
     int test(array_ptr a)
     {
         try {
-            auto info = aux::type_info(aux::dtype::Bool);
-            cout << info.id << "\n";
+            
+            auto a = aux::TypeInfo<aux::cpx64>::make_info();
+            cout << a.is_complex << "\n";
         }
         catch(std::exception& e) {
             cerr << "Exception caught: " << e.what() << "\n";

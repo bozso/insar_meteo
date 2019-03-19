@@ -12,26 +12,25 @@ c_idx_p = POINTER(c_idx)
 
 
 type_conversion = {
-    np.dtype(np.bool_)       : 1, # byte
-    np.dtype(np.int_)        : 2, # C long
-    np.dtype(np.intc)        : 3, # C int
-    np.dtype(np.intp)        : 4, # C ssize_t
+    np.dtype(np.int_)        : 1, # C long
+    np.dtype(np.intc)        : 2, # C int
+    np.dtype(np.intp)        : 3, # C ssize_t
 
-    np.dtype(np.int8)        : 5,
-    np.dtype(np.int16)       : 6,
-    np.dtype(np.int32)       : 7,
-    np.dtype(np.int64)       : 8,
+    np.dtype(np.int8)        : 4,
+    np.dtype(np.int16)       : 5,
+    np.dtype(np.int32)       : 6,
+    np.dtype(np.int64)       : 7,
 
-    np.dtype(np.uint8)        : 9,
-    np.dtype(np.uint16)       : 10,
-    np.dtype(np.uint32)       : 11,
-    np.dtype(np.uint64)       : 12,
+    np.dtype(np.uint8)        : 8,
+    np.dtype(np.uint16)       : 9,
+    np.dtype(np.uint32)       : 10,
+    np.dtype(np.uint64)       : 11,
 
-    np.dtype(np.float32)     : 14,
+    np.dtype(np.float32)     : 12,
     np.dtype(np.float64)     : 13,
 
-    np.dtype(np.complex64)   : 15,
-    np.dtype(np.complex128)  : 16
+    np.dtype(np.complex64)   : 14,
+    np.dtype(np.complex128)  : 15
 }
 
 class Carray(Structure):
@@ -58,4 +57,4 @@ def npc(array):
 ia.test.argtypes = [POINTER(Carray)]
 ia.test.restypes = c_int
 
-ia.test(npc([[1,2,3]]))
+ia.test(npc(np.array([1.0, 2.0, 3.0], dtype=np.float32)))

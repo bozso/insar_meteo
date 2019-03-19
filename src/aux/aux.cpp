@@ -7,17 +7,7 @@ static std::unique_ptr<memtype[]> make_memory(long size)
     return std::unique_ptr<memtype[]>(new memtype[size]);
 }
 
-
-Memory::Memory(long size): _size(size)
-{
-    if (size > 0) {
-        this->memory = make_memory(size);
-    }
-    else {
-        this->memory = nullptr;
-    }
-}
-
+Memory::Memory(long size): _size(size) { memory = make_memory(size); }
 
 void Memory::alloc(long size)
 {
@@ -45,8 +35,8 @@ static RTypeInfo const type_infos[] = {
     TypeInfo<float>::make_info(),
     TypeInfo<double>::make_info(),
     
-    //TypeInfo<cpx64>::make_info(),
-    //TypeInfo<cpx128>::make_info()
+    TypeInfo<cpx64>::make_info(),
+    TypeInfo<cpx128>::make_info()
 };
 
 

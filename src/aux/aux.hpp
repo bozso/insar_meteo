@@ -8,6 +8,9 @@
 
 namespace aux {
 
+template<class T>
+using ptr = T*;
+
 struct Array;
 typedef Array* array_ptr;
 typedef long idx;
@@ -15,6 +18,7 @@ typedef long idx;
 typedef char memtype;
 typedef memtype* memptr;
 
+static idx constexpr Dynamic = -1;
 
 RTypeInfo const& type_info(int const type);
 RTypeInfo const& type_info(dtype const type);
@@ -37,7 +41,8 @@ enum layout {
 struct Array
 {
     int type, is_numpy;
-    idx ndim, ndata, datasize, *shape, *strides;
+    idx ndim, ndata, datasize;
+    ptr<idx> shape, strides;
     memptr data;
 };
 
@@ -50,7 +55,12 @@ struct Memory
     Memory(long size);
     void alloc(long size);
     
-    memptr get() const noexcept { return this->memory.get(); }
+    memptr get() const noexcept { return memory.get(); }
+
+    template<class T>
+    ptr<T> ptr(idx const offset = 0) const noexcept {
+        return reinterpret_cast<T*>(memory.get());
+    }
     
     long size() const noexcept {
         return this->_size;
@@ -61,139 +71,74 @@ struct Memory
 };
 
 
-#define convert(T1, T2)                                                   \
-do {                                                                      \
-    auto adata =  reinterpret_cast<T2*>(arr->data);                       \
-    for (idx ii = 0; ii < ndata; ++ii) {                                  \
-        data[ii] = static_cast<T1>(*(adata + ii));                        \
-    }                                                                     \
-} while(0)
-
-
-
-/*
-template<class T, class TI = TypeInfo<T> >
+template<class T, idx ndim = Dynamic>
 struct View
 {
 private:
     Memory memory;
-    T* data;
-    idx ndim, *shape, *strides;
+    ptr<T> data;
+    ptr<idx> _shape, strides;
 
 public:
     View() = default;
     ~View() = default;
     
-    View(array_ptr arr) : ndim(arr->ndim), shape(arr->shape)
+    View(array_ptr const arr) : memory(), _shape(arr->shape)
     {
-        int arr_type = arr->type, req_type = TI::id;
-        bool arr_cpx = is_complex(arr_type), req_cpx = TI::is_complex;
-        bool cast = arr_type != req_type, is_np = arr->is_numpy;
+        static_assert(ndim > 0 or ndim == Dynamic,
+                      "ndim should be a positive integer or Dynamic");
         
-        idx dsize = arr->datasize, ndata = arr->ndata;
-        long size = 0;
-        constexpr long size_strides = sizeof(idx) * ndim;
+        idx const _ndim = arr->ndim;
         
-        if (is_np) {
-            size += size_strides;
+        if (ndim != Dynamic and ndim != _ndim) {
+            printf("View ndim: %ld, array ndim: %ld\n", ndim, _ndim); 
+            throw std::runtime_error("Dimension mismatch!");
+        }
+
+        
+        auto const& arr_type = type_info(arr->type), req_type = type_info<T>();
+        
+        if (arr_type.id != req_type.id) {
+            printf("View id: %d, array id: %d\n", arr_type.id, req_type.id); 
+            throw std::runtime_error("Not same id!");
         }
         
-        if (cast) {
-            size += dsize * arr->ndata;
+
+        if (arr_type.is_complex and not req_type.is_complex) {
+            throw std::runtime_error("Input array is complex but not "
+                                     "complex array is requested!");
         }
+
+        if (not arr_type.is_complex and req_type.is_complex) {
+            throw std::runtime_error("Input array is not complex but "
+                                     "complex array is requested!");
+        }
+
+
+        idx const dsize = arr->datasize;
         
-        memory.alloc(size);
-        
-        if (is_np) {
-            strides = memory.get();
+        if (arr->is_numpy) {
+            memory.alloc(TypeInfo<idx>::size * _ndim);
+            strides = memory.ptr<idx>();
             
-            for (idx ii = 0; ii < ndim; ++ii) {
-                strides[ii] = idx( double(arr->strides) / dsize );
+            for (idx ii = 0; ii < _ndim; ++ii) {
+                strides[ii] = idx( double(arr->strides[ii]) / dsize );
             }
         }
         else {
             strides = arr->strides;
         }
         
-        
-        if (arr_cpx and not req_cpx) {
-            throw std::runtime_error("Input array is complex but not "
-                                     "complex array is requested!");
-        }
-
-        if (not arr_cpx and req_cpx) {
-            throw std::runtime_error("Input array is not complex but "
-                                     "complex array is requested!");
-        }
-        
-        if (cast) {
-            // cast
-            if (is_np) {
-                data = reinterpret_cast<T*>(memory.get() + size_strides);
-                
-                switch(arr_type) {
-                    case 1:
-                        convert(T, int8_t);
-                        break;
-                    case 2:
-                        convert(T, int);
-                        break;
-                    case 3:
-                        convert(T, long);
-                        break;
-                    case 4:
-                        convert(T, size_t);
-                        break;
-
-                    case 5:
-                        convert(T, int8_t);
-                        break;
-                    case 6:
-                        convert(T, int16_t);
-                        break;
-                    case 7:
-                        convert(T, int32_t);
-                        break;
-                    case 8:
-                        convert(T, int64_t);
-                        break;
-
-                    case 9:
-                        convert(T, uint8_t);
-                        break;
-                    case 10:
-                        convert(T, uint16_t);
-                        break;
-                    case 11:
-                        convert(T, uint32_t);
-                        break;
-                    case 12:
-                        convert(T, uint64_t);
-                        break;
-
-                    case 13:
-                        convert(T, float);
-                        break;
-                    case 14:
-                        convert(T, double);
-                        break;
-
-                    case 15:
-                        convert(T, cpx64);
-                        break;
-                    case 16:
-                        convert(T, cpx128);
-                        break;
-                }
-            }
-            else {
-                // nocast
-                data = reinterpret_cast<T*>(arr->data);
-            }
-        }
+        data = reinterpret_cast<T*>(arr->data);
+    }
+    
+    idx const& shape(idx const ii) const { return _shape[ii]; }
+    
+    T& operator()(idx const ii)
+    {
+        return data[ii * strides[0]];
     }
 };
-*/
 
 
 // aux namespace

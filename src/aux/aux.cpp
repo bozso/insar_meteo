@@ -18,25 +18,25 @@ void Memory::alloc(long size)
 
 static RTypeInfo const type_infos[] = {
     RTypeInfo(),
-    TypeInfo<int>::make_info(),
-    TypeInfo<long>::make_info(),
-    TypeInfo<size_t>::make_info(),
+    RTypeInfo::make_info<int>(),
+    RTypeInfo::make_info<long>(),
+    RTypeInfo::make_info<size_t>(),
     
-    TypeInfo<int8_t>::make_info(),
-    TypeInfo<int16_t>::make_info(),
-    TypeInfo<int32_t>::make_info(),
-    TypeInfo<int64_t>::make_info(),
+    RTypeInfo::make_info<int8_t>(),
+    RTypeInfo::make_info<int16_t>(),
+    RTypeInfo::make_info<int32_t>(),
+    RTypeInfo::make_info<int64_t>(),
 
-    TypeInfo<uint8_t>::make_info(),
-    TypeInfo<uint16_t>::make_info(),
-    TypeInfo<uint32_t>::make_info(),
-    TypeInfo<uint64_t>::make_info(),
+    RTypeInfo::make_info<uint8_t>(),
+    RTypeInfo::make_info<uint16_t>(),
+    RTypeInfo::make_info<uint32_t>(),
+    RTypeInfo::make_info<uint64_t>(),
     
-    TypeInfo<float>::make_info(),
-    TypeInfo<double>::make_info(),
+    RTypeInfo::make_info<float>(),
+    RTypeInfo::make_info<double>(),
     
-    TypeInfo<cpx64>::make_info(),
-    TypeInfo<cpx128>::make_info()
+    RTypeInfo::make_info<cpxf>(),
+    RTypeInfo::make_info<cpxd>()
 };
 
 

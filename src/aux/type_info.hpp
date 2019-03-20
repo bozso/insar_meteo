@@ -2,6 +2,20 @@
 #define AUX_TYPEINFO_HPP
 
 #include <type_traits>
+#include <complex>
+
+
+namespace std {
+
+template<class T>
+struct is_complex : std::false_type {};
+
+
+template<> struct is_complex<complex<float>> : std::true_type {};
+template<> struct is_complex<complex<double>> : std::true_type {};
+
+}
+
 
 namespace aux {
 
@@ -25,8 +39,8 @@ enum class dtype : int {
 };
 
 
-typedef std::complex<float>  cpx64;
-typedef std::complex<double> cpx128;
+typedef std::complex<float>  cpxf;
+typedef std::complex<double> cpxd;
 
 
 template<class T>
@@ -62,9 +76,9 @@ int const tpl2dtype()
     else if (std::is_same<T, double>::value)
         return static_cast<int>(dtype::Float64);
 
-    else if (std::is_same<T, cpx64>::value)
+    else if (std::is_same<T, cpxf>::value)
         return static_cast<int>(dtype::Complex64);
-    else if (std::is_same<T, cpx128>::value)
+    else if (std::is_same<T, cpxd>::value)
         return static_cast<int>(dtype::Complex128);
 }
 
@@ -78,7 +92,9 @@ struct RTypeInfo {
     RTypeInfo() : is_pointer(false), is_void(false), is_complex(false),
                   is_float(false), is_scalar(false), is_arithmetic(false),
                   is_pod(false), size(0), id(0) {}
-
+    ~RTypeInfo() = default;
+    
+    
     RTypeInfo(bool is_pointer, bool is_void, bool is_complex, bool is_float,
               bool is_scalar, bool is_arithmetic, bool is_pod, size_t size,
               int id) :
@@ -86,33 +102,18 @@ struct RTypeInfo {
                 is_complex(is_complex), is_float(is_float),
                 is_scalar(is_scalar), is_arithmetic(is_arithmetic),
                 is_pod(is_pod), size(size), id(id) {}
-            
-    ~RTypeInfo() = default;
-};
-
-
-template<class T>
-struct _is_complex : std::false_type {};
-
-template<> struct _is_complex<cpx64> : std::true_type {};
-template<> struct _is_complex<cpx128> : std::true_type {};
-
-
-template<class T>
-struct TypeInfo {
-    static constexpr bool is_pointer = std::is_pointer<T>::value;
-    static constexpr bool is_void = std::is_void<T>::value;
-    static bool constexpr is_complex = _is_complex<T>::value;
-    static bool constexpr is_float = std::is_floating_point<T>::value;
-    static bool constexpr is_scalar = std::is_scalar<T>::value;
-    static bool constexpr is_arithmetic = std::is_arithmetic<T>::value;
-    static bool constexpr is_pod = std::is_pod<T>::value;
-    static size_t constexpr size = sizeof(T);
     
+    
+    template<class T>
     static RTypeInfo make_info()
     {
-        return RTypeInfo(is_pointer, is_void, is_complex, is_float, is_scalar,
-                         is_arithmetic, is_pod, size, tpl2dtype<T>());
+        return RTypeInfo(std::is_pointer<T>::value, std::is_void<T>::value,
+                         std::is_complex<T>::value,
+                         std::is_floating_point<T>::value,
+                         std::is_scalar<T>::value,
+                         std::is_arithmetic<T>::value,
+                         std::is_pod<T>::value,
+                         sizeof(T), tpl2dtype<T>());
     }    
 };
 

@@ -332,6 +332,7 @@ struct ArrayInfo {
         return ret;
     }
     
+    
     template<class T, idx ndim = Dynamic>
     Array<T, ndim> array()
     {

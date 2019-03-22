@@ -44,8 +44,8 @@ class Carray(Structure):
                 ("data", c_char_p)]
 
 
-def npc(array):
-    array = np.array(array)
+def npc(array, **kwargs):
+    array = np.array(array, **kwargs)
     act = array.ctypes
     
     return Carray(type_conversion[array.dtype], 1,
@@ -57,4 +57,4 @@ def npc(array):
 ia.test.argtypes = [POINTER(Carray)]
 ia.test.restypes = c_int
 
-ia.test(npc(np.array([1.0, 2.0, 3.0], dtype=np.float32)))
+ia.test(npc([1.0, 2.0, 3.0], dtype=np.float32))

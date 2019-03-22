@@ -8,6 +8,10 @@
 
 #include "type_info.hpp"
 
+#define type_assert(T, P, msg) static_assert(T<P>::value, msg)
+#define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
+
+
 namespace aux {
 
 // from https://www.modernescpp.com/index.php/c-core-guidelines-rules-for-variadic-templates
@@ -41,11 +45,17 @@ typedef long idx;
 
 // Dynamic number of dimensions
 static idx constexpr Dynamic = -1;
+static idx constexpr row = 0;
+static idx constexpr col = 1;
 
+static std::string const end = "\n";
 
 // Forward declarations
 
 struct ArrayInfo;
+
+template<class T, idx ndim>
+struct Array;
 
 typedef ptr<ArrayInfo> array_ptr;
 
@@ -79,56 +89,6 @@ enum layout {
 };
 
 
-
-template<class T1, class T2>
-static T1 convert(memptr in)
-{
-    return static_cast<T1>(*reinterpret_cast<T2*>(in));
-}
-
-
-template<class T>
-static T get_type(int const type, memptr in)
-{
-    switch(static_cast<dtype>(type)) {
-        case dtype::Int:
-            return convert<T, int>(in);
-        case dtype::Long:
-            return convert<T, long>(in);
-        case dtype::Size_t:
-            return convert<T, size_t>(in);
-
-        case dtype::Int8:
-            return convert<T, int8_t>(in);
-        case dtype::Int16:
-            return convert<T, int16_t>(in);
-        case dtype::Int32:
-            return convert<T, int32_t>(in);
-        case dtype::Int64:
-            return convert<T, int64_t>(in);
-
-        case dtype::UInt8:
-            return convert<T, uint8_t>(in);
-        case dtype::UInt16:
-            return convert<T, uint16_t>(in);
-        case dtype::UInt32:
-            return convert<T, uint32_t>(in);
-        case dtype::UInt64:
-            return convert<T, uint64_t>(in);
-
-        case dtype::Float32:
-            return convert<T, float>(in);
-        case dtype::Float64:
-            return convert<T, float>(in);
-
-        //case dtype::Complex64:
-            //return convert<T, cpx64>(in);
-        //case dtype::Complex128:
-            //return convert<T, cpx128>(in);        
-    }
-}
-
-
 struct Memory 
 {
     Memory(): _memory(nullptr), _size(0) {};
@@ -140,62 +100,23 @@ struct Memory
     Memory& operator=(Memory const&) = default;
     Memory& operator=(Memory&&) = default;
     
-    ~Memory() = default;
+    ~Memory();
     
     void alloc(long size);
-    
-    memptr get() const noexcept { return _memory.get(); }
+    memptr get() const noexcept;
+    long size() const noexcept;
 
-    long size() const noexcept {
-        return _size;
-    }
-
-    std::unique_ptr<memtype[]> _memory;
+private:
+    memptr _memory;
     long _size;
 };
 
-
-// TODO: better converting with std::function
-
-template<class T, idx ndim = Dynamic>
-struct Array {
-    ArrayInfo& array;
-    memptr data;
-    ptr<idx> strides;
-    std::function<T(memptr)> convert;
-
-
-    Array() = default;
-    
-    Array(Array const&) = default;
-    Array(Array&&) = default;
-    
-    Array& operator=(Array const&) = default;
-    Array& operator=(Array&&) = default;
-    
-    ~Array() = default;
-    
-    /*
-    T get(idx const ii)
-    {
-        return get_type<T>(type, data + ii * strides[0]);
-    }
-
-
-    T const get(idx const ii) const
-    {
-        return get_type<T>(type, data + ii * strides[0]);
-    }
-    */
-};
-
-template<class T>
-using DArray = Array<T, Dynamic> ;
 
 
 template<class T, idx ndim = Dynamic>
 struct View
 {
+    // make necessary items constant
     Memory memory;
     ptr<T> data;
     ptr<idx> _shape, _strides;
@@ -259,28 +180,29 @@ struct View
 
 
 struct ArrayInfo {
-    int type, is_numpy;
-    idx ndim, ndata, datasize;
-    ptr<idx> shape, strides;
+    int const type, is_numpy;
+    idx const ndim, ndata, datasize;
+    ptr<idx const> const shape, strides;
     memptr data;
     
     ArrayInfo() = delete;
     ~ArrayInfo() = default;
     
     
-    /*
-    bool check_ndim(idx const ndim) const
-    {
-        if (ndim != this->ndim) {
-            return true;
-        }
-        return false;
-    }
-    */
+    bool check_ndim(idx const ndim) const;
+    bool check_shape(idx const nelem, idx dim = 0) const;
 
-    template<idx ndim>
-    void check_dim()
+
+    // Some sanity checks.
+    
+    template<class T, idx ndim>
+    void basic_check()
     {
+        type_assert(std::is_pod, T, "Type should be Plain Old Datatype!");
+        type_assert(not std::is_void, T, "Type should not be void!");
+        type_assert(not std::is_null_pointer, T, "Type should not be nullptr!");
+        type_assert(not std::is_pointer, T, "Type should not be a pointer!");
+    
         static_assert(ndim > 0 or ndim == Dynamic,
                       "ndim should be either a positive integer or Dynamic");
         
@@ -296,7 +218,7 @@ struct ArrayInfo {
     template<class T, idx ndim = Dynamic>
     View<T, ndim> view()
     {
-        check_dim<ndim>();
+        basic_check<T, ndim>();
         
         auto const& arr_type = type_info(type), req_type = type_info<T>();
         
@@ -313,7 +235,7 @@ struct ArrayInfo {
         if (is_numpy) {
             auto const _ndim = this->ndim;
             
-            ret.memory.alloc(TypeInfo<idx>::size * _ndim);
+            ret.memory.alloc(sizeof(idx) * _ndim);
             
             ret._strides = reinterpret_cast<idx*>(ret.memory.get());
             idx const dsize = datasize;
@@ -331,18 +253,134 @@ struct ArrayInfo {
 
         return ret;
     }
-    
-    
+
+
     template<class T, idx ndim = Dynamic>
     Array<T, ndim> array()
     {
-        check_dim<ndim>();
+        basic_check<T, ndim>();
+        
 
         auto const& arr_type = type_info(type), req_type = type_info<T>();
-
+        
         check_match(arr_type, req_type);
+        
+        return Array<T, ndim>(this, data, strides,
+                              Array<T, ndim>::converter_factory(type));
+        
     }
 };
+
+
+
+// TODO: better converting with std::function
+
+/*
+template<class T, class P>
+struct converter {
+    T operator ()(memptr in) {
+        return static_cast<T>(*reinterpret_cast<P*>(in));
+    }
+};
+
+
+template<class T, class P>
+static T convert(memptr in)
+{
+    return static_cast<T>(*reinterpret_cast<P*>(in));
+};
+*/
+
+
+
+#define make_convert(T, P) \
+std::move([](memptr in) { return static_cast<T>(*reinterpret_cast<P*>(in)); })
+
+
+template<class T, idx ndim = Dynamic>
+struct Array {
+    typedef T value_type;
+    typedef std::function<value_type(memptr)> convert_fun;
+    
+    
+    ArrayInfo const& array;
+    memptr const data;
+    ptr<idx const> const strides;
+    convert_fun const convert;
+
+    explicit Array(array_ptr const array, memptr const data,
+                   ptr<idx const> const strides, convert_fun const convert)
+                   : array(*array), data(data), strides(strides),
+                     convert(convert) {};
+
+    
+    Array(Array const&) = default;
+    Array(Array&&) = default;
+    
+    Array& operator=(Array const&) = default;
+    Array& operator=(Array&&) = default;
+    
+    ~Array() = default;
+
+
+    static convert_fun converter_factory(int const type)
+    {
+        switch(static_cast<dtype>(type)) {
+            case dtype::Int:
+                return make_convert(T, int);
+            case dtype::Long:
+                return make_convert(T, long);
+            case dtype::Size_t:
+                return make_convert(T, size_t);
+    
+            case dtype::Int8:
+                return make_convert(T, int8_t);
+            case dtype::Int16:
+                return make_convert(T, int16_t);
+            case dtype::Int32:
+                return make_convert(T, int32_t);
+            case dtype::Int64:
+                return make_convert(T, int64_t);
+
+            case dtype::UInt8:
+                return make_convert(T, uint8_t);
+            case dtype::UInt16:
+                return make_convert(T, uint16_t);
+            case dtype::UInt32:
+                return make_convert(T, uint32_t);
+            case dtype::UInt64:
+                return make_convert(T, uint64_t);
+    
+            case dtype::Float32:
+                return make_convert(T, float);
+            case dtype::Float64:
+                return make_convert(T, double);
+
+            //case dtype::Complex64:
+                //return convert<T, cpx64>;
+            //case dtype::Complex128:
+                //return convert<T, cpx128>;        
+
+            default:
+                throw std::runtime_error("AA");
+        }
+    }
+    
+    T operator ()(idx const ii)
+    {
+        return convert(data + ii * strides[0]);
+    }
+
+
+    T const operator ()(idx const ii) const
+    {
+        return convert(data + ii * strides[0]);
+    }
+};
+
+
+template<class T>
+using DArray = Array<T, Dynamic> ;
 
 
 // aux namespace

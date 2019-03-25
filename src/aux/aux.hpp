@@ -58,6 +58,8 @@ template<class T, idx ndim>
 struct Array;
 
 typedef ptr<ArrayInfo> array_ptr;
+typedef ptr<ArrayInfo> const inarray;
+typedef ptr<ArrayInfo> const outarray;
 
 typedef char memtype;
 typedef ptr<memtype> memptr;
@@ -100,17 +102,16 @@ struct Memory
     Memory& operator=(Memory const&) = default;
     Memory& operator=(Memory&&) = default;
     
-    ~Memory();
+    ~Memory() = default;
     
     void alloc(long size);
+    
     memptr get() const noexcept;
     long size() const noexcept;
 
-private:
-    memptr _memory;
+    std::unique_ptr<memtype[]> _memory;
     long _size;
 };
-
 
 
 template<class T, idx ndim = Dynamic>
@@ -256,7 +257,7 @@ struct ArrayInfo {
 
 
     template<class T, idx ndim = Dynamic>
-    Array<T, ndim> array()
+    Array<T, ndim> const array()
     {
         basic_check<T, ndim>();
         

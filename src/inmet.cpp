@@ -6,14 +6,15 @@ using std::cout;
 using std::cerr;
 
 
-using aux::array_ptr;
+using aux::inarray;
+using aux::outarray;
 using aux::idx;
 using aux::end;
 //using aux::print;
 
 
 extern "C" {
-    int test(array_ptr const _a)
+    int test(inarray _a)
     {
         try {
             cout << _a->check_ndim(2) << end;

@@ -2,25 +2,23 @@
 
 namespace aux {
 
-/*
 static std::unique_ptr<memtype[]> make_memory(long size)
 {
     return std::unique_ptr<memtype[]>(new memtype[size]);
 }
-*/
 
-Memory::Memory(idx const size): _size(size) { _memory = new memtype[size]; }
-Memory::~Memory() { delete[] _memory; }
+
+Memory::Memory(idx const size): _size(size) { _memory = make_memory(size); }
+
 
 void Memory::alloc(long size)
 {
     this->_size = size;
-    delete[] this->_memory;
-    this->_memory = new memtype[size];
+    this->_memory = make_memory(size);
 }
 
 
-memptr Memory::get() const noexcept { return _memory; }
+memptr Memory::get() const noexcept { return _memory.get(); }
 long Memory::size() const noexcept { return _size; }
 
 

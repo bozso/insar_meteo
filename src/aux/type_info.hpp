@@ -114,7 +114,9 @@ struct RTypeInfo {
                          std::is_arithmetic<T>::value,
                          std::is_pod<T>::value,
                          sizeof(T), tpl2dtype<T>());
-    }    
+    }
+    
+    bool operator==(RTypeInfo const& other) const { return id == other.id; }
 };
 
 

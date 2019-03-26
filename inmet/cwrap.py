@@ -44,6 +44,10 @@ class Carray(Structure):
                 ("data", c_char_p)]
 
 
+ia.test.argtypes = [POINTER(Carray)]
+ia.test.restypes = c_int
+
+
 def npc(array, **kwargs):
     array = np.array(array, **kwargs)
     act = array.ctypes
@@ -54,7 +58,17 @@ def npc(array, **kwargs):
                   act.data_as(c_char_p))
     
 
-ia.test.argtypes = [POINTER(Carray)]
-ia.test.restypes = c_int
+def main():
+    _a1 = np.array([1 for ii in range(128)], dtype=np.float64)
+    _a2 = np.array([1 for ii in range(129)], dtype=np.float64)
+    
+    a1, a2 = npc(_a1), npc(_a2)
+    
+    ia.test(a1)
+    # ia.test(a2)
+    
+    return 0
 
-ia.test(npc([1.0, 2.0, 3.0], dtype=np.float32))
+
+if __name__ == "__main__":
+    main()

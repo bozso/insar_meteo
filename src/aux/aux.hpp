@@ -197,7 +197,7 @@ struct ArrayInfo {
     // Some sanity checks.
     
     template<class T, idx ndim>
-    void basic_check()
+    void basic_check() const
     {
         type_assert(std::is_pod, T, "Type should be Plain Old Datatype!");
         type_assert(not std::is_void, T, "Type should not be void!");
@@ -257,19 +257,7 @@ struct ArrayInfo {
 
 
     template<class T, idx ndim = Dynamic>
-    Array<T, ndim> const array()
-    {
-        basic_check<T, ndim>();
-        
-
-        auto const& arr_type = type_info(type), req_type = type_info<T>();
-        
-        check_match(arr_type, req_type);
-        
-        return Array<T, ndim>(this, data, strides,
-                              Array<T, ndim>::converter_factory(type));
-        
-    }
+    Array<T, ndim> const array() { return Array<T, ndim>(this); }
 };
 
 
@@ -295,7 +283,10 @@ static T convert(memptr in)
 
 
 #define make_convert(T, P) \
-std::move([](memptr in) { return static_cast<T>(*reinterpret_cast<P*>(in)); })
+[](memptr in) { return static_cast<T>(*reinterpret_cast<P*>(in)); }
+
+#define make_noconvert(T) \
+[](memptr in) { return *reinterpret_cast<T*>(in); }
 
 
 template<class T, idx ndim = Dynamic>
@@ -309,12 +300,8 @@ struct Array {
     ptr<idx const> const strides;
     convert_fun const convert;
 
-    explicit Array(array_ptr const array, memptr const data,
-                   ptr<idx const> const strides, convert_fun const convert)
-                   : array(*array), data(data), strides(strides),
-                     convert(convert) {};
+    Array() = delete;
 
-    
     Array(Array const&) = default;
     Array(Array&&) = default;
     
@@ -323,8 +310,7 @@ struct Array {
     
     ~Array() = default;
 
-
-    static convert_fun converter_factory(int const type)
+    static convert_fun const converter_factory(int const type)
     {
         switch(static_cast<dtype>(type)) {
             case dtype::Int:
@@ -366,6 +352,18 @@ struct Array {
                 throw std::runtime_error("AA");
         }
     }
+
+    
+    explicit Array(inarray arr_ptr)
+    :
+    array(*arr_ptr), data(arr_ptr->data), strides(arr_ptr->strides),
+    convert(converter_factory(array.type))
+    {
+        array.basic_check<T, ndim>();
+        auto const& arr_type = type_info(array.type), req_type = type_info<T>();
+        check_match(arr_type, req_type);
+    }
+
     
     T operator ()(idx const ii)
     {

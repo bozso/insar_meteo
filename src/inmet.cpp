@@ -17,19 +17,35 @@ extern "C" {
     int test(inarray _a)
     {
         try {
-            cout << _a->check_ndim(2) << end;
-            cout << _a->check_shape(3, aux::row) << end;
+            auto a = _a->array<double, 1>();
             
-            auto a = _a->array<double>();
+            idx const ii = 0;
+            aux::memptr data = a.data + ii * a.strides[0];
+            
+            cout << a.convert(data) << end;
+            cout << *reinterpret_cast<double*>(data) << end;
+            cout << static_cast<double>(*reinterpret_cast<double*>(data)) << end;
+            
+            
+            
+            //for(idx ii = 0; ii < 15; ++ii) {
+                //cout << a(ii) << " ";
+            //}
+            
+            //cout << "\nLast: " << a(a.array.shape[0] - 1) << end;
 
-            for (idx ii = 0; ii < _a->shape[0]; ++ii) {
-                printf("%lf ", a(ii));
-            }
+            //double sum = 0.0;
             
-            printf("\n");
+            //for (idx ii = 0; ii < _a->shape[0]; ++ii) {
+                //sum += a(ii);
+            //}
+                    
+            //cout << "Sum: " << sum << end;
+            return 0;
         }
         catch(std::exception& e) {
             cerr << "Exception caught: " << e.what() << "\n";
+
             return 1;
         }
         return 0;

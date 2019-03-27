@@ -1,14 +1,57 @@
-from numpy import ctypeslib as nct
 import numpy as np
+from numpy import ctypeslib as nct
+
+from distutils.ccompiler import new_compiler
 from ctypes import *
 from os.path import dirname, realpath, join
 
 filedir = dirname(realpath(__file__))
 
-ia = nct.load_library("libinmet_aux", join(filedir, "..", "src", "build"))
+fpath = join(filedir, "..", "src", "build")
+ia = nct.load_library("libinmet_aux", )
 
 c_idx = c_long
 c_idx_p = POINTER(c_idx)
+
+
+class Carray(Structure):
+    _fields_ = [("type", c_int),
+                ("is_numpy", c_int),
+                ("ndim", c_idx),
+                ("ndata", c_idx),
+                ("datasize", c_idx),
+                ("shape", c_idx_p), 
+                ("strides", c_idx_p),
+                ("data", c_char_p)]
+
+
+class CLib(object):
+    lib_filename = new_compiler().library_filename
+    
+    def __init__(self, name, path="."):
+            self.path = join(path, lib_filename(name, lib_type="shared"))
+            self.lib = CDLL(self.path)
+
+    
+    def wrap(self, funcname, argtypes, restype=c_int):
+        ''' Simplify wrapping ctypes functions '''
+        func = self.__getattr__(funcname)
+        func.restype = restype
+        func.argtypes = argtypes
+        
+        
+        def fun(*args):
+            ret = func(args)
+            
+            if ret == -1:
+                raise RuntimeError("Library function returned with -1")
+        
+        return fun
+
+
+inmet = CLib("inmet_aux", fpath)
+
+inmet.test = inmet.wrap("test", [POINTER(Carray)])
 
 
 type_conversion = {
@@ -33,19 +76,6 @@ type_conversion = {
     np.dtype(np.complex128)  : 15
 }
 
-class Carray(Structure):
-    _fields_ = [("type", c_int),
-                ("is_numpy", c_int),
-                ("ndim", c_idx),
-                ("ndata", c_idx),
-                ("datasize", c_idx),
-                ("shape", c_idx_p), 
-                ("strides", c_idx_p),
-                ("data", c_char_p)]
-
-
-ia.test.argtypes = [POINTER(Carray)]
-ia.test.restypes = c_int
 
 
 def npc(array, **kwargs):
@@ -64,7 +94,7 @@ def main():
     
     a1, a2 = npc(_a1), npc(_a2)
     
-    ia.test(a1)
+    inmet.test(a1)
     # ia.test(a2)
     
     return 0

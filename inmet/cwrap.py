@@ -8,7 +8,6 @@ from os.path import dirname, realpath, join
 filedir = dirname(realpath(__file__))
 
 fpath = join(filedir, "..", "src", "build")
-ia = nct.load_library("libinmet_aux", )
 
 c_idx = c_long
 c_idx_p = POINTER(c_idx)
@@ -29,22 +28,22 @@ class CLib(object):
     lib_filename = new_compiler().library_filename
     
     def __init__(self, name, path="."):
-            self.path = join(path, lib_filename(name, lib_type="shared"))
+            self.path = join(path, CLib.lib_filename(name, lib_type="shared"))
             self.lib = CDLL(self.path)
 
     
     def wrap(self, funcname, argtypes, restype=c_int):
         ''' Simplify wrapping ctypes functions '''
-        func = self.__getattr__(funcname)
+        func = getattr(self.lib, funcname)
         func.restype = restype
         func.argtypes = argtypes
         
         
         def fun(*args):
-            ret = func(args)
+            ret = func(*args)
             
-            if ret == -1:
-                raise RuntimeError("Library function returned with -1")
+            if ret != 0:
+                raise RuntimeError("Library function returned with non-zero value!")
         
         return fun
 
@@ -89,13 +88,13 @@ def npc(array, **kwargs):
     
 
 def main():
-    _a1 = np.array([1 for ii in range(128)], dtype=np.float64)
-    _a2 = np.array([1 for ii in range(129)], dtype=np.float64)
+    _a1 = np.array([1 for ii in range(130)], dtype=np.uint32)
+    #_a2 = np.array([1 for ii in range(140)], dtype=np.float64)
     
-    a1, a2 = npc(_a1), npc(_a2)
+    #a1, a2 = npc(_a1), npc(_a2)
+    a1 = npc(_a1)
     
     inmet.test(a1)
-    # ia.test(a2)
     
     return 0
 

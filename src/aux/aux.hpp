@@ -48,6 +48,9 @@ static idx constexpr Dynamic = -1;
 static idx constexpr row = 0;
 static idx constexpr col = 1;
 
+static idx constexpr maxdim = 64;
+
+
 static std::string const end = "\n";
 
 // Forward declarations
@@ -118,9 +121,9 @@ template<class T, idx ndim = Dynamic>
 struct View
 {
     // make necessary items constant
-    Memory memory;
     ptr<T> data;
-    ptr<idx> _shape, _strides;
+    ptr<idx const> _shape;
+    idx _strides[maxdim];
 
 
     View() = default;
@@ -199,6 +202,7 @@ struct ArrayInfo {
     template<class T, idx ndim>
     void basic_check() const
     {
+        static_assert(ndim < maxdim, "Exceeded maximum number of dimensions!");
         type_assert(std::is_pod, T, "Type should be Plain Old Datatype!");
         type_assert(not std::is_void, T, "Type should not be void!");
         type_assert(not std::is_null_pointer, T, "Type should not be nullptr!");
@@ -232,6 +236,7 @@ struct ArrayInfo {
 
         View<T, ndim> ret;
         ret._shape = shape;
+        ret._strides = {0};
         
         if (is_numpy) {
             auto const _ndim = this->ndim;
@@ -365,13 +370,7 @@ struct Array {
     }
 
     
-    T operator ()(idx const ii)
-    {
-        return convert(data + ii * strides[0]);
-    }
-
-
-    T const operator ()(idx const ii) const
+    T const operator ()(idx const ii)
     {
         return convert(data + ii * strides[0]);
     }
@@ -379,7 +378,7 @@ struct Array {
 
 
 template<class T>
-using DArray = Array<T, Dynamic> ;
+using DArray = Array<T, Dynamic>;
 
 
 // aux namespace

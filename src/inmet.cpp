@@ -7,7 +7,7 @@ using std::cerr;
 
 
 using aux::inarray;
-using aux::outarray
+using aux::outarray;
 using aux::idx;
 using aux::end;
 //using aux::print;

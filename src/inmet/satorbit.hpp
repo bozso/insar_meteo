@@ -53,10 +53,12 @@ namespace consts {
 /* cartesian coordinate */
 struct cart {
     double x, y, z;
+    
     cart() = default;
+    ~cart() = default;
+
     cart(double x, double y, double z):
         x(x), y(y), z(z) {}
-    ~cart() = default;
 };
 
 typedef double const cdouble;

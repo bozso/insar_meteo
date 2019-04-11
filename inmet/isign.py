@@ -13,9 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Module
-"""
-from .utils import *
-from .polyfit import *
-from .satorbit import *
+import numpy as np
+
+
+def kalman_filter():
+    pass
+
+
+def intpol_los():
+    pass
+

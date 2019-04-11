@@ -84,28 +84,31 @@ int const tpl2dtype()
 
 
 struct RTypeInfo {
+    typedef char const*const name_t;
+    
     bool const is_pointer, is_void, is_complex, is_float, is_scalar,
                is_arithmetic, is_pod;
     size_t const size;
     int const id;
+    name_t name;
     
     RTypeInfo() : is_pointer(false), is_void(false), is_complex(false),
                   is_float(false), is_scalar(false), is_arithmetic(false),
-                  is_pod(false), size(0), id(0) {}
+                  is_pod(false), size(0), id(0), name(nullptr) {}
     ~RTypeInfo() = default;
     
     
     RTypeInfo(bool is_pointer, bool is_void, bool is_complex, bool is_float,
               bool is_scalar, bool is_arithmetic, bool is_pod, size_t size,
-              int id) :
+              int id, name_t name = "Unknown") :
                 is_pointer(is_pointer), is_void(is_void),
                 is_complex(is_complex), is_float(is_float),
                 is_scalar(is_scalar), is_arithmetic(is_arithmetic),
-                is_pod(is_pod), size(size), id(id) {}
+                is_pod(is_pod), size(size), id(id), name(name) {}
     
     
     template<class T>
-    static RTypeInfo make_info()
+    static RTypeInfo make_info(name_t name)
     {
         return RTypeInfo(std::is_pointer<T>::value, std::is_void<T>::value,
                          std::is_complex<T>::value,
@@ -113,7 +116,7 @@ struct RTypeInfo {
                          std::is_scalar<T>::value,
                          std::is_arithmetic<T>::value,
                          std::is_pod<T>::value,
-                         sizeof(T), tpl2dtype<T>());
+                         sizeof(T), tpl2dtype<T>(), name);
     }
     
     bool operator==(RTypeInfo const& other) const { return id == other.id; }

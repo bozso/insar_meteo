@@ -15,42 +15,51 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from utils import Argp
-from inmet.satorbit import Satorbit
+import inmet as im
+
 
 def main():
     
-    ap = argp()
+    #ap = argp()
+    #
+    #ap.addargs(
+        #Argp.narg("orbit_data", help="", kind="pos"),
+        #Argp.narg("preproc", help="", kind="pos"),
+        #
+        #Argp.narg("deg", help="Degree of fitted polynom.", type=int, default=3),
+        #
+        #Argp.narg("plot", help="If defined a plot file will be generated."),
+        #
+        #Argp.narg("nstep", help="Number of steps used to evaluate the polynom.",
+                           #type=int, default=100),
+        #
+        #Argp.narg("centered", help="If set the mean coordinates and time value "
+             #"will be subtracted from the coordinates and time values "
+             #"before fitting.", kind="flag")
+    #)
     
-    ap.addargs(
-        Argp.narg("orbit_data", help="", kind="pos"),
-        Argp.narg("preproc", help="", kind="pos"),
-        
-        Argp.narg("deg", help="Degree of fitted polynom.", type=int, default=3),
-        
-        Argp.narg("plot", help="If defined a plot file will be generated."),
-        
-        Argp.narg("nstep", help="Number of steps used to evaluate the polynom.",
-                           type=int, default=100),
-        
-        Argp.narg("centered", help="If set the mean coordinates and time value "
-             "will be subtracted from the coordinates and time values "
-             "before fitting.", kind="flag")
-    )
     
-    args = ap.parse_args()
+    sat = im.SatOrbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res", "doris")
     
-    sat = Satorbit(args.orbit_data, args.preproc)
+    sat.fit_orbit(deg=2)
     
-    sat.fit_orbit(centered=args.centered, deg=args.deg)
-    sat.save_fit(args.fit_file)
-    
-    plot = args.plot
-    
-    if plot is not None:
-        sat.plot_orbit(plot)
+    print(sat.fit(sat.time))
     
     return 0
+    
+    #args = ap.parse_args()
+    #
+    #sat = Satorbit(args.orbit_data, args.preproc)
+    #
+    #sat.fit_orbit(centered=args.centered, deg=args.deg)
+    #sat.save_fit(args.fit_file)
+    #
+    #plot = args.plot
+    #
+    #if plot is not None:
+        #sat.plot_orbit(plot)
+    #
+    #return 0
     
 if __name__ == "__main__":
     main()

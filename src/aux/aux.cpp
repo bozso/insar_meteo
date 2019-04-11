@@ -47,25 +47,25 @@ bool ArrayInfo::check_shape(idx const nelem, idx const dim) const
 
 static RTypeInfo const type_infos[] = {
     RTypeInfo(),
-    RTypeInfo::make_info<int>(),
-    RTypeInfo::make_info<long>(),
-    RTypeInfo::make_info<size_t>(),
+    RTypeInfo::make_info<int>("int"),
+    RTypeInfo::make_info<long>("long"),
+    RTypeInfo::make_info<size_t>("size_t"),
     
-    RTypeInfo::make_info<int8_t>(),
-    RTypeInfo::make_info<int16_t>(),
-    RTypeInfo::make_info<int32_t>(),
-    RTypeInfo::make_info<int64_t>(),
+    RTypeInfo::make_info<int8_t>("int8"),
+    RTypeInfo::make_info<int16_t>("int16"),
+    RTypeInfo::make_info<int32_t>("int32"),
+    RTypeInfo::make_info<int64_t>("int64"),
 
-    RTypeInfo::make_info<uint8_t>(),
-    RTypeInfo::make_info<uint16_t>(),
-    RTypeInfo::make_info<uint32_t>(),
-    RTypeInfo::make_info<uint64_t>(),
+    RTypeInfo::make_info<uint8_t>("uint8"),
+    RTypeInfo::make_info<uint16_t>("uint16"),
+    RTypeInfo::make_info<uint32_t>("uint32"),
+    RTypeInfo::make_info<uint64_t>("uint64"),
     
-    RTypeInfo::make_info<float>(),
-    RTypeInfo::make_info<double>(),
+    RTypeInfo::make_info<float>("float32"),
+    RTypeInfo::make_info<double>("float64"),
     
-    RTypeInfo::make_info<cpxf>(),
-    RTypeInfo::make_info<cpxd>()
+    RTypeInfo::make_info<cpxf>("complex64"),
+    RTypeInfo::make_info<cpxd>("complex128")
 };
 
 

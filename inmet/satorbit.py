@@ -16,16 +16,14 @@
 from __future__ import print_function
 
 import numpy as np
-from os.path import isfile
-import pickle as pk
+# from gnuplot import Gnuplot, linedef
+import inmet as im
 
-from gnuplot import Gnuplot, linedef
-from inmet.utils import get_par
-import inmet.inmet_aux as ina
 
-__all__ = ("Satorbit")
+__all__ = ["SatOrbit"]
 
-class Satorbit(object):
+
+class SatOrbit(im.Save):
     def __init__(self, path, mode):
         
         if mode == "fit_file":
@@ -33,11 +31,8 @@ class Satorbit(object):
         elif mode == "doris" or mode == "gamma":
             self.read_orbits(path, mode)
     
+    
     def read_orbits(self, path, preproc):
-    
-        if not isfile(path):
-            raise IOError("{} is not a file.".format(path))
-    
         with open(path, "r") as f:
             lines = f.readlines()
         
@@ -80,8 +75,8 @@ class Satorbit(object):
                         lines)) for ii in range(data_num)])
             
         else:
-            raise ValueError("preproc should be either \"doris\" or \"gamma\" "
-                             "not {}".format(preproc))
+            raise ValueError('preproc should be either "doris" or "gamma" '
+                             'not %s' % preproc)
         
         self.time = time
         self.coords = coords
@@ -112,34 +107,10 @@ class Satorbit(object):
                                     dtype=np.double).reshape(3, deg + 1)
 
     
-    def fit_orbit(self, centered=True, deg=3):
+    def fit_orbit(self, deg=3):
+        self.fit = im.PolyFit(self.time, self.coords, deg, order="cols")
         
-        time, coords = self.time, self.coords
-        
-        self.centered = centered
-        self.deg = deg
-        
-        self.t_start = np.min(time)
-        self.t_stop  = np.max(time)
-        
-        if centered:
-            mean_t = np.mean(time)
-            mean_coords = np.mean(coords, axis=0)
     
-            time -= mean_t
-            to_fit = coords - mean_coords
-        else:
-            to_fit = coords
-            cent = "centered:\t0\n"
-        
-        design = np.vander(time, deg + 1)
-        
-        # coeffs[0]: polynom coeffcients are in the columns
-        # coeffs[1]: residuals
-        # coeffs[2]: rank of design matrix
-        # coeffs[3]: singular values of design matrix
-        self.coeffs = np.linalg.lstsq(design, to_fit, rcond=None)
-        
     def save_fit(self, savefile):
         
         time, coeffs = self.time, self.coeffs
@@ -179,6 +150,7 @@ class Satorbit(object):
                            self.mean_coords, self.centered, self.coeffs,
                            self.deg, max_iter, is_lonlat, coords)
 
+    
     def plot_orbit(self, plotfile, nsamp=100):
         
         coeffs = self.coeffs[0].T

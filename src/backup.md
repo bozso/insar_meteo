@@ -2,6 +2,58 @@
 
 ## Numpy to Eigen
 ```c++
+// from https://www.modernescpp.com/index.php/c-core-guidelines-rules-for-variadic-templates
+
+void print(const char* format)
+{
+    std::cout << format;
+}
+
+ 
+template<typename T, typename ... Args>
+void print(const char* format, T value, Args ... args)
+{
+    for ( ; *format != '\0'; format++ ) {
+        if ( *format == '%' ) {
+           std::cout << value;
+           print(format + 1, args ... );
+           return;
+        }
+        std::cout << *format;
+    }
+}
+
+
+template<class T>
+class ptr {
+    private T* pointer;
+    
+    typedef T val_t;
+    typedef T* ptr_t;
+    
+    
+    ptr(): pointer(nullptr) {}
+    ~ptr() = default;
+
+    ptr(ptr const&) = default;
+    ptr& operator=(ptr const&) = default;
+
+    ptr(ptr&&) = delete;
+    ptr& operator=(ptr&&) = delete;
+    
+    ptr(ptr_t other) pointer(other) {}
+    ptr& operator=(ptr_t const other) { pointer = other };
+    
+    val_t& operator*() { return *pointer; }
+    val_t& operator[](idx ii) { return pointer[ii]; }
+    
+    val_t const& operator*() const { return *pointer; }
+    val_t const& operator[](idx ii) const { return pointer[ii]; }
+    
+    ptr_t get() const { return pointer; }
+};
+
+
 template<class trait, class T>
 void type_assert()
 {

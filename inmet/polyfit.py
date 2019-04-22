@@ -8,7 +8,7 @@ class PolyFit(Save):
 
     @staticmethod
     def make_jacobi(x, deg):
-        assert deg >= 1
+        assert deg >= 1, "deg should be at least 1."
         
         return np.vander(x, deg + 1)
 
@@ -63,6 +63,7 @@ class PolyFit(Save):
             x = np.asarray(x)
         if isinstance(x, np.ndarray) and tensor:
             c = self.coeffs.reshape(self.coeffs.shape + (1,) * x.ndim)
+        
         
         if self.nfit == 1:
             c0 = c[0] + x * 0

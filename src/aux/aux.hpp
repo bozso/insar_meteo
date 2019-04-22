@@ -1,12 +1,13 @@
-#ifndef AUX_HPP
-#define AUX_HPP
+#pragma once
 
 #include <iostream>
+#include <array>
 #include <complex>
 #include <memory>
 #include <functional>
 
 #include "type_info.hpp"
+
 
 #define type_assert(T, P, msg) static_assert(T<P>::value, msg)
 #define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
@@ -14,34 +15,14 @@
 
 namespace aux {
 
-// from https://www.modernescpp.com/index.php/c-core-guidelines-rules-for-variadic-templates
-
-/*
-void print(const char* format)
-{
-    std::cout << format;
-}
-
- 
-template<typename T, typename ... Args>
-void print(const char* format, T value, Args ... args)
-{
-    for ( ; *format != '\0'; format++ ) {
-        if ( *format == '%' ) {
-           std::cout << value;
-           print(format + 1, args ... );
-           return;
-        }
-        std::cout << *format;
-    }
-}
-*/
-
+typedef long idx;
 
 template<class T>
 using ptr = T*;
 
-typedef long idx;
+template<class T>
+using cptr = ptr<T> const;
+
 
 // Dynamic number of dimensions
 static idx constexpr Dynamic = -1;
@@ -50,8 +31,8 @@ static idx constexpr col = 1;
 
 static idx constexpr maxdim = 64;
 
-
 static std::string const end = "\n";
+
 
 // Forward declarations
 
@@ -60,9 +41,12 @@ struct ArrayInfo;
 template<class T, idx ndim>
 struct Array;
 
+struct PolyFit;
+
 typedef ptr<ArrayInfo> array_ptr;
 typedef ptr<ArrayInfo> const inarray;
 typedef ptr<ArrayInfo> const outarray;
+
 
 typedef char memtype;
 typedef ptr<memtype> memptr;
@@ -123,7 +107,7 @@ struct View
     // make necessary items constant
     ptr<T> data;
     ptr<idx const> _shape;
-    idx _strides[maxdim];
+    std::array<idx, maxdim> _strides;
 
 
     View() = default;
@@ -197,13 +181,19 @@ struct ArrayInfo {
     bool check_shape(idx const nelem, idx dim = 0) const;
 
 
+    
+    RTypeInfo const& get_type() const
+    {
+        return type_info(type);
+    }
+    
     // Some sanity checks.
     
     template<class T, idx ndim>
     void basic_check() const
     {
         static_assert(ndim < maxdim, "Exceeded maximum number of dimensions!");
-        type_assert(std::is_pod, T, "Type should be Plain Old Datatype!");
+        //type_assert(std::is_pod, T, "Type should be Plain Old Datatype!");
         type_assert(not std::is_void, T, "Type should not be void!");
         type_assert(not std::is_null_pointer, T, "Type should not be nullptr!");
         type_assert(not std::is_pointer, T, "Type should not be a pointer!");
@@ -225,7 +215,7 @@ struct ArrayInfo {
     {
         basic_check<T, ndim>();
         
-        auto const& arr_type = type_info(type), req_type = type_info<T>();
+        auto const& arr_type = get_type(), req_type = type_info<T>();
         
         if (arr_type.id != req_type.id) {
             printf("View id: %d, array id: %d\n", arr_type.id, req_type.id); 
@@ -241,18 +231,18 @@ struct ArrayInfo {
         if (is_numpy) {
             auto const _ndim = this->ndim;
             
-            ret.memory.alloc(sizeof(idx) * _ndim);
-            
-            ret._strides = reinterpret_cast<idx*>(ret.memory.get());
             idx const dsize = datasize;
-
             
             for (idx ii = 0; ii < _ndim; ++ii) {
                 ret._strides[ii] = idx(double(strides[ii]) / dsize);
             }
         }
         else {
-            ret._strides = strides;
+            auto const _ndim = this->ndim;
+
+            for (idx ii = 0; ii < _ndim; ++ii) {
+                ret._strides[ii] = strides[ii];
+            }
         }
         
         ret.data = reinterpret_cast<T*>(data);
@@ -365,7 +355,7 @@ struct Array {
     convert(converter_factory(array.type))
     {
         array.basic_check<T, ndim>();
-        auto const& arr_type = type_info(array.type), req_type = type_info<T>();
+        auto const& arr_type = array.get_type(), req_type = type_info<T>();
         check_match(arr_type, req_type);
     }
 
@@ -381,7 +371,137 @@ template<class T>
 using DArray = Array<T, Dynamic>;
 
 
+#define switcher(f, type_id, ...)                      \
+do {                                                   \
+    switch (static_cast<dtype>((type_id))) {           \
+        case dtype::Int:                               \
+            f<int>(__VA_ARGS__);                       \
+            break;                                     \
+        case dtype::Long:                              \
+            f<long>(__VA_ARGS__);                      \
+            break;                                     \
+        case dtype::Size_t:                            \
+            f<size_t>(__VA_ARGS__);                    \
+            break;                                     \
+                                                       \
+        case dtype::Int8:                              \
+            f<int8_t>(__VA_ARGS__);                    \
+            break;                                     \
+        case dtype::Int16:                             \
+            f<int16_t>(__VA_ARGS__);                   \
+            break;                                     \
+        case dtype::Int32:                             \
+            f<int32_t>(__VA_ARGS__);                   \
+            break;                                     \
+        case dtype::Int64:                             \
+            f<int64_t>(__VA_ARGS__);                   \
+            break;                                     \
+                                                       \
+                                                       \
+        case dtype::UInt8:                             \
+            f<uint8_t>(__VA_ARGS__);                   \
+            break;                                     \
+        case dtype::UInt16:                            \
+            f<uint16_t>(__VA_ARGS__);                  \
+            break;                                     \
+        case dtype::UInt32:                            \
+            f<uint32_t>(__VA_ARGS__);                  \
+            break;                                     \
+        case dtype::UInt64:                            \
+            f<uint64_t>(__VA_ARGS__);                  \
+            break;                                     \
+                                                       \
+        case dtype::Float32:                           \
+            f<float>(__VA_ARGS__);                     \
+            break;                                     \
+        case dtype::Float64:                           \
+            f<double>(__VA_ARGS__);                    \
+            break;                                     \
+                                                       \
+        case dtype::Complex64:                         \
+            f<cpxf>(__VA_ARGS__);                      \
+            break;                                     \
+        case dtype::Complex128:                        \
+            f<cpxd>(__VA_ARGS__);                      \
+            break;                                     \
+                                                       \
+        case dtype::Unknown:                           \
+            throw std::runtime_error("Unknown type!"); \
+            break;                                     \
+    }                                                  \
+} while(0)
+
+
+/*
+template<class Fun, class... Args>
+void switcher(int const type_id, Fun f, Args&&... args)
+{
+    switch(static_cast<dtype>(type_id)) {
+        case dtype::Int:
+            f<int>(std::forward<Args>(args)...);
+            break;
+        case dtype::Long:
+            f<long>(std::forward<Args>(args)...);
+            break;
+        case dtype::Size_t:
+            f<size_t>(std::forward<Args>(args)...);
+            break;
+        
+        case dtype::Int8:
+            f<int8_t>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::Int16:
+            f<int16_t>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::Int32:
+            f<int32_t>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::Int64:
+            f<int64_t>(std::forward<Args>(args)...);
+            break;
+            
+
+        case dtype::UInt8:
+            f<uint8_t>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::UInt16:
+            f<uint16_t>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::UInt32:
+            f<uint32_t>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::UInt64:
+            f<uint64_t>(std::forward<Args>(args)...);
+            break;
+   
+        case dtype::Float32:
+            f<float>(std::forward<Args>(args)...);
+            break;
+   
+        case dtype::Float64:
+            f<double>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::Complex64:
+            f<cpxf>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::Complex128:
+            f<cpxd>(std::forward<Args>(args)...);
+            break;
+
+        case dtype::Unknown:
+            throw std::runtime_error("Unknown type!");
+            break;
+    }
+}
+*/
+
 // aux namespace
 }
-
-#endif

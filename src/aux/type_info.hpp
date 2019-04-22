@@ -1,5 +1,4 @@
-#ifndef AUX_TYPEINFO_HPP
-#define AUX_TYPEINFO_HPP
+#pragma once
 
 #include <type_traits>
 #include <complex>
@@ -125,6 +124,3 @@ struct RTypeInfo {
 
 // aux namespace
 }
-
-// guard
-#endif

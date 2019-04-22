@@ -1,7 +1,8 @@
-from inmet import CLib
+from inmet import CLib, npc
+import numpy as np
 
-inmet = CLib("inmet_aux", fpath)
-inmet.test = inmet.wrap("test", [POINTER(Carray)])
+inmet = CLib("inmet_aux")
+test = inmet.wrap("test", [CLib.arr_ptr])
 
 
 def main():
@@ -17,7 +18,7 @@ def main():
     #print(a1.data, ptr)
     
     print("Numpy sum: ", _a1.sum())
-    inmet.test(a1)
+    test(a1)
     
     return 0
 

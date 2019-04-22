@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
+
 from argparse import ArgumentParser
 from subprocess import check_output, CalledProcessError, STDOUT
 from shlex import split
@@ -20,14 +22,12 @@ from logging import getLogger
 from os.path import join as pjoin
 from imp import load_source
 from distutils.ccompiler import new_compiler
-from ctypes import *
 from os.path import dirname, realpath, join
 from pickle import dump, load
+from ctypes import *
 
-import numpy as np
 
-
-__all__ = ("CLib", "npc", "get_filedir", "Save", "iteraxis")
+__all__ = ["CLib", "Carray", "npc", "get_filedir", "Save", "iteraxis"]
 
 
 class Save(object):
@@ -40,7 +40,7 @@ class Save(object):
     def save(self, path):
         with open(path, "wb") as f:
             dump(self, f)
-    
+
 
 def get_filedir():
     return dirname(realpath(__file__))
@@ -62,6 +62,7 @@ class Carray(Structure):
 
 
 class CLib(object):
+    arr_ptr = POINTER(Carray)
     lib_filename = new_compiler().library_filename
     build_dir = join(get_filedir(), "..", "src", "build")
 

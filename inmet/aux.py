@@ -1,28 +1,12 @@
-from inmet import CLib, npc
+import inmet as im
 import numpy as np
-
-inmet = CLib("inmet_aux")
-test = inmet.wrap("test", [CLib.arr_ptr])
+import ctypes as ct
 
 
-def main():
-    #_a1 = np.array([1 for ii in range(1000)], dtype=np.float64)
-    #_a1 = np.array([1, 2, 3], dtype=np.float64)
-    _a1 = np.random.rand(10000)
-    print(_a1.dtype, " ", _a1.shape[0])
-    #_a2 = np.array([1 for ii in range(140)], dtype=np.float64)
-    
-    #a1, a2 = npc(_a1), npc(_a2)
-    #print(_a1.__array_interface__)
-    a1 = npc(_a1)
-    #print(a1.data, ptr)
-    
-    print("Numpy sum: ", _a1.sum())
-    test(a1)
-    
-    return 0
+__all__ = ["test", "eval_poly"]
 
 
-if __name__ == "__main__":
-    main()
+inmet = im.CLib("inmet_aux")
 
+test = inmet.wrap("test", ["Array"])
+eval_poly = inmet.wrap("eval_poly_c", ["PolyFitC", "Array", "Array"])

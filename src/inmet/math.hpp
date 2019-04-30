@@ -7,8 +7,11 @@ struct PolyFit {
     inarray coeffs, ncoeffs;
 };
 
-typedef cptr<PolyFit const> inpoly;
+using inpoly = PolyFit const&;
+using outpoly = PolyFit&;
 
-void eval_poly(inpoly poly, inarray x, inarray y);
+//typedef cptr<PolyFit const> inpoly;
+
+void eval_poly(inpoly poly, inarray x, outarray y);
 
 }

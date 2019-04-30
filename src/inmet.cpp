@@ -20,10 +20,10 @@ extern "C" {
 int test(inarray _a)
 {
     try {
-        auto a = _a->array<double, 1>();
+        auto a = _a.array<double>(1);
         //printf("Pointers: %p %p\n", _a->data, asd);
 
-        cout << aux::type_info(_a->type).name << " " << _a->shape[0] << end;
+        //cout << aux::type_info(_a->type).name << " " << _a->shape[0] << end;
 
         //idx const ii = 0;
         //aux::memptr data = a.data + ii * a.strides[0];
@@ -45,7 +45,7 @@ int test(inarray _a)
         
         double sum = 0.0;
         
-        for (idx ii = 0; ii < _a->shape[0]; ++ii) {
+        for (idx ii = 0; ii < _a.shape[0]; ++ii) {
             //cout << a(ii) << " ";
             sum += a(ii);
         }
@@ -61,7 +61,7 @@ int test(inarray _a)
 }
 
 
-int eval_poly_c(inpoly poly, inarray x, inarray y)
+int eval_poly_c(inpoly poly, inarray x, outarray y)
 {
     try {
         aux::eval_poly(poly, x, y);
@@ -73,6 +73,18 @@ int eval_poly_c(inpoly poly, inarray x, inarray y)
     }
 
 }
+
+
+/*
+int aaa(int& ii)
+{
+    cout << "C++: Number before: " << ii << end;
+    ii++;
+    cout << "C++: Number after: " << ii << end;
+
+    return 0;
+}
+*/
 
 // extern "C"
 }

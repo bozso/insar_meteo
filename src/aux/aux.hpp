@@ -15,7 +15,7 @@
 
 namespace aux {
 
-typedef long idx;
+using idx = long;
 
 template<class T>
 using ptr = T*;
@@ -38,18 +38,19 @@ static std::string const end = "\n";
 
 struct ArrayInfo;
 
-template<class T, idx ndim>
+template<class T>
 struct Array;
 
-struct PolyFit;
 
-typedef ptr<ArrayInfo> array_ptr;
-typedef ptr<ArrayInfo> const inarray;
-typedef ptr<ArrayInfo> const outarray;
+// typedef ptr<ArrayInfo> const inarray;
+// typedef ptr<ArrayInfo> const outarray;
+
+using inarray = ArrayInfo const&;
+using outarray = ArrayInfo&;
 
 
-typedef char memtype;
-typedef ptr<memtype> memptr;
+using memtype = char;
+using memptr = ptr<memtype>;
 
 
 RTypeInfo const& type_info(int const type);
@@ -83,8 +84,8 @@ struct Memory
     Memory(): _memory(nullptr), _size(0) {};
     Memory(idx const size);
 
-    Memory(Memory const&) = default;
-    Memory(Memory&&) = default;
+    Memory(Memory const&) = delete;
+    Memory(Memory&&) = delete;
     
     Memory& operator=(Memory const&) = default;
     Memory& operator=(Memory&&) = default;
@@ -101,7 +102,7 @@ struct Memory
 };
 
 
-template<class T, idx ndim = Dynamic>
+template<class T>
 struct View
 {
     // make necessary items constant
@@ -189,17 +190,23 @@ struct ArrayInfo {
     
     // Some sanity checks.
     
-    template<class T, idx ndim>
-    void basic_check() const
+    template<class T>
+    void basic_check(idx const ndim) const
     {
-        static_assert(ndim < maxdim, "Exceeded maximum number of dimensions!");
+        if (ndim > maxdim) {
+            throw std::runtime_error("Exceeded maximum number of dimensions!");
+        }
+        
+        if (ndim < 0 and ndim != Dynamic) {
+            throw std::runtime_error("ndim should be either a "
+                                     "positive integer or Dynamic");
+        }
+        
         //type_assert(std::is_pod, T, "Type should be Plain Old Datatype!");
+        
         type_assert(not std::is_void, T, "Type should not be void!");
         type_assert(not std::is_null_pointer, T, "Type should not be nullptr!");
         type_assert(not std::is_pointer, T, "Type should not be a pointer!");
-    
-        static_assert(ndim > 0 or ndim == Dynamic,
-                      "ndim should be either a positive integer or Dynamic");
         
         auto const _ndim = this->ndim;
         
@@ -210,10 +217,10 @@ struct ArrayInfo {
     }
 
 
-    template<class T, idx ndim = Dynamic>
-    View<T, ndim> view()
+    template<class T>
+    View<T> view(idx const ndim) const
     {
-        basic_check<T, ndim>();
+        basic_check<T>(ndim);
         
         auto const& arr_type = get_type(), req_type = type_info<T>();
         
@@ -224,7 +231,7 @@ struct ArrayInfo {
         
         check_match(arr_type, req_type);
 
-        View<T, ndim> ret;
+        View<T> ret;
         ret._shape = shape;
         ret._strides = {0};
         
@@ -251,8 +258,11 @@ struct ArrayInfo {
     }
 
 
-    template<class T, idx ndim = Dynamic>
-    Array<T, ndim> const array() { return Array<T, ndim>(this); }
+    template<class T>
+    Array<T> const array(idx const ndim) const
+    {
+        return Array<T>(*this, ndim);
+    }
 };
 
 
@@ -284,7 +294,7 @@ static T convert(memptr in)
 [](memptr in) { return *reinterpret_cast<T*>(in); }
 
 
-template<class T, idx ndim = Dynamic>
+template<class T>
 struct Array {
     typedef T value_type;
     typedef std::function<value_type(memptr)> convert_fun;
@@ -349,12 +359,12 @@ struct Array {
     }
 
     
-    explicit Array(inarray arr_ptr)
+    explicit Array(inarray arr_ref, idx const ndim)
     :
-    array(*arr_ptr), data(arr_ptr->data), strides(arr_ptr->strides),
+    array(arr_ref), data(arr_ref.data), strides(arr_ref.strides),
     convert(converter_factory(array.type))
     {
-        array.basic_check<T, ndim>();
+        array.basic_check<T>(ndim);
         auto const& arr_type = array.get_type(), req_type = type_info<T>();
         check_match(arr_type, req_type);
     }
@@ -365,10 +375,6 @@ struct Array {
         return convert(data + ii * strides[0]);
     }
 };
-
-
-template<class T>
-using DArray = Array<T, Dynamic>;
 
 
 #define switcher(f, type_id, ...)                      \

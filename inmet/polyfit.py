@@ -1,10 +1,13 @@
-from inmet import Save, iteraxis
+import inmet as im
+from ctypes import Structure
+
 import numpy as np
+
 
 __all__ = ["PolyFit"]
 
 
-class PolyFit(Save):
+class PolyFit(im.Save):
 
     @staticmethod
     def make_jacobi(x, deg):
@@ -48,15 +51,21 @@ class PolyFit(Save):
                 self.coeffs = PolyFit.polyfit(x, y, jacobi=jacobi)
             else:
                 coeffs = (PolyFit.polyfit(x, Y, jacobi=jacobi[:,-deg[ii] - 1:])
-                          for ii, Y in enumerate(iteraxis(y, axis)))
+                          for ii, Y in enumerate(im.iteraxis(y, axis)))
                 
                 
                 self.coeffs = np.hstack(coeffs)
         else:
             self.nfit = 1
             self.deg = mdeg
+            self.ncoeffs = None
             self.coeffs = PolyFit.polyfit(x, y, jacobi=jacobi)    
-
+        
+        #self.ptr_coeffs, self.ptr_ncoeffs = \
+        #arr_ptr(self.coeffs), arr_ptr(self.ncoeffs)
+        self.ptr = im.PolyFitC.ptr(self.nfit, im.np_ptr(self.coeffs),
+                                              im.np_ptr(self.ncoeffs))
+    
     
     def __call__(self, x, tensor=True):
         if isinstance(x, (tuple, list)):
@@ -73,4 +82,8 @@ class PolyFit(Save):
 
             return c0
         else:
-            pass
+            y = np.empty((x.shape[0], self.nfit))
+            im.eval_poly(self.ptr, im.np_ptr(x), im.np_ptr(y))
+            return y
+
+

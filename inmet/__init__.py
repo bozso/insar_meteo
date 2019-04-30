@@ -16,6 +16,8 @@
 """
 Module
 """
+
 from .utils import *
+from .aux import *
 from .polyfit import *
 from .satorbit import *

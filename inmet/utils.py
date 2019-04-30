@@ -24,10 +24,19 @@ from imp import load_source
 from distutils.ccompiler import new_compiler
 from os.path import dirname, realpath, join
 from pickle import dump, load
+from sys import version_info
 from ctypes import *
 
 
-__all__ = ["CLib", "Carray", "npc", "get_filedir", "Save", "iteraxis"]
+__all__ = ["PY3", "CLib", "Array", "PolyFitC", "get_filedir", "Save",
+           "iteraxis", "str_t", "np_ptr"]
+
+PY3 = version_info[0] == 3
+
+if PY3:
+    str_t = str,
+else:
+    str_t = basestring,
 
 
 class Save(object):
@@ -50,27 +59,64 @@ c_idx = c_long
 c_idx_p = POINTER(c_idx)
 
 
-class Carray(Structure):
-    _fields_ = [("type", c_int),
-                ("is_numpy", c_int),
-                ("ndim", c_idx),
-                ("ndata", c_idx),
-                ("datasize", c_idx),
-                ("shape", c_idx_p), 
-                ("strides", c_idx_p),
-                ("data", c_char_p)]
+class Struct(Structure):
+    @classmethod
+    def ptr(cls, *args):
+        return pointer(cls(*args))
+
+
+class Array(Struct):
+    _fields_ = [
+        ("type", c_int),
+        ("is_numpy", c_int),
+        ("ndim", c_idx),
+        ("ndata", c_idx),
+        ("datasize", c_idx),
+        ("shape", c_idx_p), 
+        ("strides", c_idx_p),
+        ("data", c_char_p)
+    ]
+
+
+arr_ptr = POINTER(Array)
+
+
+class PolyFitC(Struct):
+    
+    _fields_ = [
+        ("nfit", c_idx),
+        ("coeffs", arr_ptr),
+        ("ncoeffs", arr_ptr)
+    ]
+
+
+ptr_dict = {
+    struct.__name__ : POINTER(struct)
+    for struct in (Array, PolyFitC)
+}
+
+
+lib_filename = new_compiler().library_filename
+
+
+def np_ptr(array, **kwargs):
+    array = np.array(array, **kwargs)
+    act = array.ctypes
+    
+    return pointer(Array(type_conversion[array.dtype], 1,
+                         c_idx(array.ndim), c_idx(array.size),
+                         c_idx(array.itemsize), act.shape_as(c_idx),
+                         act.strides_as(c_idx), act.data_as(c_char_p)))
 
 
 class CLib(object):
-    arr_ptr = POINTER(Carray)
-    lib_filename = new_compiler().library_filename
     build_dir = join(get_filedir(), "..", "src", "build")
 
     def __init__(self, name, path=None):
         if path is None:
-            self.path = join(CLib.build_dir, CLib.lib_filename(name, lib_type="shared"))
+            self.path = join(CLib.build_dir, lib_filename(name, lib_type="shared"))
         else:
-            self.path = join(path, CLib.lib_filename(name, lib_type="shared"))
+            self.path = join(path, lib_filename(name, lib_type="shared"))
 
         self.lib = CDLL(self.path)
 
@@ -79,15 +125,22 @@ class CLib(object):
         ''' Simplify wrapping ctypes functions '''
         func = getattr(self.lib, funcname)
         func.restype = restype
+        
+        argtypes = (
+            ptr_dict[arg] if isinstance(arg, str_t)
+            else arg
+            for arg in argtypes
+        )
+        
         func.argtypes = argtypes
         
-        
+
         def fun(*args):
             ret = func(*args)
             
             if ret != 0:
-                raise RuntimeError("Function %s from library %s returned "
-                                   "with non-zero value!" % (funcname, self.lib))
+                raise RuntimeError('Function "%s" from library "%s" returned '
+                                   'with non-zero value!' % (funcname, self.lib))
         
         return fun
 
@@ -113,17 +166,6 @@ type_conversion = {
     np.dtype(np.complex64)   : 14,
     np.dtype(np.complex128)  : 15
 }
-
-
-
-def npc(array, **kwargs):
-    array = np.array(array, **kwargs)
-    act = array.ctypes
-    
-    return Carray(type_conversion[array.dtype], 1,
-                  c_idx(array.ndim), c_idx(array.size), c_idx(array.itemsize),
-                  act.shape_as(c_idx), act.strides_as(c_idx),
-                  act.data_as(c_char_p))
 
 
 log = getLogger("inmet.utils")

@@ -20,18 +20,20 @@ from subprocess import check_output, CalledProcessError, STDOUT
 from shlex import split
 from logging import getLogger
 from os.path import join as pjoin
-from imp import load_source
 from distutils.ccompiler import new_compiler
 from os.path import dirname, realpath, join
 from pickle import dump, load
 from sys import version_info
+from numpy.ctypeslib import _ndptr, ndpointer
 from ctypes import *
 
 
-__all__ = ["PY3", "CLib", "Array", "PolyFitC", "get_filedir", "Save",
-           "iteraxis", "str_t", "np_ptr"]
+__all__ = ["PY3", "CLib", "CStruct", "c_arr_p", "arrptr", "get_filedir", "Save",
+           "iteraxis", "str_t", "inarray", "outarray", "c_idx"]
 
+           
 PY3 = version_info[0] == 3
+
 
 if PY3:
     str_t = str,
@@ -59,13 +61,25 @@ c_idx = c_long
 c_idx_p = POINTER(c_idx)
 
 
-class Struct(Structure):
+class CStruct(Structure):
     @classmethod
     def ptr(cls, *args):
         return pointer(cls(*args))
+    
+    def make_ptr(self):
+        self.ptr = pointer(self)
+    
+    
+    @classmethod
+    def from_param(cls, obj):
+        try:
+            return obj.ptr
+        except AttributeError:
+            obj.make_ptr()
+            return obj.ptr
 
 
-class Array(Struct):
+class Array(CStruct):
     _fields_ = [
         ("type", c_int),
         ("is_numpy", c_int),
@@ -76,37 +90,46 @@ class Array(Struct):
         ("strides", c_idx_p),
         ("data", c_char_p)
     ]
-
-
-arr_ptr = POINTER(Array)
-
-
-class PolyFitC(Struct):
     
-    _fields_ = [
-        ("nfit", c_idx),
-        ("coeffs", arr_ptr),
-        ("ncoeffs", arr_ptr)
-    ]
+    
+    
+    @classmethod
+    def from_array(cls, *args, **kwargs):
+        tmp = np.array(*args, **kwargs)
+        
+        ct = tmp.ctypes
+        
+        return cls(type_conversion[ct.dtype], 1, c_idx(ct.ndim),
+                   c_idx(tmp.size), c_idx(tmp.itemsize), ct.shape_as(c_idx),
+                   ct.strides_as(c_idx), ct.data_as(c_char_p))
+    
+    
+    @classmethod
+    def ptr(cls, *args, **kwargs):
+        return cls.from_array(*args, **kwargs)
+
+    
+    # TODO: modify, _ndptr return is bad
+    @classmethod
+    def from_param(cls, obj):
+        return pointer(cls.from_array(_ndptr.from_param(cls, obj)))
 
 
-ptr_dict = {
-    struct.__name__ : POINTER(struct)
-    for struct in (Array, PolyFitC)
-}
+c_arr_p = POINTER(Array)
+
+
+def arrptr(**kwargs):
+    tmp = ndpointer(**kwargs)
+    tmp.from_param = Array.from_param
+    
+    return tmp
+
+
+inarray = arrptr(flags=["C_CONTIGUOUS", "OWNDATA"])
+outarray = arrptr(flags=["C_CONTIGUOUS", "OWNDATA", "WRITEABLE"])
 
 
 lib_filename = new_compiler().library_filename
-
-
-def np_ptr(array, **kwargs):
-    array = np.array(array, **kwargs)
-    act = array.ctypes
-    
-    return pointer(Array(type_conversion[array.dtype], 1,
-                         c_idx(array.ndim), c_idx(array.size),
-                         c_idx(array.itemsize), act.shape_as(c_idx),
-                         act.strides_as(c_idx), act.data_as(c_char_p)))
 
 
 class CLib(object):
@@ -126,11 +149,11 @@ class CLib(object):
         func = getattr(self.lib, funcname)
         func.restype = restype
         
-        argtypes = (
-            ptr_dict[arg] if isinstance(arg, str_t)
-            else arg
-            for arg in argtypes
-        )
+        #argtypes = (
+            #ptr_dict[arg] if isinstance(arg, str_t)
+            #else arg
+            #for arg in argtypes
+        #)
         
         func.argtypes = argtypes
         
@@ -168,17 +191,12 @@ type_conversion = {
 }
 
 
-log = getLogger("inmet.utils")
+# log = getLogger("inmet.utils")
 
 
 ellipsoids = {
     "mercator": (6378137.0, 8.1819190903e-2)
 }
-
-
-def make(*path):
-    make = load_source("main", pjoin(*path))
-    make.main()
     
 
 def ell2merc(lon, lat, isdeg=True, ellipsoid="mercator", lon0=None, fast=False):

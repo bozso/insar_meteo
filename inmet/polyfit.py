@@ -1,13 +1,18 @@
-import inmet as im
-from ctypes import Structure
-
 import numpy as np
+
+import inmet as im
+
 
 
 __all__ = ["PolyFit"]
 
 
-class PolyFit(im.Save):
+class PolyFit(im.Save, im.CStruct):
+    _fields_ = [
+        ("nfit", im.c_idx),
+        ("_coeffs", im.c_arr_p),
+        ("_ncoeffs", im.c_arr_p)
+    ]
 
     @staticmethod
     def make_jacobi(x, deg):
@@ -61,6 +66,9 @@ class PolyFit(im.Save):
             self.ncoeffs = None
             self.coeffs = PolyFit.polyfit(x, y, jacobi=jacobi)    
         
+        # self._coeffs, self._ncoeffs = 
+        
+        
         #self.ptr_coeffs, self.ptr_ncoeffs = \
         #arr_ptr(self.coeffs), arr_ptr(self.ncoeffs)
         self.ptr = im.PolyFitC.ptr(self.nfit, im.np_ptr(self.coeffs),
@@ -83,7 +91,7 @@ class PolyFit(im.Save):
             return c0
         else:
             y = np.empty((x.shape[0], self.nfit))
-            im.eval_poly(self.ptr, im.np_ptr(x), im.np_ptr(y))
+            im.eval_poly(self, x, y)
             return y
 
 

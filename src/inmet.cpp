@@ -14,7 +14,6 @@ using aux::idx;
 using aux::end;
 //using aux::print;
 
-
 extern "C" {
 
 int test(inarray _a)

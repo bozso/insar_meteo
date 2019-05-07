@@ -38,7 +38,16 @@ def main():
              #"will be subtracted from the coordinates and time values "
              #"before fitting.", kind="flag")
     #)
-        
+    
+    a = np.array([1, 2, 3])
+    
+    print(a.ctypes.dtype)
+    
+    return
+    
+    im.test(a)
+    return
+    
     sat = im.SatOrbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res", "doris")
     
     sat.fit_orbit(deg=2)

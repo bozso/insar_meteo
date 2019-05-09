@@ -83,7 +83,7 @@ int const tpl2dtype()
 
 
 struct RTypeInfo {
-    typedef char const*const name_t;
+    using name_t = char const*const;
     
     bool const is_pointer, is_void, is_complex, is_float, is_scalar,
                is_arithmetic, is_pod;

@@ -66,8 +66,16 @@ class CStruct(Structure):
     def ptr(cls, *args):
         return pointer(cls(*args))
     
+    
     def make_ptr(self):
         self.ptr = pointer(self)
+    
+    
+    @classmethod
+    def get_ptr_t(cls):
+        return POINTER(cls)
+    
+    ptr_t = property(get_ptr_t)
     
     
     @classmethod

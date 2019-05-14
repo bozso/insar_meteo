@@ -7,12 +7,15 @@ import inmet as im
 __all__ = ["PolyFit"]
 
 
-class PolyFit(im.Save, im.CStruct):
+class PolyFitC(im.CStruct):
     _fields_ = [
         ("nfit", im.c_idx),
-        ("_coeffs", im.c_arr_p),
-        ("_ncoeffs", im.c_arr_p)
+        ("coeffs", im.c_arr_p),
+        ("ncoeffs", im.c_arr_p)
     ]
+
+
+class PolyFit(im.Save):
 
     @staticmethod
     def make_jacobi(x, deg):
@@ -66,11 +69,6 @@ class PolyFit(im.Save, im.CStruct):
             self.ncoeffs = None
             self.coeffs = PolyFit.polyfit(x, y, jacobi=jacobi)    
         
-        # self._coeffs, self._ncoeffs = 
-        
-        
-        #self.ptr_coeffs, self.ptr_ncoeffs = \
-        #arr_ptr(self.coeffs), arr_ptr(self.ncoeffs)
         self.ptr = im.PolyFitC.ptr(self.nfit, im.np_ptr(self.coeffs),
                                               im.np_ptr(self.ncoeffs))
     
@@ -78,11 +76,12 @@ class PolyFit(im.Save, im.CStruct):
     def __call__(self, x, tensor=True):
         if isinstance(x, (tuple, list)):
             x = np.asarray(x)
-        if isinstance(x, np.ndarray) and tensor:
-            c = self.coeffs.reshape(self.coeffs.shape + (1,) * x.ndim)
         
         
         if self.nfit == 1:
+            if isinstance(x, np.ndarray) and tensor:
+                c = self.coeffs.reshape(self.coeffs.shape + (1,) * x.ndim)
+
             c0 = c[0] + x * 0
             
             for coeff in c[1:]:
@@ -90,8 +89,10 @@ class PolyFit(im.Save, im.CStruct):
 
             return c0
         else:
-            y = np.empty((x.shape[0], self.nfit))
-            im.eval_poly(self, x, y)
+            y = im.empty(x, shape=(x.shape[0], self.nfit))
+            
+            im.eval_poly(self.nfit, self.coeffs, self.ncoeffs, x, y)
+            
             return y
 
 

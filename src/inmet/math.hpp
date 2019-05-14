@@ -12,6 +12,7 @@ using outpoly = PolyFit&;
 
 //typedef cptr<PolyFit const> inpoly;
 
-void eval_poly(inpoly poly, inarray x, outarray y);
+void eval_poly(int nfit, inarray coeffs, inarray ncoeffs,
+              inarray x, outarray y);
 
 }

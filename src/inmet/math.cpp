@@ -4,16 +4,16 @@
 namespace aux {
 
 template<class T>
-static void eval_poly_tpl(inpoly poly, inarray X, outarray Y)
+static void eval_poly_tpl(int nfit, inarray coeffs, inarray ncoeffs,
+                          inarray X, outarray Y)
 {
-    auto const& nfit = poly.nfit;
-    auto x = X.view<T>(1);
+    auto x = X.array<T>(1);
     auto y = Y.view<T>(2);
-    auto coeffs = poly.coeffs.array<T>(1);
-    auto ncoeffs = poly.ncoeffs.array<idx>(1);
+    auto vcoeffs = coeffs.array<T>(1);
+    auto vncoeffs = ncoeffs.array<idx>(1);
 
     for (idx ii = 0; ii < X.shape[0]; ++ii) {
-        idx start = 0, stop = ncoeffs(0);
+        idx start = 0, stop = vncoeffs(0);
         auto const& _x = x(ii);
         
         for (idx nn = 0; nn < nfit; ++nn) {
@@ -34,26 +34,34 @@ static void eval_poly_tpl(inpoly poly, inarray X, outarray Y)
                jj = 7, 8
              */
             
-            T sum = coeffs(start);
+            T sum = vcoeffs(start);
             
             for (idx jj = start + 1; jj < stop - 1; ++jj) {
-                sum = coeffs(jj) +  sum * _x;
+                sum = vcoeffs(jj) +  sum * _x;
             }
             
-            y(ii, nn) = coeffs(stop) + sum * _x;
+            y(ii, nn) = vcoeffs(stop) + sum * _x;
             
-            start += ncoeffs(nn);
-            stop += ncoeffs(nn + 1);
+            start += vncoeffs(nn);
+            stop += vncoeffs(nn + 1);
         }
     }
 }
 
 
-void eval_poly(inpoly poly, inarray x, outarray y)
+void eval_poly(int nfit, inarray coeffs, inarray ncoeffs,
+               inarray x, outarray y)
 {
-    auto const& type = poly.coeffs.get_type().id;
+    auto const& type = coeffs.get_type().id;
+    auto const& is_cpx = coeffs.get_type().id;
     
-    switcher(eval_poly_tpl, type, poly, x, y);
+    if (is_cpx) {
+        eval_poly_tpl<double>(nfit, coeffs, ncoeffs, x, y);
+    } else {
+        eval_poly_tpl<cpxd>(nfit, coeffs, ncoeffs, x, y);
+    }
+    
+    //switcher(eval_poly_tpl, type, poly, x, y);
 }
 
 

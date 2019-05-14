@@ -102,6 +102,41 @@ struct Memory
 };
 
 
+
+template<class T>
+struct Ptr
+{
+    using ptr_t = T*;
+    using value_type = T;
+    
+    ptr_t _ptr{nullptr};
+    
+    
+    Ptr() = default;
+    ~Ptr() = default;
+    
+    Ptr(Ptr const&) = default;
+    Ptr& operator=(Ptr const&) = default;
+    
+    Ptr(ptr_t const ptr) : _ptr{ptr} {}
+    Ptr& operator=(ptr_t const ptr) { _ptr = ptr; return *this; }
+    
+    Ptr(Ptr&&) = delete;
+    Ptr& operator=(Ptr&&) = delete;
+    
+    Ptr(ptr_t&&) = delete;
+    Ptr& operator=(ptr_t&&) = delete;
+    
+    ptr_t get() { return _ptr; }
+    
+    value_type& operator*() { return *_ptr; }
+    value_type const& operator*() const { return *_ptr; }
+    
+    ptr_t operator->() { return _ptr; }
+    ptr_t const operator->() const { return _ptr; }
+};
+
+
 template<class T>
 struct View
 {
@@ -296,8 +331,8 @@ static T convert(memptr in)
 
 template<class T>
 struct Array {
-    typedef T value_type;
-    typedef std::function<value_type(memptr)> convert_fun;
+    using value_type = T;
+    using convert_fun = std::function<value_type(memptr)>;
     
     
     ArrayInfo const& array;

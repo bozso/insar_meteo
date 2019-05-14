@@ -16,10 +16,10 @@ using aux::end;
 
 extern "C" {
 
-int test(inarray _a)
+int test(inarray a)
 {
     try {
-        auto a = _a.array<double>(1);
+        auto va = a.array<double>(1);
         //printf("Pointers: %p %p\n", _a->data, asd);
 
         //cout << aux::type_info(_a->type).name << " " << _a->shape[0] << end;
@@ -44,9 +44,9 @@ int test(inarray _a)
         
         double sum = 0.0;
         
-        for (idx ii = 0; ii < _a.shape[0]; ++ii) {
+        for (idx ii = 0; ii < a.shape[0]; ++ii) {
             //cout << a(ii) << " ";
-            sum += a(ii);
+            sum += va(ii);
         }
         
         printf("\nSum: %15.10g\n", sum);
@@ -59,11 +59,11 @@ int test(inarray _a)
     }
 }
 
-
-int eval_poly_c(inpoly poly, inarray x, outarray y)
+int eval_poly_c(int nfit, inarray coeffs, inarray ncoeffs,
+                inarray x, outarray y)
 {
     try {
-        aux::eval_poly(poly, x, y);
+        aux::eval_poly(nfit, coeffs, ncoeffs, x, y);
         return 0;
     }
     catch(exception& e) {

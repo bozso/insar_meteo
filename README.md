@@ -7,9 +7,9 @@ images. I mainly use InSAR for deformation monitoring with the help of
 corner reflectors and I will try to develop a method for integrated water
 vapour monitoring. At the moment this is still in its infancy.
 
-The repository now mainly holds programs written in Python and C
-(compiles into binary executables callable from the command line) that will 
-form the basis for my future programs.
+The repository now mainly holds programs written in Python and C++
+(compiles into shared libraries called in Python with the `ctypes` library) that
+carry out performance heavy tasks.
 
 ## Short description of folders and files
 
@@ -18,7 +18,7 @@ form the basis for my future programs.
   [TRAIN](https://github.com/dbekaert/TRAIN),
 - **inmet**: Main python scripts that call Gnuplot and my C++ modules,
 - **daisy_test_data**: test datafiles for the DAISY program,
-- **src**: source files for C++ Python extensions,
+- **src**: source files for C++ shared libraries,
 - **insar_meteo.sh** source this file in your .bashrc so you can use the C,
   Python and Matlab programs. **IMPORTANT**: first set the MAIN_DIR variable
   in the file.

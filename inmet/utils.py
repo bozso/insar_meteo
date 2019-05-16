@@ -75,16 +75,19 @@ class CStruct(Structure):
     def get_ptr_t(cls):
         return POINTER(cls)
     
+    
     ptr_t = property(get_ptr_t)
     
     
     @classmethod
     def from_param(cls, obj):
-        try:
-            return obj.ptr
-        except AttributeError:
-            obj.make_ptr()
-            return obj.ptr
+        return pointer(obj)
+        
+        # try:
+        #     return obj.ptr
+        # except AttributeError:
+        #     obj.make_ptr()
+        #     return obj.ptr
 
 
 class Array(CStruct):
@@ -169,7 +172,7 @@ class CLib(object):
         def fun(*args):
             ret = func(*args)
             
-            if ret != 0:
+            if restype is c_int and ret != 0:
                 raise RuntimeError('Function "%s" from library "%s" returned '
                                    'with non-zero value!' % (funcname, self.lib))
         

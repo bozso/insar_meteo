@@ -39,6 +39,7 @@ def main():
              #"before fitting.", kind="flag")
     #)
     
+    
     a = np.array([1, 2, 3])
     
     im.test(a)

@@ -1,5 +1,21 @@
 #include "aux.hpp"
 
+
+extern "C" {
+
+void* get_memory(size_t const size)
+{
+    //std::cout << "Trying to allocate memory of size: " << size << aux::end;
+    return malloc(size);
+}
+
+void release_memory(void* ptr)
+{
+    free(ptr);
+}
+
+}
+
 namespace aux {
 
 static std::unique_ptr<memtype[]> make_memory(long size)

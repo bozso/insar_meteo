@@ -43,6 +43,34 @@ set_ell = inmet.wrap("set_ellipsoid", [Ellipsoid], restype=None)
 print_ell = inmet.wrap("print_ellipsoid", [], restype=None)
 
 
+
+class Memory(im.CStruct):
+    __get_mem = inmet.wrap("get_memory", [c_size_t], restype=c_void_p)
+    __del_mem = inmet.wrap("release_memory", [c_void_p], restype=None)
+    
+    _fields_ = [
+        ("size", c_size_t),
+        ("ptr", c_void_p)
+    ]
+    
+    
+    def __init__(self, size):
+        self.size, self.ptr = size, None
+        ptr = Memory.__get_mem(size)
+        
+        if ptr is None:
+            raise RuntimeError("AAA")
+        
+        self.ptr = ptr
+    
+    
+    def __del__(self):
+        if self.ptr is not None:
+            Memory.__del_mem(self.ptr)
+    
+    
+    
+
 ellipsoids = {
     "WGS84": Ellipsoid(6378137.0, 6356752.3142)
 }

@@ -40,6 +40,10 @@ def main():
     #)
     
     
+    im.aux.Memory(10)
+    
+    return
+    
     a = np.array([1, 2, 3])
     
     im.test(a)

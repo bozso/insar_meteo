@@ -175,7 +175,9 @@ class CLib(object):
             if restype is c_int and ret != 0:
                 raise RuntimeError('Function "%s" from library "%s" returned '
                                    'with non-zero value!' % (funcname, self.lib))
-        
+            
+            return ret
+            
         return fun
 
 

@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from distutils.ccompiler import new_compiler
+from distutils.sysconfig import get_python_inc
+from numpy.distutils.misc_util import get_numpy_include_dirs
 from sysconfig import get_config_var
 from glob import iglob
 
@@ -40,17 +42,27 @@ def main():
 
     macros = []
     
-    inc_dirs = [mjoin("include"), rjoin("")]
+    inc_dirs = [mjoin("include"), rjoin("aux"), rjoin("inmet")] + \
+                get_numpy_include_dirs() + [get_python_inc()]
     lib_dirs = [mjoin("lib")]
     
     libs = ["stdc++"]
     
-    #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
-    sources = [rjoin("inmet_aux.cpp"), rjoin("inmet.cpp"),
-               rjoin("aux", "static_tpl_inst.cpp")]
+    print("*" * 80)
+    print("*" * 80)
+    print(inc_dirs)
+    # return
     
-    sources.extend(rjoin("impl", cfile)
-                   for cfile in iglob(rjoin("impl", "*.cpp")))
+    #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
+    # sources = [rjoin("inmet_aux.cpp"), rjoin("inmet.cpp"),
+    #            rjoin("aux", "static_tpl_inst.cpp")]
+    
+    # sources = [rjoin("inmet.cpp"), rjoin("aux", "aux.cpp"),
+    #            rjoin("inmet", "ellipsoid.cpp"), rjoin("inmet", "math.cpp")]
+    
+    sources = [rjoin("inmet.cpp")]
+    # sources.extend(rjoin("impl", cfile)
+    #                for cfile in iglob(rjoin("impl", "*.cpp")))
     
     # sources.extend(rjoin("aux" source)
                    # for source in iglob(rjoin("aux" "*.cpp")))

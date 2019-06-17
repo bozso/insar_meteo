@@ -321,12 +321,13 @@ static T convert(memptr in)
 */
 
 
-
+/*
 #define make_convert(T, P) \
 [](memptr in) { return static_cast<T>(*reinterpret_cast<P*>(in)); }
 
 #define make_noconvert(T) \
 [](memptr in) { return *reinterpret_cast<T*>(in); }
+*/
 
 
 template<class T>
@@ -349,7 +350,16 @@ struct Array {
     Array& operator=(Array&&) = default;
     
     ~Array() = default;
-
+    
+    template<class P>
+    static constexpr convert_fun make_convert()
+    {
+        return [](memptr in) {
+            return static_cast<P>(*reinterpret_cast<T*>(in));
+        };
+    }
+    
+    /*
     static convert_fun const converter_factory(int const type)
     {
         switch(static_cast<dtype>(type)) {
@@ -382,6 +392,50 @@ struct Array {
                 return make_convert(T, float);
             case dtype::Float64:
                 return make_convert(T, double);
+
+            //case dtype::Complex64:
+                //return convert<T, cpx64>;
+            //case dtype::Complex128:
+                //return convert<T, cpx128>;        
+
+            default:
+                throw std::runtime_error("AA");
+        }
+    }
+    */
+
+    static convert_fun const converter_factory(int const type)
+    {
+        switch(static_cast<dtype>(type)) {
+            case dtype::Int:
+                return make_convert<int>();
+            case dtype::Long:
+                return make_convert<long>();
+            case dtype::Size_t:
+                return make_convert<size_t>();
+    
+            case dtype::Int8:
+                return make_convert<int8_t>();
+            case dtype::Int16:
+                return make_convert<int16_t>();
+            case dtype::Int32:
+                return make_convert<int32_t>();
+            case dtype::Int64:
+                return make_convert<int64_t>();
+
+            case dtype::UInt8:
+                return make_convert<uint8_t>();
+            case dtype::UInt16:
+                return make_convert<uint16_t>();
+            case dtype::UInt32:
+                return make_convert<uint32_t>();
+            case dtype::UInt64:
+                return make_convert<uint64_t>();
+    
+            case dtype::Float32:
+                return make_convert<float>();
+            case dtype::Float64:
+                return make_convert<double>();
 
             //case dtype::Complex64:
                 //return convert<T, cpx64>;

@@ -39,14 +39,12 @@ def main():
              #"before fitting.", kind="flag")
     #)
     
-    
-    im.aux.Memory(10)
-    
-    return
-    
     a = np.array([1, 2, 3])
     
-    im.test(a)
+    # print(type(a.__array_struct__.voidptr))
+    im.aaa(a)
+    
+    # im.test(a)
     return
     
     sat = im.SatOrbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res", "doris")

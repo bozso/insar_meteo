@@ -107,7 +107,7 @@ struct RTypeInfo {
     
     
     template<class T>
-    static RTypeInfo make_info(name_t name)
+    static RTypeInfo const make_info(name_t name)
     {
         return RTypeInfo(std::is_pointer<T>::value, std::is_void<T>::value,
                          std::is_complex<T>::value,

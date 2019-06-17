@@ -4,7 +4,14 @@ import inmet as im
 from ctypes import *
 
 
-__all__ = ["empty", "is_cpx", "test", "eval_poly", "set_ellipsoid"]
+__all__ = [
+    "empty",
+    "is_cpx",
+    # "test",
+    # "eval_poly",
+    # "set_ellipsoid",
+    "aaa"
+]
 
 
 def is_cpx(obj):
@@ -35,18 +42,19 @@ class Ellipsoid(im.CStruct):
 
 inmet = im.CLib("inmet_aux")
 
-test = inmet.wrap("test", [im.inarray])
-eval_poly = inmet.wrap("eval_poly_c", [c_int, im.inarray, im.inarray,
-                                       im.inarray, im.outarray])
-
-set_ell = inmet.wrap("set_ellipsoid", [Ellipsoid], restype=None)
-print_ell = inmet.wrap("print_ellipsoid", [], restype=None)
+aaa = inmet.wrap("aaa", [py_object])
+# test = inmet.wrap("test", [im.inarray])
+# eval_poly = inmet.wrap("eval_poly_c", [c_int, im.inarray, im.inarray,
+#                                        im.inarray, im.outarray])
+# 
+# set_ell = inmet.wrap("set_ellipsoid", [Ellipsoid], restype=None)
+# print_ell = inmet.wrap("print_ellipsoid", [], restype=None)
 
 
 
 class Memory(im.CStruct):
-    __get_mem = inmet.wrap("get_memory", [c_size_t], restype=c_void_p)
-    __del_mem = inmet.wrap("release_memory", [c_void_p], restype=None)
+    # __get_mem = inmet.wrap("get_memory", [c_size_t], restype=c_void_p)
+    # __del_mem = inmet.wrap("release_memory", [c_void_p], restype=None)
     
     _fields_ = [
         ("size", c_size_t),

@@ -1,21 +1,37 @@
 #include <exception>
+#include <iostream>
 
-#include "aux.hpp"
-#include "math.hpp"
+//#include "aux.hpp"
+#include "array.hpp"
+//#include "math.hpp"
 
 using std::exception;
 using std::cout;
 using std::cerr;
 
+
+using numpy::array;
+
+/*
 using aux::inarray;
 using aux::outarray;
 using aux::inpoly;
 using aux::idx;
 using aux::end;
+*/
 //using aux::print;
+
 
 extern "C" {
 
+int aaa(array& a)
+{
+    printf("ndim: %d\n", a.ndim());
+    return 0;
+}
+
+
+/*
 int test(inarray a)
 {
     try {
@@ -73,8 +89,6 @@ int eval_poly_c(int nfit, inarray coeffs, inarray ncoeffs,
 
 }
 
-
-/*
 int aaa(int& ii)
 {
     cout << "C++: Number before: " << ii << end;
@@ -84,6 +98,7 @@ int aaa(int& ii)
     return 0;
 }
 */
+
 
 // extern "C"
 }

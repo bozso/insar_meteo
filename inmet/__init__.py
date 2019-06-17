@@ -22,4 +22,4 @@ from .polyfit import *
 from .aux import *
 from .satorbit import *
 
-set_ellipsoid("WGS84")
+# set_ellipsoid("WGS84")

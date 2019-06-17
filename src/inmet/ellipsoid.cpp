@@ -1,8 +1,6 @@
 #include "aux.hpp"
 
 
-using aux::ptr;
-
 struct Ellipsoid {
     double a, b, e2;
     

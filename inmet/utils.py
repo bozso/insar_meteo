@@ -136,7 +136,7 @@ def arrptr(**kwargs):
     return tmp
 
 
-inarray = arrptr(flags=["C_CONTIGUOUS", "OWNDATA"])
+inarray = arrptr(flags=["C_CONTIGUOUS"])
 outarray = arrptr(flags=["C_CONTIGUOUS", "OWNDATA", "WRITEABLE"])
 
 
@@ -144,7 +144,8 @@ lib_filename = new_compiler().library_filename
 
 
 class CLib(object):
-    build_dir = join(get_filedir(), "..", "src", "build")
+    # build_dir = join(get_filedir(), "..", "src", "build")
+    build_dir = join(get_filedir(), "..", "src")
 
     def __init__(self, name, path=None):
         if path is None:
@@ -385,10 +386,10 @@ def get_par(parameter, search):
     return parameter_value
 
     
-_default_log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+__default_log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
-def setup_log(logger_name, filename=None, formatter=_default_log_format,
+def setup_log(logger_name, filename=None, formatter=__default_log_format,
               loglevel="debug"):
     
     logger = logging.getLogger(logger_name)

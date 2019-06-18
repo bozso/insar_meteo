@@ -1,9 +1,12 @@
 cc = g++
-cflags = -std=c++11 -g -O0 -Wall -I. -Iaux -Iinmet $$(python3-config --includes)
 
-bdir = build
-adir = aux
-idir = inmet
+root = /home/istvan/progs/insar_meteo/src
+bdir = ${root}/build
+aux = ${root}/aux
+inmet = ${root}/inmet
+
+cflags = -std=c++11 -g -O0 -Wall  -I${aux} -I${inmet} $
+         $$(python3-config --includes)
 
 # include = /home/istvan/progs/insar_meteo/src/
 
@@ -11,16 +14,16 @@ rule cc
   command = $cc $cflags -c -fPIC -o $out $in 
 
 rule link
-  command = $cc $cflags -o $out -L$bdir $in
+  command = $cc $cflags -o $out -L$build $in
 
 rule slib
   command = $cc $cflags -shared -fPIC -o $out $in
 
 
-build $bdir/inmet.o: cc inmet.cpp
-# build $bdir/aux.o: cc $adir/aux.cpp
-# build $bdir/math.o: cc $idir/math.cpp
-# build $bdir/ellipsoid.o: cc $idir/ellipsoid.cpp
+build ${bdir}/inmet.o: cc ${root}/inmet.cpp
+# build $bdir/aux.o: cc ${aux}/aux.cpp
+# build $bdir/math.o: cc ${inmet}/math.cpp
+# build $bdir/ellipsoid.o: cc ${inmet}/ellipsoid.cpp
 
 
 # build $bdir/libinmet_aux.so: slib $bdir/inmet.o $bdir/aux.o $bdir/math.o $bdir/ellipsoid.o

@@ -14,7 +14,6 @@ template<class T>
 struct view;
 
 
-
 using idx = npy_intp;
 
 template<class T>
@@ -28,37 +27,45 @@ using cptr = ptr<T> const;
 static idx constexpr Dynamic = -1;
 static idx constexpr row = 0;
 static idx constexpr col = 1;
-
 static idx constexpr maxdim = 64;
 
+
 struct array : PyArrayObject_fields {
-    int const ndim() const
-    {
-        return PyArray_NDIM(this);
-    }
+    // taken from pybind11/numpy.h
     
-    void* data() const
-    {
-        return PyArray_DATA(this);
-    }
+    enum constants {
+        NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
+        NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
+        NPY_ARRAY_OWNDATA_ = 0x0004,
+        NPY_ARRAY_FORCECAST_ = 0x0010,
+        NPY_ARRAY_ENSUREARRAY_ = 0x0040,
+        NPY_ARRAY_ALIGNED_ = 0x0100,
+        NPY_ARRAY_WRITEABLE_ = 0x0400,
+        NPY_BOOL_ = 0,
+        NPY_BYTE_, NPY_UBYTE_,
+        NPY_SHORT_, NPY_USHORT_,
+        NPY_INT_, NPY_UINT_,
+        NPY_LONG_, NPY_ULONG_,
+        NPY_LONGLONG_, NPY_ULONGLONG_,
+        NPY_FLOAT_, NPY_DOUBLE_, NPY_LONGDOUBLE_,
+        NPY_CFLOAT_, NPY_CDOUBLE_, NPY_CLONGDOUBLE_,
+        NPY_OBJECT_ = 17,
+        NPY_STRING_, NPY_UNICODE_, NPY_VOID_
+    };
     
-    void enable_flags(int const flags)
-    {
-        PyArray_ENABLEFLAGS(this, flags);
-    }
     
-    int const flags() const
-    {
-        return PyArray_FLAGS(this);
-    }
+    int const ndim() const { return PyArray_NDIM(this); }
     
-    idx const nbytes() const
-    {
-        return PyArray_NBYTES(this);
-    }
+    void* data() const { return PyArray_DATA(this); }
     
-    //idx const 
+    void enable_flags(int const flags) { PyArray_ENABLEFLAGS(this, flags); }
     
+    int const flags() const { return PyArray_FLAGS(this); }
+    idx const nbytes() const { return PyArray_NBYTES(this); }
+    
+    ptr<idx const> shape() const { return PyArray_SHAPE(this); }
+    ptr<idx const> strides() const { return PyArray_STRIDES(this); }
+    idx const datasize() const { return PyArray_ITEMSIZE(this); }
     
     template<class T>
     void basic_check(idx const ndim) const
@@ -72,13 +79,14 @@ struct array : PyArrayObject_fields {
                                      "positive integer or Dynamic");
         }
         
-        //type_assert(std::is_pod, T, "Type should be Plain Old Datatype!");
+        static_assert(
+            not std::is_void<T>::value and
+            not std::is_null_pointer<T>::value and
+            not std::is_pointer<T>::value,
+            "Type T should not be void, null pointer or pointer!"
+        );
         
-        type_assert(not std::is_void, T, "Type should not be void!");
-        type_assert(not std::is_null_pointer, T, "Type should not be nullptr!");
-        type_assert(not std::is_pointer, T, "Type should not be a pointer!");
-        
-        auto const _ndim = this->ndim;
+        auto const _ndim = this->ndim();
         
         if (ndim != Dynamic and ndim != _ndim) {
             printf("view ndim: %ld, array ndim: %ld\n", ndim, _ndim); 
@@ -90,8 +98,9 @@ struct array : PyArrayObject_fields {
     template<class T>
     view<T> view(idx const ndim) const
     {
-        basic_check<T>(ndim());
-        
+        basic_check<T>(ndim);
+
+        auto const _ndim = this->ndim();
         auto const& arr_type = get_type(), req_type = type_info<T>();
         
         if (arr_type.id != req_type.id) {
@@ -102,13 +111,11 @@ struct array : PyArrayObject_fields {
         check_match(arr_type, req_type);
 
         auto ret = view<T>();
-        ret._shape = shape();
+        ret._shape = this->shape();
         ret._strides = {0};
         
-        
-        auto const _ndim = this->ndim();
-        
-        idx const dsize = this->datasize();
+        auto const dsize = this->datasize();
+        cptr<idx const> strides = this->strides();
         
         for (idx ii = 0; ii < _ndim; ++ii) {
             ret._strides[ii] = idx(double(strides[ii]) / dsize);
@@ -136,11 +143,11 @@ struct view
 
     view() = default;
     
-    view(View const&) = default;
-    view(View&&) = default;
+    view(view const&) = default;
+    view(view&&) = default;
     
-    view& operator=(View const&) = default;
-    view& operator=(View&&) = default;
+    view& operator=(view const&) = default;
+    view& operator=(view&&) = default;
     
     ~view() = default;
     
@@ -195,4 +202,5 @@ struct view
 // end namespace numpy
 }
 
+// end guard
 #endif

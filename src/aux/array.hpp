@@ -30,10 +30,12 @@ static idx constexpr col = 1;
 static idx constexpr maxdim = 64;
 
 
-struct array : PyArrayObject_fields {
+struct array : PyArrayObject {
     // taken from pybind11/numpy.h
+    using in = array const&;
+    using out = array&;
     
-    enum constants {
+    enum flags {
         NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
         NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
         NPY_ARRAY_OWNDATA_ = 0x0004,
@@ -54,21 +56,22 @@ struct array : PyArrayObject_fields {
     };
     
     
-    int const ndim() const { return PyArray_NDIM(this); }
+    int const ndim() { return PyArray_NDIM(this); }
     
-    void* data() const { return PyArray_DATA(this); }
+    void* data() { return PyArray_DATA(this); }
     
     void enable_flags(int const flags) { PyArray_ENABLEFLAGS(this, flags); }
     
-    int const flags() const { return PyArray_FLAGS(this); }
-    idx const nbytes() const { return PyArray_NBYTES(this); }
+    int const flags() { return PyArray_FLAGS(this); }
+    idx const nbytes() { return PyArray_NBYTES(this); }
     
-    ptr<idx const> shape() const { return PyArray_SHAPE(this); }
-    ptr<idx const> strides() const { return PyArray_STRIDES(this); }
-    idx const datasize() const { return PyArray_ITEMSIZE(this); }
+    ptr<idx const> shape() { return PyArray_SHAPE(this); }
+    ptr<idx const> strides() { return PyArray_STRIDES(this); }
+    idx const datasize() { return PyArray_ITEMSIZE(this); }
+    
     
     template<class T>
-    void basic_check(idx const ndim) const
+    void basic_check(idx const ndim)
     {
         if (ndim > maxdim) {
             throw std::runtime_error("Exceeded maximum number of dimensions!");
@@ -83,7 +86,7 @@ struct array : PyArrayObject_fields {
             not std::is_void<T>::value and
             not std::is_null_pointer<T>::value and
             not std::is_pointer<T>::value,
-            "Type T should not be void, null pointer or pointer!"
+            "Type T should not be void, a null pointer or a pointer!"
         );
         
         auto const _ndim = this->ndim();
@@ -96,7 +99,7 @@ struct array : PyArrayObject_fields {
     
     
     template<class T>
-    view<T> view(idx const ndim) const
+    view<T> view(idx const ndim)
     {
         basic_check<T>(ndim);
 
@@ -125,11 +128,6 @@ struct array : PyArrayObject_fields {
         return ret;
     }    
 };
-
-
-
-using inarray = array const&;
-using outarray = array&;
 
 
 template<class T>

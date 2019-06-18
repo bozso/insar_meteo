@@ -14,66 +14,66 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from distutils.ccompiler import new_compiler
-from distutils.sysconfig import get_python_inc
-from numpy.distutils.misc_util import get_numpy_include_dirs
+from numpy.distutils.core import setup
+from distutils.sysconfig import get_config_var
 from sysconfig import get_config_var
 from glob import iglob
 
 
-def make_join(root):
-    from os.path import join
-    
-    def f(*paths):
-        return join(root, *paths)
-    
-    return f
+from distutils.core import Extension
+from distutils.command.build_ext import build_ext
+
+
+class build_ext(build_ext):
+
+    def build_extension(self, ext):
+        self._ctypes = isinstance(ext, CTypes)
+        return super().build_extension(ext)
+
+    def get_export_symbols(self, ext):
+        if self._ctypes:
+            return ext.export_symbols
+        return super().get_export_symbols(ext)
+
+    def get_ext_filename(self, ext_name):
+        if self._ctypes:
+            return ext_name + '.so'
+        return super().get_ext_filename(ext_name)
+
+
+class CTypes(Extension): pass
 
 
 def main():
-    mjoin = make_join("/home/istvan/miniconda3")
-    rjoin = make_join("/home/istvan/progs/insar_meteo/src")
+    delim = "*" * 80
+    print("{:^80}\n*{:^80}*\n{:^80}".format(delim, "Compilation start.", delim))
+    
+    conda = "/home/istvan/miniconda3"
 
     #flags = ["-std=c++03", "-O3", "-march=native", "-ffast-math", "-funroll-loops"]
     #flags = ["-std=c++03", "-O0", "-save-temps"]
 
-    flags = get_config_var('CFLAGS').split()
+    flags = set(get_config_var('CFLAGS').split())
     flags.remove("-Wstrict-prototypes")
-    flags += ["-std=c++11", "-Wall", "-Wextra", "-fPIC"]
-
+    flags |= {"-std=c++11", "-Wall", "-Wextra"}
+    flags = list(flags)
+    
     macros = []
-    
-    inc_dirs = [mjoin("include"), rjoin("aux"), rjoin("inmet")] + \
-                get_numpy_include_dirs() + [get_python_inc()]
-    lib_dirs = [mjoin("lib")]
-    
+    inc_dirs = ["aux", "inmet"]
+    # lib_dirs = [mjoin("lib")]
     libs = ["stdc++"]
     
-    print("*" * 80)
-    print("*" * 80)
-    print(inc_dirs)
-    # return
     
-    #sources = [rjoin("inmet_aux.cpp"), rjoin("aux/array.cpp")]
-    # sources = [rjoin("inmet_aux.cpp"), rjoin("inmet.cpp"),
-    #            rjoin("aux", "static_tpl_inst.cpp")]
+    modules = [
+        CTypes("inmet_aux",
+               sources=["inmet.cpp"], 
+               include_dirs=inc_dirs,
+               extra_compile_args=flags,
+               language="c++"
+        )
+    ]
     
-    # sources = [rjoin("inmet.cpp"), rjoin("aux", "aux.cpp"),
-    #            rjoin("inmet", "ellipsoid.cpp"), rjoin("inmet", "math.cpp")]
-    
-    sources = [rjoin("inmet.cpp")]
-    # sources.extend(rjoin("impl", cfile)
-    #                for cfile in iglob(rjoin("impl", "*.cpp")))
-    
-    # sources.extend(rjoin("aux" source)
-                   # for source in iglob(rjoin("aux" "*.cpp")))
-    
-    comp = new_compiler()
-    
-    objects = comp.compile(sources, macros=macros, include_dirs=inc_dirs,
-                           extra_preargs=flags)
-    
-    comp.link_shared_lib(objects, rjoin("inmet_aux"), extra_preargs=flags,
-                         libraries=libs)
+    setup(ext_modules=modules, cmdclass={'build_ext': build_ext})
         
     return 0
 

@@ -136,9 +136,9 @@ template<class T>
 struct view
 {
     // TODO: make appropiate items constant
-    ptr<T> data;
-    ptr<idx const> _shape;
-    std::array<idx, maxdim> _strides;
+    ptr<T> data = nullptr;
+    ptr<idx const> _shape = nullptr;
+    std::array<idx, maxdim> _strides = {0};
 
 
     view() = default;

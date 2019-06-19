@@ -10,23 +10,22 @@ using std::cout;
 using std::cerr;
 
 
-using numpy::array;
-
-/*
-using aux::inarray;
-using aux::outarray;
-using aux::inpoly;
-using aux::idx;
-using aux::end;
-*/
-//using aux::print;
+using numpy::arr_in;
+using numpy::arr_out;
 
 
 extern "C" {
 
-int aaa(array::in& a)
+int aaa(arr_in a)
 {
-    printf("ndim: %ld name: %s\n", a.ndim, a.get_type().name);
+    auto const va = a.view<int64_t>(1);
+    // printf("ndim: %ld name: %s\n", a.ndim, a.get_type().name);
+    
+    for (int ii = 0; ii < a.shape[0]; ++ii) {
+        printf("%ld ", va(ii));
+    }
+    printf("\n");
+    
     return 0;
 }
 

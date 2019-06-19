@@ -16,7 +16,7 @@ namespace numpy {
 // Forward declarations
 
 template<class T>
-struct view;
+struct View;
 
 using idx = long;
 
@@ -38,7 +38,7 @@ static void check_match(aux::RTypeInfo const& one, aux::RTypeInfo const& two)
 
 
 
-struct array {
+struct Array {
     int const type = 0, is_numpy = 0;
     idx const ndim = 0, ndata = 0, datasize = 0;
     aux::cptr<idx const> shape = nullptr, strides = nullptr;
@@ -46,8 +46,6 @@ struct array {
     
     
     // taken from pybind11/numpy.h
-    using in = array const&;
-    using out = array&;
     
     enum flags {
         NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
@@ -94,7 +92,7 @@ struct array {
             "Type T should not be void, a null pointer or a pointer!"
         );
         
-        auto const _ndim = this->ndim();
+        auto const _ndim = this->ndim;
         
         if (ndim != Dynamic and ndim != _ndim) {
             printf("view ndim: %ld, array ndim: %ld\n", ndim, _ndim); 
@@ -104,7 +102,7 @@ struct array {
     
     
     template<class T>
-    view<T> view(idx const ndim)
+    View<T> view(idx const ndim)
     {
         basic_check<T>(ndim);
 
@@ -119,9 +117,8 @@ struct array {
         
         check_match(arr_type, req_type);
 
-        auto ret = view<T>();
+        auto ret = View<T>();
         ret._shape = this->shape;
-        ret._strides = {0};
         
         for (idx ii = 0; ii < _ndim; ++ii) {
             ret._strides[ii] = idx(double(this->strides[ii]) / this->datasize);
@@ -133,24 +130,28 @@ struct array {
 };
 
 
+using arr_in = Array const&;
+using arr_out = Array&;
+
+
 template<class T>
-struct view
+struct View
 {
     // TODO: make appropiate items constant
     aux::ptr<T> data = nullptr;
     aux::ptr<idx const> _shape = nullptr;
-    std::array<idx, maxdim> _strides = {0};
+    std::array<idx, maxdim> _strides{0};
 
 
-    view() = default;
+    View() = default;
     
-    view(view const&) = default;
-    view(view&&) = default;
+    View(View const&) = default;
+    View(View&&) = default;
     
-    view& operator=(view const&) = default;
-    view& operator=(view&&) = default;
+    View& operator=(View const&) = default;
+    View& operator=(View&&) = default;
     
-    ~view() = default;
+    ~View() = default;
     
     idx const& shape(idx const ii) const { return _shape[ii]; }
     
@@ -206,7 +207,7 @@ struct varray {
     using convert_fun = std::function<value_type(aux::memptr)>;
     
     
-    array const& array_ref;
+    Array const& array_ref;
     aux::memptr const data;
     aux::ptr<idx const> const strides;
     convert_fun const convert;
@@ -318,7 +319,7 @@ struct varray {
     }
 
     
-    explicit varray(array::in arr_ref, idx const ndim)
+    explicit varray(Array const& arr_ref, idx const ndim)
     :
     array_ref(arr_ref), data(arr_ref.data), strides(arr_ref.strides),
     convert(converter_factory(arr_ref.type))

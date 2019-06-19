@@ -114,8 +114,7 @@ class Array(CStruct):
         ("data", c_char_p)
     ]
     
-    
-    
+
     @classmethod
     def from_array(cls, *args, **kwargs):
         tmp = np.array(*args, **kwargs)

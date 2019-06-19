@@ -10,6 +10,9 @@ cflags = -std=c++11 -g -O0 -Wall  -I${aux} -I${inmet} $
 
 # include = /home/istvan/progs/insar_meteo/src/
 
+rule header
+  command = printf "*********************\n\t\t\t* Compilation start *\n\t\t\t*********************\n"
+
 rule cc
   command = $cc $cflags -c -fPIC -o $out $in 
 
@@ -19,6 +22,8 @@ rule link
 rule slib
   command = $cc $cflags -shared -fPIC -o $out $in
 
+
+build tmp: header
 
 build ${bdir}/inmet.o: cc ${root}/inmet.cpp
 build $bdir/aux.o: cc ${aux}/aux.cpp

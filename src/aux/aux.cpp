@@ -3,47 +3,10 @@
 
 namespace aux {
 
-static std::unique_ptr<memtype[]> make_memory(long size)
-{
-    return std::unique_ptr<memtype[]>(new memtype[size]);
-}
-
-
-Memory::Memory(idx const size): _size(size) { _memory = make_memory(size); }
-
-
-void Memory::alloc(long size)
-{
-    this->_size = size;
-    this->_memory = make_memory(size);
-}
-
-
-memptr Memory::get() const noexcept { return _memory.get(); }
-long Memory::size() const noexcept { return _size; }
-
-
-bool ArrayInfo::check_ndim(idx const ndim) const
-{
-    auto const& _ndim = this->ndim;
-    
-    if (ndim != _ndim) {
-        fprintf(stderr, "Expected array with %ld dimensions, got: "
-                        "%ld dimensional array!\n", ndim, _ndim);
-        return true;
-    }
-    return false;
-}
-
-
-bool ArrayInfo::check_shape(idx const nelem, idx const dim) const
-{
-    if (nelem != this->shape[dim]) {
-        return true;
-    }
-    return false;
-}
-
+// static std::unique_ptr<memtype[]> make_memory(long size)
+// {
+//     return std::unique_ptr<memtype[]>(new memtype[size]);
+// }
 
 
 static RTypeInfo const type_infos[] = {

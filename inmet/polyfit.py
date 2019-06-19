@@ -7,12 +7,12 @@ import inmet as im
 __all__ = ["PolyFit"]
 
 
-class PolyFitC(im.CStruct):
-    _fields_ = [
-        ("nfit", im.c_idx),
-        ("coeffs", im.c_arr_p),
-        ("ncoeffs", im.c_arr_p)
-    ]
+# class PolyFitC(im.CStruct):
+#     _fields_ = [
+#         ("nfit", im.c_idx),
+#         ("coeffs", im.inarray),
+#         ("ncoeffs", im.inarray)
+#     ]
 
 
 class PolyFit(im.Save):

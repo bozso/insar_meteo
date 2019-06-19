@@ -129,6 +129,54 @@ DMatrix<T> from_numpy(array_ptr arr, bool colvec = true)
             //return convert<T, cpx128>(arr);
     }
 }
+
+
+
+struct array : PyArrayObject {
+    // taken from pybind11/numpy.h
+    using in = array const&;
+    using out = array&;
+    
+    enum flags {
+        NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
+        NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
+        NPY_ARRAY_OWNDATA_ = 0x0004,
+        NPY_ARRAY_FORCECAST_ = 0x0010,
+        NPY_ARRAY_ENSUREARRAY_ = 0x0040,
+        NPY_ARRAY_ALIGNED_ = 0x0100,
+        NPY_ARRAY_WRITEABLE_ = 0x0400,
+        NPY_BOOL_ = 0,
+        NPY_BYTE_, NPY_UBYTE_,
+        NPY_SHORT_, NPY_USHORT_,
+        NPY_INT_, NPY_UINT_,
+        NPY_LONG_, NPY_ULONG_,
+        NPY_LONGLONG_, NPY_ULONGLONG_,
+        NPY_FLOAT_, NPY_DOUBLE_, NPY_LONGDOUBLE_,
+        NPY_CFLOAT_, NPY_CDOUBLE_, NPY_CLONGDOUBLE_,
+        NPY_OBJECT_ = 17,
+        NPY_STRING_, NPY_UNICODE_, NPY_VOID_
+    };
+    
+
+    struct descr : PyArray_Descr {};
+    
+    
+    int const ndim() { return PyArray_NDIM(this); }
+    
+    void* data() { return PyArray_DATA(this); }
+    
+    void enable_flags(int const flags) { PyArray_ENABLEFLAGS(this, flags); }
+    
+    int const flags() { return PyArray_FLAGS(this); }
+    idx const nbytes() { return PyArray_NBYTES(this); }
+    
+    ptr<idx const> shape() { return PyArray_SHAPE(this); }
+    ptr<idx const> strides() { return PyArray_STRIDES(this); }
+    idx const datasize() { return PyArray_ITEMSIZE(this); }
+    
+    descr const& descr() { return *PyArray_DTYPE(this); }
+};
+
 ```
 
 ## Lab C++ code 

@@ -1,8 +1,8 @@
-#pragma once
+#ifndef __TYPE_INFO_HPP
+#define __TYPE_INFO_HPP
 
 #include <type_traits>
 #include <complex>
-
 
 namespace std {
 
@@ -85,15 +85,18 @@ int const tpl2dtype()
 struct RTypeInfo {
     using name_t = char const*const;
     
-    bool const is_pointer, is_void, is_complex, is_float, is_scalar,
-               is_arithmetic, is_pod;
-    size_t const size;
-    int const id;
-    name_t name;
+    bool const is_pointer = false, is_void = false, is_complex = false,
+               is_float = false, is_scalar = false,
+               is_arithmetic = false, is_pod = false;
+    size_t const size = 0;
+    int const id = 0;
+    name_t name = "Unknown";
     
-    RTypeInfo() : is_pointer(false), is_void(false), is_complex(false),
-                  is_float(false), is_scalar(false), is_arithmetic(false),
-                  is_pod(false), size(0), id(0), name(nullptr) {}
+    RTypeInfo() = default;
+    
+    // RTypeInfo() : is_pointer(false), is_void(false), is_complex(false),
+    //               is_float(false), is_scalar(false), is_arithmetic(false),
+    //               is_pod(false), size(0), id(0), name(nullptr) {}
     ~RTypeInfo() = default;
     
     
@@ -124,3 +127,5 @@ struct RTypeInfo {
 
 // aux namespace
 }
+
+#endif

@@ -1,9 +1,14 @@
 #ifndef __ARRAY_HPP
 #define __ARRAY_HPP
 
-#include "numpy/arrayobject.h"
 
-#define type_assert(T, P, msg) static_assert(T<P>::value, msg)
+#include <array>
+#include <functional>
+#include <type_traits>
+#include <stdexcept>
+
+#include "aux.hpp"
+#include "type_info.hpp"
 
 
 namespace numpy {
@@ -13,14 +18,7 @@ namespace numpy {
 template<class T>
 struct view;
 
-
-using idx = npy_intp;
-
-template<class T>
-using ptr = T*;
-
-template<class T>
-using cptr = ptr<T> const;
+using idx = long;
 
 
 // Dynamic number of dimensions
@@ -30,7 +28,23 @@ static idx constexpr col = 1;
 static idx constexpr maxdim = 64;
 
 
-struct array : PyArrayObject {
+static void check_match(aux::RTypeInfo const& one, aux::RTypeInfo const& two)
+{
+    if (one.is_complex != two.is_complex) {
+        throw std::runtime_error("Cannot convert complex to non complex "
+                                 "type!");
+    }
+}
+
+
+
+struct array {
+    int const type = 0, is_numpy = 0;
+    idx const ndim = 0, ndata = 0, datasize = 0;
+    aux::cptr<idx const> shape = nullptr, strides = nullptr;
+    aux::memptr data = nullptr;
+    
+    
     // taken from pybind11/numpy.h
     using in = array const&;
     using out = array&;
@@ -56,18 +70,10 @@ struct array : PyArrayObject {
     };
     
     
-    int const ndim() { return PyArray_NDIM(this); }
-    
-    void* data() { return PyArray_DATA(this); }
-    
-    void enable_flags(int const flags) { PyArray_ENABLEFLAGS(this, flags); }
-    
-    int const flags() { return PyArray_FLAGS(this); }
-    idx const nbytes() { return PyArray_NBYTES(this); }
-    
-    ptr<idx const> shape() { return PyArray_SHAPE(this); }
-    ptr<idx const> strides() { return PyArray_STRIDES(this); }
-    idx const datasize() { return PyArray_ITEMSIZE(this); }
+    aux::RTypeInfo const& get_type() const
+    {
+        return aux::type_info(type);
+    }
     
     
     template<class T>
@@ -84,7 +90,6 @@ struct array : PyArrayObject {
         
         static_assert(
             not std::is_void<T>::value and
-            not std::is_null_pointer<T>::value and
             not std::is_pointer<T>::value,
             "Type T should not be void, a null pointer or a pointer!"
         );
@@ -103,8 +108,9 @@ struct array : PyArrayObject {
     {
         basic_check<T>(ndim);
 
-        auto const _ndim = this->ndim();
-        auto const& arr_type = get_type(), req_type = type_info<T>();
+        auto const _ndim = this->ndim;
+        auto const& arr_type = get_type(), req_type = aux::type_info<T>();
+        
         
         if (arr_type.id != req_type.id) {
             printf("view id: %d, array id: %d\n", arr_type.id, req_type.id); 
@@ -114,17 +120,14 @@ struct array : PyArrayObject {
         check_match(arr_type, req_type);
 
         auto ret = view<T>();
-        ret._shape = this->shape();
+        ret._shape = this->shape;
         ret._strides = {0};
         
-        auto const dsize = this->datasize();
-        cptr<idx const> strides = this->strides();
-        
         for (idx ii = 0; ii < _ndim; ++ii) {
-            ret._strides[ii] = idx(double(strides[ii]) / dsize);
+            ret._strides[ii] = idx(double(this->strides[ii]) / this->datasize);
         }
         
-        ret.data = reinterpret_cast<T*>(this->data());
+        ret.data = reinterpret_cast<T*>(this->data);
         return ret;
     }    
 };
@@ -134,8 +137,8 @@ template<class T>
 struct view
 {
     // TODO: make appropiate items constant
-    ptr<T> data = nullptr;
-    ptr<idx const> _shape = nullptr;
+    aux::ptr<T> data = nullptr;
+    aux::ptr<idx const> _shape = nullptr;
     std::array<idx, maxdim> _strides = {0};
 
 
@@ -195,6 +198,142 @@ struct view
     }
 };
 
+
+
+template<class T>
+struct varray {
+    using value_type = T;
+    using convert_fun = std::function<value_type(aux::memptr)>;
+    
+    
+    array const& array_ref;
+    aux::memptr const data;
+    aux::ptr<idx const> const strides;
+    convert_fun const convert;
+
+    varray() = delete;
+
+    varray(varray const&) = default;
+    varray(varray&&) = default;
+    
+    varray& operator=(varray const&) = default;
+    varray& operator=(varray&&) = default;
+    
+    ~varray() = default;
+    
+    template<class P>
+    static constexpr convert_fun make_convert()
+    {
+        return [](aux::memptr in) {
+            return static_cast<P>(*reinterpret_cast<T*>(in));
+        };
+    }
+    
+    /*
+    static convert_fun const converter_factory(int const type)
+    {
+        switch(static_cast<dtype>(type)) {
+            case dtype::Int:
+                return make_convert(T, int);
+            case dtype::Long:
+                return make_convert(T, long);
+            case dtype::Size_t:
+                return make_convert(T, size_t);
+    
+            case dtype::Int8:
+                return make_convert(T, int8_t);
+            case dtype::Int16:
+                return make_convert(T, int16_t);
+            case dtype::Int32:
+                return make_convert(T, int32_t);
+            case dtype::Int64:
+                return make_convert(T, int64_t);
+
+            case dtype::UInt8:
+                return make_convert(T, uint8_t);
+            case dtype::UInt16:
+                return make_convert(T, uint16_t);
+            case dtype::UInt32:
+                return make_convert(T, uint32_t);
+            case dtype::UInt64:
+                return make_convert(T, uint64_t);
+    
+            case dtype::Float32:
+                return make_convert(T, float);
+            case dtype::Float64:
+                return make_convert(T, double);
+
+            //case dtype::Complex64:
+                //return convert<T, cpx64>;
+            //case dtype::Complex128:
+                //return convert<T, cpx128>;        
+
+            default:
+                throw std::runtime_error("AA");
+        }
+    }
+    */
+
+    static convert_fun const converter_factory(int const type)
+    {
+        switch(static_cast<aux::dtype>(type)) {
+            case aux::dtype::Int:
+                return make_convert<int>();
+            case aux::dtype::Long:
+                return make_convert<long>();
+            case aux::dtype::Size_t:
+                return make_convert<size_t>();
+    
+            case aux::dtype::Int8:
+                return make_convert<int8_t>();
+            case aux::dtype::Int16:
+                return make_convert<int16_t>();
+            case aux::dtype::Int32:
+                return make_convert<int32_t>();
+            case aux::dtype::Int64:
+                return make_convert<int64_t>();
+
+            case aux::dtype::UInt8:
+                return make_convert<uint8_t>();
+            case aux::dtype::UInt16:
+                return make_convert<uint16_t>();
+            case aux::dtype::UInt32:
+                return make_convert<uint32_t>();
+            case aux::dtype::UInt64:
+                return make_convert<uint64_t>();
+    
+            case aux::dtype::Float32:
+                return make_convert<float>();
+            case aux::dtype::Float64:
+                return make_convert<double>();
+
+            //case dtype::Complex64:
+                //return convert<T, cpx64>;
+            //case dtype::Complex128:
+                //return convert<T, cpx128>;        
+
+            default:
+                throw std::runtime_error("AA");
+        }
+    }
+
+    
+    explicit varray(array::in arr_ref, idx const ndim)
+    :
+    array_ref(arr_ref), data(arr_ref.data), strides(arr_ref.strides),
+    convert(converter_factory(arr_ref.type))
+    {
+        arr_ref.basic_check<T>(ndim);
+        auto const& arr_type = arr_ref.get_type(), req_type = aux::type_info<T>();
+        check_match(arr_type, req_type);
+    }
+
+    
+    T const operator ()(idx const ii)
+    {
+        return convert(data + ii * strides[0]);
+    }
+};
 
 
 // end namespace numpy

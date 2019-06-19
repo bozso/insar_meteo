@@ -21,9 +21,10 @@ rule slib
 
 
 build ${bdir}/inmet.o: cc ${root}/inmet.cpp
-# build $bdir/aux.o: cc ${aux}/aux.cpp
+build $bdir/aux.o: cc ${aux}/aux.cpp
 # build $bdir/math.o: cc ${inmet}/math.cpp
 # build $bdir/ellipsoid.o: cc ${inmet}/ellipsoid.cpp
 
 
-# build $bdir/libinmet_aux.so: slib $bdir/inmet.o $bdir/aux.o $bdir/math.o $bdir/ellipsoid.o
+build $bdir/libinmet_aux.so: slib $bdir/inmet.o $bdir/aux.o
+# $bdir/math.o $bdir/ellipsoid.o

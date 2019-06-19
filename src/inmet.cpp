@@ -24,9 +24,9 @@ using aux::end;
 
 extern "C" {
 
-int aaa(array& a)
+int aaa(array::in& a)
 {
-    printf("ndim: %d\n", a.ndim());
+    printf("ndim: %ld name: %s\n", a.ndim, a.get_type().name);
     return 0;
 }
 

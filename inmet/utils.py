@@ -28,8 +28,20 @@ from numpy.ctypeslib import _ndptr, ndpointer
 from ctypes import *
 
 
-__all__ = ["PY3", "CLib", "CStruct", "c_arr_p", "arrptr", "get_filedir", "Save",
-           "iteraxis", "str_t", "inarray", "outarray", "c_idx"]
+__all__ = [
+    "PY3",
+    "CLib",
+    "CStruct",
+    # "c_arr_p",
+    "arrptr",
+    "get_filedir",
+    "Save",
+    "iteraxis",
+    "str_t",
+    "inarray",
+    "outarray",
+    "c_idx"
+]
 
            
 PY3 = version_info[0] == 3
@@ -110,7 +122,7 @@ class Array(CStruct):
         
         ct = tmp.ctypes
         
-        return cls(type_conversion[ct.dtype], 1, c_idx(ct.ndim),
+        return cls(type_conversion[tmp.dtype], 1, c_idx(tmp.ndim),
                    c_idx(tmp.size), c_idx(tmp.itemsize), ct.shape_as(c_idx),
                    ct.strides_as(c_idx), ct.data_as(c_char_p))
     
@@ -120,13 +132,12 @@ class Array(CStruct):
         return cls.from_array(*args, **kwargs)
 
     
-    # TODO: modify, _ndptr return is bad
     @classmethod
     def from_param(cls, obj):
-        return pointer(cls.from_array(_ndptr.from_param(cls, obj)))
+        return pointer(cls.from_array(obj))
 
 
-c_arr_p = POINTER(Array)
+# c_arr_p = POINTER(Array)
 
 
 def arrptr(**kwargs):
@@ -144,8 +155,8 @@ lib_filename = new_compiler().library_filename
 
 
 class CLib(object):
-    # build_dir = join(get_filedir(), "..", "src", "build")
-    build_dir = join(get_filedir(), "..", "src")
+    build_dir = join(get_filedir(), "..", "src", "build")
+    # build_dir = join(get_filedir(), "..", "src")
 
     def __init__(self, name, path=None):
         if path is None:

@@ -1,12 +1,32 @@
 #include "aux.hpp"
+#include "array.hpp"
+#include "type_info.hpp"
 
 
 namespace aux {
 
-// static std::unique_ptr<memtype[]> make_memory(long size)
-// {
-//     return std::unique_ptr<memtype[]>(new memtype[size]);
-// }
+idx const ArrayMeta::operator()(idx const ii) const
+{
+    return ii * strides[0];
+}
+
+idx const ArrayMeta::operator()(idx const ii, idx const jj) const
+{
+    return ii * strides[0] + jj * strides[jj];
+}
+
+idx const ArrayMeta::operator()(idx const ii, idx const jj,
+                                idx const kk) const
+{
+    return ii * strides[0] + jj * strides[jj] + kk * strides[kk];
+}
+
+idx const ArrayMeta::operator()(idx const ii, idx const jj, idx const kk,
+                                idx const ll) const
+{
+    return   ii * strides[0] + jj * strides[1] 
+           + kk * strides[2] + ll * strides[3];
+}
 
 
 static RTypeInfo const type_infos[] = {
@@ -46,6 +66,5 @@ RTypeInfo const& type_info(dtype const type) noexcept
     return type_info(static_cast<int const>(type));
 }
 
-
-// aux namespace
+// end namespace
 }

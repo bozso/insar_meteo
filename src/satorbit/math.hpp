@@ -14,8 +14,7 @@ struct PolyFit {
 using poly_in = PolyFit const&;
 using poly_out = PolyFit&;
 
-void eval_poly(int nfit, aux::arr_in coeffs, aux::arr_in ncoeffs,
-               aux::arr_in x, aux::arr_out y);
+void eval_poly(poly_in poly, aux::arr_in x, aux::arr_out y);
 
 }
 

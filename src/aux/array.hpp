@@ -22,7 +22,6 @@ struct View;
 template<class T>
 struct ConstView;
 
-
 using idx = long;
 
 
@@ -31,6 +30,17 @@ static idx constexpr Dynamic = -1;
 static idx constexpr row = 0;
 static idx constexpr col = 1;
 static idx constexpr maxdim = 64;
+
+
+RTypeInfo const& type_info(int const type) noexcept;
+RTypeInfo const& type_info(dtype const type) noexcept;
+
+
+template<class T>
+static RTypeInfo const& type_info() noexcept
+{
+    return type_info(tpl2dtype<T>());
+}
 
 
 static void check_match(RTypeInfo const& one, RTypeInfo const& two)
@@ -110,7 +120,7 @@ struct Array {
     
     
     template<class T>
-    ConstView<T> const_view(idx const ndim) const
+    ConstView<T> const const_view(idx const ndim) const
     {
         basic_check<T>(ndim);
 
@@ -161,28 +171,10 @@ struct ArrayMeta {
     ArrayMeta& operator=(ArrayMeta const&) = default;
     ArrayMeta& operator=(ArrayMeta&&) = default;
     
-    
-    idx const operator()(idx const ii) const
-    {
-        return ii * strides[0];
-    }
-    
-    idx const operator()(idx const ii, idx const jj) const
-    {
-        return ii * strides[0] + jj * strides[jj];
-    }
-    
-    idx const operator()(idx const ii, idx const jj, idx const kk) const
-    {
-        return ii * strides[0] + jj * strides[jj] + kk * strides[kk];
-    }
-    
-    idx const operator()(idx const ii, idx const jj, idx const kk,
-                         idx const ll) const
-    {
-        return   ii * strides[0] + jj * strides[1] 
-               + kk * strides[2] + ll * strides[3];
-    }
+    idx const operator()(idx const) const;
+    idx const operator()(idx const, idx const) const;
+    idx const operator()(idx const, idx const, idx const) const;
+    idx const operator()(idx const, idx const, idx const, idx const) const;
 };
 
 
@@ -232,63 +224,17 @@ struct View
     
     
     template<class... Args>
-    val_t operator()(Args&&... args)
+    ref_t operator()(Args&&... args)
     {
         return data[meta(std::forward<Args>(args)...)];
     }
     
     
     template<class... Args>
-    cval_t operator()(Args&&... args) const
+    cref_t operator()(Args&&... args) const
     {
         return data[meta(std::forward<Args>(args)...)];
     }
-    
-    /*
-    ref_t operator()(idx const ii) noexcept
-    {
-        return data[meta(ii)];
-    }
-
-    ref_t operator()(idx const ii, idx const jj) noexcept
-    {
-        return data[meta(ii, jj)];
-    }
-
-    ref_t operator()(idx const ii, idx const jj, idx const kk) noexcept
-    {
-        return data[meta(ii, jj, kk)];
-    }
-
-    ref_t operator()(idx const ii, idx const jj,
-                  idx const kk, idx const ll) noexcept
-    {
-        return data[meta(ii, jj, kk, ll)];
-    }
-
-
-    cref_t operator()(idx const ii) const noexcept
-    {
-        return data[meta(ii)];
-    }
-
-    cref_t operator()(idx const ii, idx const jj) const noexcept
-    {
-        return data[meta(ii, jj)];
-    }
-
-    cref_t operator()(idx const ii, idx const jj,
-                        idx const kk) const noexcept
-    {
-        return data[meta(ii, jj, kk)];
-    }
-
-    cref_t operator()(idx const ii, idx const jj,
-                        idx const kk, idx const ll) const noexcept
-    {
-        return data[meta(ii, jj, kk, ll)];
-    }
-    */
 };
 
 
@@ -378,29 +324,16 @@ struct ConstView {
     }
     
     template<class... Args>
-    cval_t operator()(Args&&... args) const
+    val_t operator()(Args&&... args)
     {
         return convert(data + meta(std::forward<Args>(args)...));
     }
     
-    
-    /*
-    cval_t operator()(idx const ii, idx const jj) const
+    template<class... Args>
+    cval_t operator()(Args&&... args) const
     {
-        return convert(data + meta(ii, jj));
+        return convert(data + meta(std::forward<Args>(args)...));
     }
-    
-    cval_t operator()(idx const ii, idx const jj, idx const kk) const
-    {
-        return convert(data + meta(ii, jj, kk));
-    }
-    
-    cval_t operator()(idx const ii, idx const jj,
-                      idx const kk, idx const ) const
-    {
-        return convert(data + meta(ii, jj, kk));
-    }
-    */
 };
 
 

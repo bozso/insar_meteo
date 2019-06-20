@@ -3,12 +3,10 @@ cc = g++
 root = /home/istvan/progs/insar_meteo/src
 bdir = ${root}/../build
 aux = ${root}/aux
-inmet = ${root}/inmet
+sat = ${root}/satorbit
 
-cflags = -std=c++11 -g -O0 -Wall  -I${aux} -I${inmet} $
-         $$(python3-config --includes)
 
-# include = /home/istvan/progs/insar_meteo/src/
+cflags = -std=c++11 -g -O0 -Wall -I${aux} -I${sat}
 
 rule header
   command = printf "*********************\n* Compilation start *\n*********************\n"
@@ -22,14 +20,16 @@ rule link
 rule slib
   command = $cc $cflags -shared -fPIC -o $out $in
 
-
+  
 build tmp: header
 
 build ${bdir}/inmet.o: cc ${root}/inmet.cpp
-build $bdir/aux.o: cc ${aux}/aux.cpp
-build $bdir/math.o: cc ${inmet}/math.cpp
-build $bdir/satorbit.o: cc ${inmet}/satorbit.cpp
+build ${bdir}/array.o: cc ${aux}/array.cpp
+build ${bdir}/satorbit.o: cc ${sat}/satorbit.cpp
+build ${bdir}/math.o: cc ${sat}/math.cpp
 
 
-build $bdir/libinmet_aux.so: slib $bdir/inmet.o $bdir/aux.o $
-                             $bdir/math.o $bdir/satorbit.o
+build $bdir/libinmet_aux.so: slib $bdir/array.o $bdir/math.o  $bdir/inmet.o 
+
+
+#                                   $bdir/satorbit.o 

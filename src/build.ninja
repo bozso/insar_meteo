@@ -29,7 +29,8 @@ build ${bdir}/satorbit.o: cc ${sat}/satorbit.cpp
 build ${bdir}/math.o: cc ${sat}/math.cpp
 
 
-build $bdir/libinmet_aux.so: slib $bdir/array.o $bdir/math.o  $bdir/inmet.o 
-
-
-#                                   $bdir/satorbit.o 
+build $bdir/libinmet_aux.so: slib $
+$bdir/array.o $
+$bdir/math.o  $
+$bdir/satorbit.o $
+$bdir/inmet.o 

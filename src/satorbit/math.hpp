@@ -7,7 +7,7 @@ namespace math {
 
 struct PolyFit {
     aux::idx nfit;
-    aux::arr_in coeffs, ncoeffs;
+    aux::Array coeffs, ncoeffs;
 };
 
 

@@ -294,8 +294,8 @@ extern "C" {
 
 void print_ellipsoid()
 {
-    printf("Ellipsoid in use: name: \"%s\" a: %lf b: %lf e2: %lf\n",
-           ellipsoid->name, ellipsoid->a, ellipsoid->b, ellipsoid->e2);
+    printf("Ellipsoid in use: a: %lf b: %lf e2: %lf\n",
+            ellipsoid->a, ellipsoid->b, ellipsoid->e2);
 }
 
 

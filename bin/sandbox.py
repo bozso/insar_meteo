@@ -39,6 +39,14 @@ def main():
              #"before fitting.", kind="flag")
     #)
     
+    sat = im.SatOrbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res", "doris")
+    
+    sat.fit_orbit(deg=2)
+    
+    print(sat.fit(sat.time))
+    
+    return 0
+    
     a = np.array([1, 2, 3])
     b = np.array([1.0, 2.0, 3.0])
     
@@ -48,13 +56,6 @@ def main():
     # im.test(a)
     return
     
-    sat = im.SatOrbit("/home/istvan/progs/insar_meteo/daisy_test_data/asc_master.res", "doris")
-    
-    sat.fit_orbit(deg=2)
-    
-    print(sat.fit(sat.time))
-    
-    return 0
     
     #args = ap.parse_args()
     #

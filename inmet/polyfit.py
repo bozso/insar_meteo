@@ -3,20 +3,21 @@ import numpy as np
 import inmet as im
 
 
-
 __all__ = ["PolyFit"]
 
 
-# class PolyFitC(im.CStruct):
-#     _fields_ = [
-#         ("nfit", im.c_idx),
-#         ("coeffs", im.inarray),
-#         ("ncoeffs", im.inarray)
-#     ]
-
-
 class PolyFit(im.Save):
+    
+    class C(im.CStruct):
+        _fields_ = [
+            ("nfit", im.c_idx),
+            ("coeffs", im.Array),
+            ("ncoeffs", im.Array)
+        ]
 
+    
+    eval_poly = im.lib.wrap("eval_poly", [C, im.inarray, im.outarray])
+    
     @staticmethod
     def make_jacobi(x, deg):
         assert deg >= 1, "deg should be at least 1."
@@ -50,6 +51,8 @@ class PolyFit(im.Save):
         jacobi = PolyFit.make_jacobi(x, mdeg)
         
         
+        print(_deg.shape)
+        
         if y.ndim > 1:
             self.nfit = y.shape[axis]
             self.deg = _deg
@@ -69,8 +72,8 @@ class PolyFit(im.Save):
             self.ncoeffs = None
             self.coeffs = PolyFit.polyfit(x, y, jacobi=jacobi)    
         
-        self.ptr = im.PolyFitC.ptr(self.nfit, im.np_ptr(self.coeffs),
-                                              im.np_ptr(self.ncoeffs))
+        # self.ptr = im.PolyFitC.ptr(self.nfit, im.np_ptr(self.coeffs),
+        #                                       im.np_ptr(self.ncoeffs))
     
     
     def __call__(self, x, tensor=True):
@@ -91,7 +94,13 @@ class PolyFit(im.Save):
         else:
             y = im.empty(x, shape=(x.shape[0], self.nfit))
             
-            im.eval_poly(self.nfit, self.coeffs, self.ncoeffs, x, y)
+            polyfit = self.C(self.nfit,
+                             im.Array(self.coeffs), 
+                             im.Array(self.ncoeffs))
+            
+            print(type(polyfit.coeffs.data))
+            exit()
+            PolyFit.eval_poly(polyfit, x, y)
             
             return y
 

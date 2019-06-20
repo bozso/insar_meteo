@@ -1,12 +1,8 @@
 #ifndef __AUX_HPP
 #define __AUX_HPP
 
-#include "type_info.hpp"
-
-
 #define type_assert(T, P, msg) static_assert(T<P>::value, msg)
 #define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
-
 
 namespace aux {
 
@@ -22,10 +18,6 @@ using ref = T&;
 
 template<class T>
 using cref = ref<T const>;
-
-
-static std::string const end = "\n";
-
 
 using memtype = char;
 using memptr = ptr<memtype>;

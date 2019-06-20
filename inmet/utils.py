@@ -32,6 +32,7 @@ __all__ = [
     "PY3",
     "CLib",
     "CStruct",
+    "Array",
     # "c_arr_p",
     "arrptr",
     "get_filedir",
@@ -78,28 +79,23 @@ class CStruct(Structure):
     def ptr(cls, *args):
         return pointer(cls(*args))
     
+    def ref(self):
+        return byref(self)
+    
     
     def make_ptr(self):
         self.ptr = pointer(self)
-    
     
     @classmethod
     def get_ptr_t(cls):
         return POINTER(cls)
     
-    
     ptr_t = property(get_ptr_t)
-    
     
     @classmethod
     def from_param(cls, obj):
-        return pointer(obj)
-        
-        # try:
-        #     return obj.ptr
-        # except AttributeError:
-        #     obj.make_ptr()
-        #     return obj.ptr
+        return byref(obj)
+
 
 
 class Array(CStruct):
@@ -114,7 +110,20 @@ class Array(CStruct):
         ("data", c_char_p)
     ]
     
+    
+    def __init__(self, obj):
+        ct = obj.ctypes
+        
+        self.type = type_conversion[obj.dtype]
+        self.is_numpy = 1
+        self.ndim = obj.ndim
+        self.ndata = obj.size
+        self.datasize = obj.itemsize
+        self.shape = ct.shape_as(c_idx)
+        self.strides = ct.strides_as(c_idx)
+        self.data = ct.data_as(c_char_p)
 
+    
     @classmethod
     def from_array(cls, *args, **kwargs):
         tmp = np.array(*args, **kwargs)
@@ -133,7 +142,7 @@ class Array(CStruct):
     
     @classmethod
     def from_param(cls, obj):
-        return pointer(cls.from_array(obj))
+        return byref(cls.from_array(obj))
 
 
 # c_arr_p = POINTER(Array)

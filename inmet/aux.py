@@ -7,10 +7,10 @@ from ctypes import *
 __all__ = [
     "empty",
     "is_cpx",
-    # "test",
-    # "eval_poly",
-    # "set_ellipsoid",
-    "aaa"
+    "set_ellipsoid",
+    "print_ellipsoid",
+    "aaa",
+    "lib"
 ]
 
 
@@ -40,15 +40,11 @@ class Ellipsoid(im.CStruct):
         self.e2 = (a2 - b * b) / a2
 
 
-inmet = im.CLib("inmet_aux")
+lib = im.CLib("inmet_aux")
 
-aaa = inmet.wrap("aaa", [im.inarray, im.outarray])
-# test = inmet.wrap("test", [im.inarray])
-# eval_poly = inmet.wrap("eval_poly_c", [c_int, im.inarray, im.inarray,
-#                                        im.inarray, im.outarray])
-# 
-# set_ell = inmet.wrap("set_ellipsoid", [Ellipsoid], restype=None)
-# print_ell = inmet.wrap("print_ellipsoid", [], restype=None)
+aaa = lib.wrap("aaa", [im.inarray, im.outarray])
+set_ell = lib.wrap("set_ellipsoid", [Ellipsoid], restype=None)
+print_ellipsoid = lib.wrap("print_ellipsoid", [], restype=None)
 
 
 
@@ -76,8 +72,6 @@ class Memory(im.CStruct):
         if self.ptr is not None:
             Memory.__del_mem(self.ptr)
     
-    
-    
 
 ellipsoids = {
     "WGS84": Ellipsoid(6378137.0, 6356752.3142)
@@ -85,8 +79,7 @@ ellipsoids = {
 
 
 def set_ellipsoid(name=None, a=None, b=None):
+    if name not in ellipsoids:
+        ellipsoids[name] = Ellipsoid(a, b)
     
-    if name is not None:
-        set_ell(ellipsoids[name])
-    else:
-        set_ell(Ellipsoid(a, b))
+    set_ell(ellipsoids[name])

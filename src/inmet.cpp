@@ -37,9 +37,11 @@ int aaa(arr_in a, arr_out b)
     }
 }
 
+
 int eval_poly(math::poly_in poly, arr_in x, arr_out y)
 {
     try {
+        printf("%ld %p\n", poly.coeffs.ndim, poly.coeffs.data);
         math::eval_poly(poly, x, y);
         return 0;
     }

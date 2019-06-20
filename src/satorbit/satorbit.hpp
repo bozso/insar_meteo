@@ -34,11 +34,7 @@ struct cart {
 
 
 struct Ellipsoid {
-    using name_t = char const*const;
-    
     double a = 0.0, b = 0.0, e2 = 0.0;
-    name_t name = "Invalid";
-    
     
     Ellipsoid() = default;
     ~Ellipsoid() = default;

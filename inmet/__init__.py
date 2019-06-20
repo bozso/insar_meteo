@@ -18,8 +18,8 @@ Module
 """
 
 from .utils import *
-from .polyfit import *
 from .aux import *
+from .polyfit import *
 from .satorbit import *
 
-# set_ellipsoid("WGS84")
+set_ellipsoid("WGS84")

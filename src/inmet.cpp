@@ -18,8 +18,7 @@ extern "C" {
 
 int aaa(arr_in a)
 {
-    auto const va = a.view<int64_t>(1);
-    // printf("ndim: %ld name: %s\n", a.ndim, a.get_type().name);
+    auto const va = a.const_view<int64_t>(1);
     
     for (int ii = 0; ii < a.shape[0]; ++ii) {
         printf("%ld ", va(ii));

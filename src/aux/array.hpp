@@ -18,6 +18,11 @@ namespace numpy {
 template<class T>
 struct View;
 
+
+template<class T>
+struct ConstView;
+
+
 using idx = long;
 
 
@@ -75,7 +80,7 @@ struct Array {
     
     
     template<class T>
-    void basic_check(idx const ndim)
+    void basic_check(idx const ndim) const
     {
         if (ndim > maxdim) {
             throw std::runtime_error("Exceeded maximum number of dimensions!");
@@ -102,30 +107,32 @@ struct Array {
     
     
     template<class T>
+    ConstView<T> const_view(idx const ndim) const
+    {
+        basic_check<T>(ndim);
+
+        auto const& arr_type = get_type(), req_type = aux::type_info<T>();
+        check_match(arr_type, req_type);
+
+        return ConstView<T>(*this, ndim);
+    }
+    
+    
+    template<class T>
     View<T> view(idx const ndim)
     {
         basic_check<T>(ndim);
 
-        auto const _ndim = this->ndim;
         auto const& arr_type = get_type(), req_type = aux::type_info<T>();
         
-        
         if (arr_type.id != req_type.id) {
-            printf("view id: %d, array id: %d\n", arr_type.id, req_type.id); 
+            printf("View id: %d, Array id: %d\n", arr_type.id, req_type.id); 
             throw std::runtime_error("Not same id!");
         }
         
         check_match(arr_type, req_type);
 
-        auto ret = View<T>();
-        ret._shape = this->shape;
-        
-        for (idx ii = 0; ii < _ndim; ++ii) {
-            ret._strides[ii] = idx(double(this->strides[ii]) / this->datasize);
-        }
-        
-        ret.data = reinterpret_cast<T*>(this->data);
-        return ret;
+        return View<T>(*this, ndim);
     }    
 };
 
@@ -144,6 +151,17 @@ struct View
 
 
     View() = default;
+    
+    explicit View(Array& ref, idx const ndim)
+    :
+    _shape(ref.shape), data(reinterpret_cast<T*>(ref.data))
+    {
+        for (idx ii = 0; ii < ndim; ++ii) {
+            _strides[ii] = idx(double(ref.strides[ii]) / ref.datasize);
+        }
+        
+    }
+    
     
     View(View const&) = default;
     View(View&&) = default;
@@ -202,25 +220,33 @@ struct View
 
 
 template<class T>
-struct varray {
+struct ConstView {
     using value_type = T;
     using convert_fun = std::function<value_type(aux::memptr)>;
     
     
-    Array const& array_ref;
-    aux::memptr const data;
+    Array const& ref;
+    aux::memptr const data = nullptr;
     aux::ptr<idx const> const strides;
     convert_fun const convert;
-
-    varray() = delete;
-
-    varray(varray const&) = default;
-    varray(varray&&) = default;
     
-    varray& operator=(varray const&) = default;
-    varray& operator=(varray&&) = default;
     
-    ~varray() = default;
+    explicit ConstView(Array const& ref, idx const ndim)
+    :
+    ref(ref), data(ref.data), strides(ref.strides),
+    convert(converter_factory(ref.type))
+    {}
+
+    
+    ConstView() = delete;
+    ~ConstView() = default;
+
+    ConstView(ConstView const&) = default;
+    ConstView(ConstView&&) = default;
+    
+    ConstView& operator=(ConstView const&) = default;
+    ConstView& operator=(ConstView&&) = default;
+    
     
     template<class P>
     static constexpr convert_fun make_convert()
@@ -229,52 +255,9 @@ struct varray {
             return static_cast<P>(*reinterpret_cast<T*>(in));
         };
     }
+
     
-    /*
-    static convert_fun const converter_factory(int const type)
-    {
-        switch(static_cast<dtype>(type)) {
-            case dtype::Int:
-                return make_convert(T, int);
-            case dtype::Long:
-                return make_convert(T, long);
-            case dtype::Size_t:
-                return make_convert(T, size_t);
-    
-            case dtype::Int8:
-                return make_convert(T, int8_t);
-            case dtype::Int16:
-                return make_convert(T, int16_t);
-            case dtype::Int32:
-                return make_convert(T, int32_t);
-            case dtype::Int64:
-                return make_convert(T, int64_t);
-
-            case dtype::UInt8:
-                return make_convert(T, uint8_t);
-            case dtype::UInt16:
-                return make_convert(T, uint16_t);
-            case dtype::UInt32:
-                return make_convert(T, uint32_t);
-            case dtype::UInt64:
-                return make_convert(T, uint64_t);
-    
-            case dtype::Float32:
-                return make_convert(T, float);
-            case dtype::Float64:
-                return make_convert(T, double);
-
-            //case dtype::Complex64:
-                //return convert<T, cpx64>;
-            //case dtype::Complex128:
-                //return convert<T, cpx128>;        
-
-            default:
-                throw std::runtime_error("AA");
-        }
-    }
-    */
-
+    // TODO: separate real and complex cases
     static convert_fun const converter_factory(int const type)
     {
         switch(static_cast<aux::dtype>(type)) {
@@ -317,20 +300,8 @@ struct varray {
                 throw std::runtime_error("AA");
         }
     }
-
     
-    explicit varray(Array const& arr_ref, idx const ndim)
-    :
-    array_ref(arr_ref), data(arr_ref.data), strides(arr_ref.strides),
-    convert(converter_factory(arr_ref.type))
-    {
-        arr_ref.basic_check<T>(ndim);
-        auto const& arr_type = arr_ref.get_type(), req_type = aux::type_info<T>();
-        check_match(arr_type, req_type);
-    }
-
-    
-    T const operator ()(idx const ii)
+    T const operator ()(idx const ii) const
     {
         return convert(data + ii * strides[0]);
     }

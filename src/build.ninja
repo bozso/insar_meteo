@@ -11,7 +11,7 @@ cflags = -std=c++11 -g -O0 -Wall  -I${aux} -I${inmet} $
 # include = /home/istvan/progs/insar_meteo/src/
 
 rule header
-  command = printf "*********************\n\t\t\t* Compilation start *\n\t\t\t*********************\n"
+  command = printf "*********************\n* Compilation start *\n*********************\n"
 
 rule cc
   command = $cc $cflags -c -fPIC -o $out $in 

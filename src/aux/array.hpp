@@ -76,7 +76,7 @@ struct Array {
     ~Array() = default;
     
     
-    RTypeInfo const& get_type() const
+    RTypeInfo const& get_type() const noexcept
     {
         return type_info(type);
     }
@@ -173,52 +173,57 @@ struct View
     View& operator=(View&&) = default;
     
     
-    idx const& shape(idx const ii) const { return _shape[ii]; }
+    idx const& shape(idx const ii) const noexcept
+    {
+        return _shape[ii];
+    }
     
-    T& operator()(idx const ii)
+    
+    T& operator()(idx const ii) noexcept
     {
         return data[ii * _strides[0]];
     }
 
-    T& operator()(idx const ii, idx const jj)
+    T& operator()(idx const ii, idx const jj) noexcept
     {
         return data[ii * _strides[0] + jj * _strides[1]];
     }
 
-    T& operator()(idx const ii, idx const jj, idx const kk)
+    T& operator()(idx const ii, idx const jj, idx const kk) noexcept
     {
         return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]];
     }
 
-    T& operator()(idx const ii, idx const jj, idx const kk, idx const ll)
+    T& operator()(idx const ii, idx const jj, idx const kk, idx const ll) noexcept
     {
         return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]
                     + ll * _strides[4]];
     }
 
 
-    T const& operator()(idx const ii) const
+    T const& operator()(idx const ii) const noexcept
     {
         return data[ii * _strides[0]];
     }
 
-    T const& operator()(idx const ii, idx const jj) const
+    T const& operator()(idx const ii, idx const jj) const noexcept
     {
         return data[ii * _strides[0] + jj * _strides[1]];
     }
 
-    T const& operator()(idx const ii, idx const jj, idx const kk) const
+    T const& operator()(idx const ii, idx const jj,
+                        idx const kk) const noexcept
     {
         return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]];
     }
 
-    T const& operator()(idx const ii, idx const jj, idx const kk, idx const ll) const
+    T const& operator()(idx const ii, idx const jj,
+                        idx const kk, idx const ll) const noexcept
     {
         return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]
                     + ll * _strides[4]];
     }
 };
-
 
 
 template<class T>

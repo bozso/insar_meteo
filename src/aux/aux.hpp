@@ -31,12 +31,12 @@ using memtype = char;
 using memptr = ptr<memtype>;
 
 
-RTypeInfo const& type_info(int const type);
-RTypeInfo const& type_info(dtype const type);
+RTypeInfo const& type_info(int const type) noexcept;
+RTypeInfo const& type_info(dtype const type) noexcept;
 
 
 template<class T>
-RTypeInfo const& type_info()
+RTypeInfo const& type_info() noexcept
 {
     return type_info(tpl2dtype<T>());
 }

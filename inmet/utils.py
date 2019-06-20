@@ -194,10 +194,10 @@ type_conversion = {
     np.dtype(np.int32)       : 6,
     np.dtype(np.int64)       : 7,
 
-    np.dtype(np.uint8)        : 8,
-    np.dtype(np.uint16)       : 9,
-    np.dtype(np.uint32)       : 10,
-    np.dtype(np.uint64)       : 11,
+    np.dtype(np.uint8)       : 8,
+    np.dtype(np.uint16)      : 9,
+    np.dtype(np.uint32)      : 10,
+    np.dtype(np.uint64)      : 11,
 
     np.dtype(np.float32)     : 12,
     np.dtype(np.float64)     : 13,

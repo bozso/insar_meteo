@@ -8,19 +8,18 @@ using aux::idx;
 
 
 template<class T>
-static void eval_poly_tpl(int nfit, arr_in coeffs, arr_in ncoeffs,
-                          arr_in X, arr_out Y)
+static void eval_poly_tpl(poly_in poly, arr_in X, arr_out Y)
 {
     auto x = X.const_view<T>(1);
     auto y = Y.view<T>(2);
-    auto vcoeffs = coeffs.const_view<T>(1);
-    auto vncoeffs = ncoeffs.const_view<idx>(1);
+    auto vcoeffs = poly.coeffs.const_view<T>(1);
+    auto vncoeffs = poly.ncoeffs.const_view<idx>(1);
 
     for (idx ii = 0; ii < X.shape[0]; ++ii) {
         idx start = 0, stop = vncoeffs(0);
         auto const& _x = x(ii);
         
-        for (idx nn = 0; nn < nfit; ++nn) {
+        for (idx nn = 0; nn < poly.nfit; ++nn) {
             /*
                nfit = 3
                ncoeffs = (3, 4, 2)
@@ -53,15 +52,14 @@ static void eval_poly_tpl(int nfit, arr_in coeffs, arr_in ncoeffs,
 }
 
 
-void eval_poly(int nfit, arr_in coeffs, arr_in ncoeffs,
-               arr_in x, arr_out y)
+void eval_poly(poly_in poly, arr_in x, arr_out y)
 {
-    auto const is_cpx = coeffs.get_type().is_complex;
+    auto const is_cpx = poly.coeffs.get_type().is_complex;
     
     if (is_cpx) {
-        eval_poly_tpl<double>(nfit, coeffs, ncoeffs, x, y);
+        eval_poly_tpl<double>(poly, x, y);
     } else {
-        eval_poly_tpl<aux::cpxd>(nfit, coeffs, ncoeffs, x, y);
+        eval_poly_tpl<aux::cpxd>(poly, x, y);
     }
 
     

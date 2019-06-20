@@ -35,13 +35,13 @@ static RTypeInfo const type_infos[] = {
 
 // return reference to type_info struct
 
-RTypeInfo const& type_info(int const type)
+RTypeInfo const& type_info(int const type) noexcept
 {
     return type < 16 and type > 0 ? type_infos[type] : type_infos[0];
 }
 
 
-RTypeInfo const& type_info(dtype const type)
+RTypeInfo const& type_info(dtype const type) noexcept
 {
     return type_info(static_cast<int const>(type));
 }

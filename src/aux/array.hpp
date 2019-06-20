@@ -11,7 +11,7 @@
 #include "type_info.hpp"
 
 
-namespace numpy {
+namespace aux {
 
 // Forward declarations
 
@@ -33,7 +33,7 @@ static idx constexpr col = 1;
 static idx constexpr maxdim = 64;
 
 
-static void check_match(aux::RTypeInfo const& one, aux::RTypeInfo const& two)
+static void check_match(RTypeInfo const& one, RTypeInfo const& two)
 {
     if (one.is_complex != two.is_complex) {
         throw std::runtime_error("Cannot convert complex to non complex "
@@ -68,13 +68,17 @@ enum flags {
 struct Array {
     int const type = 0, is_numpy = 0;
     idx const ndim = 0, ndata = 0, datasize = 0;
-    aux::cptr<idx const> shape = nullptr, strides = nullptr;
-    aux::memptr data = nullptr;
+    cptr<idx const> shape = nullptr, strides = nullptr;
+    memptr data = nullptr;
     
     
-    aux::RTypeInfo const& get_type() const
+    Array() = delete;
+    ~Array() = default;
+    
+    
+    RTypeInfo const& get_type() const
     {
-        return aux::type_info(type);
+        return type_info(type);
     }
     
     
@@ -144,16 +148,14 @@ template<class T>
 struct View
 {
     // TODO: make appropiate items constant
-    aux::ptr<T> data = nullptr;
-    aux::ptr<idx const> _shape = nullptr;
-    std::array<idx, maxdim> _strides{0};
+    cptr<T> data;
+    cptr<idx const> _shape;
+    std::array<idx, maxdim> _strides;
 
 
-    View() = default;
-    
     explicit View(Array& ref, idx const ndim)
     :
-    _shape(ref.shape), data(reinterpret_cast<T*>(ref.data))
+    data(reinterpret_cast<T*>(ref.data)), _shape(ref.shape)
     {
         for (idx ii = 0; ii < ndim; ++ii) {
             _strides[ii] = idx(double(ref.strides[ii]) / ref.datasize);
@@ -161,6 +163,8 @@ struct View
         
     }
     
+    View() = delete;
+    ~View() = default;
     
     View(View const&) = default;
     View(View&&) = default;
@@ -168,7 +172,6 @@ struct View
     View& operator=(View const&) = default;
     View& operator=(View&&) = default;
     
-    ~View() = default;
     
     idx const& shape(idx const ii) const { return _shape[ii]; }
     
@@ -223,10 +226,9 @@ struct ConstView {
     using value_type = T;
     using convert_fun = std::function<value_type(aux::memptr)>;
     
-    
     Array const& ref;
-    aux::memptr const data = nullptr;
-    aux::ptr<idx const> const strides;
+    memptr const data;
+    ptr<idx const> const strides;
     convert_fun const convert;
     
     
@@ -256,37 +258,38 @@ struct ConstView {
 
     
     // TODO: separate real and complex cases
+    
     static convert_fun const factory(int const type)
     {
-        switch(static_cast<aux::dtype>(type)) {
-            case aux::dtype::Int:
+        switch(static_cast<dtype>(type)) {
+            case dtype::Int:
                 return make_convert<int>();
-            case aux::dtype::Long:
+            case dtype::Long:
                 return make_convert<long>();
-            case aux::dtype::Size_t:
+            case dtype::Size_t:
                 return make_convert<size_t>();
     
-            case aux::dtype::Int8:
+            case dtype::Int8:
                 return make_convert<int8_t>();
-            case aux::dtype::Int16:
+            case dtype::Int16:
                 return make_convert<int16_t>();
-            case aux::dtype::Int32:
+            case dtype::Int32:
                 return make_convert<int32_t>();
-            case aux::dtype::Int64:
+            case dtype::Int64:
                 return make_convert<int64_t>();
 
-            case aux::dtype::UInt8:
+            case dtype::UInt8:
                 return make_convert<uint8_t>();
-            case aux::dtype::UInt16:
+            case dtype::UInt16:
                 return make_convert<uint16_t>();
-            case aux::dtype::UInt32:
+            case dtype::UInt32:
                 return make_convert<uint32_t>();
-            case aux::dtype::UInt64:
+            case dtype::UInt64:
                 return make_convert<uint64_t>();
     
-            case aux::dtype::Float32:
+            case dtype::Float32:
                 return make_convert<float>();
-            case aux::dtype::Float64:
+            case dtype::Float64:
                 return make_convert<double>();
 
             //case dtype::Complex64:

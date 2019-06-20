@@ -10,8 +10,8 @@ using std::cout;
 using std::cerr;
 
 
-using numpy::arr_in;
-using numpy::arr_out;
+using aux::arr_in;
+using aux::arr_out;
 
 
 extern "C" {

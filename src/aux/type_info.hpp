@@ -93,10 +93,6 @@ struct RTypeInfo {
     name_t name = "Unknown";
     
     RTypeInfo() = default;
-    
-    // RTypeInfo() : is_pointer(false), is_void(false), is_complex(false),
-    //               is_float(false), is_scalar(false), is_arithmetic(false),
-    //               is_pod(false), size(0), id(0), name(nullptr) {}
     ~RTypeInfo() = default;
     
     

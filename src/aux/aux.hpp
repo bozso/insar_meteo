@@ -16,7 +16,16 @@ using ptr = T*;
 template<class T>
 using cptr = ptr<T> const;
 
+
+template<class T>
+using ref = T&;
+
+template<class T>
+using cref = ref<T const>;
+
+
 static std::string const end = "\n";
+
 
 using memtype = char;
 using memptr = ptr<memtype>;
@@ -33,6 +42,7 @@ RTypeInfo const& type_info()
 }
 
 
+/*
 template<class T>
 struct Ptr
 {
@@ -65,24 +75,6 @@ struct Ptr
     ptr_t operator->() { return _ptr; }
     ptr_t const operator->() const { return _ptr; }
 };
-
-// TODO: better converting with std::function
-
-/*
-template<class T, class P>
-struct converter {
-    T operator ()(memptr in) {
-        return static_cast<T>(*reinterpret_cast<P*>(in));
-    }
-};
-
-
-template<class T, class P>
-static T convert(memptr in)
-{
-    return static_cast<T>(*reinterpret_cast<P*>(in));
-};
-*/
 
 
 #define switcher(f, type_id, ...)                      \
@@ -146,7 +138,24 @@ do {                                                   \
 } while(0)
 
 
-/*
+template<class Fun, class... Args>
+void switcher2(int const type_id, Args&&... args)
+{
+    switch(static_cast<dtype>(type_id)) {
+        case dtype::Int:
+            Fun<int>(std::forward<Args>(args)...);
+            break;
+        case dtype::Complex128:
+            Fun<cpxd>(std::forward<Args>(args)...);
+            break;
+        case dtype::Unknown:
+        default:
+            throw std::runtime_error("Unknown type!");
+            break;
+    }
+}
+
+
 template<class Fun, class... Args>
 void switcher(int const type_id, Fun f, Args&&... args)
 {
@@ -218,8 +227,8 @@ void switcher(int const type_id, Fun f, Args&&... args)
 */
 
 
-// aux namespace
+// namespace end
 }
 
-
+// guard
 #endif

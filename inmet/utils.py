@@ -154,8 +154,7 @@ lib_filename = new_compiler().library_filename
 
 
 class CLib(object):
-    build_dir = join(get_filedir(), "..", "src", "build")
-    # build_dir = join(get_filedir(), "..", "src")
+    build_dir = join(get_filedir(), "..", "build")
 
     def __init__(self, name, path=None):
         if path is None:
@@ -170,13 +169,6 @@ class CLib(object):
         ''' Simplify wrapping ctypes functions '''
         func = getattr(self.lib, funcname)
         func.restype = restype
-        
-        #argtypes = (
-            #ptr_dict[arg] if isinstance(arg, str_t)
-            #else arg
-            #for arg in argtypes
-        #)
-        
         func.argtypes = argtypes
         
 

@@ -1,16 +1,20 @@
-#include "aux.hpp"
 #include "math.hpp"
 
-namespace aux {
+namespace math {
+
+using aux::arr_in;
+using aux::arr_out;
+using aux::idx;
+
 
 template<class T>
-static void eval_poly_tpl(int nfit, inarray coeffs, inarray ncoeffs,
-                          inarray X, outarray Y)
+static void eval_poly_tpl(int nfit, arr_in coeffs, arr_in ncoeffs,
+                          arr_in X, arr_out Y)
 {
-    auto x = X.array<T>(1);
+    auto x = X.const_view<T>(1);
     auto y = Y.view<T>(2);
-    auto vcoeffs = coeffs.array<T>(1);
-    auto vncoeffs = ncoeffs.array<idx>(1);
+    auto vcoeffs = coeffs.const_view<T>(1);
+    auto vncoeffs = ncoeffs.const_view<idx>(1);
 
     for (idx ii = 0; ii < X.shape[0]; ++ii) {
         idx start = 0, stop = vncoeffs(0);
@@ -49,21 +53,24 @@ static void eval_poly_tpl(int nfit, inarray coeffs, inarray ncoeffs,
 }
 
 
-void eval_poly(int nfit, inarray coeffs, inarray ncoeffs,
-               inarray x, outarray y)
+void eval_poly(int nfit, arr_in coeffs, arr_in ncoeffs,
+               arr_in x, arr_out y)
 {
-    auto const& type = coeffs.get_type().id;
-    auto const& is_cpx = coeffs.get_type().id;
+    auto const is_cpx = coeffs.get_type().is_complex;
     
     if (is_cpx) {
         eval_poly_tpl<double>(nfit, coeffs, ncoeffs, x, y);
     } else {
-        eval_poly_tpl<cpxd>(nfit, coeffs, ncoeffs, x, y);
+        eval_poly_tpl<aux::cpxd>(nfit, coeffs, ncoeffs, x, y);
     }
+
     
-    //switcher(eval_poly_tpl, type, poly, x, y);
+    /*
+    auto const& type = coeffs.get_type().id;
+    
+    switcher2(eval_poly_tpl, type, poly, x, y);
+    */
 }
 
-
-// namespace aux
+// namespace end
 }

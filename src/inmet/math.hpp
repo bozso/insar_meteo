@@ -1,18 +1,23 @@
-#pragma once
+#ifndef __MATH_HPP
+#define __MATH_HPP
 
-namespace aux {
+#include "array.hpp"
+
+namespace math {
 
 struct PolyFit {
-    idx nfit;
-    inarray coeffs, ncoeffs;
+    aux::idx nfit;
+    aux::arr_in coeffs, ncoeffs;
 };
 
-using inpoly = PolyFit const&;
-using outpoly = PolyFit&;
 
-//typedef cptr<PolyFit const> inpoly;
+using poly_in = PolyFit const&;
+using poly_out = PolyFit&;
 
-void eval_poly(int nfit, inarray coeffs, inarray ncoeffs,
-              inarray x, outarray y);
+void eval_poly(int nfit, aux::arr_in coeffs, aux::arr_in ncoeffs,
+               aux::arr_in x, aux::arr_out y);
 
 }
+
+// guard
+#endif

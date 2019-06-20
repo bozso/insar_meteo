@@ -42,35 +42,34 @@ static void check_match(aux::RTypeInfo const& one, aux::RTypeInfo const& two)
 }
 
 
+// taken from pybind11/numpy.h
+
+enum flags {
+    NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
+    NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
+    NPY_ARRAY_OWNDATA_ = 0x0004,
+    NPY_ARRAY_FORCECAST_ = 0x0010,
+    NPY_ARRAY_ENSUREARRAY_ = 0x0040,
+    NPY_ARRAY_ALIGNED_ = 0x0100,
+    NPY_ARRAY_WRITEABLE_ = 0x0400,
+    NPY_BOOL_ = 0,
+    NPY_BYTE_, NPY_UBYTE_,
+    NPY_SHORT_, NPY_USHORT_,
+    NPY_INT_, NPY_UINT_,
+    NPY_LONG_, NPY_ULONG_,
+    NPY_LONGLONG_, NPY_ULONGLONG_,
+    NPY_FLOAT_, NPY_DOUBLE_, NPY_LONGDOUBLE_,
+    NPY_CFLOAT_, NPY_CDOUBLE_, NPY_CLONGDOUBLE_,
+    NPY_OBJECT_ = 17,
+    NPY_STRING_, NPY_UNICODE_, NPY_VOID_
+};
+
 
 struct Array {
     int const type = 0, is_numpy = 0;
     idx const ndim = 0, ndata = 0, datasize = 0;
     aux::cptr<idx const> shape = nullptr, strides = nullptr;
     aux::memptr data = nullptr;
-    
-    
-    // taken from pybind11/numpy.h
-    
-    enum flags {
-        NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
-        NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
-        NPY_ARRAY_OWNDATA_ = 0x0004,
-        NPY_ARRAY_FORCECAST_ = 0x0010,
-        NPY_ARRAY_ENSUREARRAY_ = 0x0040,
-        NPY_ARRAY_ALIGNED_ = 0x0100,
-        NPY_ARRAY_WRITEABLE_ = 0x0400,
-        NPY_BOOL_ = 0,
-        NPY_BYTE_, NPY_UBYTE_,
-        NPY_SHORT_, NPY_USHORT_,
-        NPY_INT_, NPY_UINT_,
-        NPY_LONG_, NPY_ULONG_,
-        NPY_LONGLONG_, NPY_ULONGLONG_,
-        NPY_FLOAT_, NPY_DOUBLE_, NPY_LONGDOUBLE_,
-        NPY_CFLOAT_, NPY_CDOUBLE_, NPY_CLONGDOUBLE_,
-        NPY_OBJECT_ = 17,
-        NPY_STRING_, NPY_UNICODE_, NPY_VOID_
-    };
     
     
     aux::RTypeInfo const& get_type() const
@@ -233,8 +232,7 @@ struct ConstView {
     
     explicit ConstView(Array const& ref, idx const ndim)
     :
-    ref(ref), data(ref.data), strides(ref.strides),
-    convert(converter_factory(ref.type))
+    ref(ref), data(ref.data), strides(ref.strides), convert(factory(ref.type))
     {}
 
     
@@ -251,14 +249,14 @@ struct ConstView {
     template<class P>
     static constexpr convert_fun make_convert()
     {
-        return [](aux::memptr in) {
-            return static_cast<P>(*reinterpret_cast<T*>(in));
+        return [](aux::memptr const in) {
+            return static_cast<T>(*reinterpret_cast<P*>(in));
         };
     }
 
     
     // TODO: separate real and complex cases
-    static convert_fun const converter_factory(int const type)
+    static convert_fun const factory(int const type)
     {
         switch(static_cast<aux::dtype>(type)) {
             case aux::dtype::Int:

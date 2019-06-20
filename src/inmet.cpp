@@ -16,12 +16,25 @@ using numpy::arr_out;
 
 extern "C" {
 
+
 int aaa(arr_in a)
 {
-    auto const va = a.const_view<int64_t>(1);
+    auto const va = a.const_view<float>(1);
+    
+    // auto one = a.data, two = va.data;
+    // printf("array: %p const_view: %p\n", a.strides, va.strides);
+    
+    /*
+    auto convert = numpy::ConstView<float>::make_convert<int64_t>();
+    
+    printf("array: original: %ld cast: %f\n", 
+           *reinterpret_cast<int64_t*>(one), convert(one));
+    
+    return 0;
+    */
     
     for (int ii = 0; ii < a.shape[0]; ++ii) {
-        printf("%ld ", va(ii));
+        printf("%f ", va(ii));
     }
     printf("\n");
     

@@ -42,7 +42,7 @@ class Ellipsoid(im.CStruct):
 
 inmet = im.CLib("inmet_aux")
 
-aaa = inmet.wrap("aaa", [im.inarray])
+aaa = inmet.wrap("aaa", [im.inarray, im.outarray])
 # test = inmet.wrap("test", [im.inarray])
 # eval_poly = inmet.wrap("eval_poly_c", [c_int, im.inarray, im.inarray,
 #                                        im.inarray, im.outarray])

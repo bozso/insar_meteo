@@ -40,9 +40,10 @@ def main():
     #)
     
     a = np.array([1, 2, 3])
+    b = np.array([1.0, 2.0, 3.0])
     
     # print(type(a.__array_struct__.voidptr))
-    im.aaa(a)
+    im.aaa(a, b)
     
     # im.test(a)
     return

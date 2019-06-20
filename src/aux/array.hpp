@@ -76,7 +76,7 @@ struct Array {
     ~Array() = default;
     
     
-    RTypeInfo const& get_type() const noexcept
+    cref<RTypeInfo> get_type() const noexcept
     {
         return type_info(type);
     }
@@ -140,28 +140,80 @@ struct Array {
 };
 
 
-using arr_in = Array const&;
-using arr_out = Array&;
+using arr_in = cref<Array>;
+using arr_out = ref<Array>;
+
+
+struct ArrayMeta {
+    ptr<idx const> shape = nullptr, strides = nullptr;
+    idx ndim = 0;
+    
+    explicit ArrayMeta(cref<Array> ref)
+    :
+    shape(ref.shape), strides(ref.strides), ndim(ref.ndim) {}
+    
+    ArrayMeta() = default;
+    ~ArrayMeta() = default;
+    
+    ArrayMeta(ArrayMeta const&) = default;
+    ArrayMeta(ArrayMeta&&) = default;
+    
+    ArrayMeta& operator=(ArrayMeta const&) = default;
+    ArrayMeta& operator=(ArrayMeta&&) = default;
+    
+    
+    idx const operator()(idx const ii) const
+    {
+        return ii * strides[0];
+    }
+    
+    idx const operator()(idx const ii, idx const jj) const
+    {
+        return ii * strides[0] + jj * strides[jj];
+    }
+    
+    idx const operator()(idx const ii, idx const jj, idx const kk) const
+    {
+        return ii * strides[0] + jj * strides[jj] + kk * strides[kk];
+    }
+    
+    idx const operator()(idx const ii, idx const jj, idx const kk,
+                         idx const ll) const
+    {
+        return   ii * strides[0] + jj * strides[1] 
+               + kk * strides[2] + ll * strides[3];
+    }
+};
+
 
 
 template<class T>
 struct View
 {
+    using val_t = T;
+    using cval_t = T const;
+    using ref_t = ref<T>;
+    using cref_t = cref<T>;
+    
     // TODO: make appropiate items constant
     cptr<T> data;
-    cptr<idx const> _shape;
     std::array<idx, maxdim> _strides;
+    ArrayMeta meta;
 
-
-    explicit View(Array& ref, idx const ndim)
+    explicit View(ref<Array> ref, idx const ndim)
     :
-    data(reinterpret_cast<T*>(ref.data)), _shape(ref.shape)
+    data(reinterpret_cast<T*>(ref.data))
     {
+        meta.shape = ref.shape;
+        meta.ndim = ref.ndim;
+        
         for (idx ii = 0; ii < ndim; ++ii) {
             _strides[ii] = idx(double(ref.strides[ii]) / ref.datasize);
         }
         
+        meta.strides = _strides.data();
     }
+    
     
     View() = delete;
     ~View() = default;
@@ -173,73 +225,91 @@ struct View
     View& operator=(View&&) = default;
     
     
-    idx const& shape(idx const ii) const noexcept
+    cref<idx> shape(idx const ii) const noexcept
     {
-        return _shape[ii];
+        return meta.shape[ii];
     }
     
     
-    T& operator()(idx const ii) noexcept
+    template<class... Args>
+    val_t operator()(Args&&... args)
     {
-        return data[ii * _strides[0]];
+        return data[meta(std::forward<Args>(args)...)];
+    }
+    
+    
+    template<class... Args>
+    cval_t operator()(Args&&... args) const
+    {
+        return data[meta(std::forward<Args>(args)...)];
+    }
+    
+    /*
+    ref_t operator()(idx const ii) noexcept
+    {
+        return data[meta(ii)];
     }
 
-    T& operator()(idx const ii, idx const jj) noexcept
+    ref_t operator()(idx const ii, idx const jj) noexcept
     {
-        return data[ii * _strides[0] + jj * _strides[1]];
+        return data[meta(ii, jj)];
     }
 
-    T& operator()(idx const ii, idx const jj, idx const kk) noexcept
+    ref_t operator()(idx const ii, idx const jj, idx const kk) noexcept
     {
-        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]];
+        return data[meta(ii, jj, kk)];
     }
 
-    T& operator()(idx const ii, idx const jj, idx const kk, idx const ll) noexcept
+    ref_t operator()(idx const ii, idx const jj,
+                  idx const kk, idx const ll) noexcept
     {
-        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]
-                    + ll * _strides[4]];
+        return data[meta(ii, jj, kk, ll)];
     }
 
 
-    T const& operator()(idx const ii) const noexcept
+    cref_t operator()(idx const ii) const noexcept
     {
-        return data[ii * _strides[0]];
+        return data[meta(ii)];
     }
 
-    T const& operator()(idx const ii, idx const jj) const noexcept
+    cref_t operator()(idx const ii, idx const jj) const noexcept
     {
-        return data[ii * _strides[0] + jj * _strides[1]];
+        return data[meta(ii, jj)];
     }
 
-    T const& operator()(idx const ii, idx const jj,
+    cref_t operator()(idx const ii, idx const jj,
                         idx const kk) const noexcept
     {
-        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]];
+        return data[meta(ii, jj, kk)];
     }
 
-    T const& operator()(idx const ii, idx const jj,
+    cref_t operator()(idx const ii, idx const jj,
                         idx const kk, idx const ll) const noexcept
     {
-        return data[ii * _strides[0] + jj * _strides[1] + kk * _strides[2]
-                    + ll * _strides[4]];
+        return data[meta(ii, jj, kk, ll)];
     }
+    */
 };
+
 
 
 template<class T>
 struct ConstView {
-    using value_type = T;
-    using convert_fun = std::function<value_type(aux::memptr)>;
+    using val_t = T;
+    using cval_t = T const;
+    using ref_t = ref<T>;
+    using cref_t = cref<T>;
     
-    Array const& ref;
+    using convert_fun = std::function<val_t(memptr)>;
+    
     memptr const data;
-    ptr<idx const> const strides;
+    ArrayMeta meta;
     convert_fun const convert;
     
     
     explicit ConstView(Array const& ref, idx const ndim)
     :
-    ref(ref), data(ref.data), strides(ref.strides), convert(factory(ref.type))
+    data(ref.data), meta(ref), convert(factory(ref.type))
     {}
 
     
@@ -307,10 +377,30 @@ struct ConstView {
         }
     }
     
-    T const operator ()(idx const ii) const
+    template<class... Args>
+    cval_t operator()(Args&&... args) const
     {
-        return convert(data + ii * strides[0]);
+        return convert(data + meta(std::forward<Args>(args)...));
     }
+    
+    
+    /*
+    cval_t operator()(idx const ii, idx const jj) const
+    {
+        return convert(data + meta(ii, jj));
+    }
+    
+    cval_t operator()(idx const ii, idx const jj, idx const kk) const
+    {
+        return convert(data + meta(ii, jj, kk));
+    }
+    
+    cval_t operator()(idx const ii, idx const jj,
+                      idx const kk, idx const ) const
+    {
+        return convert(data + meta(ii, jj, kk));
+    }
+    */
 };
 
 

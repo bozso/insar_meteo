@@ -14,19 +14,28 @@ using aux::arr_in;
 using aux::arr_out;
 
 
+
 extern "C" {
 
 
-int aaa(arr_in a)
+int aaa(arr_in a, arr_out b)
 {
-    auto const va = a.const_view<float>(1);
-    
-    for (int ii = 0; ii < a.shape[0]; ++ii) {
-        printf("%f ", va(ii));
+    try {
+        auto const va = a.const_view<float>(1);
+        auto vb = b.view<double>(1);
+        
+        for (int ii = 0; ii < a.shape[0]; ++ii) {
+            printf("%f\t%f\n", va(ii), vb(ii));
+        }
+
+        printf("\n");
+        
+        return 0;
     }
-    printf("\n");
-    
-    return 0;
+    catch(exception& e) {
+        cerr << "Exception caught: " << e.what() << "\n";
+        return 1;
+    }
 }
 
 

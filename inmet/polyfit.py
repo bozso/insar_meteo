@@ -16,7 +16,7 @@ class PolyFit(im.Save):
         ]
 
     
-    eval_poly = im.lib.wrap("eval_poly", [C, im.inarray, im.outarray])
+    # eval_poly = im.lib.wrap("eval_poly", [C, im.inarray, im.outarray])
     
     @staticmethod
     def make_jacobi(x, deg):

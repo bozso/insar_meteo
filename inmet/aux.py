@@ -42,7 +42,7 @@ class Ellipsoid(im.CStruct):
 
 lib = im.CLib("inmet_aux")
 
-aaa = lib.wrap("aaa", [im.inarray, im.outarray])
+aaa = lib.wrap("aaa", [py_object])
 set_ell = lib.wrap("set_ellipsoid", [Ellipsoid], restype=None)
 print_ellipsoid = lib.wrap("print_ellipsoid", [], restype=None)
 

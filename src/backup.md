@@ -9,7 +9,82 @@ void print(const char* format)
     std::cout << format;
 }
 
- 
+
+struct Array {
+    int const type = 0, is_numpy = 0;
+    idx const ndim = 0, ndata = 0, datasize = 0;
+    cptr<idx const> shape = nullptr, strides = nullptr;
+    memptr data = nullptr;
+    
+    
+    Array() = delete;
+    ~Array() = default;
+    
+    
+    cref<RTypeInfo> get_type() const noexcept
+    {
+        return type_info(type);
+    }
+    
+    
+    template<class T>
+    void basic_check(idx const ndim) const
+    {
+        if (ndim > maxdim) {
+            throw std::runtime_error("Exceeded maximum number of dimensions!");
+        }
+        
+        if (ndim < 0 and ndim != Dynamic) {
+            throw std::runtime_error("ndim should be either a "
+                                     "positive integer or Dynamic");
+        }
+        
+        static_assert(
+            not std::is_void<T>::value and
+            not std::is_pointer<T>::value,
+            "Type T should not be void, a null pointer or a pointer!"
+        );
+        
+        auto const _ndim = this->ndim;
+        
+        if (ndim != Dynamic and ndim != _ndim) {
+            printf("view ndim: %ld, array ndim: %ld\n", ndim, _ndim); 
+            throw std::runtime_error("Dimension mismatch!");
+        }
+    }
+    
+    
+    template<class T>
+    ConstView<T> const const_view(idx const ndim) const
+    {
+        basic_check<T>(ndim);
+
+        auto const& arr_type = get_type(), req_type = aux::type_info<T>();
+        check_match(arr_type, req_type);
+
+        return ConstView<T>(*this, ndim);
+    }
+    
+    
+    template<class T>
+    View<T> view(idx const ndim)
+    {
+        basic_check<T>(ndim);
+
+        auto const& arr_type = get_type(), req_type = aux::type_info<T>();
+        
+        if (arr_type.id != req_type.id) {
+            printf("View id: %d, Array id: %d\n", arr_type.id, req_type.id); 
+            throw std::runtime_error("Not same id!");
+        }
+        
+        check_match(arr_type, req_type);
+
+        return View<T>(*this, ndim);
+    }    
+};
+
+
 template<typename T, typename ... Args>
 void print(const char* format, T value, Args ... args)
 {

@@ -1,33 +1,26 @@
+
 #include "aux.hpp"
 #include "array.hpp"
-#include "type_info.hpp"
+//#include "type_info.hpp"
 
 
 namespace aux {
 
-idx const ArrayMeta::operator()(idx const ii) const
+
+
+cref<type_info> get_type(char const kind, int const size)
 {
-    return ii * strides[0];
+	return types[type_dict.at({kind, size})];
 }
 
-idx const ArrayMeta::operator()(idx const ii, idx const jj) const
+
+cref<type_info> get_type(idx const ii)
 {
-    return ii * strides[0] + jj * strides[jj];
+    return ii < 14 and ii > 0 ? types[ii] : types[0];
 }
 
-idx const ArrayMeta::operator()(idx const ii, idx const jj,
-                                idx const kk) const
-{
-    return ii * strides[0] + jj * strides[jj] + kk * strides[kk];
-}
 
-idx const ArrayMeta::operator()(idx const ii, idx const jj, idx const kk,
-                                idx const ll) const
-{
-    return   ii * strides[0] + jj * strides[1] 
-           + kk * strides[2] + ll * strides[3];
-}
-
+/*
 
 static RTypeInfo const type_infos[] = {
     RTypeInfo(),
@@ -52,7 +45,6 @@ static RTypeInfo const type_infos[] = {
     RTypeInfo::make_info<cpxd>("complex128")
 };
 
-
 // return reference to type_info struct
 
 RTypeInfo const& type_info(int const type) noexcept
@@ -65,6 +57,7 @@ RTypeInfo const& type_info(dtype const type) noexcept
 {
     return type_info(static_cast<int const>(type));
 }
+*/
 
 // end namespace
 }

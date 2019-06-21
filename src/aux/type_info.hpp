@@ -4,19 +4,9 @@
 #include <type_traits>
 #include <complex>
 
-namespace std {
-
-template<class T>
-struct is_complex : std::false_type {};
-
-
-template<> struct is_complex<complex<float>> : std::true_type {};
-template<> struct is_complex<complex<double>> : std::true_type {};
-
-}
-
-
 namespace aux {
+
+
 
 enum class dtype : int {
     Unknown     = 0,
@@ -38,8 +28,6 @@ enum class dtype : int {
 };
 
 
-typedef std::complex<float>  cpxf;
-typedef std::complex<double> cpxd;
 
 
 template<class T>
@@ -82,43 +70,6 @@ int const tpl2dtype()
 }
 
 
-struct RTypeInfo {
-    using name_t = char const*const;
-    
-    bool const is_pointer = false, is_void = false, is_complex = false,
-               is_float = false, is_scalar = false,
-               is_arithmetic = false, is_pod = false;
-    size_t const size = 0;
-    int const id = 0;
-    name_t name = "Unknown";
-    
-    RTypeInfo() = default;
-    ~RTypeInfo() = default;
-    
-    
-    RTypeInfo(bool is_pointer, bool is_void, bool is_complex, bool is_float,
-              bool is_scalar, bool is_arithmetic, bool is_pod, size_t size,
-              int id, name_t name = "Unknown") :
-                is_pointer(is_pointer), is_void(is_void),
-                is_complex(is_complex), is_float(is_float),
-                is_scalar(is_scalar), is_arithmetic(is_arithmetic),
-                is_pod(is_pod), size(size), id(id), name(name) {}
-    
-    
-    template<class T>
-    static RTypeInfo const make_info(name_t name)
-    {
-        return RTypeInfo(std::is_pointer<T>::value, std::is_void<T>::value,
-                         std::is_complex<T>::value,
-                         std::is_floating_point<T>::value,
-                         std::is_scalar<T>::value,
-                         std::is_arithmetic<T>::value,
-                         std::is_pod<T>::value,
-                         sizeof(T), tpl2dtype<T>(), name);
-    }
-    
-    bool operator==(RTypeInfo const& other) const { return id == other.id; }
-};
 
 
 // aux namespace

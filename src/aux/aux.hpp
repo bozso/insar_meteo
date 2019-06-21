@@ -6,21 +6,6 @@
 
 namespace aux {
 
-template<class T>
-using ptr = T*;
-
-template<class T>
-using cptr = ptr<T> const;
-
-
-template<class T>
-using ref = T&;
-
-template<class T>
-using cref = ref<T const>;
-
-using memtype = char;
-using memptr = ptr<memtype>;
 
 
 /*

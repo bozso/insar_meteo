@@ -2,24 +2,26 @@
 #include <iostream>
 
 #include "array.hpp"
-#include "math.hpp"
+// #include "math.hpp"
 
 using std::exception;
 using std::cout;
 using std::cerr;
 
 
-using aux::arr_in;
-using aux::arr_out;
-
-
-
 extern "C" {
 
 
-int aaa(arr_in a, arr_out b)
+int aaa(aux::Array& a)
 {
     try {
+        
+        //auto itf = a.interface();
+        //auto const& type = aux::detail::get_type(itf.typekind, itf.itemsize);
+        // printf("%c\n", a.descr().kind);
+        // printf("%c %d\n", itf.typekind, itf.itemsize);
+        //printf("Name: %s\n", type.name);
+        /*
         auto const va = a.const_view<float>(1);
         auto vb = b.view<double>(1);
         
@@ -28,6 +30,7 @@ int aaa(arr_in a, arr_out b)
         }
 
         printf("\n");
+        */
         
         return 0;
     }
@@ -37,7 +40,7 @@ int aaa(arr_in a, arr_out b)
     }
 }
 
-
+/*
 int eval_poly(math::poly_in poly, arr_in x, arr_out y)
 {
     try {
@@ -51,7 +54,7 @@ int eval_poly(math::poly_in poly, arr_in x, arr_out y)
     }
 
 }
-
+*/
 
 // extern "C"
 }

@@ -11,13 +11,19 @@ using std::cerr;
 
 extern "C" {
 
-
 int aaa(aux::Array& a)
 {
     try {
+    
+        // printf("%s\n", aux::types[aux::dtype::Int8].name);
+    
+        // return 0;
+    
+    
+        auto const va = aux::const_view<float>(a, 1);
+        // printf("name: %s\n", pair.second.name);
         
-        //auto itf = a.interface();
-        //auto const& type = aux::detail::get_type(itf.typekind, itf.itemsize);
+        // auto const& type = aux::detail::get_type(itf.typekind, itf.itemsize);
         // printf("%c\n", a.descr().kind);
         // printf("%c %d\n", itf.typekind, itf.itemsize);
         //printf("Name: %s\n", type.name);

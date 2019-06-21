@@ -29,21 +29,18 @@ namespace aux {
 using float32 = float;
 using float64 = double;
 
-// is this certain?
-using float128 = long double;
-
-
 using cpx64  = std::complex<float32>;
 using cpx128 = std::complex<float64>;
-using cpx256 = std::complex<float128>;
 
 
-using idx = long;
+using idx = Py_intptr_t;
 
 // Dynamic number of dimensions
 static idx constexpr Dynamic = -1;
 static idx constexpr row = 0;
 static idx constexpr col = 1;
+static idx constexpr maxdim = 64;
+
 
 template<class T>
 using ptr = T*;
@@ -58,13 +55,75 @@ using ref = T&;
 template<class T>
 using cref = ref<T const>;
 
+
 using memtype = void;
 using memptr = ptr<memtype>;
+
+using name_t = char const*const;
+
+template<class T>
+using convert_fun = std::function<T(memptr)>;
+
+
+enum class dtype {
+    Unknown = 0,
+    Int8, Int16, Int32, Int64,
+    UInt8, UInt16, UInt32, UInt64,
+    Float32, Float64,
+    Complex64, Complex128
+};    
 
 
 // Forward declarations
 
-namespace detail {
+struct type_info;
+
+struct Array;
+
+struct PyArrayInterface;
+using itf_t = PyArrayInterface;
+
+template<class T>
+struct View;
+
+template<class T>
+struct ConstView;
+
+
+template<class from, class to>
+static constexpr convert_fun<to> make_convert();
+
+template<class T>
+static convert_fun<T> const converter(dtype const id);
+
+template<class T>
+static type_info constexpr make_type(name_t name = "Unknown");
+
+
+template<class T, bool exact_match>
+static
+std::pair<cref<itf_t>, dtype const>
+basic_check(cref<Array> ref, idx const ndim);
+
+
+template<class T>
+static ConstView<T> const const_view(cref<Array> ref, idx const ndim)
+{
+    auto const pair = basic_check<T, false>(ref, ndim);
+
+    return ConstView<T>(pair.first, pair.second);
+}
+
+
+/*
+template<class T>
+View<T> Array::view(idx const ndim)
+{
+    basic_check<T, true>(ndim);
+    return View<T>(*this, ndim);
+} 
+*/
+
 
 /* Internal structure of PyCapsule */
 struct PyCapsule {
@@ -73,92 +132,6 @@ struct PyCapsule {
     const char *name;
     void *context;
     PyCapsule_Destructor destructor;
-};
-
-}
-
-
-struct Array : detail::PyCapsule {
-    Array() = default;
-    ~Array() = default;
-};
-
-
-namespace detail {
-
-static idx constexpr maxdim = 64;
-
-template<class T>
-using convert_fun = std::function<T(memptr)>;
-
-
-enum class dtype {
-    Unknown,
-    Int8, Int16, Int32, Int64,
-    UInt8, UInt16, UInt32, UInt64,
-    Float32, Float64, Float128,
-    Complex64, Complex128, Complex256
-};
-
-
-template<class T>
-struct id_idx {
-    static constexpr dtype value = dtype::Unknown;
-};
-
-
-struct type_info {
-    using name_t = char const*const;
-    
-    bool const is_pointer = false, is_void = false, is_complex = false,
-               is_float = false, is_scalar = false,
-               is_arithmetic = false, is_pod = false;
-    size_t const size = 0;
-    int const id = 0;
-    name_t name = "Unknown";
-
-    type_info() = default;
-    ~type_info() = default;
-    
-    constexpr type_info(bool is_pointer, bool is_void, bool is_complex,
-                        bool is_float, bool is_scalar, bool is_arithmetic,
-                        bool is_pod, size_t size, int id,
-                        name_t name = "Unknown") :
-                is_pointer(is_pointer), is_void(is_void),
-                is_complex(is_complex), is_float(is_float),
-                is_scalar(is_scalar), is_arithmetic(is_arithmetic),
-                is_pod(is_pod), size(size), id(id), name(name) {}
-    
-    bool operator==(cref<type_info> other) const { return id == other.id; }
-};
-
-
-struct ArrayMeta {
-    ptr<Py_intptr_t const> shape = nullptr, strides = nullptr;
-    idx ndim = 0;
-    
-    explicit ArrayMeta(cref<itf_t> ref)
-    :
-    shape(ref.shape), strides(ref.strides), ndim(ref.nd) {}
-    
-    ArrayMeta() = default;
-    ~ArrayMeta() = default;
-    
-    ArrayMeta(ArrayMeta const&) = default;
-    ArrayMeta(ArrayMeta&&) = default;
-    
-    ArrayMeta& operator=(ArrayMeta const&) = default;
-    ArrayMeta& operator=(ArrayMeta&&) = default;
-    
-    idx const operator()(idx const ii) const;
-
-    idx const operator()(idx const ii, idx const jj) const;
-
-    idx const operator()(idx const ii, idx const jj,
-                         idx const kk) const;
-
-    idx const operator()(idx const ii, idx const jj, idx const kk,
-                         idx const ll) const;
 };
 
 
@@ -178,7 +151,142 @@ struct PyArrayInterface {
 };
 
 
-static void check_match(cref<type_info> one, cref<type_info> two);
+struct Array : PyCapsule {
+    Array() = default;
+    ~Array() = default;
+};
+
+
+static cref<itf_t> interface(cref<Array> ref)
+{
+    return *reinterpret_cast<ptr<itf_t>>(ref.pointer);
+}
+
+
+struct ArrayMeta {
+    ptr<idx const> shape = nullptr, strides = nullptr;
+    idx ndim = 0;
+    
+    explicit ArrayMeta(cref<itf_t> ref)
+    :
+    shape{ref.shape}, strides{ref.strides}, ndim{ref.nd} {}
+    
+    ArrayMeta() = default;
+    ~ArrayMeta() = default;
+    
+    ArrayMeta(ArrayMeta const&) = default;
+    ArrayMeta(ArrayMeta&&) = default;
+    
+    ArrayMeta& operator=(ArrayMeta const&) = default;
+    ArrayMeta& operator=(ArrayMeta&&) = default;
+    
+    
+    idx const operator()(idx const ii) const
+    {
+        return ii * strides[0];
+    }
+
+    idx const operator()(idx const ii, idx const jj) const
+    {
+        return ii * strides[0] + jj * strides[jj];
+    }
+
+    idx const operator()(idx const ii, idx const jj, idx const kk) const
+    {
+        return ii * strides[0] + jj * strides[jj] + kk * strides[kk];
+    }
+
+    idx const operator()(idx const ii, idx const jj, idx const kk,
+                         idx const ll) const
+    {
+        return   ii * strides[0] + jj * strides[1] 
+               + kk * strides[2] + ll * strides[3];
+    }
+};
+
+
+template<class T>
+struct ConstView {
+    using val_t = T;
+    using cval_t = T const;
+    using ref_t = ref<T>;
+    using cref_t = cref<T>;
+    
+    memptr data;
+    ArrayMeta meta;
+    convert_fun<T> const convert;
+    
+    
+    explicit ConstView(cref<itf_t> aref, dtype const id)
+    :
+    data{aref.data}, meta{aref}, convert{converter<T>(id)}
+    {}
+
+    
+    ConstView() = delete;
+    ~ConstView() = default;
+
+    ConstView(ConstView const&) = default;
+    ConstView(ConstView&&) = default;
+    
+    ConstView& operator=(ConstView const&) = default;
+    ConstView& operator=(ConstView&&) = default;
+    
+    
+    template<class... Args>
+    val_t operator()(Args&&... args)
+    {
+        return convert(data + meta(std::forward<Args>(args)...));
+    }
+    
+    template<class... Args>
+    cval_t operator()(Args&&... args) const
+    {
+        return convert(data + meta(std::forward<Args>(args)...));
+    }
+};
+
+
+template<class T>
+struct id_idx {
+    static constexpr dtype value = dtype::Unknown;
+};
+
+
+template<> struct id_idx<int8_t> {
+    static constexpr dtype value = dtype::Int8;
+};
+
+/*
+template<> struct id_idx<int8_t> {
+    static constexpr dtype value = dtype::Int8;
+};
+*/
+
+struct type_info {
+    bool const is_pointer = false, is_void = false, is_complex = false,
+               is_float = false, is_scalar = false,
+               is_arithmetic = false, is_pod = false;
+    size_t const size = 0;
+    dtype const id = dtype::Unknown;
+    name_t name = "Unknown";
+
+    type_info() = default;
+    ~type_info() = default;
+    
+    constexpr type_info(bool const is_pointer, bool const is_void,
+                        bool const is_complex, bool const is_float,
+                        bool const is_scalar, bool const is_arithmetic,
+                        bool const is_pod, size_t const size, dtype const id,
+                        name_t name = "Unknown") :
+                is_pointer(is_pointer), is_void(is_void),
+                is_complex(is_complex), is_float(is_float),
+                is_scalar(is_scalar), is_arithmetic(is_arithmetic),
+                is_pod(is_pod), size(size), id(id), name(name) {}
+    
+    bool operator==(cref<type_info> other) const { return id == other.id; }
+};
+
 
 
 // from: https://www.techiedelight.com/use-std-pair-key-std-unordered_map-cpp/
@@ -191,112 +299,38 @@ struct pair_hash
     }
 };
 
+
 using type_key = std::pair<char, int>;
-using type_dict_t = std::unordered_map<type_key const, idx const, pair_hash>;
-
-static type_dict_t const type_dict;
-
-// end namespace detail
-}
-
-using itf_t = detail::PyArrayInterface;
+using type_dict_t = std::unordered_map<type_key const, dtype const, pair_hash>;
 
 
-cref<itf_t> interface(cref<Array> ref)
-{
-    return *reinterpret_cast<ptr<itf_t>>(ref.pointer);
-}
-
-
-template<class T, bool exact_match>
-std::pair<cref<itf_t>, cref<detail::type_info>>
-basic_check(cref<Array> ref, idx const ndim)
-{
-    auto const& itf = interface(ref);
-    auto const  nd = itf.nd;
+static type_dict_t const type_dict{
+    {{'b', 1},  dtype::Unknown},    // bool
+    {{'S', 1},  dtype::Unknown},    // bytes
+    {{'U', 4},  dtype::Unknown},    // string
     
-    auto const& arr_type = 
-    detail::types[detail::type_dict.at({itf.typekind, itf.itemsize})];
-    auto const  req_type = detail::make_type<T>();
+    {{'i', 1},  dtype::Int8},
+    {{'i', 2},  dtype::Int16},
+    {{'i', 4},  dtype::Int32},
+    {{'i', 8},  dtype::Int64},
+
+    {{'u', 1},  dtype::UInt8},
+    {{'u', 2},  dtype::UInt16},
+    {{'u', 4},  dtype::UInt32},
+    {{'u', 8},  dtype::UInt64},
     
-    detail::check_match(arr_type, req_type);
-    
-    if (exact_match and arr_type.id != req_type.id) {
-        printf("View id: %d, Array id: %d\n", arr_type.id, req_type.id); 
-        throw std::runtime_error("Not same id!");
-    }
-    
-    if (ndim < 0 and ndim != Dynamic and ndim < detail::maxdim) {
-        throw std::runtime_error("ndim should be either a "
-                                 "positive integer that is less than"
-                                 "the maximum number of dimensions or "
-                                 "aux::Dynamic");
-    }
-    
-    
-    static_assert(
-        not std::is_void<T>::value and
-        not std::is_pointer<T>::value,
-        "Type T should not be void, a null pointer or a pointer!"
-    );
-    
-    if (ndim != nd) {
-        printf("view ndim: %ld, array ndim: %ld\n", ndim, nd); 
-        throw std::runtime_error("Dimension mismatch!");
-    }
-    
-    return {itf, arr_type};
-}
-    
-    
-/*
-template<class T>
-detail::ConstView<T> const Array::const_view(idx const ndim) const
-{
-    auto const pair = basic_check<T, false>(ndim);
+    {{'f', 2},  dtype::Unknown},
+    {{'f', 4},  dtype::Float32},
+    {{'f', 8},  dtype::Float64},
 
-    return ConstView<T>(pair.first, pair.second);
-}
+    {{'c', 4},  dtype::Unknown},
+    {{'c', 8},  dtype::Complex64},
+    {{'c', 16}, dtype::Complex128},
 
-
-template<class T>
-View<T> Array::view(idx const ndim)
-{
-    basic_check<T, true>(ndim);
-    return View<T>(*this, ndim);
-} 
-*/
-
-
-namespace detail {
-
-idx const ArrayMeta::operator()(idx const ii) const
-{
-    return ii * strides[0];
-}
-
-idx const ArrayMeta::operator()(idx const ii, idx const jj) const
-{
-    return ii * strides[0] + jj * strides[jj];
-}
-
-idx const ArrayMeta::operator()(idx const ii, idx const jj,
-                                idx const kk) const
-{
-    return ii * strides[0] + jj * strides[jj] + kk * strides[kk];
-}
-
-idx const ArrayMeta::operator()(idx const ii, idx const jj, idx const kk,
-                                idx const ll) const
-{
-    return   ii * strides[0] + jj * strides[1] 
-           + kk * strides[2] + ll * strides[3];
-}
-
-
-
-template<> struct id_idx<int8_t> {
-    static constexpr dtype value = dtype::Int8;
+    {{'O', 8}, dtype::Unknown},     //  PyObject, ?
+    {{'V', 8}, dtype::Unknown},     //  void
+    {{'M', 8}, dtype::Unknown},     //  datetime64, ?
+    {{'m', 8}, dtype::Unknown}      //  timedelta64, ?
 };
 
 
@@ -309,11 +343,56 @@ static type_info constexpr make_type(name_t name)
                      std::is_scalar<T>::value,
                      std::is_arithmetic<T>::value,
                      std::is_pod<T>::value,
-                     sizeof(T), 0, name);
+                     sizeof(T), dtype::Unknown, name);
                      
                      // sizeof(T), tpl2dtype<T>(), name);
                      // TODO: fix this
 }
+
+
+static constexpr type_info types[] = {
+    [int(dtype::Unknown)] = type_info(),
+    
+    [int(dtype::Int8)]  = make_type<int8_t>("int8"),
+    
+    [int(dtype::Int16)] = make_type<int16_t>("int16"),
+    [int(dtype::Int32)] = make_type<int32_t>("int32"),
+    [int(dtype::Int64)] = make_type<int64_t>("int64"),
+    
+    [int(dtype::UInt8)]  = make_type<int8_t>("uint8"),
+    [int(dtype::UInt16)] = make_type<int16_t>("uint16"),
+    [int(dtype::UInt32)] = make_type<int32_t>("uint32"),
+    [int(dtype::UInt64)] = make_type<int64_t>("uint64"),
+    
+    [int(dtype::Float32)] = make_type<float32>("float32"),
+    [int(dtype::Float64)] = make_type<float64>("float64"),
+    
+    [int(dtype::Complex64)]  = make_type<cpx64>("complex64"),
+    [int(dtype::Complex128)] = make_type<cpx128>("complex128")
+};
+
+
+//static constexpr dtype types[] = {
+    // [int(dtype::Unknown)] = dtype::Unknown,
+    /*
+    [int(dtype::Int8)]  = make_type<int8_t>("int8"),
+    
+    [dtype::Int16] = make_type<int16_t>("int16"),
+    [dtype::Int32] = make_type<int32_t>("int32"),
+    [dtype::Int64] = make_type<int64_t>("int64"),
+    
+    [dtype::UInt8]  = make_type<int8_t>("uint8"),
+    [dtype::UInt16] = make_type<int16_t>("uint16"),
+    [dtype::UInt32] = make_type<int32_t>("uint32"),
+    [dtype::UInt64] = make_type<int64_t>("uint64"),
+    
+    [dtype::Float32] = make_type<float32>("float32"),
+    [dtype::Float64] = make_type<float64>("float64"),
+    
+    [dtype::Complex64]  = make_type<cpx64>("complex64"),
+    //[dtype::Complex128] = make_type<cpx128>("complex128")
+    */
+// };
 
 
 template<class from, class to>
@@ -327,7 +406,7 @@ static constexpr convert_fun<to> make_convert()
 
 // TODO: separate real and complex cases
 template<class T>
-convert_fun<T> const converter(dtype const id)
+static convert_fun<T> const converter(dtype const id)
 {
     switch(id) {
         case dtype::Int8:
@@ -364,46 +443,55 @@ convert_fun<T> const converter(dtype const id)
 }
 
 
-template<class T>
-struct ConstView {
-    using val_t = T;
-    using cval_t = T const;
-    using ref_t = ref<T>;
-    using cref_t = cref<T>;
-    
-    memptr data;
-    ArrayMeta meta;
-    convert_fun<T> const convert;
-    
-    
-    explicit ConstView(cref<itf_t> aref, cref<type_info> tref)
-    :
-    data{aref.data}, meta{aref}, convert{converter<T>(tref.id)}
-    {}
+cref<type_info> get_type(char const kind, int const size)
+{
+    return types[int(type_dict.at({kind, size}))];
+}
 
+template<class T, bool exact_match>
+static
+std::pair<cref<itf_t>, dtype const>
+basic_check(cref<Array> ref, idx const ndim)
+{
+    auto const& itf = interface(ref);
+    auto const  nd = itf.nd;
     
-    ConstView() = delete;
-    ~ConstView() = default;
-
-    ConstView(ConstView const&) = default;
-    ConstView(ConstView&&) = default;
+    auto const& arr_type = get_type(itf.typekind, itf.itemsize);
+    auto const  req_type = make_type<T>();
     
-    ConstView& operator=(ConstView const&) = default;
-    ConstView& operator=(ConstView&&) = default;
-    
-    
-    template<class... Args>
-    val_t operator()(Args&&... args)
-    {
-        return convert(data + meta(std::forward<Args>(args)...));
+    if (arr_type.is_complex != req_type.is_complex) {
+        throw std::runtime_error("Cannot convert complex to non complex "
+                                 "type!");
     }
     
-    template<class... Args>
-    cval_t operator()(Args&&... args) const
-    {
-        return convert(data + meta(std::forward<Args>(args)...));
+    if (exact_match and arr_type.id != req_type.id) {
+        printf("View id: %d, Array id: %d\n",
+                static_cast<int>(arr_type.id),
+                static_cast<int>(req_type.id)); 
+        throw std::runtime_error("Not same id!");
     }
-};
+    
+    if (ndim < 0 and ndim != Dynamic and ndim < maxdim) {
+        throw std::runtime_error("ndim should be either a "
+                                 "positive integer that is less than"
+                                 "the maximum number of dimensions or "
+                                 "aux::Dynamic");
+    }
+    
+    
+    static_assert(
+        not std::is_void<T>::value and
+        not std::is_pointer<T>::value,
+        "Type T should not be void, a null pointer or a pointer!"
+    );
+    
+    if (ndim != nd) {
+        printf("view ndim: %ld, array ndim: %d\n", ndim, nd); 
+        throw std::runtime_error("Dimension mismatch!");
+    }
+    
+    return {itf, arr_type.id};
+}
 
 
 /*
@@ -466,72 +554,6 @@ struct View
     }
 };
 */
-
-
-static constexpr type_info types[] = {
-    type_info(),					  // 0
-    make_type<int8_t>("int8"),        // 1
-    make_type<int16_t>("int16"),      // 2
-    make_type<int32_t>("int32"),      // 3
-    make_type<int64_t>("int64"),      // 4
-    
-    make_type<uint8_t>("uint8"),      // 5
-    make_type<uint16_t>("uint16"),    // 6
-    make_type<uint32_t>("uint32"),    // 7
-    make_type<uint64_t>("uint64"),    // 8
-    
-    make_type<float32>("float32"),    // 9
-    make_type<float64>("float64"),    // 10
-    make_type<float128>("float128"),  // 11
-    
-    make_type<cpx64>("complex64"),    // 12
-    make_type<cpx128>("complex128"),  // 13
-    make_type<cpx256>("complex256")   // 14
-};
-
-
-type_dict{
-    {{'b', 1},  0},    // bool
-    {{'S', 1},  0},    // bytes
-    {{'U', 4},  0},    // string
-    
-    {{'i', 1},  1},    //  int8_t
-    {{'i', 2},  2},    //  int16_t
-    {{'i', 4},  3},    //  int32_t
-    {{'i', 8},  4},    //  int64_t
-    
-    {{'u', 1},  5},    // uint8_t
-    {{'u', 2},  6},    // uint16_t
-    {{'u', 4},  7},    // uint32_t
-    {{'u', 8},  8},    // uint64_t
-    
-    {{'f', 2},  0},    //  float16, ?
-    {{'f', 4},  9},    //  float32, float
-    {{'f', 8},  10},   //  float64, double
-    {{'f', 16}, 11},   //  float128, ?
-
-    {{'c', 8},  12},   //  complex64, complex<float>
-    {{'c', 16}, 13},   //  complex128, complex<double>
-    {{'c', 32}, 14},   //  complex256, complex<?>
-
-    {{'O', 8}, 0},     //  PyObject, ?
-    {{'V', 8}, 0},     //  void
-    {{'M', 8}, 0},     //  datetime64, ?
-    {{'m', 8}, 0}      //  timedelta64, ?
-};
-
-
-static void check_match(cref<type_info> one, cref<type_info> two)
-{
-    if (one.is_complex != two.is_complex) {
-        throw std::runtime_error("Cannot convert complex to non complex "
-                                 "type!");
-    }
-}
-
-
-// end namespace detail
-}
 
 
 // taken from pybind11/numpy.h

@@ -7,7 +7,7 @@ sat = ${root}/satorbit
 
 
 cflags = -fmessage-length=80 -std=c++11 -g -O0 -Wall -I${aux} $
--I${sat} $$(python3-config --cflags)
+-I${sat} $$(python3-config --cflags) -fmax-errors=10
 
 rule header
   command = printf "*********************\n* Compilation start *\n*********************\n"
@@ -25,14 +25,14 @@ rule slib
 build tmp: header
 
 build ${bdir}/inmet.o: cc ${root}/inmet.cpp
+build ${bdir}/satorbit.o: cc ${sat}/satorbit.cpp
 # build ${bdir}/array.o: cc ${aux}/array.cpp
-# build ${bdir}/satorbit.o: cc ${sat}/satorbit.cpp
 # build ${bdir}/math.o: cc ${sat}/math.cpp
 
 
 build $bdir/libinmet_aux.so: slib $
-$bdir/satorbit.o $
-$bdir/inmet.o 
+$bdir/inmet.o $
+$bdir/satorbit.o
 
 # $bdir/math.o  $
 # $bdir/array.o $

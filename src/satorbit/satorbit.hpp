@@ -18,7 +18,7 @@
 #define __SATORBIT_H
 
 
-#include "aux.hpp"
+#include "array.hpp"
 
 /***********
  * Structs *

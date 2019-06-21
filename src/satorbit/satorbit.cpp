@@ -1,5 +1,5 @@
 #include "satorbit.hpp"
-#include "math.hpp"
+// #include "math.hpp"
 
 
 static aux::ptr<Ellipsoid const> ellipsoid = nullptr;

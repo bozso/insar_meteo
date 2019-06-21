@@ -41,9 +41,9 @@ def main():
     #)
     
     # print(dir(a))
-    for dtype in np.sctypeDict.values():
+    for dtype in {"float32", "float64", "uint32", "int64"}:
         print(dtype)
-        a = np.array([], dtype=dtype)
+        a = np.array([1], dtype=dtype)
         im.aaa(a.__array_struct__)
     
     return 0

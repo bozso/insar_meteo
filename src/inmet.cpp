@@ -9,6 +9,7 @@ using std::cout;
 using std::cerr;
 
 
+
 extern "C" {
 
 int aaa(aux::Array& a)
@@ -20,7 +21,7 @@ int aaa(aux::Array& a)
         // return 0;
     
     
-        auto const va = aux::const_view<float>(a, 1);
+        auto const va = a.const_view<float>(1);
         // printf("name: %s\n", pair.second.name);
         
         // auto const& type = aux::detail::get_type(itf.typekind, itf.itemsize);

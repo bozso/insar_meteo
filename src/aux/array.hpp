@@ -90,6 +90,24 @@ template<class T>
 struct ConstView;
 
 
+
+struct type_info {
+    bool const is_complex = false;
+    size_t const size = 0;
+    dtype const id = dtype::Unknown;
+    name_t name = "Unknown";
+
+    type_info() = default;
+    ~type_info() = default;
+    
+    constexpr type_info(bool const is_complex, size_t const size,
+                        dtype const id, name_t name = "Unknown") :
+                is_complex(is_complex), size(size), id(id), name(name) {}
+    
+    bool operator==(cref<type_info> other) const { return id == other.id; }
+};
+
+
 template<class from, class to>
 static constexpr convert_fun<to> make_convert();
 
@@ -99,40 +117,7 @@ static convert_fun<T> const converter(dtype const id);
 template<class T>
 static type_info constexpr make_type(name_t name = "Unknown");
 
-
-template<class T, bool exact_match>
-static
-std::pair<cref<itf_t>, dtype const>
-basic_check(cref<Array> ref, idx const ndim);
-
-
-template<class T>
-static ConstView<T> const const_view(cref<Array> ref, idx const ndim)
-{
-    auto const pair = basic_check<T, false>(ref, ndim);
-
-    return ConstView<T>(pair.first, pair.second);
-}
-
-
-/*
-template<class T>
-View<T> Array::view(idx const ndim)
-{
-    basic_check<T, true>(ndim);
-    return View<T>(*this, ndim);
-} 
-*/
-
-
-/* Internal structure of PyCapsule */
-struct PyCapsule {
-    PyObject_HEAD
-    void *pointer;
-    const char *name;
-    void *context;
-    PyCapsule_Destructor destructor;
-};
+cref<type_info> get_type(char const kind, int const size);
 
 
 struct PyArrayInterface {
@@ -151,16 +136,100 @@ struct PyArrayInterface {
 };
 
 
-struct Array : PyCapsule {
-    Array() = default;
-    ~Array() = default;
+/* Internal structure of PyCapsule */
+struct Capsule {
+    PyObject_HEAD
+    void *pointer;
+    const char *name;
+    void *context;
+    PyCapsule_Destructor destructor;
+
+    Capsule() = default;
+    ~Capsule() = default;
+    
+    template<class T>
+    cref<T> get_ref() const { return *reinterpret_cast<ptr<T const>>(pointer); }
+    
+    template<class T>
+    ref<T> get_ref() { return *reinterpret_cast<ptr<T>>(pointer); }
 };
 
 
-static cref<itf_t> interface(cref<Array> ref)
-{
-    return *reinterpret_cast<ptr<itf_t>>(ref.pointer);
-}
+
+struct Array : Capsule {
+    
+    /*cref<itf_t> interface()
+    {
+        return *reinterpret_cast<ptr<itf_t>>(pointer);
+    }
+    */
+    
+    cref<itf_t> interface() const { return get_ref<itf_t>(); }
+    
+    
+    template<class T, bool exact_match>
+    std::pair<cref<itf_t>, dtype const>
+    basic_check(idx const ndim)
+    {
+        auto const& itf = interface();
+        auto const  nd = itf.nd;
+        
+        auto const& arr_type = get_type(itf.typekind, itf.itemsize);
+        auto const  req_type = make_type<T>();
+        
+        if (arr_type.is_complex != req_type.is_complex) {
+            throw std::runtime_error("Cannot convert complex to non complex "
+                                     "type!");
+        }
+        
+        if (exact_match and arr_type.id != req_type.id) {
+            printf("View id: %d, Array id: %d\n",
+                    static_cast<int>(arr_type.id),
+                    static_cast<int>(req_type.id)); 
+            throw std::runtime_error("Not same id!");
+        }
+        
+        if (ndim < 0 and ndim != Dynamic and ndim < maxdim) {
+            throw std::runtime_error("ndim should be either a "
+                                     "positive integer that is less than"
+                                     "the maximum number of dimensions or "
+                                     "aux::Dynamic");
+        }
+        
+        
+        static_assert(
+            not std::is_void<T>::value and
+            not std::is_pointer<T>::value,
+            "Type T should not be void, a null pointer or a pointer!"
+        );
+        
+        if (ndim != nd) {
+            printf("view ndim: %ld, array ndim: %d\n", ndim, nd); 
+            throw std::runtime_error("Dimension mismatch!");
+        }
+        
+        return {itf, arr_type.id};
+    }
+    
+    
+    template<class T>
+    ConstView<T> const const_view(idx const ndim)
+    {
+        auto const pair = basic_check<T, false>(ndim);
+
+        return ConstView<T>(pair.first, pair.second);
+    }
+    
+    
+    /*
+    template<class T>
+    View<T> Array::view(idx const ndim)
+    {
+        basic_check<T, true>(ndim);
+        return View<T>(*this, ndim);
+    } 
+    */
+};
 
 
 struct ArrayMeta {
@@ -263,30 +332,6 @@ template<> struct id_idx<int8_t> {
 };
 */
 
-struct type_info {
-    bool const is_pointer = false, is_void = false, is_complex = false,
-               is_float = false, is_scalar = false,
-               is_arithmetic = false, is_pod = false;
-    size_t const size = 0;
-    dtype const id = dtype::Unknown;
-    name_t name = "Unknown";
-
-    type_info() = default;
-    ~type_info() = default;
-    
-    constexpr type_info(bool const is_pointer, bool const is_void,
-                        bool const is_complex, bool const is_float,
-                        bool const is_scalar, bool const is_arithmetic,
-                        bool const is_pod, size_t const size, dtype const id,
-                        name_t name = "Unknown") :
-                is_pointer(is_pointer), is_void(is_void),
-                is_complex(is_complex), is_float(is_float),
-                is_scalar(is_scalar), is_arithmetic(is_arithmetic),
-                is_pod(is_pod), size(size), id(id), name(name) {}
-    
-    bool operator==(cref<type_info> other) const { return id == other.id; }
-};
-
 
 
 // from: https://www.techiedelight.com/use-std-pair-key-std-unordered_map-cpp/
@@ -337,14 +382,8 @@ static type_dict_t const type_dict{
 template<class T>
 static type_info constexpr make_type(name_t name)
 {
-    return type_info(std::is_pointer<T>::value, std::is_void<T>::value,
-                     std::is_complex<T>::value,
-                     std::is_floating_point<T>::value,
-                     std::is_scalar<T>::value,
-                     std::is_arithmetic<T>::value,
-                     std::is_pod<T>::value,
-                     sizeof(T), dtype::Unknown, name);
-                     
+    return type_info(std::is_complex<T>::value, sizeof(T), dtype::Unknown,
+                     name);
                      // sizeof(T), tpl2dtype<T>(), name);
                      // TODO: fix this
 }
@@ -370,6 +409,12 @@ static constexpr type_info types[] = {
     [int(dtype::Complex64)]  = make_type<cpx64>("complex64"),
     [int(dtype::Complex128)] = make_type<cpx128>("complex128")
 };
+
+
+cref<type_info> get_type(char const kind, int const size)
+{
+    return types[int(type_dict.at({kind, size}))];
+}
 
 
 //static constexpr dtype types[] = {
@@ -442,56 +487,6 @@ static convert_fun<T> const converter(dtype const id)
     }
 }
 
-
-cref<type_info> get_type(char const kind, int const size)
-{
-    return types[int(type_dict.at({kind, size}))];
-}
-
-template<class T, bool exact_match>
-static
-std::pair<cref<itf_t>, dtype const>
-basic_check(cref<Array> ref, idx const ndim)
-{
-    auto const& itf = interface(ref);
-    auto const  nd = itf.nd;
-    
-    auto const& arr_type = get_type(itf.typekind, itf.itemsize);
-    auto const  req_type = make_type<T>();
-    
-    if (arr_type.is_complex != req_type.is_complex) {
-        throw std::runtime_error("Cannot convert complex to non complex "
-                                 "type!");
-    }
-    
-    if (exact_match and arr_type.id != req_type.id) {
-        printf("View id: %d, Array id: %d\n",
-                static_cast<int>(arr_type.id),
-                static_cast<int>(req_type.id)); 
-        throw std::runtime_error("Not same id!");
-    }
-    
-    if (ndim < 0 and ndim != Dynamic and ndim < maxdim) {
-        throw std::runtime_error("ndim should be either a "
-                                 "positive integer that is less than"
-                                 "the maximum number of dimensions or "
-                                 "aux::Dynamic");
-    }
-    
-    
-    static_assert(
-        not std::is_void<T>::value and
-        not std::is_pointer<T>::value,
-        "Type T should not be void, a null pointer or a pointer!"
-    );
-    
-    if (ndim != nd) {
-        printf("view ndim: %ld, array ndim: %d\n", ndim, nd); 
-        throw std::runtime_error("Dimension mismatch!");
-    }
-    
-    return {itf, arr_type.id};
-}
 
 
 /*

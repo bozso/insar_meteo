@@ -4,34 +4,14 @@
 
 #include <array>
 #include <functional>
-#include <type_traits>
 #include <stdexcept>
-#include <complex>
 #include <unordered_map>
 
 #include <Python.h>
 
-
-namespace std {
-
-template<class T>
-struct is_complex : false_type {};
-
-
-template<class T>
-struct is_complex<complex<T>> : true_type {};
-
-}
-
+#include "aux.hpp"
 
 namespace aux {
-
-using float32 = float;
-using float64 = double;
-
-using cpx64  = std::complex<float32>;
-using cpx128 = std::complex<float64>;
-
 
 using idx = Py_intptr_t;
 
@@ -42,22 +22,8 @@ static idx constexpr col = 1;
 static idx constexpr maxdim = 64;
 
 
-template<class T>
-using ptr = T*;
-
-template<class T>
-using cptr = ptr<T> const;
-
-
-template<class T>
-using ref = T&;
-
-template<class T>
-using cref = ref<T const>;
-
-
-using memtype = void;
-using memptr = ptr<memtype>;
+using memtype = char;
+using memptr = cptr<memtype>;
 
 using name_t = char const*const;
 
@@ -75,13 +41,6 @@ enum class dtype {
 
 
 // Forward declarations
-
-struct type_info;
-
-struct Array;
-
-struct PyArrayInterface;
-using itf_t = PyArrayInterface;
 
 template<class T>
 struct View;
@@ -108,8 +67,8 @@ struct type_info {
 };
 
 
-template<class from, class to>
-static constexpr convert_fun<to> make_convert();
+// template<class from, class to>
+// static constexpr convert_fun<to> make_convert();
 
 template<class T>
 static convert_fun<T> const converter(dtype const id);
@@ -117,7 +76,7 @@ static convert_fun<T> const converter(dtype const id);
 template<class T>
 static type_info constexpr make_type(name_t name = "Unknown");
 
-cref<type_info> get_type(char const kind, int const size);
+static cref<type_info> get_type(char const kind, int const size);
 
 
 struct PyArrayInterface {
@@ -134,6 +93,8 @@ struct PyArrayInterface {
                                 of __array_interface__) -- must set ARR_HAS_DESCR
                                 flag or this will be ignored. */
 };
+
+using itf_t = PyArrayInterface;
 
 
 /* Internal structure of PyCapsule */
@@ -158,20 +119,23 @@ struct Capsule {
 
 struct Array : Capsule {
     
-    /*cref<itf_t> interface()
-    {
-        return *reinterpret_cast<ptr<itf_t>>(pointer);
-    }
-    */
-    
     cref<itf_t> interface() const { return get_ref<itf_t>(); }
+    
+    
+    cref<type_info> type() const
+    { 
+        auto const& itf = interface();
+        return get_type(itf.typekind, itf.itemsize);
+    }
     
     
     template<class T, bool exact_match>
     std::pair<cref<itf_t>, dtype const>
-    basic_check(idx const ndim)
+    basic_check(idx const ndim) const
     {
         auto const& itf = interface();
+        assert(itf.two == 2);
+        
         auto const  nd = itf.nd;
         
         auto const& arr_type = get_type(itf.typekind, itf.itemsize);
@@ -213,7 +177,7 @@ struct Array : Capsule {
     
     
     template<class T>
-    ConstView<T> const const_view(idx const ndim)
+    ConstView<T> const const_view(idx const ndim) const
     {
         auto const pair = basic_check<T, false>(ndim);
 
@@ -221,15 +185,16 @@ struct Array : Capsule {
     }
     
     
-    /*
     template<class T>
-    View<T> Array::view(idx const ndim)
+    View<T> view(idx const ndim)
     {
-        basic_check<T, true>(ndim);
-        return View<T>(*this, ndim);
-    } 
-    */
+        auto const pair = basic_check<T, true>(ndim);
+        return View<T>(pair.first, ndim);
+    }
 };
+
+using arr_in = cref<Array>;
+using arr_out = ref<Array>;
 
 
 struct ArrayMeta {
@@ -286,9 +251,9 @@ struct ConstView {
     convert_fun<T> const convert;
     
     
-    explicit ConstView(cref<itf_t> aref, dtype const id)
+    explicit ConstView(cref<itf_t> ref, dtype const id)
     :
-    data{aref.data}, meta{aref}, convert{converter<T>(id)}
+    data{reinterpret_cast<memptr>(ref.data)}, meta{ref}, convert{converter<T>(id)}
     {}
 
     
@@ -300,6 +265,12 @@ struct ConstView {
     
     ConstView& operator=(ConstView const&) = default;
     ConstView& operator=(ConstView&&) = default;
+    
+    
+    cref<idx const> shape(idx const ii) const noexcept
+    {
+        return meta.shape[ii];
+    }
     
     
     template<class... Args>
@@ -317,6 +288,65 @@ struct ConstView {
 
 
 template<class T>
+struct View
+{
+    using val_t = T;
+    using cval_t = T const;
+    using ref_t = ref<T>;
+    using cref_t = cref<T>;
+    
+    // TODO: make appropiate items constant
+    cptr<T> data;
+    std::array<idx, maxdim> _strides;
+    ArrayMeta meta;
+
+    explicit View(cref<itf_t> ref, idx const ndim)
+    :
+    data{reinterpret_cast<T*>(ref.data)}
+    {
+        meta.shape = ref.shape;
+        meta.ndim = ref.nd;
+        
+        for (idx ii = 0; ii < ndim; ++ii) {
+            _strides[ii] = idx(double(ref.strides[ii]) / ref.itemsize);
+        }
+        
+        meta.strides = _strides.data();
+    }
+    
+    
+    View() = delete;
+    ~View() = default;
+    
+    View(View const&) = default;
+    View(View&&) = default;
+    
+    View& operator=(View const&) = default;
+    View& operator=(View&&) = default;
+    
+    
+    cref<idx const> shape(idx const ii) const noexcept
+    {
+        return meta.shape[ii];
+    }
+    
+    
+    template<class... Args>
+    ref_t operator()(Args&&... args)
+    {
+        return data[meta(std::forward<Args>(args)...)];
+    }
+    
+    
+    template<class... Args>
+    cref_t operator()(Args&&... args) const
+    {
+        return data[meta(std::forward<Args>(args)...)];
+    }
+};
+
+
+template<class T>
 struct id_idx {
     static constexpr dtype value = dtype::Unknown;
 };
@@ -326,12 +356,68 @@ template<> struct id_idx<int8_t> {
     static constexpr dtype value = dtype::Int8;
 };
 
-/*
-template<> struct id_idx<int8_t> {
-    static constexpr dtype value = dtype::Int8;
-};
-*/
 
+template<> struct id_idx<int16_t> {
+    static constexpr dtype value = dtype::Int16;
+};
+
+
+template<> struct id_idx<int32_t> {
+    static constexpr dtype value = dtype::Int32;
+};
+
+
+template<> struct id_idx<int64_t> {
+    static constexpr dtype value = dtype::Int64;
+};
+
+
+template<> struct id_idx<uint8_t> {
+    static constexpr dtype value = dtype::UInt8;
+};
+
+
+template<> struct id_idx<uint16_t> {
+    static constexpr dtype value = dtype::UInt16;
+};
+
+
+template<> struct id_idx<uint32_t> {
+    static constexpr dtype value = dtype::UInt32;
+};
+
+
+template<> struct id_idx<uint64_t> {
+    static constexpr dtype value = dtype::UInt64;
+};
+
+
+template<> struct id_idx<float32> {
+    static constexpr dtype value = dtype::Float32;
+};
+
+
+template<> struct id_idx<float64> {
+    static constexpr dtype value = dtype::Float64;
+};
+
+
+template<> struct id_idx<cpx64> {
+    static constexpr dtype value = dtype::Complex64;
+};
+
+
+template<> struct id_idx<cpx128> {
+    static constexpr dtype value = dtype::Complex128;
+};
+
+
+template<class T>
+static type_info constexpr make_type(name_t name)
+{
+    return type_info(std::is_complex<T>::value, sizeof(T), id_idx<T>::value,
+                     name);
+}
 
 
 // from: https://www.techiedelight.com/use-std-pair-key-std-unordered_map-cpp/
@@ -379,16 +465,6 @@ static type_dict_t const type_dict{
 };
 
 
-template<class T>
-static type_info constexpr make_type(name_t name)
-{
-    return type_info(std::is_complex<T>::value, sizeof(T), dtype::Unknown,
-                     name);
-                     // sizeof(T), tpl2dtype<T>(), name);
-                     // TODO: fix this
-}
-
-
 static constexpr type_info types[] = {
     [int(dtype::Unknown)] = type_info(),
     
@@ -411,39 +487,16 @@ static constexpr type_info types[] = {
 };
 
 
-cref<type_info> get_type(char const kind, int const size)
+static cref<type_info> get_type(char const kind, int const size)
 {
     return types[int(type_dict.at({kind, size}))];
 }
 
 
-//static constexpr dtype types[] = {
-    // [int(dtype::Unknown)] = dtype::Unknown,
-    /*
-    [int(dtype::Int8)]  = make_type<int8_t>("int8"),
-    
-    [dtype::Int16] = make_type<int16_t>("int16"),
-    [dtype::Int32] = make_type<int32_t>("int32"),
-    [dtype::Int64] = make_type<int64_t>("int64"),
-    
-    [dtype::UInt8]  = make_type<int8_t>("uint8"),
-    [dtype::UInt16] = make_type<int16_t>("uint16"),
-    [dtype::UInt32] = make_type<int32_t>("uint32"),
-    [dtype::UInt64] = make_type<int64_t>("uint64"),
-    
-    [dtype::Float32] = make_type<float32>("float32"),
-    [dtype::Float64] = make_type<float64>("float64"),
-    
-    [dtype::Complex64]  = make_type<cpx64>("complex64"),
-    //[dtype::Complex128] = make_type<cpx128>("complex128")
-    */
-// };
-
-
 template<class from, class to>
 static constexpr convert_fun<to> make_convert()
 {
-    return [](memptr const in) {
+    return [](memptr in) {
         return static_cast<to>(*reinterpret_cast<from*>(in));
     };
 }
@@ -486,69 +539,6 @@ static convert_fun<T> const converter(dtype const id)
             throw std::runtime_error("AA");
     }
 }
-
-
-
-/*
-template<class T>
-struct View
-{
-    using val_t = T;
-    using cval_t = T const;
-    using ref_t = ref<T>;
-    using cref_t = cref<T>;
-    
-    // TODO: make appropiate items constant
-    cptr<T> data;
-    std::array<idx, maxdim> _strides;
-    ArrayMeta meta;
-
-    explicit View(ref<Array> ref, idx const ndim)
-    :
-    data{reinterpret_cast<T*>(ref.data)}
-    {
-        auto const& itf = ref.interface()
-        meta.shape = ref.shape;
-        meta.ndim = ref.ndim;
-        
-        for (idx ii = 0; ii < ndim; ++ii) {
-            _strides[ii] = idx(double(ref.strides[ii]) / ref.datasize);
-        }
-        
-        meta.strides = _strides.data();
-    }
-    
-    
-    View() = delete;
-    ~View() = default;
-    
-    View(View const&) = default;
-    View(View&&) = default;
-    
-    View& operator=(View const&) = default;
-    View& operator=(View&&) = default;
-    
-    
-    cref<idx> shape(idx const ii) const noexcept
-    {
-        return meta.shape[ii];
-    }
-    
-    
-    template<class... Args>
-    ref_t operator()(Args&&... args)
-    {
-        return data[meta(std::forward<Args>(args)...)];
-    }
-    
-    
-    template<class... Args>
-    cref_t operator()(Args&&... args) const
-    {
-        return data[meta(std::forward<Args>(args)...)];
-    }
-};
-*/
 
 
 // taken from pybind11/numpy.h

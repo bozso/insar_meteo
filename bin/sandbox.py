@@ -40,11 +40,8 @@ def main():
              #"before fitting.", kind="flag")
     #)
     
-    # print(dir(a))
-    for dtype in {"float32", "float64", "uint32", "int64"}:
-        print(dtype)
-        a = np.array([1], dtype=dtype)
-        im.aaa(a.__array_struct__)
+    a = np.array([1, 2, 3])
+    im.aaa(a)
     
     return 0
     

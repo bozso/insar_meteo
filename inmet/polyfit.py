@@ -11,8 +11,8 @@ class PolyFit(im.Save):
     class C(im.CStruct):
         _fields_ = [
             ("nfit", im.c_idx),
-            ("coeffs", im.Array),
-            ("ncoeffs", im.Array)
+            ("coeffs", im.CArray),
+            ("ncoeffs", im.CArray)
         ]
 
     

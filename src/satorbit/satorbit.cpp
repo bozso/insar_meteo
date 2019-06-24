@@ -1,5 +1,6 @@
 #include "satorbit.hpp"
-// #include "math.hpp"
+#include "math.hpp"
+#include "array.hpp"
 
 
 static aux::ptr<Ellipsoid const> ellipsoid = nullptr;
@@ -8,6 +9,7 @@ static aux::ptr<Ellipsoid const> ellipsoid = nullptr;
 using namespace consts;
 
 #if 0
+
 static inline double norm(cdouble x, cdouble y, cdouble z)
 {
     return sqrt(x * x + y * y + z * z);

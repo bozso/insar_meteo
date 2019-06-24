@@ -32,9 +32,8 @@ __all__ = [
     "PY3",
     "CLib",
     "CStruct",
-    "Array",
-    # "c_arr_p",
-    "arrptr",
+    "CArray",
+    "carray",
     "get_filedir",
     "Save",
     "iteraxis",
@@ -97,66 +96,22 @@ class CStruct(Structure):
         return byref(obj)
 
 
-
-class Array(CStruct):
-    _fields_ = [
-        ("type", c_int),
-        ("is_numpy", c_int),
-        ("ndim", c_idx),
-        ("ndata", c_idx),
-        ("datasize", c_idx),
-        ("shape", c_idx_p), 
-        ("strides", c_idx_p),
-        ("data", c_char_p)
-    ]
-    
-    
-    def __init__(self, obj):
-        ct = obj.ctypes
-        
-        self.type = type_conversion[obj.dtype]
-        self.is_numpy = 1
-        self.ndim = obj.ndim
-        self.ndata = obj.size
-        self.datasize = obj.itemsize
-        self.shape = ct.shape_as(c_idx)
-        self.strides = ct.strides_as(c_idx)
-        self.data = ct.data_as(c_char_p)
-
-    
-    @classmethod
-    def from_array(cls, *args, **kwargs):
-        tmp = np.array(*args, **kwargs)
-        
-        ct = tmp.ctypes
-        
-        return cls(type_conversion[tmp.dtype], 1, c_idx(tmp.ndim),
-                   c_idx(tmp.size), c_idx(tmp.itemsize), ct.shape_as(c_idx),
-                   ct.strides_as(c_idx), ct.data_as(c_char_p))
-    
-    
-    @classmethod
-    def ptr(cls, *args, **kwargs):
-        return cls.from_array(*args, **kwargs)
-
-    
+class CArray(py_object):
     @classmethod
     def from_param(cls, obj):
-        return byref(cls.from_array(obj))
+        return cls(obj.__array_struct__)
 
 
-# c_arr_p = POINTER(Array)
-
-
-def arrptr(**kwargs):
+def carray(**kwargs):
+    kwargs.setdefault("flags", ["C_CONTIGUOUS"])
     tmp = ndpointer(**kwargs)
-    tmp.from_param = Array.from_param
+    tmp.from_param = CArray.from_param
     
     return tmp
 
 
-inarray = arrptr(flags=["C_CONTIGUOUS"])
-outarray = arrptr(flags=["C_CONTIGUOUS", "OWNDATA", "WRITEABLE"])
+inarray = carray(flags=["C_CONTIGUOUS"])
+outarray = carray(flags=["C_CONTIGUOUS", "OWNDATA", "WRITEABLE"])
 
 
 lib_filename = new_compiler().library_filename

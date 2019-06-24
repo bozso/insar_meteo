@@ -4,10 +4,10 @@
 #include "array.hpp"
 // #include "math.hpp"
 
+
 using std::exception;
 using std::cout;
 using std::cerr;
-
 
 
 extern "C" {
@@ -15,29 +15,13 @@ extern "C" {
 int aaa(aux::Array& a)
 {
     try {
-    
-        // printf("%s\n", aux::types[aux::dtype::Int8].name);
-    
-        // return 0;
-    
-    
-        auto const va = a.const_view<float>(1);
-        // printf("name: %s\n", pair.second.name);
+        auto const va = a.view<int64_t>(1);
         
-        // auto const& type = aux::detail::get_type(itf.typekind, itf.itemsize);
-        // printf("%c\n", a.descr().kind);
-        // printf("%c %d\n", itf.typekind, itf.itemsize);
-        //printf("Name: %s\n", type.name);
-        /*
-        auto const va = a.const_view<float>(1);
-        auto vb = b.view<double>(1);
-        
-        for (int ii = 0; ii < a.shape[0]; ++ii) {
-            printf("%f\t%f\n", va(ii), vb(ii));
+        for (int ii = 0; ii < va.shape(0); ++ii) {
+            printf("%ld\n", va(ii));
         }
 
         printf("\n");
-        */
         
         return 0;
     }

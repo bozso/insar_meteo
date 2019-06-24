@@ -7,12 +7,13 @@ namespace math {
 
 struct PolyFit {
     aux::idx nfit;
-    aux::Array coeffs, ncoeffs;
+    aux::arr_in coeffs, ncoeffs;
 };
 
 
-using poly_in = PolyFit const&;
-using poly_out = PolyFit&;
+using poly_in = aux::cref<PolyFit>;
+using poly_out = aux::ref<PolyFit>;
+
 
 void eval_poly(poly_in poly, aux::arr_in x, aux::arr_out y);
 

@@ -1,196 +1,46 @@
 #ifndef __AUX_HPP
 #define __AUX_HPP
 
+#include <type_traits>
+#include <complex>
+
+
 #define type_assert(T, P, msg) static_assert(T<P>::value, msg)
 #define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
 
+namespace std {
+
+template<class T>
+struct is_complex : false_type {};
+
+
+template<class T>
+struct is_complex<complex<T>> : true_type {};
+
+}
+
+
 namespace aux {
 
+using float32 = float;
+using float64 = double;
+
+using cpx64  = std::complex<float32>;
+using cpx128 = std::complex<float64>;
 
 
-/*
 template<class T>
-struct Ptr
-{
-    using ptr_t = T*;
-    using value_type = T;
-    
-    ptr_t _ptr{nullptr};
-    
-    
-    Ptr() = default;
-    ~Ptr() = default;
-    
-    Ptr(Ptr const&) = default;
-    Ptr& operator=(Ptr const&) = default;
-    
-    Ptr(ptr_t const ptr) : _ptr{ptr} {}
-    Ptr& operator=(ptr_t const ptr) { _ptr = ptr; return *this; }
-    
-    Ptr(Ptr&&) = delete;
-    Ptr& operator=(Ptr&&) = delete;
-    
-    Ptr(ptr_t&&) = delete;
-    Ptr& operator=(ptr_t&&) = delete;
-    
-    ptr_t get() { return _ptr; }
-    
-    value_type& operator*() { return *_ptr; }
-    value_type const& operator*() const { return *_ptr; }
-    
-    ptr_t operator->() { return _ptr; }
-    ptr_t const operator->() const { return _ptr; }
-};
+using ptr = T*;
+
+template<class T>
+using cptr = ptr<T> const;
 
 
-#define switcher(f, type_id, ...)                      \
-do {                                                   \
-    switch (static_cast<dtype>((type_id))) {           \
-        case dtype::Int:                               \
-            f<int>(__VA_ARGS__);                       \
-            break;                                     \
-        case dtype::Long:                              \
-            f<long>(__VA_ARGS__);                      \
-            break;                                     \
-        case dtype::Size_t:                            \
-            f<size_t>(__VA_ARGS__);                    \
-            break;                                     \
-                                                       \
-        case dtype::Int8:                              \
-            f<int8_t>(__VA_ARGS__);                    \
-            break;                                     \
-        case dtype::Int16:                             \
-            f<int16_t>(__VA_ARGS__);                   \
-            break;                                     \
-        case dtype::Int32:                             \
-            f<int32_t>(__VA_ARGS__);                   \
-            break;                                     \
-        case dtype::Int64:                             \
-            f<int64_t>(__VA_ARGS__);                   \
-            break;                                     \
-                                                       \
-                                                       \
-        case dtype::UInt8:                             \
-            f<uint8_t>(__VA_ARGS__);                   \
-            break;                                     \
-        case dtype::UInt16:                            \
-            f<uint16_t>(__VA_ARGS__);                  \
-            break;                                     \
-        case dtype::UInt32:                            \
-            f<uint32_t>(__VA_ARGS__);                  \
-            break;                                     \
-        case dtype::UInt64:                            \
-            f<uint64_t>(__VA_ARGS__);                  \
-            break;                                     \
-                                                       \
-        case dtype::Float32:                           \
-            f<float>(__VA_ARGS__);                     \
-            break;                                     \
-        case dtype::Float64:                           \
-            f<double>(__VA_ARGS__);                    \
-            break;                                     \
-                                                       \
-        case dtype::Complex64:                         \
-            f<cpxf>(__VA_ARGS__);                      \
-            break;                                     \
-        case dtype::Complex128:                        \
-            f<cpxd>(__VA_ARGS__);                      \
-            break;                                     \
-                                                       \
-        case dtype::Unknown:                           \
-            throw std::runtime_error("Unknown type!"); \
-            break;                                     \
-    }                                                  \
-} while(0)
+template<class T>
+using ref = T&;
 
-
-template<class Fun, class... Args>
-void switcher2(int const type_id, Args&&... args)
-{
-    switch(static_cast<dtype>(type_id)) {
-        case dtype::Int:
-            Fun<int>(std::forward<Args>(args)...);
-            break;
-        case dtype::Complex128:
-            Fun<cpxd>(std::forward<Args>(args)...);
-            break;
-        case dtype::Unknown:
-        default:
-            throw std::runtime_error("Unknown type!");
-            break;
-    }
-}
-
-
-template<class Fun, class... Args>
-void switcher(int const type_id, Fun f, Args&&... args)
-{
-    switch(static_cast<dtype>(type_id)) {
-        case dtype::Int:
-            f<int>(std::forward<Args>(args)...);
-            break;
-        case dtype::Long:
-            f<long>(std::forward<Args>(args)...);
-            break;
-        case dtype::Size_t:
-            f<size_t>(std::forward<Args>(args)...);
-            break;
-        
-        case dtype::Int8:
-            f<int8_t>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::Int16:
-            f<int16_t>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::Int32:
-            f<int32_t>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::Int64:
-            f<int64_t>(std::forward<Args>(args)...);
-            break;
-            
-
-        case dtype::UInt8:
-            f<uint8_t>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::UInt16:
-            f<uint16_t>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::UInt32:
-            f<uint32_t>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::UInt64:
-            f<uint64_t>(std::forward<Args>(args)...);
-            break;
-   
-        case dtype::Float32:
-            f<float>(std::forward<Args>(args)...);
-            break;
-   
-        case dtype::Float64:
-            f<double>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::Complex64:
-            f<cpxf>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::Complex128:
-            f<cpxd>(std::forward<Args>(args)...);
-            break;
-
-        case dtype::Unknown:
-            throw std::runtime_error("Unknown type!");
-            break;
-    }
-}
-*/
+template<class T>
+using cref = ref<T const>;
 
 
 // namespace end

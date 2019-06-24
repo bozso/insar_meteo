@@ -15,7 +15,7 @@ static void eval_poly_tpl(poly_in poly, arr_in X, arr_out Y)
     auto vcoeffs = poly.coeffs.const_view<T>(1);
     auto vncoeffs = poly.ncoeffs.const_view<idx>(1);
 
-    for (idx ii = 0; ii < X.shape[0]; ++ii) {
+    for (idx ii = 0; ii < x.shape(0); ++ii) {
         idx start = 0, stop = vncoeffs(0);
         auto const& _x = x(ii);
         
@@ -54,12 +54,12 @@ static void eval_poly_tpl(poly_in poly, arr_in X, arr_out Y)
 
 void eval_poly(poly_in poly, arr_in x, arr_out y)
 {
-    auto const is_cpx = poly.coeffs.get_type().is_complex;
+    auto const is_cpx = poly.coeffs.type().is_complex;
     
     if (is_cpx) {
         eval_poly_tpl<double>(poly, x, y);
     } else {
-        eval_poly_tpl<aux::cpxd>(poly, x, y);
+        eval_poly_tpl<aux::cpx128>(poly, x, y);
     }
 
     

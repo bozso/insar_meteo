@@ -22,11 +22,6 @@ struct is_complex<complex<T>> : true_type {};
 
 namespace aux {
 
-using float32 = float;
-using float64 = double;
-
-using cpx64  = std::complex<float32>;
-using cpx128 = std::complex<float64>;
 
 
 template<class T>

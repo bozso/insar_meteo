@@ -18,7 +18,7 @@
 #define __SATORBIT_H
 
 
-#include "aux.hpp"
+#include "array.hpp"
 
 
 /***********
@@ -43,7 +43,7 @@ struct Ellipsoid {
 
 
 extern "C" {
-    void set_ellipsoid(aux::cptr<Ellipsoid const> new_ellipsoid);
+    void set_ellipsoid(Ellipsoid const*const new_ellipsoid);
     void print_ellipsoid();
 }
 

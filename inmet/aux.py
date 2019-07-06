@@ -4,14 +4,14 @@ import inmet as im
 from ctypes import *
 
 
-__all__ = [
+__all__ = {
     "empty",
     "is_cpx",
     "set_ellipsoid",
     "print_ellipsoid",
     "aaa",
     "lib"
-]
+}
 
 
 def is_cpx(obj):

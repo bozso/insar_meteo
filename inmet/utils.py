@@ -28,7 +28,7 @@ from numpy.ctypeslib import _ndptr, ndpointer
 from ctypes import *
 
 
-__all__ = [
+__all__ = {
     "PY3",
     "CLib",
     "CStruct",
@@ -38,10 +38,10 @@ __all__ = [
     "Save",
     "iteraxis",
     "str_t",
-    "inarray",
-    "outarray",
+    "in_arr",
+    "out_arr",
     "c_idx"
-]
+}
 
            
 PY3 = version_info[0] == 3
@@ -110,8 +110,8 @@ def carray(**kwargs):
     return tmp
 
 
-inarray = carray(flags=["C_CONTIGUOUS"])
-outarray = carray(flags=["C_CONTIGUOUS", "OWNDATA", "WRITEABLE"])
+in_arr  = carray(flags=["C_CONTIGUOUS"])
+out_arr = carray(flags=["C_CONTIGUOUS", "OWNDATA", "WRITEABLE"])
 
 
 lib_filename = new_compiler().library_filename
@@ -121,11 +121,11 @@ class CLib(object):
     build_dir = join(get_filedir(), "..", "build")
 
     def __init__(self, name, path=None):
-        if path is None:
-            self.path = join(CLib.build_dir, lib_filename(name, lib_type="shared"))
-        else:
-            self.path = join(path, lib_filename(name, lib_type="shared"))
-
+        lname = lib_filename(name, lib_type="shared")
+        
+        self.path = join(CLib.build_dir, lname) if path is None \
+                    else join(path, lname)
+        
         self.lib = CDLL(self.path)
 
     
@@ -147,36 +147,7 @@ class CLib(object):
             
         return fun
 
-
-type_conversion = {
-    np.dtype(np.int_)        : 1, # C long
-    np.dtype(np.intc)        : 2, # C int
-    np.dtype(np.intp)        : 3, # C ssize_t
-
-    np.dtype(np.int8)        : 4,
-    np.dtype(np.int16)       : 5,
-    np.dtype(np.int32)       : 6,
-    np.dtype(np.int64)       : 7,
-
-    np.dtype(np.uint8)       : 8,
-    np.dtype(np.uint16)      : 9,
-    np.dtype(np.uint32)      : 10,
-    np.dtype(np.uint64)      : 11,
-
-    np.dtype(np.float32)     : 12,
-    np.dtype(np.float64)     : 13,
-
-    np.dtype(np.complex64)   : 14,
-    np.dtype(np.complex128)  : 15
-}
-
-
 # log = getLogger("inmet.utils")
-
-
-ellipsoids = {
-    "mercator": (6378137.0, 8.1819190903e-2)
-}
     
 
 def ell2merc(lon, lat, isdeg=True, ellipsoid="mercator", lon0=None, fast=False):

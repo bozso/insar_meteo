@@ -6,24 +6,47 @@
 #include <functional>
 #include <stdexcept>
 #include <unordered_map>
+#include <type_traits>
+#include <complex>
+
 
 #include <Python.h>
 
-#include "aux.hpp"
+
+#define type_assert(T, P, msg) static_assert(T<P>::value, msg)
+#define m_log printf("File: %s -- Line: %d.\n", __FILE__, __LINE__)
+
+
+namespace std {
+
+template<class T>
+struct is_complex : false_type {};
+
+
+template<class T>
+struct is_complex<complex<T>> : true_type {};
+
+}
+
 
 namespace aux {
 
+using float32 = float;
+using float64 = double;
+
+using cpx64  = std::complex<float32>;
+using cpx128 = std::complex<float64>;
+
+// use long instead of Py_inptr_t?
 using idx = Py_intptr_t;
 
 // Dynamic number of dimensions
 static idx constexpr Dynamic = -1;
-static idx constexpr row = 0;
-static idx constexpr col = 1;
 static idx constexpr maxdim = 64;
 
 
 using memtype = char;
-using memptr = cptr<memtype>;
+using memptr = memtype *const;
 
 using name_t = char const*const;
 
@@ -63,7 +86,7 @@ struct type_info {
                         dtype const id, name_t name = "Unknown") :
                 is_complex(is_complex), size(size), id(id), name(name) {}
     
-    bool operator==(cref<type_info> other) const { return id == other.id; }
+    bool operator==(type_info const& other) const { return id == other.id; }
 };
 
 
@@ -76,20 +99,20 @@ static convert_fun<T> const converter(dtype const id);
 template<class T>
 static type_info constexpr make_type(name_t name = "Unknown");
 
-static cref<type_info> get_type(char const kind, int const size);
+static type_info const& get_type(char const kind, int const size);
 
 
 struct PyArrayInterface {
-  int two;              /* contains the integer 2 -- simple sanity check */
-  int nd;               /* number of dimensions */
-  char typekind;        /* kind in array --- character code of typestr */
-  int itemsize;         /* size of each element */
-  int flags;            /* flags indicating how the data should be interpreted */
+    int two;              /* contains the integer 2 -- simple sanity check */
+    int nd;               /* number of dimensions */
+    char typekind;        /* kind in array --- character code of typestr */
+    int itemsize;         /* size of each element */
+    int flags;            /* flags indicating how the data should be interpreted */
                         /*   must set ARR_HAS_DESCR bit to validate descr */
-  Py_intptr_t *shape;   /* A length-nd array of shape information */
-  Py_intptr_t *strides; /* A length-nd array of stride information */
-  void *data;           /* A pointer to the first element of the array */
-  PyObject *descr;      /* NULL or data-description (same as descr key
+    Py_intptr_t *shape;   /* A length-nd array of shape information */
+    Py_intptr_t *strides; /* A length-nd array of stride information */
+    void *data;           /* A pointer to the first element of the array */
+    PyObject *descr;      /* NULL or data-description (same as descr key
                                 of __array_interface__) -- must set ARR_HAS_DESCR
                                 flag or this will be ignored. */
 };
@@ -109,20 +132,20 @@ struct Capsule {
     ~Capsule() = default;
     
     template<class T>
-    cref<T> get_ref() const { return *reinterpret_cast<ptr<T const>>(pointer); }
+    T const& get_ref() const { return *reinterpret_cast<T const*>(pointer); }
     
     template<class T>
-    ref<T> get_ref() { return *reinterpret_cast<ptr<T>>(pointer); }
+    T& get_ref() { return *reinterpret_cast<T*>(pointer); }
 };
 
 
 
 struct Array : Capsule {
     
-    cref<itf_t> interface() const { return get_ref<itf_t>(); }
+    itf_t const& interface() const { return get_ref<itf_t>(); }
     
     
-    cref<type_info> type() const
+    type_info const& type() const
     { 
         auto const& itf = interface();
         return get_type(itf.typekind, itf.itemsize);
@@ -130,7 +153,7 @@ struct Array : Capsule {
     
     
     template<class T, bool exact_match>
-    std::pair<cref<itf_t>, dtype const>
+    std::pair<itf_t const&, dtype const>
     basic_check(idx const ndim) const
     {
         auto const& itf = interface();
@@ -193,17 +216,17 @@ struct Array : Capsule {
     }
 };
 
-using arr_in = cref<Array>;
-using arr_out = ref<Array>;
+using arr_in = Array const&;
+using arr_out = Array&;
 
 
 struct ArrayMeta {
-    ptr<idx const> shape = nullptr, strides = nullptr;
+    idx const *shape = nullptr, *strides = nullptr;
     idx ndim = 0;
     
-    explicit ArrayMeta(cref<itf_t> ref)
+    explicit ArrayMeta(itf_t const& ref)
     :
-    shape{ref.shape}, strides{ref.strides}, ndim{ref.nd} {}
+    shape(ref.shape), strides(ref.strides), ndim(ref.nd) {}
     
     ArrayMeta() = default;
     ~ArrayMeta() = default;
@@ -243,17 +266,18 @@ template<class T>
 struct ConstView {
     using val_t = T;
     using cval_t = T const;
-    using ref_t = ref<T>;
-    using cref_t = cref<T>;
+    using ref_t = T&;
+    using cref_t = T const&;
     
     memptr data;
     ArrayMeta meta;
     convert_fun<T> const convert;
     
     
-    explicit ConstView(cref<itf_t> ref, dtype const id)
+    explicit ConstView(itf_t const& ref, dtype const id)
     :
-    data{reinterpret_cast<memptr>(ref.data)}, meta{ref}, convert{converter<T>(id)}
+    data(reinterpret_cast<memptr>(ref.data)), meta(ref),
+    convert(converter<T>(id))
     {}
 
     
@@ -267,7 +291,7 @@ struct ConstView {
     ConstView& operator=(ConstView&&) = default;
     
     
-    cref<idx const> shape(idx const ii) const noexcept
+    idx const& shape(idx const ii) const noexcept
     {
         return meta.shape[ii];
     }
@@ -292,15 +316,15 @@ struct View
 {
     using val_t = T;
     using cval_t = T const;
-    using ref_t = ref<T>;
-    using cref_t = cref<T>;
+    using ref_t = T&;
+    using cref_t = T const&;
     
     // TODO: make appropiate items constant
-    cptr<T> data;
+    T *const data;
     std::array<idx, maxdim> _strides;
     ArrayMeta meta;
 
-    explicit View(cref<itf_t> ref, idx const ndim)
+    explicit View(itf_t const& ref, idx const ndim)
     :
     data{reinterpret_cast<T*>(ref.data)}
     {
@@ -325,7 +349,7 @@ struct View
     View& operator=(View&&) = default;
     
     
-    cref<idx const> shape(idx const ii) const noexcept
+    idx const& shape(idx const ii) const noexcept
     {
         return meta.shape[ii];
     }
@@ -487,7 +511,7 @@ static constexpr type_info types[] = {
 };
 
 
-static cref<type_info> get_type(char const kind, int const size)
+static type_info const& get_type(char const kind, int const size)
 {
     return types[int(type_dict.at({kind, size}))];
 }

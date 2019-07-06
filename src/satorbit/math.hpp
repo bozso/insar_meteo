@@ -11,8 +11,8 @@ struct PolyFit {
 };
 
 
-using poly_in = aux::cref<PolyFit>;
-using poly_out = aux::ref<PolyFit>;
+using poly_in = PolyFit const&;
+using poly_out = PolyFit&;
 
 
 void eval_poly(poly_in poly, aux::arr_in x, aux::arr_out y);

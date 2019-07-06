@@ -3,7 +3,7 @@
 #include "array.hpp"
 
 
-static aux::ptr<Ellipsoid const> ellipsoid = nullptr;
+static Ellipsoid const* ellipsoid = nullptr;
 
 
 using namespace consts;
@@ -301,7 +301,7 @@ void print_ellipsoid()
 }
 
 
-void set_ellipsoid(aux::cptr<Ellipsoid const> new_ellipsoid)
+void set_ellipsoid(Ellipsoid const*const new_ellipsoid)
 {
     ellipsoid = new_ellipsoid;
 }

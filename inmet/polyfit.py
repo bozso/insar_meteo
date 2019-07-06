@@ -3,7 +3,9 @@ import numpy as np
 import inmet as im
 
 
-__all__ = ["PolyFit"]
+__all__ = {
+    "PolyFit"
+}
 
 
 class PolyFit(im.Save):
@@ -11,8 +13,8 @@ class PolyFit(im.Save):
     class C(im.CStruct):
         _fields_ = [
             ("nfit", im.c_idx),
-            ("coeffs", im.CArray),
-            ("ncoeffs", im.CArray)
+            ("coeffs", im.in_arr),
+            ("ncoeffs", im.in_arr)
         ]
 
     

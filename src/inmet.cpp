@@ -1,7 +1,7 @@
 #include <exception>
 #include <iostream>
 
-#include "array.hpp"
+#include "aux.hpp"
 // #include "math.hpp"
 
 

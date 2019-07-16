@@ -63,6 +63,17 @@ enum class dtype {
 };    
 
 
+struct Error {
+    static constexpr auto buffer_size = 1024;
+    
+    char const str[buffer_size] = nullptr;
+    bool owned = false;
+    
+    Error() = default;
+    ~Error() default;
+};
+
+
 // Forward declarations
 
 template<class T>

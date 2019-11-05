@@ -1,0 +1,18 @@
+{
+    "authors": [
+        "Bozsó István"
+    ],
+    "copyright": "Copyright © 2019, Bozsó István",
+    "dependencies": {
+        "gdal2": "~>2.1.2"
+    },
+    "description": "InSAR meteorology D sourcefiles",
+    "lflags": [
+        "-L/home/istvan/miniconda3/lib"
+    ],
+    "libs": [
+        "gdal"
+    ],
+    "license": "GPL-3.0",
+    "name": "insar_meteo"
+}

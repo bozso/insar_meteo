@@ -1,0 +1,5 @@
+rule dup
+  command = dub build --root=".."
+
+
+build BUILD: dup base.d app.d

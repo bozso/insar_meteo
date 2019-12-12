@@ -1,6 +1,0 @@
-INMET_DIR="/home/istvan/progs/insar_meteo"
-
-export PYTHONPATH="$PYTHONPATH:$INMET_DIR"
-export PATH="$PATH:$INMET_DIR/bin"
-export MATLABPATH="$INMET_DIR/Matlab:$MATLABPATH"
-export JULIA_LOAD_PATH="$JULIA_LOAD_PATH:$INMET_DIR"

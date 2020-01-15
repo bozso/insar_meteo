@@ -9,9 +9,6 @@ sat = ${root}/satorbit
 cflags = -fmessage-length=79 -std=c++11 -g -O0 -Wall -I${aux} $
 -I${sat} $$(python3-config --cflags) -fmax-errors=10
 
-rule header
-  command = printf "*********************\n* Compilation start *\n*********************\n"
-
 rule cc
   command = $cc $cflags -c -fPIC -o $out $in 
 
@@ -21,8 +18,6 @@ rule link
 rule slib
   command = $cc $cflags -shared -fPIC -o $out $in
 
-  
-build tmp: header
 
 build ${bdir}/inmet.o: cc ${root}/inmet.cpp
 build ${bdir}/satorbit.o: cc ${sat}/satorbit.cpp

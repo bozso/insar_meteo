@@ -1,7 +1,7 @@
 #ifndef __MATH_HPP
 #define __MATH_HPP
 
-#include "array.hpp"
+#include "aux.hpp"
 
 namespace math {
 

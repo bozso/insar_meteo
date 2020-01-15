@@ -1,5 +1,5 @@
-this="$(pwd)"
+root="$(dirname $(realpath $0))"
 
-export PYTHONPATH="${PYTHONPATH}:${this}"
-export PATH="${PATH}:${this}/bin"
-export MATLABPATH="${MATLABPATH}:${this}/Matlab"
+export PYTHONPATH="${PYTHONPATH}:${root}"
+export PATH="${PATH}:${root}/bin"
+export MATLABPATH="${MATLABPATH}:${root}/Matlab"

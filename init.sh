@@ -1,4 +1,4 @@
-root="$(dirname $(realpath $0))"
+root="$(realpath $1)"
 
 export PYTHONPATH="${PYTHONPATH}:${root}"
 export PATH="${PATH}:${root}/bin"
